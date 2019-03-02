@@ -1,0 +1,10 @@
+{
+    "Parameters": {
+        "TestingAccountId": "130330464033",
+        "ProductionAccountId": "144313290359"
+    },
+    "Tags" : {
+        "TagKey" : "TagValue",
+        "MyKey" : "MyValue"
+      }
+}

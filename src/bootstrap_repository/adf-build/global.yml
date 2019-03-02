@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Role to be assumed by CodePipeline service cross account
+Parameters:
+  DeploymentAccountId:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Description: Deployment Account ID
+    Default: deployment_account_id
+  CrossAccountAccessRole:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Description: The role used to allow cross account access
+    Default: cross_account_access_role
+Resources:
+  OrganizationsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${CrossAccountAccessRole}-org-access"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref DeploymentAccountId
+            Action:
+              - sts:AssumeRole
+      Path: /
+  OrganizationsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "organizations-access-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - organizations:ListAccounts
+              - organizations:ListAccountsForParent
+              - organizations:DescribeAccount
+              - organizations:ListOrganizationalUnitsForParent
+              - organizations:ListRoots
+            Resource: "*"
+      Roles:
+        - !Ref OrganizationsRole

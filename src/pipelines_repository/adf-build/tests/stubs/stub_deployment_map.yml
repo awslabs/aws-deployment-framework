@@ -1,0 +1,29 @@
+pipelines:
+  - name: sample-vpc
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 558421765047
+      - NotificationEndpoint: bundyf@amazon.com
+    targets:
+      - path: /banking/testing
+        regions: eu-west-1
+      - approval
+      - path: /banking/production
+        regions: us-west-2
+
+  - name: example-sc
+    type: cc-service-catalog
+    targets:
+      - path: /banking/testing
+        regions: eu-west-1
+      - path: /banking/production
+        regions: us-west-2
+
+  - name: some-thing
+    type: cc-service-catalog
+    params:
+      - SourceAccountId: 558421765047
+      - ProductId: prod-he4yf3z3spjmm
+      - NotificationEndpoint: bundyf@amazon.com
+    targets:
+      - 123456789

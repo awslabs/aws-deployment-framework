@@ -1,0 +1,14 @@
+# Enable container based builds
+sudo: false
+language: python
+
+python:
+  - "3.6"
+  - "3.7"
+
+install:
+  # Install the code requirements
+  - make init
+
+script:
+  - tox
