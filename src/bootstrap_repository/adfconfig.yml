@@ -1,0 +1,16 @@
+roles:
+  cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access
+
+regions:
+  deployment-account: eu-west-1  # The region you define as your main deployment region
+  targets: # A list of regions you wish to bootstrap and also deploy into via pipelines
+    - eu-central-1 
+    - us-east-1
+
+config:
+  main-notification-endpoint: 
+    - type: email
+      target: jon.doe@email.com  # Who receives notifications for the main bootstrapping pipeline
+  moves:
+    - name: to-root
+      action: safe  # Can be safe or remove_base

@@ -1,0 +1,8 @@
+tox==2.2.1
+pylint==2.2.2
+pytest==3.0.7
+mock==2.0.0
+boto3~=1.9, >=1.9.56
+PyYAML~=3.12
+astroid==2.1.0
+jinja2==2.10

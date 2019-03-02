@@ -1,0 +1,752 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: ADF CloudFormation Template (Global) for Deployment Account
+Parameters:
+  MasterAccountId:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: master_account_id
+  SharedModulesBucket:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: deployment_account_bucket
+  OrganizationId:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: organization_id
+  CrossAccountAccessRole:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: cross_account_access_role
+  Image:
+    Description: The Image you wish to use for CodeBuild.
+    Type: String
+    Default: "aws/codebuild/python:3.7.1"
+  ComputeType:
+    Description: The Compute Type to use for AWS CodeBuild
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    AllowedValues:
+      - "BUILD_GENERAL1_SMALL"  #3 GB memory, 2 vCPU
+      - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
+      - "BUILD_GENERAL1_LARGE"  #15 GB memory, 8 vCPU
+  NotificationEndpoint:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: notification_endpoint
+Resources:
+  LambdaLayerVersion:
+    Type: "AWS::Serverless::LayerVersion"
+    Properties:
+      ContentUri: "../adf-build/shared/"
+      CompatibleRuntimes: 
+        - python3.6
+        - python3.7
+      Description: "Shared Lambda Layer between master and deployment account"
+      LayerName: shared_layer
+  LambdaLayerVersionPermission:
+    Type: "AWS::Lambda::LayerVersionPermission"
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LambdaLayerVersion
+      OrganizationId: !Ref OrganizationId
+      Principal: "*"
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: !Ref AWS::StackName
+        Statement:
+          - Sid: Allows admin of the key
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt CodeBuildRole.Arn
+                - !GetAtt CodePipelineRole.Arn
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: "*"
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/codepipeline-${AWS::AccountId}"
+      TargetKeyId: !Ref KMSKey
+  PipelineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codebuild-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+  CodeBuildRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-codebuild-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:Get*
+              - s3:List*
+            Resource:
+              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
+              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt KMSKey.Arn
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-org-access"
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "codepipeline:*"
+              - "cloudformation:*"
+              - "ecr:*"
+              - "s3:Get*"
+              - "s3:List*"
+              - "codebuild:*"
+              - "codedeploy:*"
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "ssm:GetParametersByPath"
+              - "ssm:PutParameter"
+              - "ssm:DeleteParameter"
+              - "sns:*"
+              - "iam:PassRole"
+            Resource: "*"
+      Roles:
+        - !Ref CodeBuildRole
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - cloudformation:*
+              - s3:Get*
+              - s3:Put*
+              - s3:List*
+              - iam:PassRole
+            Resource: "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt KMSKey.Arn
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-deployment-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationDeploymentPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "sqs:*"
+              - "s3:Get*"
+              - "s3:Put*"
+              - "s3:List*"
+              - "logs:*"
+              - "ecr:*"
+              - "cloudwatch:*"
+              - "cognito-identity:*"
+              - "cognito-idp:*"
+              - "dynamodb:*"
+              - "events:*"
+              - "iam:*"
+              - "cloudtrail:*"
+              - "config:*"
+              - "states:*"
+              - "kinesis:*"
+              - "lambda:*"
+              - "elasticloadbalancing:*"
+              - "sns:*"
+              - "tag:*"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+              - "ec2:*"
+              - "iot:*"
+              - "xray:*"
+              - "dax:*"
+              - "application-autoscaling:*"
+              - "datapipeline:*"
+              - "apigateway:*"
+              - "codepipeline:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "codebuild:*"
+              - "elasticbeanstalk:*"
+              - "ssm:GetParameters"
+              - "ssm:GetParameter"
+              - "opsworks:*"
+              - "cloudformation:*"
+              - "es:*"
+              - "autoscaling:*"
+            Resource: "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt KMSKey.Arn
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+             - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
+             - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
+      Roles:
+        - !Ref CloudFormationDeploymentRole
+  CodeBuildPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow codebuild to perform actions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "codecommit:*"
+              - "codebuild:*"
+              - "codepipeline:*"
+              - "cloudformation:*"
+              - "iam:PassRole"
+            Resource: "*"
+  CodeCommitRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: 'aws-deployment-framework-pipelines'
+      RepositoryDescription: !Sub "CodeCommit Repo for all pipelines in ${AWS::AccountId}"
+      Triggers:
+      - Name: Email
+        DestinationArn: !Ref PipelineSNSTopic
+        Branches:
+        - master
+        Events:
+        - all
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: !Ref ComputeType
+        Image: !Ref Image
+        EnvironmentVariables:
+          - Name: MASTER_ACCOUNT_ID
+            Value: !Ref MasterAccountId
+          - Name: S3_BUCKET_NAME
+            Value: !Ref PipelineBucket
+          - Name: SHARED_MODULES_BUCKET
+            Value: !Ref SharedModulesBucket
+        Type: LINUX_CONTAINER
+      Name: 'aws-deployment-framework-base'
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub | 
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - pip install -r adf-build/requirements.txt -q
+            build:
+              commands:
+                - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/shared/ ./adf-build/shared --recursive --quiet
+                - aws s3 cp ./adf-build s3://$S3_BUCKET_NAME/adf-build/ --recursive --quiet
+                - export PYTHONPATH=$PWD/adf-build/shared/python
+                - pytest -vvv -s
+                - python ./adf-build/generate_pipelines.py
+          artifacts:
+            files:
+              - '**/*'
+      ServiceRole: !GetAtt CodeBuildRole.Arn        
+      Tags:
+        - Key: 'Name'
+          Value: 'aws-deployment-framework-base'
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref PipelineBucket
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Name: 'aws-deployment-framework-pipelines'
+      Stages:
+        - Name: CodeCommit
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              OutputArtifacts:
+                - Name: "Source"
+              Configuration:
+                BranchName: "master"
+                RepositoryName: 'aws-deployment-framework-pipelines'
+              RunOrder: 1
+        - Name: CreateOrUpdatePipelines
+          Actions:
+            - Name: CreateOrUpdate
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: '1'
+                  Provider: CodeBuild
+              OutputArtifacts:
+                - Name: "aws-deployment-pipelines-build"
+              InputArtifacts:
+                - Name: "Source"
+              Configuration:
+                  ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+  PipelineSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref NotificationEndpoint
+          Protocol: email
+  PipelineSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Id: !Sub "${AWS::StackName}"
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - events.amazonaws.com
+              - codecommit.amazonaws.com
+          Action: sns:Publish
+          Resource: "*"
+      Topics:
+      - !Ref PipelineSNSTopic
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codedeploy.amazonaws.com
+                - cloudformation.amazonaws.com
+                - s3.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+  CodePipelineRolePolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: PipelineBucketPolicy
+    Properties:
+      PolicyName: "adf-codepipeline-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CodePipeline"
+            Action:
+              - codepipeline:*
+              - iam:ListRoles
+              - cloudformation:Describe*
+              - cloudFormation:List*
+              - codecommit:*
+              - codedeploy:*
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - cloudformation:CreateStack
+              - cloudformation:DeleteStack
+              - cloudformation:DescribeStacks
+              - cloudformation:UpdateStack
+              - cloudformation:CreateChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:SetStackPolicy
+              - cloudformation:ValidateTemplate
+              - iam:PassRole
+              - s3:GetObjectVersion
+              - s3:GetObjectVersionAcl
+              - s3:GetObjectVersionTagging
+              - s3:GetReplicationConfiguration
+              - s3:ListBucket
+              - servicecatalog:ListProvisioningArtifacts
+              - servicecatalog:CreateProvisioningArtifact
+              - servicecatalog:DescribeProvisioningArtifact
+              - servicecatalog:DeleteProvisioningArtifact
+              - servicecatalog:UpdateProduct
+              - s3:ReplicateObject
+              - s3:ReplicateDelete
+              - s3:ReplicateTags
+              - lambda:AddPermission
+              - lambda:CreateFunction
+              - lambda:DeleteFunction
+              - lambda:InvokeFunction
+              - lambda:RemovePermission
+              - lambda:UpdateFunctionCode
+              - lambda:GetFunctionConfiguration
+              - lambda:GetFunction
+              - lambda:ListFunctions
+              - lambda:UpdateFunctionConfiguration
+              - iam:CreateRole
+              - iam:CreatePolicy
+              - iam:GetRole
+              - iam:DeleteRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - sns:Publish
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt KMSKey.Arn
+          - Action:
+            - sts:AssumeRole
+            Resource:
+              - arn:aws:iam::*:role/adf-cloudformation-role
+              - arn:aws:iam::*:role/adf-codecommit-role
+            Effect: Allow
+            Sid: AssumeRole
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:Put*
+              - s3:List*
+              - s3:ReplicateObject
+              - s3:ReplicateDelete
+              - s3:ReplicateTags
+            Resource:
+              - !Sub arn:aws:s3:::${PipelineBucket}
+              - !Sub arn:aws:s3:::${PipelineBucket}/*
+      Roles:
+        - !Ref CodePipelineRole
+  PipelineBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref "PipelineBucket"
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:Get*"
+              - "s3:Put*"
+              - "s3:List*"
+            Effect: Allow
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+            Resource:
+              - !Sub arn:aws:s3:::${PipelineBucket}
+              - !Sub arn:aws:s3:::${PipelineBucket}/*
+            Principal:
+              AWS: "*"
+  EnableCrossAccountAccess:
+    Type: "AWS::Serverless::Function"
+    Properties: 
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - EnableCrossAccountAccess"
+      Environment:
+        Variables:
+          KMS_KEY_ID: !Ref KMSKey
+          S3_BUCKET_NAME: !Ref PipelineBucket
+      FunctionName: UpdateCrossAccountIAM
+      Handler: enable_cross_account_access.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 60
+  CheckPipelineStatus:
+    Type: "AWS::Serverless::Function"
+    Properties: 
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - CheckPipelineStatus"
+      Environment:
+        Variables:
+          KMS_KEY_ID: !Ref KMSKey
+          S3_BUCKET_NAME: !Ref PipelineBucket
+      FunctionName: CheckPipelineStatus
+      Handler: update_pipelines.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 120
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      RoleName: "lambda-role"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+                - "states.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - PolicyName: "LambdaExecutionRole"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action: "sts:AssumeRole"
+                Resource: "*"
+              - Effect: "Allow"
+                Action: 
+                  - "kms:Encrypt"
+                  - "kms:Decrypt"
+                  - "kms:ReEncrypt*"
+                  - "kms:GenerateDataKey*"
+                  - "kms:Describe*"
+                  - "kms:List*"
+                  - "kms:Get*"
+                  - "kms:PutKeyPolicy"
+                  - "iam:GetRolePolicy"
+                  - "iam:PutRolePolicy"
+                  - "ssm:GetParameters"
+                  - "ssm:GetParameter"
+                  - "lambda:GetLayerVersion"
+                  - "codepipeline:PutJobSuccessResult"
+                  - "codepipeline:PutJobFailureResult"
+                  - "codepipeline:StartPipelineExecution"
+                  - "codepipeline:ListPipelines"
+                  - "codepipeline:GetPipelineState"
+                  - "s3:Get*"
+                  - "s3:Put*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action: 
+                  - "s3:Get*"
+                  - "s3:Put*"
+                  - "s3:List*"
+                Resource: !GetAtt PipelineBucket.Arn
+              - Effect: "Allow"
+                Action: 
+                  - "s3:Get*"
+                  - "s3:Put*"
+                  - "s3:List*"
+                Resource:
+                  !Join
+                    - ''
+                    - - !GetAtt PipelineBucket.Arn
+                      - '/*'
+              - Effect: "Allow"
+                Action: "logs:*"
+                Resource: "arn:aws:logs:*:*:*"
+  StatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "state-machine-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - states.amazonaws.com
+                - events.amazonaws.com
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "StatesExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      StateMachineName: "EnableCrossAccountAccess"
+      DefinitionString: !Sub |-
+            {
+              "Comment": "Enable Cross Account Access from Deployment Account",
+              "StartAt": "EnableCrossAccountAccess",
+              "States": {
+                "EnableCrossAccountAccess": {
+                  "Type": "Task",
+                  "Resource": "${EnableCrossAccountAccess.Arn}",
+                  "Next": "UpdatePipelines",
+                  "TimeoutSeconds": 60
+                },
+                "UpdatePipelines": {
+                  "Type": "Task",
+                  "Resource": "${CheckPipelineStatus.Arn}",
+                  "End": true,
+                  "TimeoutSeconds": 60
+                }
+              }
+            }
+      RoleArn: !GetAtt StatesExecutionRole.Arn
+Outputs:
+  DeploymentFrameworkRegionalKMSKey:
+    Value: !GetAtt KMSKey.Arn
+    Export:
+      Name: !Sub "KMSArn-${AWS::Region}"
+  DeploymentFrameworkRegionalS3Bucket:
+    Value: !Ref PipelineBucket
+    Export:
+      Name: !Sub "S3Bucket-${AWS::Region}"
+  CodeBuildRoleArn:
+    Value: !GetAtt CodeBuildRole.Arn
+    Export:
+      Name: "CodeBuildRoleArn"
+  CloudformationRoleArn:
+    Value: !GetAtt CloudFormationRole.Arn
+    Export:
+      Name: "CloudFormationRoleArn"
+  CloudformationDeploymentRoleArn:
+    Value: !GetAtt CloudFormationDeploymentRole.Arn
+    Export:
+      Name: "CloudFormationDeploymentRoleArn"
+  CodeCommitHttpURL:
+    Description: "The CodeCommit HTTP Url"
+    Value: !GetAtt CodeCommitRepository.CloneUrlHttp
+    Export:
+      Name: "aws-deployment-framework-pipelines-codecommit-http-url"
+  CodeCommitSshURL:
+    Description: "The CodeCommit SSH Url"
+    Value: !GetAtt CodeCommitRepository.CloneUrlSsh
+    Export:
+      Name: "aws-deployment-framework-pipelines-codecommit-ssh-url"
+  CodePipelineRoleArn:
+    Description: "The CodePipeline Arn"
+    Value: !GetAtt CodePipelineRole.Arn
+    Export:
+      Name: "CodePipelineRoleArn"

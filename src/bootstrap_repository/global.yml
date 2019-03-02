@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Template - Global Base - Cross Account Roles to Allow Access to CodePipeline in Deployment Account
+Parameters:
+  KMSArn:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Description: ARN of the KMS CMK created in the Deployment account
+    Default: kms_arn
+  DeploymentAccountId:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Description: Deployment Account ID
+    Default: deployment_account_id
+Resources:
+  CodeCommitRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codecommit-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref DeploymentAccountId
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-codecommit-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codecommit:BatchGetRepositories"
+              - "codecommit:Get*"
+              - "codecommit:GitPull"
+              - "codecommit:List*"
+              - "codecommit:CancelUploadArchive"
+              - "codecommit:UploadArchive"
+              - "s3:Get*"
+              - "s3:List*"
+              - "s3:Put*"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "kms:Describe*"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:List*"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+              - "kms:Get*"
+            Resource: !Ref KMSArn
+      Roles:
+        - !Ref CodeCommitRole
+  CloudFormationPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: "adf-cloudformation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - cloudformation:*
+              - s3:Get*
+              - s3:List*
+              - codedeploy:*
+              - iam:PassRole
+              - servicecatalog:ListProvisioningArtifacts
+              - servicecatalog:CreateProvisioningArtifact
+              - servicecatalog:DescribeProvisioningArtifact
+              - servicecatalog:DeleteProvisioningArtifact
+              - servicecatalog:UpdateProduct
+            Resource: "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Decrypt
+              - kms:Encrypt
+            Resource: !Ref KMSArn
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref DeploymentAccountId # Deployment Account Number
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-deployment-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Ref DeploymentAccountId # Deployment Account Number
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationDeploymentPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "sqs:*"
+              - "s3:Get*"
+              - "s3:List*"
+              - "cloudtrail:*"
+              - "config:*"
+              - "logs:*"
+              - "ecr:*"
+              - "cloudwatch:*"
+              - "cognito-identity:*"
+              - "cognito-idp:*"
+              - "route53:*"
+              - "dynamodb:*"
+              - "ecs:*"
+              - "events:*"
+              - "iam:*"
+              - "states:*"
+              - "kinesis:*"
+              - "lambda:*"
+              - "elasticloadbalancing:*"
+              - "sns:*"
+              - "tag:*"
+              - "kms:Describe*"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+              - "kms:Get*"
+              - "ec2:*"
+              - "iot:*"
+              - "xray:*"
+              - "dax:*"
+              - "application-autoscaling:*"
+              - "datapipeline:*"
+              - "apigateway:*"
+              - "codepipeline:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "codebuild:*"
+              - "elasticbeanstalk:*"
+              - "servicecatalog:ListProvisioningArtifacts"
+              - "servicecatalog:CreateProvisioningArtifact"
+              - "servicecatalog:DescribeProvisioningArtifact"
+              - "servicecatalog:DeleteProvisioningArtifact"
+              - "servicecatalog:UpdateProduct"
+              - "ssm:GetParameters"
+              - "ssm:GetParameter"
+              - "opsworks:*"
+              - "cloudformation:*"
+              - "es:*"
+              - "autoscaling:*"
+              - "guardduty:*"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+            Resource: !Ref KMSArn
+      Roles:
+        - !Ref CloudFormationDeploymentRole

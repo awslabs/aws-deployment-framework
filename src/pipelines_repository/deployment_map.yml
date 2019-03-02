@@ -1,0 +1,10 @@
+pipelines:
+  - name: sample
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 111111111111
+      - NotificationEndpoint: your@email.com
+    targets:
+      - /business_unit/testing
+      - /business_unit/production
+

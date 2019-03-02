@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Sample Template (Shared ECR Repository)
+Parameters:
+  TestingAccountId:
+    Description: Testing Accound Id that will pull from this repository
+    Type: String
+  ProductionAccountId:
+    Description: Production Accound Id that will pull from this repository
+    Type: String
+Resources:
+  SampleAppRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: 'sample-node-app'
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub
+          - |
+            {
+              "rules": [
+                {
+                  "rulePriority": 1,
+                  "description": "Only keep untagged images for ${DaysToRetainUntaggedContainerImages} days",
+                  "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "sinceImagePushed",
+                    "countUnit": "days",
+                    "countNumber": ${DaysToRetainUntaggedContainerImages}
+                  },
+                  "action": { "type": "expire" }
+                },
+                {
+                  "rulePriority": 2,
+                  "description": "Keep only ${MaxTaggedContainerImagesToRetain} tagged images, expire all others",
+                  "selection": {
+                    "tagStatus": "tagged",
+                    "tagPrefixList": [ "latest" ],
+                    "countType": "imageCountMoreThan",
+                    "countNumber": ${MaxTaggedContainerImagesToRetain}
+                  },
+                  "action": { "type": "expire" }
+                }
+              ]
+            }
+          - DaysToRetainUntaggedContainerImages: 2
+            MaxTaggedContainerImagesToRetain: 2
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AllowPull
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !Sub "arn:aws:iam::${TestingAccountId}:root"
+                - !Sub "arn:aws:iam::${ProductionAccountId}:root"
+            Action: 
+              - "ecr:Get*"
+              - "ecr:Describe*"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+
+Outputs:    
+  SampleAppRepository:
+    Value: !GetAtt SampleAppRepository.Arn

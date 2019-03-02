@@ -1,0 +1,538 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description:  ADF CloudFormation Template (Initial) for Master Account in us-east-1
+Parameters:
+  TerminationProtection:
+    Type: String
+    Description: "Termination Protection can be passed in to enable Protection for all ADF deployed stacks"
+    AllowedValues: [true, false]
+    Default: false
+  Image:
+    Description: The Image you wish to use for CodeBuild.
+    Type: String
+    Default: "aws/codebuild/python:3.7.1"
+  ComputeType:
+    Description: The Compute Type to use for AWS CodeBuild
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    AllowedValues:
+      - "BUILD_GENERAL1_SMALL"  #3 GB memory, 2 vCPU
+      - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
+      - "BUILD_GENERAL1_LARGE"  #15 GB memory, 8 vCPU
+  DeploymentAccountBucket:
+    Description: The S3 Bucket in the region that the deployment account will be hosted in
+    Type: String
+  OrganizationId:
+    Description: The ID Of Your AWS Organization
+    Type: String
+Resources:
+  BootstrapTemplatesBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+  LambdaLayerVersion:
+    Type: "AWS::Serverless::LayerVersion"
+    Properties:
+      ContentUri: "../bootstrap_repository/adf-build/shared/"
+      CompatibleRuntimes: 
+        - python3.6
+        - python3.7
+      Description: "Shared Lambda Layer between master and deployment account"
+      LayerName: shared_layer
+  LambdaLayerVersionPermission:
+    Type: "AWS::Lambda::LayerVersionPermission"
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LambdaLayerVersion
+      OrganizationId: !Ref OrganizationId
+      Principal: "*"
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "states.amazonaws.com"
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+  LambdaPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow Lambda to perform actions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+              - "lambda:GetLayerVersion"
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "organizations:DescribeOrganizationalUnit"
+              - "organizations:ListParents"
+              - "cloudformation:*"
+              - "iam:GetRole"
+              - "iam:PassRole"
+              - "iam:CreateRole"
+              - "iam:PutRolePolicy"
+              - "organizations:DescribeOrganization"
+              - "organizations:DescribeAccount"
+              - "ssm:*"
+              - "states:StartExecution"
+            Resource: "*"
+          - Effect: "Allow"
+            Action: "s3:ListBucket"
+            Resource: !GetAtt BootstrapTemplatesBucket.Arn
+          - Effect: "Allow"
+            Action: "s3:GetObject"
+            Resource:
+              !Join
+                - ''
+                - - !GetAtt BootstrapTemplatesBucket.Arn
+                  - '/*'
+      Roles:
+        - !Ref LambdaRole
+  StackWaiterFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: wait_until_complete.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - StackWaiterFunction"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !Ref OrganizationId
+      FunctionName: StackWaiter
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 300
+  CrossAccountExecuteFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: account_bootstrap.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - CrossAccountExecuteFunction"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          DEPLOYMENT_ACCOUNT_BUCKET: !Ref DeploymentAccountBucket
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !Ref OrganizationId
+      FunctionName: CrossAccountExecuteFunction
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 300
+  RoleStackDeploymentFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: deployment_account_config.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - RoleStackDeploymentFunction"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+      FunctionName: RoleStackDeploymentFunction
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 300
+  MovedToRootActionFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: moved_to_root.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - MovedToRootActionFunction"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+      FunctionName: MovedToRootActionFunction
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 900
+  UpdateResourcePoliciesFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: generic_account_config.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+      FunctionName: UpdateResourcePoliciesFunction
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 300
+  CloudwatchEventsRule:
+    Type: "AWS::Events::Rule"
+    Properties: 
+      Description: Triggers StateMachine on Move OU
+      EventPattern:
+        source:
+          - aws.organizations
+        detail:
+          eventSource:
+            - organizations.amazonaws.com
+          eventName:
+            - MoveAccount
+      Targets:
+        - Arn: !Ref StateMachine
+          RoleArn: !GetAtt StatesExecutionRole.Arn
+          Id: CreateStackLinkedAccountV1
+  CodeCommitRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "organizations-adf-codecommit-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codecommit.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "organizations-adf-codecommit-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codecommit:BatchGetRepositories"
+              - "codecommit:Get*"
+              - "codecommit:GitPull"
+              - "codecommit:List*"
+              - "codecommit:CancelUploadArchive"
+              - "codecommit:UploadArchive"
+              - "s3:Get"
+            Resource: "*"
+      Roles:
+        - !Ref CodeCommitRole
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service: 
+              - "codebuild.amazonaws.com"
+          Action: 
+            - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref "CodeBuildPolicy"
+      RoleName: "adf-codebuild-role"
+  CodeBuildPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow codebuild to perform actions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "codecommit:*"
+              - "codebuild:*" 
+              - "organizations:ListAccounts"
+              - "organizations:ListAccountsForParent"
+              - "organizations:DescribeAccount"
+              - "organizations:DescribeOrganization"
+              - "organizations:DescribeOrganizationalUnit"
+              - "organizations:ListParents"
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "ssm:PutParameter"
+              - "cloudformation:*"
+              - "sts:GetCallerIdentity"
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "states:StartExecution"
+              - "states:Describe*"
+              - "s3:PutObject"
+              - "s3:GetBucketPolicy"
+              - "s3:GetObject"
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+              - "sns:*"
+              - "sts:assumeRole"
+            Resource: "*"
+  CodeCommitRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: 'aws-deployment-framework-bootstrap'
+      RepositoryDescription: !Sub "CodeCommit Repo for all AWS Deployment Framework base in ${AWS::AccountId}"
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      TimeoutInMinutes: 40
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: !Ref ComputeType
+        Image: !Ref Image
+        EnvironmentVariables:
+          - Name: S3_BUCKET
+            Value: !Ref BootstrapTemplatesBucket
+          - Name: MASTER_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
+          - Name: DEPLOYMENT_ACCOUNT_BUCKET
+            Value: !Ref DeploymentAccountBucket
+          - Name: ORGANIZATION_ID
+            Value: !Ref OrganizationId
+        Type: LINUX_CONTAINER
+      Name: 'aws-deployment-framework-base-templates'
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        BuildSpec: !Sub | 
+          version: 0.2
+          phases:
+            install:
+              commands:
+                # You can add in cfn-lint here also if required for base-templates
+                - apt-get update -qq
+                - pip install --upgrade pip
+                - pip install boto3 pytest mock awscli -q --upgrade
+            pre_build:
+              commands:
+                - export PYTHONPATH=$PWD/adf-build/shared/python
+                - pytest -vvv -s
+            build:
+              commands:
+                - aws cloudformation package --template-file $(pwd)/deployment/global.yml --output-template-file deployment/global.yml --s3-prefix deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build/shared --quiet # Shared Modules to be used with AWS CodeBuild
+                - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
+                - python adf-build/main.py  # Updates config, updates (or creates) base stacks.
+        Type: CODEPIPELINE
+      Tags:
+        - Key: "Name"
+          Value: "aws-deployment-framework-base-templates"
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref BootstrapTemplatesBucket
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Name: 'aws-deployment-framework-bootstrap-pipeline'
+      Stages:
+        - Name: CodeCommit
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              OutputArtifacts:
+                - Name: "TemplateSource"
+              Configuration:
+                BranchName: "master"
+                RepositoryName: 'aws-deployment-framework-bootstrap'
+              RunOrder: 1
+        - Name: UploadAndUpdateBaseStacks
+          Actions:
+            - Name: UploadAndUpdateBaseStacks
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: '1'
+                  Provider: CodeBuild
+              OutputArtifacts:
+                - Name: "aws-deployment-framework-bootstrap-build"
+              InputArtifacts:
+                - Name: "TemplateSource"
+              Configuration:
+                  ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "organizations-adf-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CodePipelineRolePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow codepipeline to perform actions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "codecommit:*"
+              - "codebuild:*"
+              - "s3:PutObject"
+              - "s3:GetBucketPolicy"
+              - "s3:GetObject"
+              - "s3:ListBucket"
+            Resource: "*"
+      Roles:
+        - !Ref CodePipelineRole
+  StatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - states.amazonaws.com
+                - events.amazonaws.com
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      DefinitionString: !Sub |-
+            {
+              "Comment": "Execute Account provisioning",
+              "StartAt": "AccountBootstrap",
+              "States": {
+                "AccountBootstrap": {
+                  "Type": "Task",
+                  "Resource": "${CrossAccountExecuteFunction.Arn}",
+                  "Next": "MovedToRootOrProtected?",
+                  "TimeoutSeconds": 300
+                },
+                "MovedToRootOrProtected?": {
+                  "Type": "Choice",
+                  "Choices": [{
+                    "Variable": "$.moved_to_protected",
+                    "NumericEquals": 1,
+                    "Next": "UpdatePipelines"
+                  },
+                  {
+                    "Variable": "$.moved_to_root",
+                    "NumericEquals": 1,
+                    "Next": "MovedToRootAction"
+                  }],
+                  "Default": "WaitUntilComplete"
+                },
+                "MovedToRootAction": {
+                  "Type": "Task",
+                  "Resource": "${MovedToRootActionFunction.Arn}",
+                  "Retry": [ {
+                      "ErrorEquals": [ "RetryError" ],
+                      "IntervalSeconds": 10,
+                      "BackoffRate": 1.0,
+                      "MaxAttempts": 20
+                  } ],
+                  "Next": "UpdatePipelines",
+                  "TimeoutSeconds": 900
+                },
+                "UpdatePipelines": {
+                  "Type": "Task",
+                  "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+                  "Retry": [ {
+                      "ErrorEquals": [ "RetryError" ],
+                      "IntervalSeconds": 10,
+                      "BackoffRate": 1.0,
+                      "MaxAttempts": 20
+                  } ],
+                  "End": true
+                },
+                "WaitUntilComplete": {
+                  "Type": "Task",
+                  "Resource": "${StackWaiterFunction.Arn}",
+                  "Retry": [ {
+                      "ErrorEquals": [ "RetryError" ],
+                      "IntervalSeconds": 10,
+                      "BackoffRate": 1.0,
+                      "MaxAttempts": 500
+                  } ],
+                  "Next": "DeploymentAccount?",
+                  "TimeoutSeconds": 900
+                },
+                "DeploymentAccount?": {
+                  "Type": "Choice",
+                  "Choices": [{
+                    "Variable": "$.is_deployment_account",
+                    "NumericEquals": 1,
+                    "Next": "DeploymentAccountConfig"
+                  }],
+                  "Default": "GenericAccountConfig"
+                },
+                "DeploymentAccountConfig": {
+                  "Type": "Task",
+                  "Resource": "${RoleStackDeploymentFunction.Arn}",
+                  "End": true,
+                  "TimeoutSeconds": 900
+                },
+                "GenericAccountConfig": {
+                  "Type": "Task",
+                  "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+                  "End": true,
+                  "TimeoutSeconds": 900
+                }
+              }
+            }
+      RoleArn: !GetAtt StatesExecutionRole.Arn
+Outputs:
+  LayerArn:
+    Description: "The Shared modules Lambda Layer Arn"
+    Value: !Ref LambdaLayerVersion
+    Export:
+      Name: "deployment-framework-shared-lambda-layer"
+  CodeCommitHttpURL:
+    Description: "The CodeCommit HTTP Url"
+    Value: !GetAtt CodeCommitRepository.CloneUrlHttp
+    Export:
+      Name: "aws-deployment-framework-base-templates-codecommit-http-url"
+  CodeCommitSshURL:
+    Description: "The CodeCommit SSH Url"
+    Value: !GetAtt CodeCommitRepository.CloneUrlSsh
+    Export:
+      Name: "aws-deployment-framework-base-templates-codecommit-ssh-url"
