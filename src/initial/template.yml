@@ -26,7 +26,7 @@ Parameters:
     Description: The S3 Bucket in the region that the deployment account will be hosted in
     Type: String
   OrganizationId:
-    Description: The ID Of Your AWS Organization
+    Description: The ID Of Your AWS Organization which will be used as conditional boundry for access
     Type: String
 Resources:
   BootstrapTemplatesBucket:
@@ -327,7 +327,7 @@ Resources:
                 # You can add in cfn-lint here also if required for base-templates
                 - apt-get update -qq
                 - pip install --upgrade pip
-                - pip install boto3 pytest mock awscli -q --upgrade
+                - pip install -r adf-build/requirements.txt --upgrade
             pre_build:
               commands:
                 - export PYTHONPATH=$PWD/adf-build/shared/python

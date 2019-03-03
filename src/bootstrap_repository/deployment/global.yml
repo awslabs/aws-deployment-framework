@@ -361,7 +361,8 @@ Resources:
           phases:
             install:
               commands:
-                - pip install -r adf-build/requirements.txt -q
+                - pip install --upgrade pip
+                - pip install -r adf-build/requirements.txt --upgrade -q
             build:
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/shared/ ./adf-build/shared --recursive --quiet

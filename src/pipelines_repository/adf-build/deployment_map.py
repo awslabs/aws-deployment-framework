@@ -44,7 +44,7 @@ class DeploymentMap:
 
     def _get_deployment_map(self):
         with open(self.map_path, 'r') as stream:
-            return yaml.load(stream)
+            return yaml.load(stream, Loader=yaml.FullLoader)
 
     def _validate_deployment_map(self):
         """

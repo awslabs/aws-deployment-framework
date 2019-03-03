@@ -76,7 +76,7 @@ class Config:
 
     def _load_config_file(self):
         with open(self.config_path) as config:
-            self.config_contents = yaml.load(config)
+            self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
             self._parse_config()
 
     def _parse_config(self):
