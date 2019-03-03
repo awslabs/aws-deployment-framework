@@ -33,7 +33,7 @@ Parameters:
     Description: The owner of the github Repo
     Type: String
   BranchName:
-    Description: Branch to build from
+    Description: Branch to trigger the pipeline from
     Type: String
     Default: "master"
   RestartExecutionOnUpdate:
@@ -180,8 +180,8 @@ Resources:
                 ActionMode: CHANGE_SET_REPLACE
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
-                TemplatePath: !Sub "${ProjectName}-Build::template.yml"
-                TemplateConfiguration: !Sub "${ProjectName}-Build::params/{{ stage.name }}_{{ region }}.json"
+                TemplatePath: !Sub "${ProjectName}-build::template.yml"
+                TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
                 Capabilities: CAPABILITY_NAMED_IAM
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
               InputArtifacts:
@@ -218,8 +218,8 @@ Resources:
                 ActionMode: CHANGE_SET_REPLACE
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
-                TemplatePath: !Sub "${ProjectName}-Build::template.yml"
-                TemplateConfiguration: !Sub "${ProjectName}-Build::params/{{ stage.name }}_{{ top_level_region }}.json"
+                TemplatePath: !Sub "${ProjectName}-build::template.yml"
+                TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ top_level_region }}.json"
                 Capabilities: CAPABILITY_NAMED_IAM
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
               InputArtifacts:

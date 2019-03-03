@@ -15,9 +15,9 @@ The deployment_map.yml file lives in the Repository named *aws-deployment-framew
 
 The parameters *(params)* you chose to pass into the Jinja2 template are taken directly from the deployment_map.yml file. This allows you to build sensible defaults in your pipeline definitions and pass in only what is required for that specific pipeline creation.
 
-The Deployment map file allows for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
+The Deployment map file allows for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
 
-A basic example of a deployment_map.yml would look like the following:
+A basic example of a deployment_map.yml would look like the following *(assumes eu-west-1 and eu-central-1 have been bootstrapped in adfconfig.yml)*:
 
 ```yaml
 pipelines:
@@ -38,7 +38,7 @@ pipelines:
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
     params:
-      - SourceAccountId: 233248218465
+      - SourceAccountId: 8888877777777
       - NotificationEndpoint: john@doe.com
     targets:
       - ou-12341
@@ -124,7 +124,7 @@ artifacts:
 
 In the example we have fours steps to our install phase in our build, the remaining phases and steps you add are up to you. In the above steps we simply bring in the shared modules we will need to run our main function in *generate_params.py*. The $S3_BUCKET_NAME variable is available in AWS CodeBuild as we pass this in from our initial creation of the that defines the CodeBuild Project. You do not need to change this.
 
-We also can install [cfn-lint](https://github.com/awslabs/cfn-python-lint) in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. We then execute the bit of Python code we brought in during our install to dynamically build parameter files for all of our destination accounts for this current deployment. The Artifacts section implies we are going to package out all of our created files during the build and pass these onto the next phase. This last step is critical as CodeBuild has generated all of our parameter files for us that AWS CodePipeline needs for the proceeding steps. If you do not have any parameters for your templates this is still required.
+Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
 ### CloudFormation Parameters and Tagging
 
@@ -194,7 +194,7 @@ This concept also works for applying **Tags** to the resources within your stack
 }
 ```
 
-This means that all resources that support tags within your CloudFormation stack will be tagged as defined above. 
+This means that all resources that support tags within your CloudFormation stack will be tagged as defined above.
 
 It is important to keep in mind that each Deployment Provider *(Code Deploy, CloudFormation, Service Catalog etc)* have their own Parameter structure and configuration files. For example, Service catalog allows you to pass a configuration file as such:
 
@@ -228,9 +228,9 @@ Parameter injection solves problems that occur with Cross Account parameter acce
 }
 ```
 
-When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using Passwords ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs.
+When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using any sensitive data, ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs.
 
-To highlight an example of how Parameter Injection can work well, think of the following scenario: You want to create a Logging S3 Bucket in a central AWS Account for the organization. You then want to create resources in other accounts and have their logs forward to this central bucket. To do this, the resources in the other accounts need to know the name of the S3 Bucket to forward to. We cannot use *!ImportValue* in CloudFormation since the Stacks are in different accounts. To solve this issue we can define a S3 Bucket name up-front and store that name in Parameter Store on the Deployment Account. Once stored we can use a value in our `global.json` *(eg "resolve:/logging/s3_bucket")* parameter file to fetch and propagate the value into all accounts and regions parameter files.
+To highlight an example of how Parameter Injection can work well, think of the following scenario: You have some value that you wish to rotate on a monthly bases. You have some automation in place that updates the value of a Parameter store parameter to add in this new value. Each time this pipeline runs it will check for that value and update the resources accordingly, effectively detaching the parameters from the pipeline itself.
 
 ### Nested Stacks
 
@@ -258,7 +258,7 @@ artifacts:
 This allows us to specify nested stacks that are in the same repository as out main `template.yml` in our like so:
 
 ```yaml
-  NodeGroupStack:
+  MyStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: another_template.yml

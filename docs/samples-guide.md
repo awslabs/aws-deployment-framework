@@ -81,7 +81,7 @@ When the `CreateOrUpdatePipelines` step is complete you will be able to see a ne
 
 Now that we have a delivery mechanism to get our source code into various accounts we can initialize the `sample-vpc` folder as a git repository and define some parameters for our deployment.
 
-We want to ensure that we pass a different value for `Environment` depending on which account we have deployed into. One way to do this is to create specific account name based parameter files such as `banking-production.json`. We can also use high level abstracts such as OU Id *(see admin guide)* to cover large amounts of accounts.
+We want to ensure that we pass a different value for `Environment` depending on which account we have deployed into. One way to do this is to create specific account name based parameter files such as `banking-production.json` *(that is the name of my account)*. We can also use high level abstracts such as OU Id *(see admin guide)* to cover large amounts of accounts.
 
 Let's create `banking-production.json` as:
 
@@ -168,6 +168,8 @@ Let's add in our ECS Cluster pipeline to our Deployment Map.
 ```
 
 Once we add and push this we will have our new `sample-ecs-cluster` pipeline. We can adjust our parameter files *(add tags etc)* if required and push our `sample-ecs-cluster` content to the repository in the `banking-source` account we made earlier.
+
+*Note:* Adding tags to the parameters files will propagate the tags to the resources with the stacks automatically.
 
 After the pipeline has completed we have an ECS Cluster in our `testing` account and our `production` account ready to have applications deployed onto it.
 
