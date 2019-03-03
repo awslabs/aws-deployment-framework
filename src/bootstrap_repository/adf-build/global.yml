@@ -16,7 +16,7 @@ Resources:
   OrganizationsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${CrossAccountAccessRole}-org-access"
+      RoleName: !Sub "${CrossAccountAccessRole}-org-access-adf"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -30,7 +30,7 @@ Resources:
   OrganizationsPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "organizations-access-role-policy"
+      PolicyName: "adf-organizations-access-role-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:

@@ -69,7 +69,7 @@ def main():
         boto3
     )
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}-org-access'.format(
+        'arn:aws:iam::{0}:role/{1}-org-access-adf'.format(
             MASTER_ACCOUNT_ID,
             parameter_store.fetch_parameter('cross_account_access_role')
         ), 'pipeline'

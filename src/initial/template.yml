@@ -213,7 +213,7 @@ Resources:
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "organizations-adf-codecommit-role"
+      RoleName: "adf-codecommit-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -226,7 +226,7 @@ Resources:
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "organizations-adf-codecommit-role-policy"
+      PolicyName: "adf-organizations-codecommit-role-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -383,7 +383,7 @@ Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "organizations-adf-codepipeline-role"
+      RoleName: "adf-codepipeline-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -427,7 +427,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: StatesExecutionPolicy
+        - PolicyName: "adf-state-machine-role-policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:

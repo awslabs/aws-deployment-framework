@@ -16,9 +16,9 @@
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
   - [Pipeline Types](#pipeline-types)
-  - [Generating Pipeline Files Locally](#generating-pipeline-files-locally)
-  - [Generating Parameter Files Locally](#generating-parameter-files-locally)
-- [Source Control](#source-control)
+  - [Creating Pipeline Templates Locally](#creating-pipeline-templates-locally)
+  - [Creating Pipeline Parameter Files Locally](#creating-pipeline-parameter-files-locally)
+- [Default Deployment Account Region](#default-deployment-account-region)
 
 ## Overview
 
@@ -134,10 +134,10 @@ Any changes in the future made to this repository such as its templates or param
 When bootstrapping AWS Accounts you might have a large number of accounts that are all required to have the same baseline applied to them. For this reason we use a recursive search concept to apply base stacks *(and parameters)* to accounts. Lets take the following example.
 
 ```
-bootstrap_templates
+bootstrap_repository
 │   adfconfig.yml
 │
-└───build
+└───adf-build
 └───deployment
 │    ------│   global.yml
 │    ------│   regional.yml
@@ -174,12 +174,12 @@ bootstrap_templates
 In the above example we have defined a different global and regional configuration for *each* of the OU's under our business unit's *(insurance and banking)*. This means, that any account we move into these OU's will apply the most specific template that they can. However, if we decided that `dev` and `test` would have the same base template we can change the structure to be as follows:
 
 ```
-bootstrap_templates
+bootstrap_repository
 │   adfconfig.yml
 │   regional.yml  <== These will be used when specificity is lowest
 │   global.yml
 │
-└───build
+└───adf-build
 └───deployment
 │   -------- │   regional.yml
 │   -------- │   global.yml
@@ -221,9 +221,25 @@ We recommend to keep the bootstrapping templates for your accounts as thin as po
 
 Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder *(src/pipelines_repository/pipeline_types)* on the deployment account. As a minimum, you will need to pass in a notification endpoint and a source account in which this pipeline will be linked to as an entry point.
 
-The project name you specify in the deployment_map.yml will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes. The Source Account Id plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company. The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **SourceAccountId** value.
+The project name you specify in the deployment_map.yml will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes. The Source Account Id plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
+
+The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **SourceAccountId** value.
 
 When you enter an Account Id in the parameter file of a pipeline you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to master)*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source.
+
+Here is an example of passing in a parameter to a pipeline to override the default branch that is used to trigger the pipeline from.
+
+```yaml
+pipelines:
+  - name: vpc
+    type: github-cloudformation
+    params:
+      - Owner: github_owner
+      - NotificationEndpoint: my_external_address@email.com
+      - BranchName: dev/feature
+    targets:
+      - /security
+```
 
 **Note** If you find yourself specifying the same set of parameters over and over through-out the deployment map consider moving the value into the template itself *(in the pipelines_type folder)* as the default value.
 
@@ -266,31 +282,7 @@ Pipeline files use the Jinja2 *(.j2)* preprocessor in order to dynamically gener
 
 As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create which type you desire.
 
-### Pipeline Parameters
-
-When looking at a pipeline definition in the `deployment_map.yml` you will notice a set of parameters can optionally be passed in named *params*. These Parameters map directly to those within the pipeline type CloudFormation Template. For example, let's say you are wanting to deploy a template that is being developed on a *development branch* within a Github repository and has not yet been merged to master. You can create a new pipeline that will only trigger based on changes on that specific branch by passing in the branch parameter into the pipeline via the deployment map.
-
-```yaml
-pipelines:
-  - name: vpc
-    type: github-cloudformation
-    params:
-      - Owner: github_owner
-      - NotificationEndpoint: my_external_address@email.com
-      - BranchName: dev/feature
-    targets:
-      - /security
-```
-
-Parameters in these pipelines can be added up altered as you see fit with the exception of *ProjectName* which is mandatory and should be left as default.
-
-### Source Control
-
-The AWS Deployment Framework allows you to use the supported AWS CodePipeline source types for source control which will act as entry points for your pipelines. Each of the options *(S3, AWS CodeCommit or Github)* have their own benefits when it comes to how they integrate with the ADF however they are interchangeable as desired. In order to use a different source type for your pipelines you will to define a pipeline type that uses the desired source control configuration. As a starting point you can find the *github-cloudformation.yml.j2* file in the *pipeline_types* folder that demonstrates how Github can be used as an entry point for your pipelines.
-
-The same goes for any pipeline configuration for that matter, if you wish to use other Pipeline integrations just make a *pipeline_type* that defines your use case and tie a pipeline to it in the [deployment map](#deployment-map).
-
-### Creating Pipelines Templates Locally
+#### Creating Pipeline Templates Locally
 
 If you wish to generate pipeline templates locally you can do this by running the `generate_pipelines.py` module in the `pipelines_repository/adf-build` folder.
 
@@ -306,8 +298,7 @@ python3 adf-build/generate_pipelines.py
 
 This will create a folder called pipelines in the fashion it does inside AWS CodeBuild when it normally runs. This will you can inspect the pipelines that were created from your *pipelines_types* based on your deployment_map.yml.
 
-
-### Creating Pipeline Parameter Files Locally
+#### Creating Pipeline Parameter Files Locally
 
 If you wish to generate the parameter *(json)* files that will be used for a specific pipeline locally to test to ensure their value you can do also.
 
@@ -322,6 +313,12 @@ python3 path/to/pipelines_repository/generate_params.py
 ```
 
 This will update your params folder to include the account specific parameters files *(json)*. The same files are generated in AWS CodeBuild each time this application is pushed.
+
+### Source Control
+
+The AWS Deployment Framework allows you to use the supported AWS CodePipeline source types for source control which will act as entry points for your pipelines. Each of the options *(S3, AWS CodeCommit or Github)* have their own benefits when it comes to how they integrate with the ADF however they are interchangeable as desired. In order to use a different source type for your pipelines you will to define a pipeline type that uses the desired source control configuration. As a starting point you can find the *github-cloudformation.yml.j2* file in the *pipeline_types* folder that demonstrates how Github can be used as an entry point for your pipelines.
+
+The same goes for any pipeline configuration for that matter, if you wish to use other Pipeline integrations just make a *pipeline_type* that defines your use case and tie a pipeline to it in the [deployment map](#deployment-map).
 
 ### Default Deployment Account Region
 

@@ -23,7 +23,7 @@ stub_event = {
             'principalId': '123',
             'arn': 'arn:aws:sts::111111111111:assumed-role/somerole/some_name',
             'accountId': '111111111111',
-            'accessKeyId': 'ASIARUSIBNSWB234NDPJ',
+            'accessKeyId': 'some_key',
             'sessionContext': {
                 'attributes': {
                     'mfaAuthenticated': 'false',
