@@ -7,6 +7,7 @@ aws-deployment-framework-pipelines pipeline if
 it is not already executing or failed
 """
 
+import os
 import boto3
 from logger import configure_logger
 from codepipeline import CodePipeline
@@ -16,7 +17,8 @@ LOGGER = configure_logger(__name__)
 
 def lambda_handler(event, _):
     codepipeline = CodePipeline(
-        boto3
+        boto3,
+        os.environ['AWS_REGION']
     )
 
     pipeline_status = codepipeline.get_pipeline_status(

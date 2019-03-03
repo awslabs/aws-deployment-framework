@@ -15,7 +15,7 @@ from codepipeline import CodePipeline
 
 @fixture
 def cls():
-    return CodePipeline(boto3)
+    return CodePipeline(boto3, os.environ["AWS_REGION"])
 
 
 def test_get_pipeline_status(cls):

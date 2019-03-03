@@ -21,8 +21,3 @@ def cls():
     cls.client = Mock()
 
     return cls
-
-
-# def test_sanitize_policy(cls):
-#     policy = cls._sanitize_policy(s3.stub_s3_get_bucket_policy.get('Policy'))
-#     assert policy == s3.stub_s3_get_bucket_policy.get('Policy')
