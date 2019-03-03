@@ -14,8 +14,8 @@ class CodePipeline():
     """Class used for modeling CodePipeline
     """
 
-    def __init__(self, role):
-        self.client = role.client('codepipeline')
+    def __init__(self, role, region):
+        self.client = role.client('codepipeline', region_name=region)
 
     def get_pipeline_status(self, pipeline_name):
         """Gets a Pipeline Execution Status

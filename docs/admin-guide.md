@@ -56,7 +56,7 @@ The below instructions are based on the use-case in which you have no resources 
 
 2. Create an [AWS Organization](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_create.html). Make note of your Organization ID which is part of the ARN. *(eg o-zx2u19zz64 is the Organization ID in the ARN arn:aws:organizations::99999999999:root/o-zx2u19zz64/r-a3db)*
 
-3. Create a new AWS CloudFormation stack in the Master account from the `bucket.yml` template in the *us-east-1* region.
+3. Create a new AWS CloudFormation stack in the Master account from the `bucket.yml` template in the *us-east-1* region. *(BucketName can be whatever you like)*
 
 ```bash
 aws cloudformation create-stack \
@@ -66,7 +66,7 @@ aws cloudformation create-stack \
 --region us-east-1
 ```
 
-4. Create a new AWS Account that will act as your [Deployment Account](#deployment-account) via [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html). Once created, leave it in the root of your Organization. Create a new AWS CloudFormation stack in the Master account to be used by the Deployment Account and its resources from the `bucket.yml`. This stack should be passed the Deployment Account Id that was just created as a parameter and should also be created in the region that you have chosen as your [default Deployment Account region](). *(eu-central-1 used as example below)*
+4. Create a new AWS Account that will act as your [Deployment Account](#deployment-account) via [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html). Once created, leave it in the root of your Organization. Create a new AWS CloudFormation stack in the Master account to be used by the Deployment Account and its resources from the `bucket.yml` template. This stack should be passed the Deployment Account Id that was just created as a parameter and should also be created in the region that you have chosen as your [default Deployment Account region](#default-deployment-account-region). *(eu-central-1 used as example below, BucketName can be whatever you like)*
 
 ```bash
 aws cloudformation create-stack \

@@ -1,8 +1,8 @@
 # AWS Deployment Framework
 
-## Overview
+[![Build Status](https://travis-ci.org/awslabs/aws-deployment-framework.svg?branch=master)](https://travis-ci.org/awslabs/aws-deployment-framework)
 
-The AWS Deployment Framework *(ADF)* is an extensive and flexible framework to manage, control and deploy resources across multiple AWS accounts and regions within an AWS Organization.
+The AWS Deployment Framework *(ADF)* is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions within an AWS Organization.
 
 ADF allows for staged, parallel, multi-account, cross-region deployments of applications or resources via the structure defined in [AWS Organizations](https://aws.amazon.com/organizations/) while taking advantage of services such as [AWS CodePipeline](https://aws.amazon.com/codepipeline/), [AWS CodeBuild](https://aws.amazon.com/codebuild/) and [AWS CodeCommit](https://aws.amazon.com/codecommit/) to elevate the heavy lifting and management compared to a traditional CI/CD setup.
 

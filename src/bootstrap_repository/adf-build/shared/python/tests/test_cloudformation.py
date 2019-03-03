@@ -29,7 +29,6 @@ def regional_cls():
     )
 
 
-# change client => cls
 @fixture
 def global_cls():
     return CloudFormation(
