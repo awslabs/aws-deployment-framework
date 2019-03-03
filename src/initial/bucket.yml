@@ -3,7 +3,7 @@ Description:  ADF CloudFormation Template (Initial S3 Bucket) for Master Account
 Parameters:
   BucketName:
     Type: String
-    Description: "The name of the S3 Bucket"
+    Description: "The name of the S3 Bucket used to store initial resources"
   DeploymentAccountId:
     Type: String
     Description: "The ID of the Deployment Account that has already been created"

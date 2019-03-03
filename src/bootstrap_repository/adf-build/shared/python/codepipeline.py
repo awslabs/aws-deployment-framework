@@ -28,7 +28,7 @@ class CodePipeline():
             return [i['actionStates'][0] for i in response.get(
                 'stageStates', None)][0]['latestExecution']
         except BaseException:
-            return None  # Pipeline does not exist
+            return None  # TODO handle this with a not exist error and warning
 
     def start_pipeline_execution(self, pipeline_name):
         self.client.start_pipeline_execution(

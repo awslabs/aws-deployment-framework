@@ -22,11 +22,11 @@
 
 ## Overview
 
-### Bootstrapping Process
+### High Level Bootstrapping Process
 
 ![bootstrap-process](./images/adf-bootstrap-high-level.png)
 
-### Pipeline Process
+### High Level Pipeline Process
 
 ![pipeline-process](./images/adf-pipeline-high-level.png)
 
@@ -39,14 +39,14 @@
 
 ## Src Folder
 
-The `src` folder contains *three* sub-folders that will go on to be separate git repositories that make up The ADF.
+The `src` folder contains *three* sub-folders that make up The ADF.
 
 - initial
   > The initial folder is used to initially create the AWS Deployment Framework within your root AWS Account. It creates resources that are used to facilitate the creation and streamline the automation of the following steps.
 - bootstrap_repository
-  > The bootstrap_repository folder is responsible for defining your bootstrapping AWS CloudFormation templates that will be assigned to AWS Organizations Organizational Units (OUs) and applied to accounts/regions when they are moved into the OU.
+  > The bootstrap_repository folder is responsible for defining your bootstrapping AWS CloudFormation templates that will be assigned to AWS Organizations Organizational Units (OUs) and applied to accounts/regions when they are moved into the OU. This should be initialized as its own git repository and will have a remote in the master account.
 - pipelines_repository
-  > The pipelines_repository folder is responsible for defining your deployment pipelines in the deployment_map.yml file which allows you to define stages, regions and variables configurations for your pipelines.
+  > The pipelines_repository folder is responsible for defining your deployment pipelines in the deployment_map.yml file which allows for stages, regions and variables configurations for pipelines. This should be initialized as its own git repository and will have a remote in the deployment account.
 
 ## Installation Instructions
 
@@ -59,31 +59,41 @@ The below instructions are based on the use-case in which you have no resources 
 3. Create a new AWS CloudFormation stack in the Master account from the `bucket.yml` template in the *us-east-1* region.
 
 ```bash
-  aws cloudformation create-stack --stack-name aws-deployment-framework-master-bucket --template-body file://$PWD/src/initial/bucket.yml --parameters ParameterKey=BucketName,ParameterValue=adf-base-s3-bucket-us-east-1 --region us-east-1
+aws cloudformation create-stack \
+--stack-name aws-deployment-framework-master-bucket \
+--template-body file://$PWD/src/initial/bucket.yml \
+--parameters ParameterKey=BucketName,ParameterValue=adf-base-s3-bucket-us-east-1 \
+--region us-east-1
 ```
 
-4. Create a new AWS Account that will act as your [Deployment Account](#deployment-account) via [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html). Once created, leave it in the root of your Organization. Create a new AWS CloudFormation stack in the Master account to be used by the Deployment Account and its resources from the `bucket.yml`. This stack should be passed the Deployment Account Id that was just created as a parameter and should also be created in the region that you have chosen as your default Deployment Account region. *(eu-central-1 used as example below)*
+4. Create a new AWS Account that will act as your [Deployment Account](#deployment-account) via [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html). Once created, leave it in the root of your Organization. Create a new AWS CloudFormation stack in the Master account to be used by the Deployment Account and its resources from the `bucket.yml`. This stack should be passed the Deployment Account Id that was just created as a parameter and should also be created in the region that you have chosen as your [default Deployment Account region](). *(eu-central-1 used as example below)*
 
 ```bash
-  aws cloudformation create-stack --stack-name aws-deployment-framework-deployment-bucket --template-body file://$PWD/src/initial/bucket.yml --parameters ParameterKey=BucketName,ParameterValue=adf-base-s3-bucket-eu-central-1 ParameterKey=DeploymentAccountId,ParameterValue=111111111111 --region eu-central-1
+aws cloudformation create-stack \
+--stack-name aws-deployment-framework-deployment-bucket \
+--template-body file://$PWD/src/initial/bucket.yml \
+--parameters ParameterKey=BucketName,ParameterValue=adf-base-s3-bucket-eu-central-1 \
+ParameterKey=DeploymentAccountId,ParameterValue=111111111111 \
+--region eu-central-1
 ```
 
 5. Execute the AWS CloudFormation template **src/initial/template.yml** in the **us-east-1** Region. In the below commands the *MASTER_ACCOUNT_BUCKET_NAME* variable represents the S3 Bucket name you created in the *us-east-1* region in step 3. The *DEPLOYMENT_ACCOUNT_BUCKET_NAME* is the name of the bucket created in step 4 and the *ORGANIZATION_ID* is that from step 2.
 
-    ```bash
-    aws cloudformation package \
-    --template-file $PWD/src/initial/template.yml \
-    --s3-bucket MASTER_ACCOUNT_BUCKET_NAME \
-    --output-template-file $PWD/template-deploy.yml \
-    --region us-east-1
+```bash
+aws cloudformation package \
+--template-file $PWD/src/initial/template.yml \
+--s3-bucket MASTER_ACCOUNT_BUCKET_NAME \
+--output-template-file $PWD/template-deploy.yml \
+--region us-east-1
 
-    aws cloudformation deploy \
-    --stack-name aws-deployment-framework-base \
-    --template-file $PWD/template-deploy.yml \
-    --capabilities CAPABILITY_NAMED_IAM \
-    --parameter-overrides DeploymentAccountBucket=DEPLOYMENT_ACCOUNT_BUCKET_NAME OrganizationId=ORGANIZATION_ID \
-    --region us-east-1
-    ```
+aws cloudformation deploy \
+--stack-name aws-deployment-framework-base \
+--template-file $PWD/template-deploy.yml \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides DeploymentAccountBucket=DEPLOYMENT_ACCOUNT_BUCKET_NAME \
+OrganizationId=ORGANIZATION_ID \
+--region us-east-1
+```
 
 6. Once the stack has completed, it will of created a [AWS CodeCommit](https://aws.amazon.com/codecommit/) repository **(aws-deployment-framework-bootstrap)** in the master account *(among other resources)*. This repository is used as a entry point for all [bootstrap stacks](#bootstrapping-accounts) throughout your organization. Familiarize yourself with the folder structure of **src/bootstrap_repository**, this folder should be initialized as a [git repository](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository) and be arranged to suit your desired [AWS Organization](https://aws.amazon.com/organizations/) structure and desired bootstrapping configuration. The *deployment* and *adf-build* folder are mandatory in the root of this repository, for everything else, please read [bootstrapping accounts](#bootstrapping-accounts). Before continuing to step 7, ensure you have defined your framework configuration in the *adfconfig.yml* file. For more info on *adfconfig.yml* please see the section on [adfconfig](./user-guide.md/#adfconfig) in the user guide.
 
@@ -93,7 +103,7 @@ The below instructions are based on the use-case in which you have no resources 
 
 9. Move the Deployment Account that was created in step 4 into the OU called `deployment`. This action will trigger [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start the bootstrap process for the deployment account. You can view the progress of this in the AWS Step Functions console from the master account in the us-east-1 region.
 
-10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts, bootstrap those as desired by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./sample-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF.
+10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts, bootstrap those as desired by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF.
 
 ## Accounts
 
@@ -103,7 +113,7 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 
 ### Deployment Account
 
-The Deployment Account is the gatekeeper for all deployments through your Organization. Once the baselines have been applied to your accounts via the master account, the Deployment account connects the dots by taking your source code and resources from a repository and into the numerous target accounts and regions you have defined in your deployment map. The Deployment account holds the [deployment_-_map.yml](deployment-map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout your organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment map` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html) against the pipeline definition repository that resides in the deployment account.
+The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit)* and into the numerous target accounts and regions as defined in the deployment map. The Deployment account holds the [deployment_map.yml](deployment-map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment_map.yml` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html) against the pipeline definition repository that resides in the deployment account.
 
 ### Bootstrapping Accounts
 
@@ -115,7 +125,7 @@ When creating the base AWS Deployment Framework stack in the master account, a C
 
 Create a folder structure and associated CloudFormation templates *(global.yml)* or *(regional.yml)* and parameters *(global-params.json)* or *(regional-params.json)* that match your desired specificity when bootstrapping your AWS Accounts. Commit and push this repository to the CodeCommit repository titled `aws-deployment-framework-bootstrap` on the master account. The `regional.yml` is optional however the base configuration required for the `global.yml` for all accounts can be found in the `global.yml` in the base of the *bootstrap_repository* repository.
 
-Pushing to this repository will initiate CodePipeline to run which will in-turn start CodeBuild to sync the contents of the repository with S3. Once the files are in S3, moving an Account into a specific AWS Organization will trigger AWS Deployment to apply the bootstrap template for that specific Organizational Unit to that newly moved account.
+Pushing to this repository will initiate AWS CodePipeline to run which will in-turn start AWS CodeBuild to sync the contents of the repository with S3. Once the files are in S3, moving an Account into a specific AWS Organization will trigger AWS Deployment to apply the bootstrap template for that specific Organizational Unit to that newly moved account.
 
 Any changes in the future made to this repository such as its templates or parameters files will trigger an update to any bootstrap template applied on accounts throughout the Organization.
 
@@ -219,7 +229,7 @@ When you enter an Account Id in the parameter file of a pipeline you are saying 
 
 #### Pipeline Types
 
-In the [deployment map](#deployment-map) file you will notice that there is a property called **type**. This value maps directly the the type of pipeline you wish to use for that specific pipeline. As your organization grows you might have different needs for different types of pipelines. For example, one might handle all the CloudFormation deployment aspects however you might also want a pipeline that uses other third-party integrations for CodePipeline such as Jenkins or Github, or maybe deploys directly to Lambda as opposed to using CloudFormation as a deployment configuration. In the deployment account pipelines repository, in the folder titled *pipeline_types* you can create the pipeline file that best suits your needs. From there you can add or update the deployment_map.yml file with the name of the pipeline file you wish to use. This allows you to create a pipeline once and have it used many times with a different combination of accounts and regions as targets.
+In the [deployment map](#deployment-map) file you will notice that there is a property called **type**. This value maps directly the the type of pipeline you wish to use for that specific pipeline. As your organization grows you might have different needs for different types of pipelines. For example, one might handle all the CloudFormation deployment aspects however you might also want a pipeline that uses other third-party integrations for CodePipeline such as Jenkins or TeamCity, or maybe deploys directly to Lambda as opposed to using CloudFormation as a deployment configuration. In the deployment account pipelines repository, in the folder titled *pipeline_types* you can create the pipeline file that best suits your needs. From there you can add or update the deployment_map.yml file with the name of the pipeline file you wish to use. This allows you to create a pipeline once and have it used many times with a different combination of accounts and regions as targets.
 
 Let's look at the `github-cloudformation.j2.yml` example that creates us a Webhook in our Github repository that triggers our Pipeline to run on any changes. The template itself is similar to the `cc-cloudformation.j2.yml` file with a few small differences. If we look at the parameters this template takes we can see the following:
 
@@ -313,3 +323,6 @@ python3 path/to/pipelines_repository/generate_params.py
 
 This will update your params folder to include the account specific parameters files *(json)*. The same files are generated in AWS CodeBuild each time this application is pushed.
 
+### Default Deployment Account Region
+
+The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline-types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the one that you would consider your default region of choice when deploying resources in AWS.

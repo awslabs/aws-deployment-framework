@@ -3,7 +3,8 @@
 
 """
 Used as a cache for AWS Organizations calls within threads.
-A single instance of this class is passed into all threads to store looks values
+A single instance of this class is passed into all threads to act
+as a cache
 """
 
 

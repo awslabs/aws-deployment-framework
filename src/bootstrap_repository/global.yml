@@ -11,6 +11,9 @@ Parameters:
     Default: deployment_account_id
 Resources:
   CodeCommitRole:
+    # This role is used to connect the Pipeline in the deployment account to CodeCommit in 
+    # In the source account. If you are not using CodeCommit or are using it only for a specific
+    # OU you can target this more specifically and remove it from the global.yml
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-codecommit-role"
@@ -121,6 +124,9 @@ Resources:
               - sts:AssumeRole
       Path: /
   CloudFormationDeploymentPolicy:
+    # This is the role that will be used to deploy CloudFormation resources from
+    # within the account that it is deployed to. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"

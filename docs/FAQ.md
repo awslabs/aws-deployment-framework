@@ -1,18 +1,18 @@
 # FAQ
 
 - Q: Why is the region us-east-1 required for the initial stack and why does it need to be in the master account of the Organization?
-- > A: Read more about [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/APIReference/Welcome.html).
+- > A: Organzations can only be accessed from the Master account of the Organization, read more about [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/APIReference/Welcome.html).
 
-- Q: What are the limits to these Pipelines?
+- Q: What are the limits of AWS CodePipeline?
 - > A: Please read [AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html).
 
 - Q: I cannot get CodeCommit working nicely with git or it stops working after a short period of time.
 - > A: Please read [Setting up CodeCommit](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up.html).
 
 - Q: Can I make Pipelines that depend on other pipelines?
-- > A: Each Pipeline you create can be passed a Parameter via the deployment_map.yml file called "RestartExecutionOnUpdate" which defaults to "false". If this is parameter is set to true then the pipeline will automatically execute when it is updated to include any new account which is each time an account is bootstrapped into a OU that the pipeline targets. This should be used for pipelines that are considered fundamental for all accounts as it will occur automatically. Using this Parameter on every pipeline can cause pipelines that import and export values from each other to execute out of order and potentially fail.
+- > A: Each Pipeline you create can be passed a Parameter via the deployment_map.yml file called "RestartExecutionOnUpdate" which defaults to "false". If this is parameter is set to true then the pipeline will automatically execute when it is updated to include any new account, which is, each time an account is bootstrapped into a OU that the pipeline targets. This should be used for pipelines that are considered fundamental for all accounts as it will occur automatically. Using this parameter on every pipeline can cause pipelines that import and export values from each other to execute out of order and potentially fail.
 
-- Q: How do I know what I can add i terms of pipeline_types? What are supported configuration options?
+- Q: How do I know what I can add I terms of pipeline_types? What are supported configuration options?
 - > A: Read more about how AWS CodePipeline can [integrate](https://aws.amazon.com/codepipeline/product-integrations/) with other services, tools and even add [custom actions](https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-create-custom-action.html) to allow you to build the pipeline to suit your needs.
 
 - Q: Can I make Pipelines target Organizational Units without any accounts in them?

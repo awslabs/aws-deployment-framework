@@ -209,7 +209,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-    Type: AWS::EC2::Subnet
   PrivateSubnet1aRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -236,9 +235,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-      VpcId:
-        Ref: VPC
-    Type: AWS::EC2::Subnet
   PrivateSubnet1bRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -265,9 +261,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-      VpcId:
-        Ref: VPC
-    Type: AWS::EC2::Subnet
   PrivateSubnet1cRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -319,9 +312,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-      VpcId:
-        Ref: VPC
-    Type: AWS::EC2::Subnet
   PublicSubnet1aRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -348,9 +338,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-      VpcId:
-        Ref: VPC
-    Type: AWS::EC2::Subnet
   PublicSubnet1bRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -377,9 +364,6 @@ Resources:
       - Key: CostCenter
         Value:
           Ref: CostCenter
-      VpcId:
-        Ref: VPC
-    Type: AWS::EC2::Subnet
   PublicSubnet1cRouteTableAssociation:
     Properties:
       RouteTableId:
