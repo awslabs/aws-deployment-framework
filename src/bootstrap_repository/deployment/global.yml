@@ -1,4 +1,7 @@
-AWSTemplateFormatVersion: '2010-09-09'
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+WSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Template (Global) for Deployment Account
 Parameters:

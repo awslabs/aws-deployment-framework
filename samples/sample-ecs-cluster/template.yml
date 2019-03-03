@@ -1,3 +1,6 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
 # Builds ontop of the great work of Nathan Peck => https://github.com/nathanpeck/aws-cloudformation-fargate
 
 AWSTemplateFormatVersion: '2010-09-09'

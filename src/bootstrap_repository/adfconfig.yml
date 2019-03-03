@@ -2,10 +2,11 @@ roles:
   cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access
 
 regions:
-  deployment-account: us-west-1  # The region you define as your main deployment region
+  deployment-account: us-west-2 # The region you define as your main deployment region
   targets: # A list of regions you wish to bootstrap and also deploy into via pipelines
-    - us-west-1 
     - us-west-2
+    - eu-west-1
+    
 
 config:
   main-notification-endpoint: 

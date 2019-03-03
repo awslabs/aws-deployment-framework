@@ -1,3 +1,6 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Template - Global Base - Cross Account Roles to Allow Access to CodePipeline in Deployment Account
 Parameters:
