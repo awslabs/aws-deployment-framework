@@ -1,7 +1,7 @@
 # // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-WSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Template (Global) for Deployment Account
 Parameters:
@@ -151,7 +151,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-org-access"
+            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-org-access-adf"
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -606,7 +606,7 @@ Resources:
   LambdaRole:
     Type: "AWS::IAM::Role"
     Properties: 
-      RoleName: "lambda-role"
+      RoleName: "adf-lambda-role"
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
         Statement: 
@@ -619,7 +619,7 @@ Resources:
               - "sts:AssumeRole"
       Path: "/"
       Policies: 
-        - PolicyName: "LambdaExecutionRole"
+        - PolicyName: "adf-lambda-execution-role"
           PolicyDocument: 
             Version: "2012-10-17"
             Statement: 
@@ -671,7 +671,7 @@ Resources:
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: "state-machine-role"
+      RoleName: "adf-state-machine-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -684,7 +684,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "StatesExecutionPolicy"
+        - PolicyName: "adf-state-machine-role"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:

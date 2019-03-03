@@ -1,13 +1,18 @@
+# User Guide
+
 - [Deployment Map](#deployment-map)
 - [adfconfig](#adfconfig)
-    - [Roles](#roles)
-    - [Regions](#regions)
-    - [Config](#config)
+  - [Roles](#roles)
+  - [Regions](#regions)
+  - [Config](#config)
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [Repositories](#repositories)
   - [BuildSpec](#buildspec)
   - [Parameters](#parameters)
   - [Parameter Injection](#parameter-injection)
+  - [Nested Stacks](#nested-stacks)
+  - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
+  - [Passing information between Stages](#passing-information-between-stages)
 
 ## Deployment Map
 
@@ -216,7 +221,7 @@ For more examples of parameters and their usage see the `samples` folder in the 
 
 ### Parameter Injection
 
-Parameter injection solves problems that occur with Cross Account parameter access. This concept allows you to use your Deployment Account as the central location for all parameters and secrets throughout your Organization. Firstly, You store these in SSM Parameter Parameter store on the Deployment Account *(in the region you specific in adfconfig.yml)*. Then in your *global.json* or *account-name.json* you can do the the following:
+Parameter injection solves problems that occur with Cross Account parameter access. This concept allows you to use your Deployment Account as the central location for all parameters throughout your Organization. Firstly, You store these in SSM Parameter Parameter store on the Deployment Account *(in the region you specific in adfconfig.yml)*. Then in your *global.json* or *account-name.json* you can do the the following:
 
 ```json
 {
