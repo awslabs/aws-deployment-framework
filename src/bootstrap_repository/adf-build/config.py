@@ -28,9 +28,12 @@ class Config:
         self.config_path = config_path or './adfconfig.yml'
         self.organization_id = os.environ["ORGANIZATION_ID"]
         self.client_deployment_region = None
+        self.notification_type = None
+        self.notification_endpoint = None
         self.config_contents = None
         self.config = None
         self.deployment_account_region = None
+        self.notification_channel = None
         self.protected = None
         self.target_regions = None
         self.cross_account_access_role = None
@@ -75,6 +78,9 @@ class Config:
             self.target_regions = [self.target_regions]
 
     def _load_config_file(self):
+        """
+        Loads the adfconfig.yml file and executes _parse_config
+        """
         with open(self.config_path) as config:
             self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
             self._parse_config()
@@ -83,6 +89,7 @@ class Config:
         """
         Parses the adfconfig.yml file and executes _validate
         """
+
         self.deployment_account_region = self.config_contents.get(
             'regions', None).get('deployment-account', None)
         self.target_regions = self.config_contents.get(
@@ -91,6 +98,11 @@ class Config:
             'roles', None).get('cross-account-access', None)
         self.config = self.config_contents.get('config', None)
         self.protected = self.config.get('protected', [])
+        self.notification_type = 'lambda' if self.config.get(
+            'main-notification-endpoint')[0].get('type') == 'slack' else 'email'
+        self.notification_endpoint = self.config.get(
+            'main-notification-endpoint')[0].get('target')
+        self.notification_channel = None if self.notification_type == 'email' else self.notification_endpoint
 
         self._validate()
 
@@ -112,7 +124,7 @@ class Config:
 
     def _store_config(self):
         """
-        Stores the configuration in Parameter Store on
+        Stores the required configuration in Parameter Store on
         The master account in us-east-1.
         """
         for key, value in self.__dict__.items():
@@ -120,6 +132,9 @@ class Config:
                     "client",
                     "client_deployment_region",
                     "parameters_client",
-                    "config_contents"
+                    "config_contents",
+                    "config_path",
+                    "notification_endpoint",
+                    "notification_type"
             ):
                 self.parameters_client.put_parameter(key, str(value))

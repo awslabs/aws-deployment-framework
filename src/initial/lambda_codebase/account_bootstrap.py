@@ -59,17 +59,22 @@ def update_master_account_parameters(parsed_event, parameter_store):
     parameter_store = ParameterStore(parsed_event.deployment_account_region, boto3)
     parameter_store.put_parameter('deployment_account_id', parsed_event.account_id)
 
-
 def configure_deployment_account(parsed_event, role):
+    """
+    Applies the Parameters from adfconfig plus other essential
+    Parameters to the Deployment Account in each region as defined in
+    adfconfig.yml
+    """
     for region in list(set([parsed_event.deployment_account_region] + parsed_event.regions)):
         parameters = ParameterStore(region, role)
         if region == parsed_event.deployment_account_region:
             for key, value in parsed_event.create_deployment_account_parameters().items():
-                parameters.put_parameter(
-                    key,
-                    value
-                )
-                continue
+                if value:
+                    parameters.put_parameter(
+                        key,
+                        value
+                    )
+
         parameters.put_parameter('organization_id', os.environ["ORGANIZATION_ID"])
 
 def lambda_handler(event, _):
@@ -116,8 +121,7 @@ def lambda_handler(event, _):
             wait=False,
             stack_name=None,
             s3=s3,
-            s3_key_path=account_path,
-            file_path=None,
+            s3_key_path=account_path
         )
         cloudformation.create_stack()
 

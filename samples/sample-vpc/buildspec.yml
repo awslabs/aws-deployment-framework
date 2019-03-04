@@ -5,7 +5,7 @@ phases:
     commands:
       - export PYTHONPATH=$PWD/adf-build/shared/python
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
-      - pip install -r adf-build/requirements.txt
+      - pip install -r adf-build/requirements.txt -q
       - python adf-build/generate_params.py
 artifacts:
   files: '**/*'

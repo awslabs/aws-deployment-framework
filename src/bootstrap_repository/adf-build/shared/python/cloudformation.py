@@ -6,6 +6,7 @@
 
 import re
 
+from botocore.exceptions import WaiterError, ClientError
 from logger import configure_logger
 from paginator import paginator
 
@@ -36,40 +37,55 @@ class StackProperties:
             deployment_account_region,
             stack_name,
             s3_key_path=None,
-            s3=None,
-            file_path=''):
+            s3=None
+        ):
         self.region = region
         self.deployment_account_region = deployment_account_region
         self.s3_key_path = s3_key_path
         self.ou_name = self.s3_key_path.split(
             '/')[-1] if self.s3_key_path else None
-        self.file_path = file_path
         self.s3 = s3
         self.stack_name = stack_name or self._get_stack_name()
 
     def _get_geo_prefix(self):
         return 'global' if self.region == self.deployment_account_region else 'regional'
 
-    def _create_template_path(self, object_type, path):
-        if object_type == 'template':
-            return '{0}/{1}.yml'.format(
-                path,
-                self._get_geo_prefix()
-            )
+    def _create_template_path(self, path):
+        return '{0}/{1}.yml'.format(
+            path,
+            self._get_geo_prefix()
+        )
+
+    def _create_parameter_path(self, path):
         return '{0}/{1}-params.json'.format(
             path,
             self._get_geo_prefix()
         )
 
-    def get_cfn_resource(self, resource_type):
+    def get_template_url(self):
+        return self.s3.fetch_s3_url(
+            self._create_template_path(self.s3_key_path)
+        )
+
+    def get_template_body(self):
+        key = self.s3.fetch_s3_url(
+            self._create_template_path(self.s3_key_path)
+        )
+        if isinstance(key, list):
+            return key
+        short_key = key.split('/')
+        del short_key[:4]
+        return self.s3.read_object("/".join(short_key))
+
+    def get_parameters(self):
         try:
-            _path = self._create_template_path(resource_type, self.file_path)
-            with open(_path, encoding='utf-8') as _data:
-                return _data.read()
-        except FileNotFoundError:
-            return self.s3.s3_stream_object(
-                self._create_template_path(resource_type, self.s3_key_path)
+            key = self.s3.fetch_s3_url(
+                self._create_parameter_path(self.s3_key_path)
             )
+            return self.s3.read_object(key) if key else []
+
+        except ClientError:
+            return []
 
     def _get_stack_name(self):
         return 'adf-{0}-base-{1}'.format(
@@ -84,28 +100,30 @@ class CloudFormation(StackProperties):
             region,
             deployment_account_region,
             role,
+            template_url=None,
+            template_body=None,
             wait=False,
             stack_name=None,
             s3=None,
             s3_key_path=None,
-            file_path=None,
             parameters=None,
     ):
         self.client = role.client('cloudformation', region_name=region)
         self.wait = wait
         self.parameters = parameters
+        self.template_url = template_url
+        self.template_body = template_body
         StackProperties.__init__(
             self,
             region=region,
             deployment_account_region=deployment_account_region,
             stack_name=stack_name,
             s3=s3,
-            s3_key_path=s3_key_path,
-            file_path=file_path
+            s3_key_path=s3_key_path
         )
 
-    def _validate_template(self, template_body):
-        return self.client.validate_template(TemplateBody=template_body)
+    def _validate_template(self):
+        return self.client.validate_template(TemplateURL=self.template_url)
 
     def _wait_stack(self, waiter_type):
         waiter = self.client.get_waiter(waiter_type)
@@ -154,42 +172,61 @@ class CloudFormation(StackProperties):
                 ChangeSetName=self.stack_name,
                 StackName=self.stack_name
             )
-        except BaseException:
+        except ClientError:
             return False
 
     def _create_change_set(self):
         """Creates a Cloudformation change set from a template
         """
-        template = self.get_cfn_resource('template')
-        if not template:
-            return None
-        self._validate_template(template)
         try:
-            self.client.create_change_set(
-                StackName=self.stack_name,
-                TemplateBody=template,
-                Parameters=self.parameters if self.parameters is not None else self.get_cfn_resource('parameters'),
-                Capabilities=[
-                    'CAPABILITY_NAMED_IAM',
-                ],
-                ChangeSetName=self.stack_name,
-                ChangeSetType=self._get_change_set_type())
+            if self.template_url:
+                self.client.create_change_set(
+                    StackName=self.stack_name,
+                    TemplateURL=self.template_url if self.template_url is not None else self.get_template_url(),
+                    Parameters=self.parameters if self.parameters is not None else self.get_parameters(),
+                    Capabilities=[
+                        'CAPABILITY_NAMED_IAM',
+                    ],
+                    ChangeSetName=self.stack_name,
+                    ChangeSetType=self._get_change_set_type())
 
-            self._wait_change_set()
-            return True
-        except BaseException as error:
-            change_set = self._describe_change_set()
-            if change_set:
-                if "The submitted information didn't contain changes." in change_set.get(
-                        'StatusReason'):
-                    LOGGER.info(
-                        "The submitted information does not contain changes.")
-            else:
+                self._wait_change_set()
+                return True
+
+            template_body = self.get_template_body()
+            if template_body:
+                self.client.create_change_set(
+                    StackName=self.stack_name,
+                    TemplateBody=template_body,
+                    Parameters=self.parameters if self.parameters is not None else self.get_parameters(),
+                    Capabilities=[
+                        'CAPABILITY_NAMED_IAM',
+                    ],
+                    ChangeSetName=self.stack_name,
+                    ChangeSetType=self._get_change_set_type())
+
+                self._wait_change_set()
+                return True
+            return False
+        except WaiterError as error:
+            err = error.last_response
+            status = err["Status"]
+            reason = err["StatusReason"]
+            if CloudFormation._change_set_failed_due_to_empty(status, reason):
+                LOGGER.info("The submitted information does not contain changes.")
                 self._delete_change_set()
-                raise error
+                return False
 
+            LOGGER.error("%s - %s", status, reason)
             self._delete_change_set()
-            return None
+            raise
+
+
+    @staticmethod
+    def _change_set_failed_due_to_empty(status, reason):
+        return status == "FAILED" and \
+               "The submitted information didn't contain changes." in reason or \
+                    "No updates are to be performed" in reason
 
     def _delete_change_set(self):
         try:

@@ -32,6 +32,13 @@ Parameters:
   NotificationEndpoint:
     Type : 'AWS::SSM::Parameter::Value<String>'
     Default: notification_endpoint
+  NotificationType:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: notification_type
+  PipelinePrefix:
+    Description: The Prefix that will be attached to all cloudformation stacks for ADF pipelines (joined by - to the name)
+    Type: String
+    Default: 'adf-pipeline'
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -171,6 +178,13 @@ Resources:
               - "ssm:DeleteParameter"
               - "sns:*"
               - "iam:PassRole"
+              - "lambda:AddPermission"
+              - "lambda:RemovePermission"
+              - "events:PutRule"
+              - "events:RemoveTargets"
+              - "events:DeleteRule"
+              - "events:DescribeRule"
+              - "events:PutTargets"
             Resource: "*"
       Roles:
         - !Ref CodeBuildRole
@@ -352,6 +366,8 @@ Resources:
             Value: !Ref PipelineBucket
           - Name: SHARED_MODULES_BUCKET
             Value: !Ref SharedModulesBucket
+          - Name: ADF_PIPELINE_PREFIX
+            Value: !Ref PipelinePrefix
         Type: LINUX_CONTAINER
       Name: 'aws-deployment-framework-base'
       Source:
@@ -361,7 +377,7 @@ Resources:
           phases:
             install:
               commands:
-                - pip install --upgrade pip
+                - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q
             build:
               commands:
@@ -420,7 +436,33 @@ Resources:
     Properties:
       Subscription:
         - Endpoint: !Ref NotificationEndpoint
-          Protocol: email
+          Protocol: !Ref NotificationType
+  PipelineEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Trigger notifications based on pipeline state changes"
+      EventPattern:
+        source:
+          - "aws.codepipeline"
+        detail-type:
+          - "CodePipeline Pipeline Execution State Change"
+        detail:
+          state:
+            - "FAILED"
+            - "SUCCEEDED"
+          pipeline:
+            - !Ref CodePipeline
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref PipelineSNSTopic
+          Id: !Sub "${AWS::StackName}"
+          InputTransformer:
+            InputTemplate: '"The pipeline <pipeline> from account <account> has <state> at <at>."'
+            InputPathsMap:
+              pipeline: "$.detail.pipeline"
+              state: "$.detail.state"
+              at: "$.time"
+              account: "$.account"
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -433,6 +475,7 @@ Resources:
             Service:
               - events.amazonaws.com
               - codecommit.amazonaws.com
+              - states.amazonaws.com
           Action: sns:Publish
           Resource: "*"
       Topics:
@@ -572,6 +615,21 @@ Resources:
               - !Sub arn:aws:s3:::${PipelineBucket}/*
             Principal:
               AWS: "*"
+  SendSlackNotification:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - Send Slack Notification"
+      FunctionName: SendSlackNotification
+      Handler: slack.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
+      Runtime: python3.6
+      Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
     Properties: 
@@ -616,6 +674,7 @@ Resources:
               Service: 
                 - "lambda.amazonaws.com"
                 - "states.amazonaws.com"
+                - "sns.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
       Path: "/"
@@ -649,6 +708,7 @@ Resources:
                   - "codepipeline:GetPipelineState"
                   - "s3:Get*"
                   - "s3:Put*"
+                  - "sns:Publish"
                 Resource: "*"
               - Effect: "Allow"
                 Action: 
@@ -682,6 +742,7 @@ Resources:
                 - states.amazonaws.com
                 - events.amazonaws.com
                 - lambda.amazonaws.com
+                - sns.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
@@ -693,7 +754,15 @@ Resources:
                 Action:
                   - "states:StartExecution"
                   - "lambda:InvokeFunction"
+                  - "sns:Publish"
                 Resource: "*"
+  LambdaInvokePermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref PipelineSNSTopic
+      FunctionName: !Ref SendSlackNotification
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
@@ -701,24 +770,47 @@ Resources:
       DefinitionString: !Sub |-
             {
               "Comment": "Enable Cross Account Access from Deployment Account",
-              "StartAt": "EnableCrossAccountAccess",
+              "StartAt": "UpdatePipelinesOnly",
               "States": {
+                "UpdatePipelinesOnly": {
+                  "Type": "Choice",
+                  "Choices": [{
+                    "Variable": "$.update_only",
+                    "NumericEquals": 1,
+                    "Next": "UpdatePipelines"
+                  }],
+                  "Default": "EnableCrossAccountAccess"
+                },
                 "EnableCrossAccountAccess": {
                   "Type": "Task",
                   "Resource": "${EnableCrossAccountAccess.Arn}",
-                  "Next": "UpdatePipelines",
+                  "Next": "Notify",
                   "TimeoutSeconds": 60
                 },
                 "UpdatePipelines": {
                   "Type": "Task",
                   "Resource": "${CheckPipelineStatus.Arn}",
-                  "End": true,
-                  "TimeoutSeconds": 60
-                }
+                  "TimeoutSeconds": 60,
+                  "End": true
+                },
+                "Notify": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::sns:publish",
+                  "Parameters": {
+                    "TopicArn": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
+                    "Message.$": "$.message",
+                    "Subject": "AWS Deployment Framework Bootstrap"
+                  },
+                  "End": true
+                  }
               }
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 Outputs:
+  SlackLambdaArn:
+    Value: !GetAtt SendSlackNotification.Arn
+    Export:
+      Name: "SendSlackNotificationLambdaArn"
   DeploymentFrameworkRegionalKMSKey:
     Value: !GetAtt KMSKey.Arn
     Export:
@@ -744,6 +836,10 @@ Outputs:
     Value: !GetAtt CodeCommitRepository.CloneUrlHttp
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-http-url"
+  LambdaRoleArn:
+    Value: !GetAtt LambdaRole.Arn
+    Export:
+      Name: "LambdaRoleArn"
   CodeCommitSshURL:
     Description: "The CodeCommit SSH Url"
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh

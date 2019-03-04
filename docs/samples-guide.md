@@ -59,7 +59,6 @@ pipelines:
     type: cc-cloudformation
     params:
       - SourceAccountId: 111111111111
-      - NotificationEndpoint: your_email@address.com # You will receive a confirmation email
       - RestartExecutionOnUpdate: True
     targets:
       - path: /banking/testing
@@ -69,7 +68,7 @@ pipelines:
         regions: us-west-2
 ```
 
-The *SourceAccountId* will be the Account Id of the account we created in the `banking/source` OU and *NotificationEndpoint* will be an email address of the pipeline owner/team. In this pipeline we have specified we want to deploy to two different regions as part of the stages. If you wish to deploy to the *"default"* region *(the one your deployment account is setup globally in)* you can omit the region and path keys as you will see below with our ECR Repository deployment.
+The *SourceAccountId* will be the Account Id of the account we created in the `banking/source` OU. In this pipeline we have specified we want to deploy to two different regions as part of the stages. If you wish to deploy to the *"default"* region *(the one your deployment account is setup globally in)* you can omit the region and path keys as you will see below with our ECR Repository deployment.
 
 Once we have updated our deployment map we can push these changes to the `aws-deployment-framework-pipelines` repository in the Deployment Account.
 
@@ -127,7 +126,6 @@ We can extend our `deployment_map.yml` file to include the new pipeline, *(remeb
     type: cc-cloudformation
     params:
       - SourceAccountId: 111111111111
-      - NotificationEndpoint: your_email@address.com
     targets:
       - /deployment
 ```
@@ -159,7 +157,6 @@ Let's add in our ECS Cluster pipeline to our Deployment Map.
     type: cc-cloudformation
     params:
       - SourceAccountId: 111111111111
-      - NotificationEndpoint: your_email@address.com
     targets:
       - path: /banking/testing
         regions: eu-west-1
@@ -182,7 +179,6 @@ Let's add the pipeline we need into the map once more.
     type: cc-cloudformation
     params:
       - SourceAccountId: 111111111111
-      - NotificationEndpoint: your_email@address.com
       - Image: aws/codebuild/docker:18.09.0
     targets:
       - path: /banking/testing

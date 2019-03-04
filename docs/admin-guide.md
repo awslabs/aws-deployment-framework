@@ -19,6 +19,8 @@
   - [Creating Pipeline Templates Locally](#creating-pipeline-templates-locally)
   - [Creating Pipeline Parameter Files Locally](#creating-pipeline-parameter-files-locally)
 - [Default Deployment Account Region](#default-deployment-account-region)
+- [Integrating Slack](#integrating-slack)
+- [Updating Between Versions](#updating-between-versions)
 
 ## Overview
 
@@ -44,7 +46,7 @@ The `src` folder contains *three* sub-folders that make up The ADF.
 - initial
   > The initial folder is used to initially create the AWS Deployment Framework within your root AWS Account. It creates resources that are used to facilitate the creation and streamline the automation of the following steps.
 - bootstrap_repository
-  > The bootstrap_repository folder is responsible for defining your bootstrapping AWS CloudFormation templates that will be assigned to AWS Organizations Organizational Units (OUs) and applied to accounts/regions when they are moved into the OU. This should be initialized as its own git repository and will have a remote in the master account.
+  > The bootstrap_repository folder is responsible for defining your bootstrapping AWS CloudFormation templates that will be assigned to AWS Organizations Organizational Units (OUs) and applied to accounts/regions when they are moved into the OU. This should be initialized as its own git repository and will have a remote in the master account. 
 - pipelines_repository
   > The pipelines_repository folder is responsible for defining your deployment pipelines in the deployment_map.yml file which allows for stages, regions and variables configurations for pipelines. This should be initialized as its own git repository and will have a remote in the deployment account.
 
@@ -95,7 +97,7 @@ OrganizationId=ORGANIZATION_ID \
 --region us-east-1
 ```
 
-6. Once the stack has completed, it will of created a [AWS CodeCommit](https://aws.amazon.com/codecommit/) repository **(aws-deployment-framework-bootstrap)** in the master account *(among other resources)*. This repository is used as a entry point for all [bootstrap stacks](#bootstrapping-accounts) throughout your organization. Familiarize yourself with the folder structure of **src/bootstrap_repository**, this folder should be initialized as a [git repository](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository) and be arranged to suit your desired [AWS Organization](https://aws.amazon.com/organizations/) structure and desired bootstrapping configuration. The *deployment* and *adf-build* folder are mandatory in the root of this repository, for everything else, please read [bootstrapping accounts](#bootstrapping-accounts). Before continuing to step 7, ensure you have defined your framework configuration in the *adfconfig.yml* file. For more info on *adfconfig.yml* please see the section on [adfconfig](./user-guide.md/#adfconfig) in the user guide.
+6. Once the stack has completed, it will of created a [AWS CodeCommit](https://aws.amazon.com/codecommit/) repository **(aws-deployment-framework-bootstrap)** in the master account *(among other resources)*. This repository is used as a entry point for all [bootstrap stacks](#bootstrapping-accounts) throughout your organization. Familiarize yourself with the folder structure of **src/bootstrap_repository**, this folder should be initialized as a [git repository](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository) and be arranged to suit your desired [AWS Organization](https://aws.amazon.com/organizations/) structure and desired bootstrapping configuration. The *deployment* and *adf-build* folder are mandatory in the root of this repository, for everything else, please read [bootstrapping accounts](#bootstrapping-accounts). Before continuing to step 7, ensure you have defined your framework configuration in the *adfconfig.yml* file *(you can use example-adfconfig.yml as a starter)*. For more info on *adfconfig.yml* please see the section on [adfconfig](./user-guide.md/#adfconfig) in the user guide.
 
 7. Once you have defined what base templates will be applied to which organizational units you should push the contents of *bootstrap_repository* to the *aws-deployment-framework-bootstrap* repository in *us-east-1*. The change will be picked up and will start the Pipeline *(aws-deployment-framework-bootstrap-pipeline)* which was created in the master account. This pipeline is responsible for syncing the folder structure with Amazon S3. Each time you push to this Repository, AWS CodeBuild will sync the folder structure with S3 and also update any of the bootstrap stacks in AWS Accounts throughout your Organization. This allows you to update your templates, push them into CodeCommit which starts Codepipeline and thus CodeBuild to update bootstrap stacks throughout all of your accounts and regions in a way that promotes continuous integration and deployment. Pushing to this Repository also updates any of your configuration in the *adfconfig.yml* with Parameter Store.
 
@@ -103,7 +105,7 @@ OrganizationId=ORGANIZATION_ID \
 
 9. Move the Deployment Account that was created in step 4 into the OU called `deployment`. This action will trigger [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start the bootstrap process for the deployment account. You can view the progress of this in the AWS Step Functions console from the master account in the us-east-1 region.
 
-10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts, bootstrap those as desired by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF.
+10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts, bootstrap those as desired by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF. Otherwise, if you just want to get started making pipelines you can create a `deployment_map.yml` file *(see example-deployment_map.yml for a starting point.)* in the *pipelines_repository* folder and define some pipelines that tie together a source and associated targets.
 
 ## Accounts
 
@@ -113,7 +115,7 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 
 ### Deployment Account
 
-The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit)* and into the numerous target accounts and regions as defined in the deployment map. The Deployment account holds the [deployment_map.yml](deployment-map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment_map.yml` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html) against the pipeline definition repository that resides in the deployment account.
+The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit)* and into the numerous target accounts and regions as defined in the deployment map. The Deployment account holds the [deployment_map.yml](#deployment_map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment_map.yml` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html) against the pipeline definition repository that resides in the deployment account.
 
 ### Bootstrapping Accounts
 
@@ -219,9 +221,9 @@ We recommend to keep the bootstrapping templates for your accounts as thin as po
 
 #### Pipeline Parameters
 
-Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder *(src/pipelines_repository/pipeline_types)* on the deployment account. As a minimum, you will need to pass in a notification endpoint and a source account in which this pipeline will be linked to as an entry point.
+Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder *(src/pipelines_repository/pipeline_types)* on the deployment account. As a minimum, you will need to pass in a source account in which this pipeline will be linked to as an entry point.
 
-The project name you specify in the deployment_map.yml will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes. The Source Account Id plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
+The project name you specify in the deployment_map.yml will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes *(via slack or email)*. The Source Account Id plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
 
 The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **SourceAccountId** value.
 
@@ -235,7 +237,6 @@ pipelines:
     type: github-cloudformation
     params:
       - Owner: github_owner
-      - NotificationEndpoint: my_external_address@email.com
       - BranchName: dev/feature
     targets:
       - /security
@@ -262,18 +263,16 @@ Let's look at the `github-cloudformation.j2.yml` example that creates us a Webho
     Default: /tokens/oauth/github
 ```
 
-In order for this template to generate a pipeline connected to Github we will need to create a token in Github that allows us to connect it to CodePipeline. You can read more about that process [here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html). Once the token has been created you can store that in Parameter Store on the Deployment Account. Ensure that you control access to [Parameter Store paths](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html) with policies so that these values cannot be tampered with unintentionally.
+In order for this template to generate a pipeline connected to Github you will need to create a Personal Access Token in Github that allows its connection to AWS CodePipeline. You can read more about creating a Token [here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html). Once the token has been created you can store that in Parameter Store on the Deployment Account. The Webhook secret is a value you define and store in Parameter Store with a path of `/tokens/webhook/github` *(Can have different path if required)*. Ensure that you control access to [Parameter Store paths](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html) with policies so that these values cannot be tampered with unintentionally.
 
-Once the values are stored you create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](#deployment-map) to use the new pipeline type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github.
+Once the values are stored, you can create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](#deployment-map) to use the new pipeline type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github, in this case the repository on github must be named 'vpc'.
 
 ```yaml
 pipelines:
   - name: vpc
     type: github-cloudformation
-    regions: [ eu-west-1, eu-central-1 ]
     params:
       - Owner: github_owner
-      - NotificationEndpoint: my_external_address@email.com
     targets:
       - /security
 ```
@@ -323,3 +322,54 @@ The same goes for any pipeline configuration for that matter, if you wish to use
 ### Default Deployment Account Region
 
 The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline-types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the one that you would consider your default region of choice when deploying resources in AWS.
+
+### Integrating Slack
+
+The ADF allows alternate *NotificationEndpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new parameter in Parameter Store on the Deployment Account with the type of 'SecureString'. Give the Parameter a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Parameter store as `/notification_endpoint/hooks/slack/team-bugs`. Ensure to encrypt the value with the CodePipeline KMS Key in that Deployment Account named: `alias/codepipeline-(account_id)`.
+
+Once the value is encrypted in Parameter Store you can use the channel name as a reference in the deployment_map.yml file like:
+
+```yaml
+pipelines:
+  - name: sample-vpc
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 111112233332
+      - NotificationEndpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
+      - RestartExecutionOnUpdate: True
+    targets:
+      - /banking/testing
+      - /banking/production
+```
+
+Slack can also be used as the `main-notification-endpoint` in the `adfconfig.yml` file like so:
+
+```yaml
+  main-notification-endpoint:
+    - type: slack
+      target: deployments
+```
+
+As per the same as the `deployment_map.yml` style configuration, this would require that you have an incoming webhook configured for the *deployments* channel in your slack app, and that the value *(eg.. https://hooks.slack.com/services/XYZ....)* is stored as an encrypted string in Parameter Store *(using the same above KMS key)* on the deployment account *(in main deployment region)*.
+
+### Updating Between Versions
+
+To update ADF between *minor* releases you can run the same commands used to install ADF from the terminal with credentials in the master account. Pull from the changes from the master branch on Github and from the root of the repository run:
+
+```bash
+aws cloudformation package \
+--template-file $PWD/src/initial/template.yml \
+--s3-bucket MASTER_ACCOUNT_BUCKET_NAME \
+--output-template-file $PWD/template-deploy.yml \
+--region us-east-1
+
+aws cloudformation deploy \
+--stack-name aws-deployment-framework-base \
+--template-file $PWD/template-deploy.yml \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides DeploymentAccountBucket=DEPLOYMENT_ACCOUNT_BUCKET_NAME \
+OrganizationId=ORGANIZATION_ID \
+--region us-east-1
+```
+
+Once complete, change directory in `src/bootstrap_repository` and make a new commit with the upstream changes included and push those into your `aws-deployment-framework-bootstrap` repository. Once complete do the same for changes in the `src/pipelines_repository` and its CodeCommit repository.

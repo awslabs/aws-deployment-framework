@@ -23,7 +23,8 @@ class StepFunctions:
             deployment_account_region,
             regions,
             account_ids=None,
-            update_pipelines_only=False
+            full_path=None,
+            update_pipelines_only=0
         ):
         self.deployment_account_region = deployment_account_region
         self.client = role.client(
@@ -35,9 +36,13 @@ class StepFunctions:
         self.update_pipelines_only = update_pipelines_only
         self.account_ids = account_ids
         self.execution_arn = None
+        self.full_path = full_path
         self.execution_status = None
 
     def execute_statemachine(self):
+        """
+        Main entry to executed state machine in Deployment Account
+        """
         self._start_statemachine()
         self._wait_state_machine_execution()
 
@@ -54,6 +59,7 @@ class StepFunctions:
                 "deployment_account_id": self.deployment_account_id,
                 "account_ids": self.account_ids,
                 "regions": self.regions,
+                "full_path": self.full_path,
                 "update_only": self.update_pipelines_only,
             })
         ).get('executionArn')
@@ -61,9 +67,15 @@ class StepFunctions:
         self._fetch_statemachine_status()
 
     def _get_execution_status(self):
+        """
+        Returns the status of the state machine
+        """
         return self.execution_status
 
     def _set_execution_status(self, execution_status):
+        """
+        Set the status of the state machine
+        """
         self.execution_status = execution_status
 
     def _fetch_statemachine_status(self):
@@ -79,6 +91,9 @@ class StepFunctions:
 
     # Is there a legit waiter for this?
     def _wait_state_machine_execution(self):
+        """
+        Waits until the statemachine is complete
+        """
         while self._get_execution_status() == 'RUNNING':
             self._fetch_statemachine_status()
             sleep(10)  # Wait for 10 seconds and check the status again

@@ -75,18 +75,3 @@ def test_create_output_object(cls):
     assertion = cls.create_output_object({})
     assert assertion.get('account_id') == 111111111111
     assert assertion.get('is_deployment_account') is 0
-
-
-def test_ensure_deployment_order_multiple(cls):
-    cls.regions = ['region2', 'region1']
-    cls.deployment_account_region = 'region1'
-    cls._ensure_deployment_order()
-    assert cls.regions[0] == 'region1'
-    assert cls.regions[1] == 'region2'
-
-
-def test_ensure_deployment_order_single(cls):
-    cls.regions = ['region1']
-    cls.deployment_account_region = 'region1'
-    cls._ensure_deployment_order()
-    assert cls.regions[0] == 'region1'

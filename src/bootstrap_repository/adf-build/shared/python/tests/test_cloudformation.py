@@ -23,9 +23,9 @@ def regional_cls():
         role=boto3,
         wait=False,
         stack_name='some_stack',
+        template_url='https://some/path/regional.yml',
         s3=None,
-        s3_key_path=None,
-        file_path=None,
+        s3_key_path=None
     )
 
 
@@ -37,9 +37,9 @@ def global_cls():
         role=boto3,
         wait=False,
         stack_name=None,
+        template_url='https://some/path/global.yml',
         s3=None,
-        s3_key_path='/some/location',
-        file_path=None,
+        s3_key_path='/some/location'
     )
 
 
@@ -51,16 +51,14 @@ def test_regional_get_stack_name(regional_cls):
     assert regional_cls.stack_name == 'some_stack'
 
 
-def test_regional_create_object_path(regional_cls):
-    assert regional_cls._create_template_path(
-        'parameters',
-        'some_path'
-    ) == 'some_path/regional-params.json'
+# def test_regional_create_object_path(regional_cls):
+#     assert regional_cls._create_template_path(
+#         'some_path'
+#     ) == 'some_path/regional-params.json'
 
-    assert regional_cls._create_template_path(
-        'template',
-        'some_path'
-    ) == 'some_path/regional.yml'
+#     assert regional_cls._create_template_path(
+#         'some_path'
+#     ) == 'some_path/regional.yml'
 
 
 def test_global_get_geo_prefix(global_cls):
@@ -71,16 +69,16 @@ def test_global_get_stack_name(global_cls):
     assert global_cls.stack_name == 'adf-global-base-location'
 
 
-def test_global_create_object_path(global_cls):
-    assert global_cls._create_template_path(
-        'template',
-        'some_path'
-    ) == 'some_path/global.yml'
+# def test_global_create_object_path(global_cls):
+#     assert global_cls._create_template_path(
+#         'template',
+#         'some_path'
+#     ) == 'some_path/global.yml'
 
-    assert global_cls._create_template_path(
-        'parameters',
-        'some_path'
-    ) == 'some_path/global-params.json'
+#     assert global_cls._create_template_path(
+#         'parameters',
+#         'some_path'
+#     ) == 'some_path/global-params.json'
 
 
 def test_get_stack_regional_outputs(global_cls):
