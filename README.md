@@ -4,7 +4,7 @@
 
 The AWS Deployment Framework *(ADF)* is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions within an AWS Organization.
 
-ADF allows for staged, parallel, multi-account, cross-region deployments of applications or resources via the structure defined in [AWS Organizations](https://aws.amazon.com/organizations/) while taking advantage of services such as [AWS CodePipeline](https://aws.amazon.com/codepipeline/), [AWS CodeBuild](https://aws.amazon.com/codebuild/) and [AWS CodeCommit](https://aws.amazon.com/codecommit/) to elevate the heavy lifting and management compared to a traditional CI/CD setup.
+ADF allows for staged, parallel, multi-account, cross-region deployments of applications or resources via the structure defined in [AWS Organizations](https://aws.amazon.com/organizations/) while taking advantage of services such as [AWS CodePipeline](https://aws.amazon.com/codepipeline/), [AWS CodeBuild](https://aws.amazon.com/codebuild/) and [AWS CodeCommit](https://aws.amazon.com/codecommit/) to alleviate the heavy lifting and management compared to a traditional CI/CD setup.
 
 ADF allows for clearly defined deployment and approval stages which are stored in a centralized configuration file. It also allows for account based bootstrapping, by which you define an [AWS CloudFormation](https://aws.amazon.com/cloudformation/) template and assign it to a specific Organization Unit (OU) within AWS Organizations. From there, any account you move into this OU will automatically apply this template as its baseline.
 
