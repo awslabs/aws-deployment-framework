@@ -138,18 +138,20 @@ Resources:
                 - Name: TemplateSource
               RunOrder: 1
         - Name: Build
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: 1
-            Provider: CodeBuild
-          Configuration:
-            ProjectName: !Sub "adf-build-${ProjectName}"
-          RunOrder: 1
-          InputArtifacts:
-            - Name: TemplateSource
-          OutputArtifacts:
-            - Name: !Sub "${ProjectName}-build"
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Sub "adf-build-${ProjectName}"
+              RunOrder: 1
+              InputArtifacts:
+                - Name: TemplateSource
+              OutputArtifacts:
+                - Name: !Sub "${ProjectName}-build"
 {% for target in environments['targets'] %}
 {% if target|length > 0 and target[0].get('name') == "approval" %}
         - Name: approval-stage-{{loop.index}}
