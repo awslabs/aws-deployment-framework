@@ -49,42 +49,44 @@ class IAMUpdater():
             IAMUpdater.target_role_policies
         )
 
+def generate_notify_message(event):
+    """
+    The message we want to pass into the next step (Notify) of the state machine
+    if the current account in execution has been bootstrapped
+    """
+    return {
+        "message": "Account {0} has now been bootstrapped into {1}".format(event["account_ids"][0], event["full_path"])
+    }
 
 def lambda_handler(event, _):
-    # Return if we need to update the pipelines only
-    if event.get('update_only'):
-        LOGGER.info('Will only update pipelines for this execution.')
-        return event
-    try:
-        sts = STS(boto3)
-        parameter_store = ParameterStore(
-            event.get('deployment_account_region'),
-            boto3
+    sts = STS(boto3)
+    parameter_store = ParameterStore(
+        event.get('deployment_account_region'),
+        boto3
+    )
+    for region in list(set([event.get('deployment_account_region')] + event.get("regions"))):
+        kms_key_arn = parameter_store.fetch_parameter(
+            "/cross_region/kms_arn/{0}".format(region)
         )
-        for region in list(set([event.get('deployment_account_region')] + event.get("regions"))):
-            kms_key_arn = parameter_store.fetch_parameter(
-                "/cross_region/kms_arn/{0}".format(region)
-            )
-            s3_bucket = parameter_store.fetch_parameter(
-                "/cross_region/s3_regional_bucket/{0}".format(region)
-            )
-            for account_id in event.get('account_ids'):
-                try:
-                    role = sts.assume_cross_account_role(
-                        'arn:aws:iam::{0}:role/{1}'.format(
-                            account_id,
-                            'adf-cloudformation-deployment-role'
-                            ), 'base_cfn_role'
-                    )
-                    IAMUpdater(
-                        kms_key_arn,
-                        s3_bucket,
-                        role
-                    )
-                    kms = KMS(region, boto3, kms_key_arn, account_id)
-                    kms.enable_cross_account_access()
-                except ClientError:
-                    continue
-        return event
-    except BaseException as error:
-        LOGGER.exception(error)
+        s3_bucket = parameter_store.fetch_parameter(
+            "/cross_region/s3_regional_bucket/{0}".format(region)
+        )
+        for account_id in event.get('account_ids'):
+            try:
+                role = sts.assume_cross_account_role(
+                    'arn:aws:iam::{0}:role/{1}'.format(
+                        account_id,
+                        'adf-cloudformation-deployment-role'
+                        ), 'base_cfn_role'
+                )
+                IAMUpdater(
+                    kms_key_arn,
+                    s3_bucket,
+                    role
+                )
+                kms = KMS(region, boto3, kms_key_arn, account_id)
+                kms.enable_cross_account_access()
+            except ClientError:
+                continue
+
+    return generate_notify_message(event)

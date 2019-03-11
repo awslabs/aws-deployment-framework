@@ -32,8 +32,7 @@ def lambda_handler(event, _):
         wait=True,
         stack_name=None,
         s3=s3,
-        s3_key_path='adf-build',
-        file_path=None,
+        s3_key_path='adf-build'
     )
 
     cloudformation.create_stack()

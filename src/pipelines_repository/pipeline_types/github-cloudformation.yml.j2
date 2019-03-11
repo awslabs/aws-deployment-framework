@@ -13,8 +13,9 @@ Parameters:
     Type: String
     Default: adf
   NotificationEndpoint:
-    Description: The email address that emails will go to for changes related to this pipeline
+    Description: The Email Address / Slack channel notifications will go to for changes related to this pipeline
     Type: String
+    Default: ''
   ComputeType:
     Description: The ComputeType for CodeBuild
     Type: String
@@ -58,7 +59,7 @@ Resources:
         SecretToken: !Ref WebhookSecret
       Filters:
       - JsonPath: "$.ref"
-        MatchEquals: !Sub "refs/heads/{BranchName}"
+        MatchEquals: !Sub "refs/heads/${BranchName}"
       Authentication: GITHUB_HMAC
       TargetPipeline: !Ref Pipeline
       TargetAction: Source
@@ -91,12 +92,46 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref ProjectName
+{% if notification_endpoint %}
+  PipelineEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Trigger notifications based on pipeline state changes"
+      EventPattern:
+        source:
+          - "aws.codepipeline"
+        detail-type:
+          - "CodePipeline Pipeline Execution State Change"
+        detail:
+          state:
+            - "FAILED"
+            - "SUCCEEDED"
+          pipeline:
+            - !Ref Pipeline
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref PipelineSNSTopic
+          Id: !Sub "${AWS::StackName}-pipeline"
+{% if "@" in notification_endpoint %}
+          InputTransformer:
+            InputTemplate: '"The pipeline <pipeline> from account <account> has <state> at <at>."'
+            InputPathsMap:
+              pipeline: "$.detail.pipeline"
+              state: "$.detail.state"
+              at: "$.time"
+              account: "$.account"
+{% endif %}
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
+{% if "@" in notification_endpoint %}
         - Endpoint: !Ref NotificationEndpoint
           Protocol: email
+{% else %}
+        - Endpoint: !ImportValue SendSlackNotificationLambdaArn
+          Protocol: lambda
+{% endif %}
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -109,10 +144,19 @@ Resources:
             Service:
               - events.amazonaws.com
               - codecommit.amazonaws.com
+              - sns.amazonaws.com
           Action: sns:Publish
           Resource: "*"
       Topics:
       - !Ref PipelineSNSTopic
+  LambdaInvokePermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref PipelineSNSTopic
+      FunctionName: 'SendSlackNotification'
+{% endif %}
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -139,19 +183,19 @@ Resources:
               RunOrder: 1
         - Name: Build
           Actions:
-            - Name: Build
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: 1
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: !Sub "adf-build-${ProjectName}"
-              RunOrder: 1
-              InputArtifacts:
-                - Name: TemplateSource
-              OutputArtifacts:
-                - Name: !Sub "${ProjectName}-build"
+          - Name: Build
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: 1
+              Provider: CodeBuild
+            Configuration:
+              ProjectName: !Sub "adf-build-${ProjectName}"
+            RunOrder: 1
+            InputArtifacts:
+              - Name: TemplateSource
+            OutputArtifacts:
+              - Name: !Sub "${ProjectName}-build"
 {% for target in environments['targets'] %}
 {% if target|length > 0 and target[0].get('name') == "approval" %}
         - Name: approval-stage-{{loop.index}}
@@ -163,8 +207,10 @@ Resources:
                 Version: 1
                 Provider: Manual
               Configuration:
+                {% if notification_endpoint %}
                 NotificationArn: !Ref PipelineSNSTopic
-                CustomData: "Approve or Reject this deployment"
+                {% endif %}
+                CustomData: !Ref AWS::AccountId
               RunOrder: 1
 {% else %}
         - Name: deployment-stage-{{loop.index}}

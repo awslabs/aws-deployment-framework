@@ -14,11 +14,13 @@ from stepfunctions import StepFunctions
 @fixture
 def cls():
     cls = StepFunctions(
-        boto3,
-        '11111111111',
-        'eu-central-1',
-        ['region-1', 'region-2'],
-        '99999999999'
+        role=boto3,
+        deployment_account_id='11111111111',
+        deployment_account_region='eu-central-1',
+        regions=['region-1', 'region-2'],
+        account_ids='99999999999',
+        full_path='banking/testing',
+        update_pipelines_only=0
     )
 
     cls.client = Mock()

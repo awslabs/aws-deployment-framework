@@ -4,6 +4,7 @@
 """Parameter Store module used throughout the ADF
 """
 
+from errors import ParameterNotFoundError
 
 class ParameterStore:
     """Class used for modeling Parameters
@@ -30,21 +31,30 @@ class ParameterStore:
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
         """
-        response = self.client.get_parameters_by_path(
-            Path=path,
-            Recursive=True,
-            WithDecryption=False
-        )
-        return response['Parameters']
+        try:
+            response = self.client.get_parameters_by_path(
+                Path=path,
+                Recursive=True,
+                WithDecryption=False
+            )
+            return response['Parameters']
 
-    def fetch_parameter(self, name):
+        except self.client.exceptions.ParameterNotFound:
+            raise ParameterNotFoundError(
+                'Parameter Path {0} Not Found'.format(path)
+            )
+
+
+    def fetch_parameter(self, name, with_decryption=False):
         """Gets a Parameter from Parameter Store (Returns the Value)
         """
         try:
             response = self.client.get_parameter(
                 Name=name,
-                WithDecryption=False
+                WithDecryption=with_decryption
             )
             return response['Parameter']['Value']
-        except BaseException:  # TODO Check for Parameter not found and raise specific error
-            return None
+        except self.client.exceptions.ParameterNotFound:
+            raise ParameterNotFoundError(
+                'Parameter {0} Not Found'.format(name)
+            )

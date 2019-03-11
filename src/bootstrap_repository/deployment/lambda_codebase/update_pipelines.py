@@ -16,6 +16,10 @@ LOGGER = configure_logger(__name__)
 
 
 def lambda_handler(event, _):
+    """
+    Responsible for triggering the aws-deployment-framework-pipelines
+    pipeline if its not already running
+    """
     codepipeline = CodePipeline(
         boto3,
         os.environ['AWS_REGION']

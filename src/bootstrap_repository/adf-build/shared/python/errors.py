@@ -17,10 +17,9 @@ class RetryError(Exception):
     """
     pass
 
-
-class NotConfiguredError(Exception):
+class ParameterNotFoundError(Exception):
     """
-     Account currently resides in the root of the OU error
+    Parameter not found in Parameter Store
     """
     pass
 

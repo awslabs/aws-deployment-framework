@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Template For CodePipeline - AWS CodeCommit Source and CloudFormation Deployment Target
 Parameters:
   ProjectName:
-    Description: Name of the Project
+    Description: Name of the Project (This is automatically passed in by ADF)
     Type: String
   StackPrefix:
     Description: Prefix to prepend to the stackname when deployed
@@ -13,8 +13,9 @@ Parameters:
     Type: String
     Default: "aws/codebuild/python:3.7.1"
   NotificationEndpoint:
-    Description: The email address that emails will go to for changes related to this pipeline
+    Description: The Email Address / Slack channel notifications will go to for changes related to this pipeline
     Type: String
+    Default: ''
   ComputeType:
     Description: The ComputeType for CodeBuild
     Type: String
@@ -67,12 +68,46 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref ProjectName
+{% if notification_endpoint %}
+  PipelineEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Trigger notifications based on pipeline state changes"
+      EventPattern:
+        source:
+          - "aws.codepipeline"
+        detail-type:
+          - "CodePipeline Pipeline Execution State Change"
+        detail:
+          state:
+            - "FAILED"
+            - "SUCCEEDED"
+          pipeline:
+            - !Ref Pipeline
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref PipelineSNSTopic
+          Id: !Sub "${AWS::StackName}-pipeline"
+{% if "@" in notification_endpoint %}
+          InputTransformer:
+            InputTemplate: '"The pipeline <pipeline> from account <account> has <state> at <at>."'
+            InputPathsMap:
+              pipeline: "$.detail.pipeline"
+              state: "$.detail.state"
+              at: "$.time"
+              account: "$.account"
+{% endif %}
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
+{% if "@" in notification_endpoint %}
         - Endpoint: !Ref NotificationEndpoint
           Protocol: email
+{% else %}
+        - Endpoint: !ImportValue SendSlackNotificationLambdaArn
+          Protocol: lambda
+{% endif %}
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -85,10 +120,19 @@ Resources:
             Service:
               - events.amazonaws.com
               - codecommit.amazonaws.com
+              - sns.amazonaws.com
           Action: sns:Publish
           Resource: "*"
       Topics:
       - !Ref PipelineSNSTopic
+  LambdaInvokePermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref PipelineSNSTopic
+      FunctionName: 'SendSlackNotification'
+{% endif %}
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -137,8 +181,10 @@ Resources:
                 Version: 1
                 Provider: Manual
               Configuration:
+                {% if notification_endpoint %}
                 NotificationArn: !Ref PipelineSNSTopic
-                CustomData: "Approve or Reject this deployment"
+                {% endif %}
+                CustomData: !Ref AWS::AccountId
               RunOrder: 1
 {% else %}
         - Name: deployment-stage-{{loop.index}}

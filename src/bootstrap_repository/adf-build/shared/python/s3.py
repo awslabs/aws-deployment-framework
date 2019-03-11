@@ -4,7 +4,6 @@
 """S3 module used throughout the ADF
 """
 
-from botocore.exceptions import ClientError
 from logger import configure_logger
 
 
@@ -16,32 +15,62 @@ class S3:
     """
 
     def __init__(self, region, role, bucket):
-        self.resource = role.resource('s3', region_name=region)
+        self.region = region
         self.client = role.client('s3', region_name=region)
+        self.resource = role.resource('s3', region_name=region)
         self.bucket = bucket
-        self.policy = None
 
-    def s3_stream_object(self, key):
-        """Stream an S3 Objects data into utf-8 to be consumed by CloudFormation
+    def put_object(self, key, file_path):
+        """
+        Put the object into S3 and return the S3 URL of the object
+        """
+        self.resource.Object(self.bucket, key).put(Body=open(file_path, 'rb'))
+        if self.region == 'us-east-1':
+            return "https://s3.amazonaws.com/{bucket}/{key}".format(
+                bucket=self.bucket,
+                key=key
+            )
+        return "https://s3-{region}.amazonaws.com/{bucket}/{key}".format(
+            region=self.region,
+            bucket=self.bucket,
+            key=key
+        )
+
+    def read_object(self, key):
+        s3_object = self.resource.Object(self.bucket, key)
+        return s3_object.get()['Body'].read().decode('utf-8')
+
+
+    def fetch_s3_url(self, key):
+        """Recursively search for an object in S3 and return its URL
         """
 
         try:
             s3_object = self.resource.Object(self.bucket, key)
-            template = s3_object.get()['Body'].read().decode('utf-8')
-            LOGGER.info('Found Template at: %s', key)
-            return template
-        except ClientError:
+            s3_object.get()
+            LOGGER.info('Found Template at: %s', s3_object.key)
+            if self.region == 'us-east-1':
+                return "https://s3.amazonaws.com/{bucket}/{key}".format(
+                    bucket=self.bucket,
+                    key=key
+                )
+            return "https://s3-{region}.amazonaws.com/{bucket}/{key}".format(
+                region=self.region,
+                bucket=self.bucket,
+                key=key
+            )
+        except self.client.exceptions.NoSuchKey:
             # Split the path to remove the last key entry from the string
             key_level_up = key.split('/')
 
             # Return None here if nothing could be found from recursive
             # searching
             if len(key_level_up) == 1:
-                LOGGER.debug(
+                LOGGER.info(
                     'Nothing could be found for %s when traversing the bucket', key)
                 return []
 
-            LOGGER.debug(
+            LOGGER.info(
                 'Unable to find the specified Key: %s - looking one level up', key)
             # remove the key name in which we did not find the file we wanted this attempt
             # (-1 will be json/yml file, -2 will be the key prefix) which we want to leave
@@ -50,35 +79,4 @@ class S3:
             # Join it back together, and recursive call the function with the
             # new trimmed key until a template/params is found
             next_level_up_key = '/'.join(key_level_up)
-            return self.s3_stream_object(next_level_up_key)
-
-    def _get_bucket_policy(self):
-        return self.policy
-
-    def _set_bucket_policy(self, policy):
-        self.policy = policy
-
-    def _put_bucket_policy(self):
-        return self.client.put_bucket_policy(
-            Bucket=self.bucket,
-            Policy=self._get_bucket_policy()
-        )
-
-    def _fetch_bucket_policy(self):
-        return self.client.get_bucket_policy(
-            Bucket=self.bucket
-        ).get('Policy')
-
-    @staticmethod
-    def _sanitize_policy(policy):
-        policy_to_validate = policy.get(
-            "Statement", [])[0].get("Principal").get('AWS')
-
-        sanitized = list(filter(
-            lambda p: p.startswith('arn'),
-            policy_to_validate
-        ))
-
-        policy["Statement"][0]["Principal"]["AWS"] = sanitized
-
-        return policy
+            return self.fetch_s3_url(next_level_up_key)

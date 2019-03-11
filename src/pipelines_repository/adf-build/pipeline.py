@@ -10,7 +10,7 @@ import os
 from jinja2 import Environment, FileSystemLoader
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
-TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 
 
 class Pipeline:
@@ -18,14 +18,22 @@ class Pipeline:
         self.name = pipeline.get('name')
         self.parameters = pipeline.get('params', [])
         self.template_dictionary = {"targets": []}
+        self.notification_endpoint = self._extract_notification_endpoint()
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.pipeline_type = pipeline.get('type', None)
-        self.file_path = "{0}/{1}/{2}".format(TARGET_DIR,
-                                              'pipelines', self.name)
 
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
+
+
+    def _extract_notification_endpoint(self):
+        for parameter in self.parameters:
+            endpoint = parameter.get('NotificationEndpoint')
+            if endpoint:
+                return endpoint
+        return None
+
 
     def generate_parameters(self):
         try:
@@ -54,7 +62,7 @@ class Pipeline:
                 result.extend(Pipeline.flatten_list(i))
             else:
                 result.append(i)
-        return result
+        return sorted(result)
 
     def _create_pipelines_folder(self):
         try:
@@ -68,8 +76,9 @@ class Pipeline:
         output_template = template.render(
             environments=self.template_dictionary,
             name=self.name,
-            top_level_regions=self.flatten_list(list(set(self.top_level_regions))),
-            regions=list(set(self.flatten_list(self.stage_regions))),
+            notification_endpoint=self.notification_endpoint,
+            top_level_regions=sorted(self.flatten_list(list(set(self.top_level_regions)))),
+            regions=sorted(list(set(self.flatten_list(self.stage_regions)))),
             deployment_account_region=DEPLOYMENT_ACCOUNT_REGION
         )
 

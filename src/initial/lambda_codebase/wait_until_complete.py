@@ -77,8 +77,7 @@ def lambda_handler(event, _):
             wait=False,
             stack_name=None,
             s3=s3,
-            s3_key_path=event.get('ou_name'),
-            file_path=None,
+            s3_key_path=event.get('ou_name')
         )
 
         status = cloudformation.get_stack_status()

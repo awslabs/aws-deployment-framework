@@ -26,7 +26,6 @@ class DeploymentMap:
         self.map_contents = self._get_deployment_map()
         self.pipeline_name_prefix = pipeline_name_prefix
         self.account_ou_names = {}
-        self.ordered_pipelines = None
         self._validate_deployment_map()
 
     def update_deployment_parameters(self, pipeline):
@@ -41,6 +40,13 @@ class DeploymentMap:
             ),
             str(self.account_ou_names)
         )
+        if pipeline.notification_endpoint:
+            self.parameter_store.put_parameter(
+                "/notification_endpoint/{0}".format(
+                    pipeline.name
+                ),
+                str(pipeline.notification_endpoint)
+            )
 
     def _get_deployment_map(self):
         with open(self.map_path, 'r') as stream:

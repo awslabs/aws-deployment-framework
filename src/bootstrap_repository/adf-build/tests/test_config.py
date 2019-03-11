@@ -46,12 +46,6 @@ def test_validation_remove_moves(cls):
         assert cls._parse_config()
 
 
-def test_validation_remove_notification_end(cls):
-    cls.config_contents.get('config').pop('main-notification-endpoint', None)
-    with raises(InvalidConfigException):
-        assert cls._parse_config()
-
-
 def test_validation_remove_roles(cls):
     cls.config_contents.get('roles', None).pop('cross-account-access', None)
     with raises(InvalidConfigException):

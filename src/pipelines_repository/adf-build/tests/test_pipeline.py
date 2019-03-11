@@ -4,6 +4,8 @@
 # pylint: skip-file
 
 import os
+import sys
+import yaml
 import boto3
 
 from pytest import fixture
@@ -13,12 +15,14 @@ from pipeline import Pipeline
 
 @fixture
 def cls():
-    return Pipeline({
+    return Pipeline(
+        pipeline={
         "name": "pipeline",
         "params": [{"key": "value"}],
         "targets": [],
-        "pipeline_type": "some_type"
-    })
+        "type": "cc-cloudformation"
+        }
+    )
 
 
 def test_flatten_list():

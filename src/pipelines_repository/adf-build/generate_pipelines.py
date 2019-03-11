@@ -8,6 +8,7 @@
 import os
 import boto3
 
+from s3 import S3
 from pipeline import Pipeline
 from target import Target, TargetStructure
 from logger import configure_logger
@@ -20,8 +21,8 @@ from parameter_store import ParameterStore
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 MASTER_ACCOUNT_ID = os.environ.get("MASTER_ACCOUNT_ID", 'us-east-1')
-ADF_PIPELINE_PREFIX = 'adf-pipeline'
-
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 def clean(parameter_store, deployment_map):
     """
@@ -54,6 +55,17 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
+def upload_if_required(s3, pipeline):
+    s3_object_path = s3.put_object(
+        "pipelines/{0}/global.yml".format(
+            pipeline.name), "{0}/{1}/{2}/global.yml".format(
+                TARGET_DIR,
+                'pipelines',
+                pipeline.name
+            )
+        )
+    return s3_object_path
+
 
 def main():
     parameter_store = ParameterStore(
@@ -62,9 +74,13 @@ def main():
     )
     deployment_map = DeploymentMap(
         parameter_store,
-        ADF_PIPELINE_PREFIX
+        os.environ["ADF_PIPELINE_PREFIX"]
     )
-
+    s3 = S3(
+        DEPLOYMENT_ACCOUNT_REGION,
+        boto3,
+        S3_BUCKET_NAME
+    )
     sts = STS(
         boto3
     )
@@ -106,24 +122,25 @@ def main():
         parameters = pipeline.generate_parameters()
         pipeline.generate()
         deployment_map.update_deployment_parameters(pipeline)
+        s3_object_path = upload_if_required(s3, pipeline)
 
+        store_regional_parameter_config(pipeline, parameter_store)
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,
             deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
             role=boto3,
+            template_url=s3_object_path,
+            parameters=parameters,
             wait=True,
             stack_name="{0}-{1}".format(
-                ADF_PIPELINE_PREFIX,
+                os.environ["ADF_PIPELINE_PREFIX"],
                 pipeline.name
             ),
             s3=None,
-            s3_key_path=None,
-            file_path=pipeline.__dict__.get('file_path'),
-            parameters=parameters
+            s3_key_path=None
         )
 
         cloudformation.create_stack()
-        store_regional_parameter_config(pipeline, parameter_store)
 
 
 if __name__ == '__main__':

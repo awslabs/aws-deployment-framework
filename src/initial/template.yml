@@ -327,7 +327,7 @@ Resources:
                 # You can add in cfn-lint here also if required for base-templates
                 - apt-get update -qq
                 - pip install --upgrade pip
-                - pip install -r adf-build/requirements.txt --upgrade
+                - pip install -r adf-build/requirements.txt --upgrade --quiet
             pre_build:
               commands:
                 - export PYTHONPATH=$PWD/adf-build/shared/python
