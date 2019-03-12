@@ -49,15 +49,6 @@ class IAMUpdater():
             IAMUpdater.target_role_policies
         )
 
-def generate_notify_message(event):
-    """
-    The message we want to pass into the next step (Notify) of the state machine
-    if the current account in execution has been bootstrapped
-    """
-    return {
-        "message": "Account {0} has now been bootstrapped into {1}".format(event["account_ids"][0], event["full_path"])
-    }
-
 def lambda_handler(event, _):
     sts = STS(boto3)
     parameter_store = ParameterStore(
@@ -89,4 +80,4 @@ def lambda_handler(event, _):
             except ClientError:
                 continue
 
-    return generate_notify_message(event)
+    return event

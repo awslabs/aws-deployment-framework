@@ -15,6 +15,16 @@ from codepipeline import CodePipeline
 LOGGER = configure_logger(__name__)
 
 
+def generate_notify_message(event):
+    """
+    The message we want to pass into the next step (Notify) of the state machine
+    if the current account in execution has been bootstrapped
+    """
+    return {
+        "update_only": event.get('update_only', 1),
+        "message": "Account {0} has now been bootstrapped into {1}".format(event["account_ids"][0], event["full_path"])
+    }
+
 def lambda_handler(event, _):
     """
     Responsible for triggering the aws-deployment-framework-pipelines
@@ -43,4 +53,4 @@ def lambda_handler(event, _):
             'aws-deployment-framework-pipelines is already running'
         )
 
-    return event
+    return generate_notify_message(event)
