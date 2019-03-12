@@ -770,9 +770,9 @@ Resources:
       DefinitionString: !Sub |-
             {
               "Comment": "Enable Cross Account Access from Deployment Account",
-              "StartAt": "UpdatePipelinesOnly",
+              "StartAt": "UpdatePipelinesOnly?",
               "States": {
-                "UpdatePipelinesOnly": {
+                "UpdatePipelinesOnly?": {
                   "Type": "Choice",
                   "Choices": [{
                     "Variable": "$.update_only",
@@ -784,14 +784,26 @@ Resources:
                 "EnableCrossAccountAccess": {
                   "Type": "Task",
                   "Resource": "${EnableCrossAccountAccess.Arn}",
-                  "Next": "Notify",
+                  "Next": "UpdatePipelines",
                   "TimeoutSeconds": 60
                 },
                 "UpdatePipelines": {
                   "Type": "Task",
                   "Resource": "${CheckPipelineStatus.Arn}",
                   "TimeoutSeconds": 60,
-                  "End": true
+                  "Next": "NeedToNotify?"
+                },
+                "NeedToNotify?": {
+                  "Type": "Choice",
+                  "Choices": [{
+                    "Variable": "$.update_only",
+                    "NumericEquals": 1,
+                    "Next": "Success"
+                  }],
+                  "Default": "Notify"
+                },
+                "Success": {
+                  "Type": "Succeed"
                 },
                 "Notify": {
                   "Type": "Task",
