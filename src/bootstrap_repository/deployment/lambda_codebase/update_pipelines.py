@@ -43,7 +43,7 @@ def lambda_handler(event, _):
         LOGGER.info(
             'aws-deployment-framework-pipelines is in a failed state. Exiting.'
         )
-        return event
+        return generate_notify_message(event)
 
     if not pipeline_status == 'InProgress':
         codepipeline.start_pipeline_execution(
