@@ -116,6 +116,14 @@ def main():
             pipeline.template_dictionary["targets"].append(
                 target_structure.account_list)
 
+            if target_structure.account_list:
+                pipeline.template_dictionary["targets"].append(
+                    target_structure.account_list
+                )
+
+        if not pipeline.template_dictionary["targets"]:
+            continue
+
         if DEPLOYMENT_ACCOUNT_REGION not in regions:
             pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
