@@ -9,7 +9,7 @@ into Organizational Units
 
 import ast
 import os
-from errors import ParameterNotFoundError
+from errors import ParameterNotFoundError, RootOUIDError
 
 DEPLOYMENT_ACCOUNT_OU_NAME = 'deployment'
 DEPLOYMENT_ACCOUNT_S3_BUCKET = os.environ.get("DEPLOYMENT_ACCOUNT_BUCKET")
@@ -31,6 +31,7 @@ class Event:
         self.protected_ou_list = self.config.get('protected', [])
         self.is_deployment_account = 0
         self.deployment_account_id = None
+        self.destination_ou_name = None
         self.main_notification_endpoint = self.config.get(
             'main-notification-endpoint').pop().get('target')
         self.notification_type = 'lambda' if '@' not in self.main_notification_endpoint else 'email'
@@ -49,7 +50,7 @@ class Event:
             'deployment_account_region')
         self.cross_account_access_role = parameter_store.fetch_parameter(
             'cross_account_access_role')
-        self.destination_ou_name = None
+        self.set_destination_ou_name()
 
 
     def _determine_if_deployment_account(self):
@@ -71,10 +72,14 @@ class Event:
         That the account was moved into, afterwards determines if that name
         was 'deployment'.
         """
-        self.destination_ou_name = self.organizations.describe_ou_name(
-            self.destination_ou_id
-        )
-        self._determine_if_deployment_account()
+        try:
+            self.destination_ou_name = self.organizations.describe_ou_name(
+                self.destination_ou_id
+            )
+        except RootOUIDError:
+            self.destination_ou_name = "ROOT"
+        finally:
+            self._determine_if_deployment_account()
 
     def create_deployment_account_parameters(self):
         """

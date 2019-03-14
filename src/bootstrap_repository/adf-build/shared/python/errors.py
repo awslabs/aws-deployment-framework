@@ -23,16 +23,21 @@ class ParameterNotFoundError(Exception):
     """
     pass
 
-
 class InvalidConfigException(Exception):
     """
      Used for invalid configuration(s) within
      adfconfig.yml and deployment_map.yml
     """
 
-
 class GenericAccountConfigureError(Exception):
     """
      Generic Account cannot be setup since no base stack is present
+    """
+    pass
+
+class RootOUIDError(Exception):
+    """
+     Raised when an account is moved to the root of the organization
+     and a describe call is attempted again the root of the org.
     """
     pass
