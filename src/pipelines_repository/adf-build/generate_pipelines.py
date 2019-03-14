@@ -113,9 +113,6 @@ def main():
                         raise Exception(
                             "Failed to return accounts for {0}".format(path))
 
-            pipeline.template_dictionary["targets"].append(
-                target_structure.account_list)
-
             if target_structure.account_list:
                 pipeline.template_dictionary["targets"].append(
                     target_structure.account_list
