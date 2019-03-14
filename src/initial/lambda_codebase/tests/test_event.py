@@ -48,7 +48,7 @@ def test_event_moved_to_protected(cls):
 
 
 def test_event_destination_ou_name(cls):
-    assert cls.destination_ou_name is None
+    assert cls.destination_ou_name is 'some_ou_name'
 
 
 def test_event_protected_ou_list(cls):
@@ -58,11 +58,6 @@ def test_event_protected_ou_list(cls):
 def test_determine_if_deployment_account(cls):
     cls._determine_if_deployment_account()
     assert cls.is_deployment_account is 0
-
-
-def test_set_destination_ou_name(cls):
-    cls.set_destination_ou_name()
-    assert cls.destination_ou_name == 'some_ou_name'
 
 
 def test_create_deployment_account_parameters(cls):

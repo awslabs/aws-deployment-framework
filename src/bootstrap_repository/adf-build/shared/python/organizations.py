@@ -5,6 +5,8 @@
 """
 
 from botocore.config import Config
+from botocore.exceptions import ClientError
+from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
 
@@ -54,8 +56,8 @@ class Organizations:
                 OrganizationalUnitId=ou_id
             )
             return response['OrganizationalUnit']['Name']
-        except KeyError:
-            return "ROOT"
+        except ClientError:
+            raise RootOUIDError("OU is the Root of the Organization")
 
     @staticmethod
     def determine_ou_path(ou_path, ou_child_name):
