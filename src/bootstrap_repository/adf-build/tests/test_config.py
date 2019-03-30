@@ -4,7 +4,7 @@
 # pylint: skip-file
 
 import os
-from errors import InvalidConfigException
+from errors import InvalidConfigError
 
 from pytest import fixture, raises
 from config import Config
@@ -42,35 +42,35 @@ def test_validation_list_deployment_account_target(cls):
 
 def test_validation_remove_moves(cls):
     cls.config_contents.get('config').pop('moves', None)
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
 def test_validation_remove_roles(cls):
     cls.config_contents.get('roles', None).pop('cross-account-access', None)
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
 def test_validation_remove_target_regions(cls):
     cls.config_contents.get('regions', None).pop('targets', None)
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
 def test_validation_remove_deployment_target_region(cls):
     cls.config_contents.get('regions', None).pop('deployment-account', None)
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
 def test_validation_length_deployment_target_region(cls):
     cls.config_contents["regions"]["deployment-account"] = ['region1', 'region2']
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
 def test_validation_length_deployment_target(cls):
     cls.config_contents["regions"]["targets"] = []
-    with raises(InvalidConfigException):
+    with raises(InvalidConfigError):
         assert cls._parse_config()

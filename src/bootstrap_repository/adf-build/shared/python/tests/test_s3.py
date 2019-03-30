@@ -18,6 +18,4 @@ def cls():
         boto3,
         'some_bucket'
     )
-    cls.client = Mock()
-
     return cls

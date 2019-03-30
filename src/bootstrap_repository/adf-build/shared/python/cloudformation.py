@@ -7,6 +7,7 @@
 import re
 
 from botocore.exceptions import WaiterError, ClientError
+from errors import InvalidTemplateError
 from logger import configure_logger
 from paginator import paginator
 
@@ -122,8 +123,11 @@ class CloudFormation(StackProperties):
             s3_key_path=s3_key_path
         )
 
-    def _validate_template(self):
-        return self.client.validate_template(TemplateURL=self.template_url)
+    def validate_template(self):
+        try:
+            return self.client.validate_template(TemplateURL=self.template_url)
+        except ClientError as error:
+            raise InvalidTemplateError(error.response['Error']['Message'])
 
     def _wait_stack(self, waiter_type):
         waiter = self.client.get_waiter(waiter_type)

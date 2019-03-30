@@ -18,7 +18,7 @@ def configure_logger(logger_name):
 
     # Define our logging formatter
     formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(name)s | %(message)s')
+        '%(asctime)s | %(levelname)s | %(name)s | %(message)s | (%(filename)s:%(lineno)d)')
 
     # Create our stream handler and apply the formatting
     stream_handler = logging.StreamHandler()

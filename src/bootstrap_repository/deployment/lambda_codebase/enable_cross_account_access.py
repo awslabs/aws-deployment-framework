@@ -17,39 +17,32 @@ from logger import configure_logger
 from parameter_store import ParameterStore
 from sts import STS
 from iam import IAM
-from kms import KMS
 
 
 KEY_ID = os.environ['KMS_KEY_ID']
 S3_BUCKET = os.environ['S3_BUCKET_NAME']
 LOGGER = configure_logger(__name__)
 
+def update_iam(role, s3_bucket, kms_key_arn, role_policies):
+    iam = IAM(role)
+    iam.update_iam_roles(
+        s3_bucket,
+        kms_key_arn,
+        role_policies
+    )
 
-class IAMUpdater():
-
+def lambda_handler(event, _):
     target_role_policies = {
         'adf-cloudformation-deployment-role': 'adf-cloudformation-deployment-role-policy',
         'adf-cloudformation-role': 'adf-cloudformation-role-policy'
     }
 
     role_policies = {
-        'adf-codepipeline-role': 'adf-codepipeline-role-policy'
+        'adf-codepipeline-role': 'adf-codepipeline-role-policy',
+        'adf-cloudformation-deployment-role': 'adf-cloudformation-deployment-role-policy',
+        'adf-cloudformation-role': 'adf-cloudformation-role-policy'
     }
 
-    def __init__(self, kms_key_arn, s3_bucket, role):
-        self.iam = IAM(boto3)
-        self.iam.update_iam_roles(
-            s3_bucket,
-            kms_key_arn,
-            IAMUpdater.role_policies
-        )
-        self.iam_target_account = IAM(role)
-        self.iam_target_account.update_iam_target_account_roles(
-            kms_key_arn,
-            IAMUpdater.target_role_policies
-        )
-
-def lambda_handler(event, _):
     sts = STS(boto3)
     parameter_store = ParameterStore(
         event.get('deployment_account_region'),
@@ -62,6 +55,7 @@ def lambda_handler(event, _):
         s3_bucket = parameter_store.fetch_parameter(
             "/cross_region/s3_regional_bucket/{0}".format(region)
         )
+        update_iam(boto3, s3_bucket, kms_key_arn, role_policies)
         for account_id in event.get('account_ids'):
             try:
                 role = sts.assume_cross_account_role(
@@ -70,14 +64,10 @@ def lambda_handler(event, _):
                         'adf-cloudformation-deployment-role'
                         ), 'base_cfn_role'
                 )
-                IAMUpdater(
-                    kms_key_arn,
-                    s3_bucket,
-                    role
-                )
-                kms = KMS(region, boto3, kms_key_arn, account_id)
-                kms.enable_cross_account_access()
+                LOGGER.info("Role has bee assumed for %s", account_id)
+                update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
             except ClientError:
+                LOGGER.debug("%s not yet configured, continuing", account_id)
                 continue
 
     return event

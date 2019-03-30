@@ -5,7 +5,9 @@
 """
 
 import json
+from logger import configure_logger
 
+LOGGER = configure_logger(__name__)
 
 class IAM:
     """Class used for modeling IAM
@@ -16,16 +18,6 @@ class IAM:
         self.role_name = None
         self.policy_name = None
         self.policy = None
-
-    def update_iam_target_account_roles(
-            self,
-            kms_key_arn,
-            target_role_policies
-        ):
-        for role_name, policy_name in target_role_policies.items():
-            self._fetch_policy_document(role_name, policy_name)
-            self._update_iam_cfn(kms_key_arn)
-            self._put_role_policy()
 
     def update_iam_roles(
             self,
@@ -79,6 +71,7 @@ class IAM:
             if statement['Sid'] == 'S3':
                 if "arn:aws:s3:::{0}".format(
                         bucket_name) not in statement['Resource']:
+                    LOGGER.info('Updating Role %s to be to access %s', self.role_name, bucket_name)
                     statement['Resource'].append(
                         "arn:aws:s3:::{0}".format(bucket_name))
                     statement['Resource'].append(
@@ -96,6 +89,7 @@ class IAM:
         for statement in _policy.get('Statement', None):
             if statement['Sid'] == 'KMS':
                 if kms_key_arn not in statement['Resource']:
+                    LOGGER.info('Updating Role %s to be to access %s', self.role_name, kms_key_arn)
                     try:
                         statement['Resource'].append(kms_key_arn)
                     except AttributeError:

@@ -23,7 +23,7 @@ class ParameterNotFoundError(Exception):
     """
     pass
 
-class InvalidConfigException(Exception):
+class InvalidConfigError(Exception):
     """
      Used for invalid configuration(s) within
      adfconfig.yml and deployment_map.yml
@@ -39,5 +39,23 @@ class RootOUIDError(Exception):
     """
      Raised when an account is moved to the root of the organization
      and a describe call is attempted again the root of the org.
+    """
+    pass
+
+class InvalidTemplateError(Exception):
+    """
+     Raised when a CloudFormation template fails the Validate Template call
+    """
+    pass
+
+class InvalidDeploymentMapError(Exception):
+    """
+     Raised when a Deployment Map is invalid
+    """
+    pass
+
+class NoAccountsFoundError(Exception):
+    """
+     Raised when there are no Accounts found a specific OU defined in the Deployment Map
     """
     pass

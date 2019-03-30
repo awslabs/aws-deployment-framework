@@ -192,6 +192,45 @@ Resources:
 {% for stage in target %}
 {% if top_level_regions == [] %}
 {% for region in stage.regions %}
+{% if replace_on_failure %}
+            - Name: {{ stage.name }}-{{ region }}
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: REPLACE_ON_FAILURE
+                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json"
+                StackName: !Sub "${StackPrefix}-${ProjectName}"
+                ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
+                TemplatePath: !Sub "${ProjectName}-build::template.yml"
+                TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
+                {% if stage.imports  %}
+                ParameterOverrides: !Sub | 
+                  {
+                    {% for parameter in stage.imports %}
+                    "{{ parameter }}" : { "Fn::GetParam" : ["${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}", "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json", "{{ parameter }}"]}{{ "," if not loop.last }}
+                    {% endfor %}
+                  }
+                {% endif %}
+              InputArtifacts:
+                - Name: !Sub "${ProjectName}-build"
+              {% if stage.imports %}
+                  {% for imports in stage.imports %}
+                - Name: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}"
+                  {% endfor %}
+              {% endif %}
+              {% if stage.exports %}
+              OutputArtifacts:
+                - Name: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}"
+              {% endif %}
+              RunOrder: 1
+              Region: {{ region }}
+              RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
+{% else %}
             - Name: {{ stage.name }}-{{ region }}-replace
               ActionTypeId:
                 Category: Deploy
@@ -208,6 +247,11 @@ Resources:
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
+              {% if stage.imports %}
+                {% for imports in stage.imports %}
+                - Name: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}"
+                {% endfor %}
+              {% endif %}
               RunOrder: 1
               Region: {{ region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
@@ -220,13 +264,25 @@ Resources:
               Configuration:
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
+                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json"
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
-                RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role" 
-              InputArtifacts:
-                - Name: !Sub "${ProjectName}-build"
+                RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
+                {% if stage.imports  %}
+                ParameterOverrides: !Sub | 
+                  {
+                    {% for parameter in stage.imports %}
+                    "{{ parameter }}" : { "Fn::GetParam" : ["${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}", "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json", "{{ parameter }}"]},
+                    {% endfor %}
+                  }
+                {% endif %}
+              {% if stage.exports  %}
+              OutputArtifacts:
+                - Name: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}"
+              {% endif %}
               RunOrder: 2
               Region: {{ region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
+{% endif %}
 {% endfor %}
 {% else %}
 {% for top_level_region in top_level_regions %}
@@ -246,6 +302,11 @@ Resources:
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
+              {% if stage.imports  %}
+                {% for imports in stage.imports %}
+                - Name: !Sub "{{ key }}-{{ top_level_region }}"
+                {% endfor %}
+              {% endif %}
               RunOrder: 1
               Region: {{ top_level_region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
@@ -256,12 +317,23 @@ Resources:
                 Version: 1
                 Provider: CloudFormation
               Configuration:
+                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ top_level_region }}.json"
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
-                RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role" 
-              InputArtifacts:
-                - Name: !Sub "${ProjectName}-build"
+                RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
+                {% if stage.exports  %}
+                ParameterOverrides: !Sub | 
+                  {
+                    {% for parameter in stage.imports %}
+                    "{{ parameter }}" : { "Fn::GetParam" : ["${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ top_level_region }}", "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ top_level_region }}.json", "{{ parameter }}"]},
+                    {% endfor %}
+                  }
+                {% endif %}
+              {% if stage.exports %}
+              OutputArtifacts:
+                - Name: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ top_level_region }}"
+              {% endif %}
               RunOrder: 2
               Region: {{ top_level_region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"

@@ -28,6 +28,12 @@ Resources:
               AWS: !Ref DeploymentAccountId
             Action:
               - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
       Path: /
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
@@ -44,9 +50,11 @@ Resources:
               - "codecommit:List*"
               - "codecommit:CancelUploadArchive"
               - "codecommit:UploadArchive"
+              - "codepipeline:StartPipelineExecution"
               - "s3:Get*"
               - "s3:List*"
               - "s3:Put*"
+              - "events:PutEvents"
             Resource: "*"
           - Effect: Allow
             Action:
@@ -74,6 +82,7 @@ Resources:
               - cloudformation:*
               - s3:Get*
               - s3:List*
+              - s3:Put*
               - codedeploy:*
               - iam:PassRole
               - servicecatalog:ListProvisioningArtifacts
@@ -85,8 +94,11 @@ Resources:
           - Effect: Allow
             Sid: "KMS"
             Action:
-              - kms:Decrypt
-              - kms:Encrypt
+             - kms:Encrypt
+             - kms:Decrypt
+             - kms:ReEncrypt*
+             - kms:GenerateDataKey*
+             - kms:DescribeKey
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationRole
@@ -130,6 +142,7 @@ Resources:
     # This is the role that will be used to deploy CloudFormation resources from
     # within the account that it is deployed to. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a default IAM policy and these should be changed to suit your needs.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -140,8 +153,7 @@ Resources:
             Sid: "CloudFormation"
             Action:
               - "sqs:*"
-              - "s3:Get*"
-              - "s3:List*"
+              - "s3:*"
               - "cloudtrail:*"
               - "config:*"
               - "logs:*"
@@ -198,8 +210,11 @@ Resources:
           - Effect: Allow
             Sid: "KMS"
             Action:
-              - kms:Encrypt
-              - kms:Decrypt
+             - "kms:Encrypt"
+             - "kms:Decrypt"
+             - "kms:ReEncrypt*"
+             - "kms:GenerateDataKey*"
+             - "kms:DescribeKey"
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationDeploymentRole

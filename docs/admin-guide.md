@@ -281,38 +281,6 @@ Pipeline files use the Jinja2 *(.j2)* preprocessor in order to dynamically gener
 
 As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create which type you desire.
 
-#### Creating Pipeline Templates Locally
-
-If you wish to generate pipeline templates locally you can do this by running the `generate_pipelines.py` module in the `pipelines_repository/adf-build` folder.
-
-First export the PYTHONPATH from the root of the ADF repository so that the modules required can be found when executing locally: `export PYTHONPATH=$PWD/adf-build/shared/python`
-
-Once complete change directory into the *bootstrap_repository* directory then run:
-
-```
-export AWS_REGION=eu-central-1   # <-- The Region you defined as your deployment region
-export MASTER_ACCOUNT_ID=1111111111      # <-- Whatever your Master Account Id is
-python3 adf-build/generate_pipelines.py
-```
-
-This will create a folder called pipelines in the fashion it does inside AWS CodeBuild when it normally runs. This will you can inspect the pipelines that were created from your *pipelines_types* based on your deployment_map.yml.
-
-#### Creating Pipeline Parameter Files Locally
-
-If you wish to generate the parameter *(json)* files that will be used for a specific pipeline locally to test to ensure their value you can do also.
-
-First export the PYTHONPATH from the root of the ADF repository so that the modules required can be found when executing locally: `export PYTHONPATH=$PWD/adf-build/shared/python`
-
-Once complete, change directory into the project in which you wish to generate paramters for. Then run:
-
-```
-export DEPLOYMENT_ACCOUNT_REGION=eu-central-1   # <-- The Region you defined as your deployment region
-export PROJECT_NAME=sample-vpc    # <-- The name of the project you wish to generate Parameter files for
-python3 path/to/pipelines_repository/generate_params.py
-```
-
-This will update your params folder to include the account specific parameters files *(json)*. The same files are generated in AWS CodeBuild each time this application is pushed.
-
 ### Source Control
 
 The AWS Deployment Framework allows you to use the supported AWS CodePipeline source types for source control which will act as entry points for your pipelines. Each of the options *(S3, AWS CodeCommit or Github)* have their own benefits when it comes to how they integrate with the ADF however they are interchangeable as desired. In order to use a different source type for your pipelines you will to define a pipeline type that uses the desired source control configuration. As a starting point you can find the *github-cloudformation.yml.j2* file in the *pipeline_types* folder that demonstrates how Github can be used as an entry point for your pipelines.

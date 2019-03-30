@@ -11,8 +11,6 @@ from jinja2 import Environment, FileSystemLoader
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 
-
-
 class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
@@ -22,6 +20,7 @@ class Pipeline:
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.pipeline_type = pipeline.get('type', None)
+        self.replace_on_failure = pipeline.get('replace_on_failure', None)
 
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
@@ -79,7 +78,8 @@ class Pipeline:
             notification_endpoint=self.notification_endpoint,
             top_level_regions=sorted(self.flatten_list(list(set(self.top_level_regions)))),
             regions=sorted(list(set(self.flatten_list(self.stage_regions)))),
-            deployment_account_region=DEPLOYMENT_ACCOUNT_REGION
+            deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
+            replace_on_failure=self.replace_on_failure
         )
 
         self._create_pipelines_folder()

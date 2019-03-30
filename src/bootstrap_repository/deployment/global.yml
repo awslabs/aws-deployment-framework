@@ -91,9 +91,7 @@ Resources:
           - Sid: Allow use of the key
             Effect: Allow
             Principal:
-              AWS:
-                - !GetAtt CodeBuildRole.Arn
-                - !GetAtt CodePipelineRole.Arn
+              AWS: "*"
             Action:
               - kms:Encrypt
               - kms:Decrypt
@@ -101,6 +99,9 @@ Resources:
               - kms:GenerateDataKey*
               - kms:DescribeKey
             Resource: "*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -169,6 +170,7 @@ Resources:
               - "ecr:*"
               - "s3:Get*"
               - "s3:List*"
+              - "s3:Put*"
               - "codebuild:*"
               - "codedeploy:*"
               - "ssm:GetParameter"
@@ -267,7 +269,6 @@ Resources:
               - "ecr:*"
               - "cloudwatch:*"
               - "cognito-identity:*"
-              - "cognito-idp:*"
               - "dynamodb:*"
               - "events:*"
               - "iam:*"
@@ -645,7 +646,7 @@ Resources:
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
-      Timeout: 60
+      Timeout: 300
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties: 

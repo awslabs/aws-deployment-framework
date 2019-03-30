@@ -39,6 +39,11 @@ def clean(parameter_store, deployment_map):
 
 
 def store_regional_parameter_config(pipeline, parameter_store):
+    """
+    Responsible for storing the region information for specific
+    pipelines. These regions are defined in the deployment_map
+    either as top level regions for a pipeline or stage specific regions
+    """
     if pipeline.top_level_regions:
         parameter_store.put_parameter(
             "/deployment/{0}/regions".format(
@@ -55,7 +60,12 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
-def upload_if_required(s3, pipeline):
+def upload_pipeline(s3, pipeline):
+    """
+    Responsible for uploading the object (global.yml) to S3
+    and returning the URL that can be referenced in the CloudFormation
+    create_stack call - TODO move into CloudFormation class and remove wrapper
+    """
     s3_object_path = s3.put_object(
         "pipelines/{0}/global.yml".format(
             pipeline.name), "{0}/{1}/{2}/global.yml".format(
@@ -67,7 +77,7 @@ def upload_if_required(s3, pipeline):
     return s3_object_path
 
 
-def main():
+def main(): #pylint: disable=R0915
     parameter_store = ParameterStore(
         DEPLOYMENT_ACCOUNT_REGION,
         boto3
@@ -101,17 +111,15 @@ def main():
             target_structure = TargetStructure(target)
             for step in target_structure.target:
                 for path in step.get('path'):
-                    try:
-                        regions = step.get(
-                            'regions', p.get(
-                                'regions', DEPLOYMENT_ACCOUNT_REGION))
-                        pipeline.stage_regions.append(regions)
-                        pipeline_target = Target(
-                            path, regions, target_structure, organizations)
-                        pipeline_target.fetch_accounts_for_target()
-                    except BaseException:
-                        raise Exception(
-                            "Failed to return accounts for {0}".format(path))
+                    regions = step.get(
+                        'regions', p.get(
+                            'regions', DEPLOYMENT_ACCOUNT_REGION))
+                    # imports = step.get('imports', []) # Imports / Exports functionality on hold
+                    # exports = step.get('exports', [])
+                    pipeline.stage_regions.append(regions)
+                    pipeline_target = Target(
+                        path, regions, target_structure, organizations)
+                    pipeline_target.fetch_accounts_for_target()
 
             pipeline.template_dictionary["targets"].append(
                 target_structure.account_list)
@@ -122,7 +130,7 @@ def main():
         parameters = pipeline.generate_parameters()
         pipeline.generate()
         deployment_map.update_deployment_parameters(pipeline)
-        s3_object_path = upload_if_required(s3, pipeline)
+        s3_object_path = upload_pipeline(s3, pipeline)
 
         store_regional_parameter_config(pipeline, parameter_store)
         cloudformation = CloudFormation(
@@ -139,7 +147,7 @@ def main():
             s3=None,
             s3_key_path=None
         )
-
+        cloudformation.validate_template()
         cloudformation.create_stack()
 
 
