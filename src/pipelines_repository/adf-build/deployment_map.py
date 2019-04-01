@@ -10,6 +10,7 @@ import yaml
 import boto3
 
 from cloudformation import CloudFormation
+from errors import InvalidDeploymentMapError
 from logger import configure_logger
 LOGGER = configure_logger(__name__)
 
@@ -34,6 +35,7 @@ class DeploymentMap:
                 {item['name']: item['path'] for item in account if item['name'] != 'approval'}
             )
 
+        # TODO Ensure this doesn't grow to reach max parameter store size (4092)
         self.parameter_store.put_parameter(
             "/deployment/{0}/account_ous".format(
                 pipeline.name
@@ -54,9 +56,18 @@ class DeploymentMap:
 
     def _validate_deployment_map(self):
         """
-        TODO - Validation function to ensure values in deployment map are valid
+        Validates the deployment map contains valid configuration
         """
-        pass
+        try:
+            for pipeline in self.map_contents["pipelines"]:
+                for target in pipeline["targets"]:
+                    if isinstance(target, dict):
+                        # Prescriptive information on the error should be raised
+                        assert target["regions"] and target["path"]
+        except KeyError:
+            raise InvalidDeploymentMapError(
+                "Deployment Map target or regions specification is invalid"
+            )
 
     def clean_stale_resources(self, name):
         for parameter in self.parameter_store.fetch_parameters_by_path(

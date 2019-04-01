@@ -6,7 +6,9 @@
 import os
 import boto3
 
-from pytest import fixture
+from contextlib import contextmanager
+from errors import InvalidDeploymentMapError
+from pytest import fixture, raises
 from mock import Mock
 from pipeline import Pipeline
 from deployment_map import DeploymentMap
@@ -22,6 +24,23 @@ def cls():
         )
     )
 
+def test_validate_deployment_map(cls):
+    assert cls._validate_deployment_map() == None
+
+def test_validate_deployment_map_invalid_no_content(cls):
+    cls.map_contents = {}
+    with raises(InvalidDeploymentMapError):
+        cls._validate_deployment_map()
+
+def test_validate_deployment_map_invalid_target(cls):
+    cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "region": 'eu-west-1'}]}]}
+    with raises(InvalidDeploymentMapError):
+        cls._validate_deployment_map()
+
+def test_validate_deployment_map_invalid_paths(cls):
+    cls.map_contents = {"pipelines": [{"targets": [{"paths": "/something", "regions": 'eu-west-1'}]}]}
+    with raises(InvalidDeploymentMapError):
+        cls._validate_deployment_map()
 
 def test_update_deployment_parameters(cls):
     cls.parameter_store = Mock()

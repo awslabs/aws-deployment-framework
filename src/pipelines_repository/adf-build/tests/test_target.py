@@ -5,7 +5,8 @@
 
 import os
 import boto3
-from pytest import fixture
+from errors import InvalidDeploymentMapError
+from pytest import fixture, raises
 from mock import Mock, patch
 from .stubs import target
 from target import Target
@@ -21,6 +22,8 @@ def cls():
     cls = Target(
         path='/thing/path',
         regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
         target_structure=MockTargetStructure(),
         organizations=None
     )
@@ -87,6 +90,8 @@ def test_fetch_accounts_for_target_ou_path():
     cls = Target(
         path='/thing/path',
         regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
         target_structure=MockTargetStructure(),
         organizations=None
     )
@@ -98,8 +103,10 @@ def test_fetch_accounts_for_target_ou_path():
 
 def test_fetch_accounts_for_target_account_id():
     cls = Target(
-        path='12345678910',
+        path='123456789102',
         regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
         target_structure=MockTargetStructure(),
         organizations=None
     )
@@ -112,6 +119,8 @@ def test_fetch_accounts_for_target_ou_id():
     cls = Target(
         path='ou-123fake',
         regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
         target_structure=MockTargetStructure(),
         organizations=None
     )
@@ -124,9 +133,35 @@ def test_fetch_accounts_for_approval():
     cls = Target(
         path='approval',
         regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
         target_structure=MockTargetStructure(),
         organizations=None
     )
     with patch.object(cls, '_target_is_approval') as mock:
         cls.fetch_accounts_for_target()
         mock.assert_called_once_with()
+
+def test_fetch_account_error():
+    cls = Target(
+        path='some_string',
+        regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
+        target_structure=MockTargetStructure(),
+        organizations=Mock()
+    )
+    with raises(InvalidDeploymentMapError):
+        cls.fetch_accounts_for_target()
+
+def test_fetch_account_error_invalid_account_id():
+    cls = Target(
+        path='12345678910', #11 digits rather than 12 (invalid account id)
+        regions=['region1', 'region2'],
+        # imports=[],
+        # exports=[],
+        target_structure=MockTargetStructure(),
+        organizations=Mock()
+    )
+    with raises(InvalidDeploymentMapError):
+        cls.fetch_accounts_for_target()

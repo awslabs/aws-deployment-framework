@@ -9,7 +9,7 @@ import os
 import yaml
 import boto3
 
-from errors import InvalidConfigException
+from errors import InvalidConfigError
 from logger import configure_logger
 from parameter_store import ParameterStore
 
@@ -56,19 +56,19 @@ class Config:
                 self.config.get('moves'),
                 self.config.get('main-notification-endpoint')
         ):
-            raise InvalidConfigException(
+            raise InvalidConfigError(
                 'adf_config.yml is missing required properties. '
                 'Please see the documentation.'
             )
 
         if not len(self.target_regions) >= 1:
-            raise InvalidConfigException(
+            raise InvalidConfigError(
                 'ADF requires you to have at least 1 target region '
                 'for deployments'
             )
         if isinstance(self.deployment_account_region, list):
             if len(self.deployment_account_region) > 1:
-                raise InvalidConfigException(
+                raise InvalidConfigError(
                     'ADF currently only supports a single '
                     'Deployment Account region'
                 )

@@ -51,34 +51,12 @@ def test_regional_get_stack_name(regional_cls):
     assert regional_cls.stack_name == 'some_stack'
 
 
-# def test_regional_create_object_path(regional_cls):
-#     assert regional_cls._create_template_path(
-#         'some_path'
-#     ) == 'some_path/regional-params.json'
-
-#     assert regional_cls._create_template_path(
-#         'some_path'
-#     ) == 'some_path/regional.yml'
-
-
 def test_global_get_geo_prefix(global_cls):
     assert global_cls._get_geo_prefix() == 'global'
 
 
 def test_global_get_stack_name(global_cls):
     assert global_cls.stack_name == 'adf-global-base-location'
-
-
-# def test_global_create_object_path(global_cls):
-#     assert global_cls._create_template_path(
-#         'template',
-#         'some_path'
-#     ) == 'some_path/global.yml'
-
-#     assert global_cls._create_template_path(
-#         'parameters',
-#         'some_path'
-#     ) == 'some_path/global-params.json'
 
 
 def test_get_stack_regional_outputs(global_cls):

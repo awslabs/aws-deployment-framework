@@ -261,7 +261,7 @@ def main():
             deployment_account_region=config.deployment_account_region,
             regions=config.target_regions,
             account_ids=[i for i in account_ids if i != config.deployment_account_region],
-            update_pipelines_only=1
+            update_pipelines_only=0
         )
 
         step_functions.execute_statemachine()

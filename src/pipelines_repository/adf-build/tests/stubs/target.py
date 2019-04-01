@@ -11,28 +11,36 @@ stub_target_is_approval = {
     'name': 'approval',
     'id': 'approval',
     'path': '/thing/path',
-    'regions': ['region1', 'region2']
+    'regions': ['region1', 'region2'],
+    # 'imports': [], # imports / exports on hold
+    # 'exports': []
 }
 
 stub_create_target_info_default = {
     'name': 'account_name',
     'id': 12345678910,
     'path': '/thing/path',
-    'regions': ['region1', 'region2']
+    'regions': ['region1', 'region2'],
+    # 'imports': [], # imports / exports on hold
+    # 'exports': []
 }
 
 stub_create_target_info_regex_applied = {
     'name': 'accountname',
     'id': 12345678910,
     'path': '/thing/path',
-    'regions': ['region1', 'region2']
+    'regions': ['region1', 'region2'],
+    # 'imports': [], # imports / exports on hold
+    # 'exports': []
 }
 
 stub_target_output = {
     'name': 'string',
     'id': 'fake',
     'path': '/thing/path',
-    'regions': ['region1', 'region2']
+    'regions': ['region1', 'region2'],
+    # 'imports': [], # imports / exports on hold
+    # 'exports': []
 }
 
 stub_organizations_describe_account = {
