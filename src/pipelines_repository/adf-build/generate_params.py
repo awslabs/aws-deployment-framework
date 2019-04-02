@@ -101,10 +101,16 @@ class Parameters:
 
     def _cfn_param_updater(self, param, comparison_parameters, stage_parameters):
         """
-        Generic Updater method
+        Generic CFN Updater method
         """
         for key, value in comparison_parameters[param].items():
             if str(value).startswith('resolve:'):
+                if not value.split(':')[1].startswith('/'):
+                    regional_client = ParameterStore(value.split(':')[1], boto3)
+                    stage_parameters[param][key] = regional_client.fetch_parameter(
+                        value.split(':')[2]
+                    )
+                    continue
                 stage_parameters[param][key] = self.parameter_store.fetch_parameter(
                     value.split('resolve:')[1]
                 )
@@ -113,6 +119,12 @@ class Parameters:
 
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
+                if not value.split(':')[1].startswith('/'):
+                    regional_client = ParameterStore(value.split(':')[1], boto3)
+                    stage_parameters[param][key] = regional_client.fetch_parameter(
+                        value.split(':')[2]
+                    )
+                    continue
                 stage_parameters[param][key] = self.parameter_store.fetch_parameter(
                     value.split('resolve:')[1]
                 )
@@ -134,12 +146,18 @@ class Parameters:
 
         return stage_parameters
 
-    def _compare_sc(self, comparison_parameters, stage_parameters):
+    def _sc_param_updater(self, comparison_parameters, stage_parameters):
         """
         Compares parameter files used for the Service Catalog deployment type
         """
         for key, value in comparison_parameters.items():
             if str(value).startswith('resolve:'):
+                if not value.split(':')[1].startswith('/'):
+                    regional_client = ParameterStore(value.split(':')[1], boto3)
+                    stage_parameters[key] = regional_client.fetch_parameter(
+                        value.split(':')[2]
+                    )
+                    continue
                 stage_parameters[key] = self.parameter_store.fetch_parameter(
                     value.split('resolve:')[1]
                 )
@@ -149,6 +167,12 @@ class Parameters:
 
         for key, value in stage_parameters.items():
             if str(value).startswith('resolve:'):
+                if not value.split(':')[1].startswith('/'):
+                    regional_client = ParameterStore(value.split(':')[1], boto3)
+                    stage_parameters[key] = regional_client.fetch_parameter(
+                        value.split(':')[2]
+                    )
+                    continue
                 stage_parameters[key] = self.parameter_store.fetch_parameter(
                     value.split('resolve:')[1]
                 )
@@ -162,7 +186,7 @@ class Parameters:
         """
         if comparison_parameters.get('Parameters') or comparison_parameters.get('Tags'):
             return self._compare_cfn(comparison_parameters, stage_parameters)
-        return self._compare_sc(comparison_parameters, stage_parameters)
+        return self._sc_param_updater(comparison_parameters, stage_parameters)
 
 
 def main():
