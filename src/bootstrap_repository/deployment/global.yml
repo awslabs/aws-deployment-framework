@@ -605,7 +605,8 @@ Resources:
         Statement:
           - Action:
               - "s3:Get*"
-              - "s3:Put*"
+              - "s3:PutObject*"
+              - "s3:PutReplicationConfiguration"
               - "s3:List*"
             Effect: Allow
             Condition:
