@@ -25,18 +25,19 @@ def lambda_handler(event, _):
 
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
-            event.get('deployment_account_id'),
-            event.get('cross_account_iam_role')),
+            event['deployment_account_id'],
+            event['cross_account_iam_role']),
         'step_function')
 
     step_functions = StepFunctions(
         role=role,
-        deployment_account_id=event.get('deployment_account_id'),
-        deployment_account_region=event.get('deployment_account_region'),
-        full_path=event.get('full_path'),
-        regions=event.get('regions'),
-        account_ids=[event.get('account_id')],
-        update_pipelines_only=1 if event.get('moved_to_protected') or event.get('moved_to_root') else 0
+        deployment_account_id=event['deployment_account_id'],
+        deployment_account_region=event['deployment_account_region'],
+        full_path=event['full_path'],
+        regions=event['regions'],
+        account_ids=[event['account_id']],
+        update_pipelines_only=1 if event.get('moved_to_protected') or event.get('moved_to_root') else 0,
+        error=event.get('error', 0)
     )
     step_functions.execute_statemachine()
 

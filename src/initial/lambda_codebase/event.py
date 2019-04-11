@@ -81,31 +81,13 @@ class Event:
         finally:
             self._determine_if_deployment_account()
 
-    def create_deployment_account_parameters(self):
-        """
-        Fetches Organization information and returns parameters required
-        for the deployment account to function as intended.
-        """
-        organization_information = self.organizations.get_organization_info()
-        return {
-            'deployment_account_id': self.account_id,
-            'cross_account_access_role': self.cross_account_access_role,
-            'organization_id': organization_information.get(
-                "organization_id"
-            ),
-            'master_account_id': organization_information.get(
-                "organization_master_account_id"
-            ),
-            'notification_endpoint': self.main_notification_endpoint,
-            'notification_type': self.notification_type,
-            'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET
-        }
-
-    def create_output_object(self, cache):
+    def create_output_object(self, account_path):
         """
         Creates the output object to be passed to the next step
         of the Step Function
         """
+        organization_information = self.organizations.get_organization_info()
+
         return {
             'account_id': self.account_id,
             'cross_account_iam_role': self.cross_account_access_role,
@@ -116,9 +98,16 @@ class Event:
             'moved_to_protected': self.moved_to_protected,
             'is_deployment_account': self.is_deployment_account,
             'ou_name': self.destination_ou_name,
-            'full_path': "ROOT" if self.moved_to_root else self.organizations.build_account_path(
-                self.destination_ou_id,
-                [],  # Initial empty array to hold OU Path
-                cache
-            )
+            'full_path': "ROOT" if self.moved_to_root else account_path,
+            'deployment_account_parameters' : {
+                'organization_id': organization_information.get(
+                    "organization_id"
+                ),
+                'master_account_id': organization_information.get(
+                    "organization_master_account_id"
+                ),
+                'notification_endpoint': self.main_notification_endpoint,
+                'notification_type': self.notification_type,
+                'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET
+            }
         }

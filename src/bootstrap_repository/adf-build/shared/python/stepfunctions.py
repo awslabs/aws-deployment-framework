@@ -24,7 +24,8 @@ class StepFunctions:
             regions,
             account_ids=None,
             full_path=None,
-            update_pipelines_only=0
+            update_pipelines_only=0,
+            error=0
         ):
         self.deployment_account_region = deployment_account_region
         self.client = role.client(
@@ -38,6 +39,7 @@ class StepFunctions:
         self.execution_arn = None
         self.full_path = full_path
         self.execution_status = None
+        self.error = error
 
     def execute_statemachine(self):
         """
@@ -61,6 +63,7 @@ class StepFunctions:
                 "regions": self.regions,
                 "full_path": self.full_path,
                 "update_only": self.update_pipelines_only,
+                "error": self.error
             })
         ).get('executionArn')
 
