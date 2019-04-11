@@ -16,8 +16,6 @@
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
   - [Pipeline Types](#pipeline-types)
-  - [Creating Pipeline Templates Locally](#creating-pipeline-templates-locally)
-  - [Creating Pipeline Parameter Files Locally](#creating-pipeline-parameter-files-locally)
 - [Default Deployment Account Region](#default-deployment-account-region)
 - [Integrating Slack](#integrating-slack)
 - [Updating Between Versions](#updating-between-versions)

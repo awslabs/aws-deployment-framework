@@ -26,8 +26,8 @@ def lambda_handler(event, _):
     s3 = S3(REGION_DEFAULT, boto3, S3_BUCKET)
 
     cloudformation = CloudFormation(
-        region=event.get('deployment_account_region'),
-        deployment_account_region=event.get('deployment_account_region'),
+        region=event['deployment_account_region'],
+        deployment_account_region=event['deployment_account_region'],
         role=boto3,
         wait=True,
         stack_name=None,

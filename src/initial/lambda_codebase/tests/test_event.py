@@ -60,13 +60,7 @@ def test_determine_if_deployment_account(cls):
     assert cls.is_deployment_account is 0
 
 
-def test_create_deployment_account_parameters(cls):
-    assertion = cls.create_deployment_account_parameters()
-    assert assertion.get('master_account_id') == '12345678910'
-    assert assertion.get('organization_id') == 'id-123'
-
-
 def test_create_output_object(cls):
-    assertion = cls.create_output_object({})
+    assertion = cls.create_output_object('/test')
     assert assertion.get('account_id') == 111111111111
     assert assertion.get('is_deployment_account') is 0

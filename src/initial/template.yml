@@ -124,6 +124,25 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
       Timeout: 300
+  DetermineEventFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: determine_event.lambda_handler
+      CodeUri: lambda_codebase/
+      Layers:
+          - !Ref LambdaLayerVersion
+      Description: "ADF Lambda Function - DetermineEvent"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
+          TERMINATION_PROTECTION: !Ref TerminationProtection
+          DEPLOYMENT_ACCOUNT_BUCKET: !Ref DeploymentAccountBucket
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !Ref OrganizationId
+      FunctionName: DetermineEventFunction
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 300
   CrossAccountExecuteFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -441,86 +460,97 @@ Resources:
     Properties:
       DefinitionString: !Sub |-
             {
-              "Comment": "Execute Account provisioning",
-              "StartAt": "AccountBootstrap",
-              "States": {
-                "AccountBootstrap": {
-                  "Type": "Task",
-                  "Resource": "${CrossAccountExecuteFunction.Arn}",
-                  "Next": "MovedToRootOrProtected?",
-                  "TimeoutSeconds": 300
-                },
-                "MovedToRootOrProtected?": {
-                  "Type": "Choice",
-                  "Choices": [{
-                    "Variable": "$.moved_to_protected",
-                    "NumericEquals": 1,
-                    "Next": "UpdatePipelines"
-                  },
-                  {
-                    "Variable": "$.moved_to_root",
-                    "NumericEquals": 1,
-                    "Next": "MovedToRootAction"
-                  }],
-                  "Default": "WaitUntilComplete"
-                },
-                "MovedToRootAction": {
-                  "Type": "Task",
-                  "Resource": "${MovedToRootActionFunction.Arn}",
-                  "Retry": [ {
-                      "ErrorEquals": [ "RetryError" ],
-                      "IntervalSeconds": 10,
-                      "BackoffRate": 1.0,
-                      "MaxAttempts": 20
-                  } ],
-                  "Next": "UpdatePipelines",
-                  "TimeoutSeconds": 900
-                },
-                "UpdatePipelines": {
-                  "Type": "Task",
-                  "Resource": "${UpdateResourcePoliciesFunction.Arn}",
-                  "Retry": [ {
-                      "ErrorEquals": [ "RetryError" ],
-                      "IntervalSeconds": 10,
-                      "BackoffRate": 1.0,
-                      "MaxAttempts": 20
-                  } ],
-                  "End": true
-                },
-                "WaitUntilComplete": {
-                  "Type": "Task",
-                  "Resource": "${StackWaiterFunction.Arn}",
-                  "Retry": [ {
-                      "ErrorEquals": [ "RetryError" ],
-                      "IntervalSeconds": 10,
-                      "BackoffRate": 1.0,
-                      "MaxAttempts": 500
-                  } ],
-                  "Next": "DeploymentAccount?",
-                  "TimeoutSeconds": 900
-                },
-                "DeploymentAccount?": {
-                  "Type": "Choice",
-                  "Choices": [{
-                    "Variable": "$.is_deployment_account",
-                    "NumericEquals": 1,
-                    "Next": "DeploymentAccountConfig"
-                  }],
-                  "Default": "GenericAccountConfig"
-                },
-                "DeploymentAccountConfig": {
-                  "Type": "Task",
-                  "Resource": "${RoleStackDeploymentFunction.Arn}",
-                  "End": true,
-                  "TimeoutSeconds": 900
-                },
-                "GenericAccountConfig": {
-                  "Type": "Task",
-                  "Resource": "${UpdateResourcePoliciesFunction.Arn}",
-                  "End": true,
-                  "TimeoutSeconds": 900
+                "Comment": "ADF Account Bootstrapping Process",
+                "StartAt": "DetermineEvent",
+                "States": {
+                    "DetermineEvent": {
+                        "Type": "Task",
+                        "Resource": "${DetermineEventFunction.Arn}",
+                        "Next": "MovedToRootOrProtected?",
+                        "TimeoutSeconds": 300
+                    },
+                    "MovedToRootOrProtected?": {
+                        "Type": "Choice",
+                        "Choices": [{
+                                "Variable": "$.moved_to_protected",
+                                "NumericEquals": 1,
+                                "Next": "ExecuteDeploymentAccountStateMachine"
+                            },
+                            {
+                                "Variable": "$.moved_to_root",
+                                "NumericEquals": 1,
+                                "Next": "MovedToRootAction"
+                            }
+                        ],
+                        "Default": "CreateOrUpdateBaseStack"
+                    },
+                    "CreateOrUpdateBaseStack": {
+                        "Type": "Task",
+                        "Resource": "${CrossAccountExecuteFunction.Arn}",
+                        "Next": "WaitUntilBootstrapComplete",
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "TimeoutSeconds": 300
+                    },
+                    "MovedToRootAction": {
+                        "Type": "Task",
+                        "Resource": "${MovedToRootActionFunction.Arn}",
+                        "Retry": [{
+                            "ErrorEquals": ["RetryError"],
+                            "IntervalSeconds": 10,
+                            "BackoffRate": 1.0,
+                            "MaxAttempts": 20
+                        }],
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "Next": "ExecuteDeploymentAccountStateMachine",
+                        "TimeoutSeconds": 900
+                    },
+                    "WaitUntilBootstrapComplete": {
+                        "Type": "Task",
+                        "Resource": "${StackWaiterFunction.Arn}",
+                        "Retry": [{
+                            "ErrorEquals": ["RetryError"],
+                            "IntervalSeconds": 10,
+                            "BackoffRate": 1.0,
+                            "MaxAttempts": 500
+                        }],
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "Next": "DeploymentAccount?",
+                        "TimeoutSeconds": 900
+                    },
+                    "DeploymentAccount?": {
+                        "Type": "Choice",
+                        "Choices": [{
+                            "Variable": "$.is_deployment_account",
+                            "NumericEquals": 1,
+                            "Next": "DeploymentAccountConfig"
+                        }],
+                        "Default": "ExecuteDeploymentAccountStateMachine"
+                    },
+                    "DeploymentAccountConfig": {
+                        "Type": "Task",
+                        "Resource": "${RoleStackDeploymentFunction.Arn}",
+                        "End": true,
+                        "TimeoutSeconds": 900
+                    },
+                    "ExecuteDeploymentAccountStateMachine": {
+                        "Type": "Task",
+                        "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+                        "End": true,
+                        "TimeoutSeconds": 900
+                    }
                 }
-              }
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 Outputs:

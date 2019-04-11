@@ -771,53 +771,74 @@ Resources:
       StateMachineName: "EnableCrossAccountAccess"
       DefinitionString: !Sub |-
             {
-              "Comment": "Enable Cross Account Access from Deployment Account",
-              "StartAt": "UpdatePipelinesOnly?",
-              "States": {
-                "UpdatePipelinesOnly?": {
-                  "Type": "Choice",
-                  "Choices": [{
-                    "Variable": "$.update_only",
-                    "NumericEquals": 1,
-                    "Next": "UpdatePipelines"
-                  }],
-                  "Default": "EnableCrossAccountAccess"
-                },
-                "EnableCrossAccountAccess": {
-                  "Type": "Task",
-                  "Resource": "${EnableCrossAccountAccess.Arn}",
-                  "Next": "UpdatePipelines",
-                  "TimeoutSeconds": 60
-                },
-                "UpdatePipelines": {
-                  "Type": "Task",
-                  "Resource": "${CheckPipelineStatus.Arn}",
-                  "TimeoutSeconds": 60,
-                  "Next": "NeedToNotify?"
-                },
-                "NeedToNotify?": {
-                  "Type": "Choice",
-                  "Choices": [{
-                    "Variable": "$.update_only",
-                    "NumericEquals": 1,
-                    "Next": "Success"
-                  }],
-                  "Default": "Notify"
-                },
-                "Success": {
-                  "Type": "Succeed"
-                },
-                "Notify": {
-                  "Type": "Task",
-                  "Resource": "arn:aws:states:::sns:publish",
-                  "Parameters": {
-                    "TopicArn": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
-                    "Message.$": "$.message",
-                    "Subject": "AWS Deployment Framework Bootstrap"
-                  },
-                  "End": true
-                  }
-              }
+                "Comment": "Enable Cross Account Access from Deployment Account",
+                "StartAt": "DetermineEvent",
+                "States": {
+                    "DetermineEvent": {
+                        "Type": "Choice",
+                        "Choices": [{
+                                "Variable": "$.update_only",
+                                "NumericEquals": 1,
+                                "Next": "UpdateDeploymentPipelines"
+                            },
+                            {
+                                "Not": {
+                                    "Variable": "$.error",
+                                    "NumericEquals": 0
+                                },
+                                "Next": "NotifyFailure"
+                            }
+                        ],
+                        "Default": "EnableCrossAccountAccess"
+                    },
+                    "EnableCrossAccountAccess": {
+                        "Type": "Task",
+                        "Resource": "${EnableCrossAccountAccess.Arn}",
+                        "Next": "UpdateDeploymentPipelines",
+                        "TimeoutSeconds": 60
+                    },
+                    "UpdateDeploymentPipelines": {
+                        "Type": "Task",
+                        "Resource": "${CheckPipelineStatus.Arn}",
+                        "TimeoutSeconds": 60,
+                        "Next": "NeedToNotifySuccess?"
+                    },
+                    "NeedToNotifySuccess?": {
+                        "Type": "Choice",
+                        "Choices": [{
+                            "Variable": "$.update_only",
+                            "NumericEquals": 1,
+                            "Next": "Success"
+                        }],
+                        "Default": "NotifySuccess"
+                    },
+                    "Success": {
+                        "Type": "Succeed"
+                    },
+                    "Failure": {
+                        "Type": "Fail"
+                    },
+                    "NotifySuccess": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::sns:publish",
+                        "Parameters": {
+                            "TopicArn": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
+                            "Message.$": "$.message",
+                            "Subject": "Success - AWS Deployment Framework Bootstrap"
+                        },
+                        "Next": "Success"
+                    },
+                    "NotifyFailure": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::sns:publish",
+                        "Parameters": {
+                            "TopicArn": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
+                            "Message.$": "$.error",
+                            "Subject": "Failure - AWS Deployment Framework Bootstrap"
+                        },
+                        "Next": "Failure"
+                    }
+                }
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 Outputs:

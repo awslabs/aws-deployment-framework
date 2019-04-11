@@ -60,35 +60,47 @@ def lambda_handler(event, _):
 
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
-            event.get('account_id'),
-            event.get('cross_account_iam_role'),
+            event['account_id'],
+            event['cross_account_iam_role'],
         ),
         'master'
     )
 
     s3 = S3(REGION_DEFAULT, boto3, S3_BUCKET)
 
-    for region in list(set([event.get('deployment_account_region')] + event.get("regions"))):
+    for region in list(set([event['deployment_account_region']] + event['regions'])):
 
         cloudformation = CloudFormation(
             region=region,
-            deployment_account_region=event.get('deployment_account_region'),
+            deployment_account_region=event['deployment_account_region'],
             role=role,
             wait=False,
             stack_name=None,
             s3=s3,
-            s3_key_path=event.get('ou_name')
+            s3_key_path=event['ou_name']
         )
 
         status = cloudformation.get_stack_status()
 
-        if status in ("CREATE_IN_PROGRESS", "UPDATE_IN_PROGRESS"):
-            raise RetryError("Cloudformation Stack not yet complete")
+        if status in ('CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS'):
+            raise RetryError("Cloudformation Stack is {0}".format(status))
 
-        # TODO Better waiting validation to ensure stack is not failed
+        if status in (
+                'CREATE_FAILED',
+                'ROLLBACK_FAILED',
+                'DELETE_FAILED',
+                'UPDATE_ROLLBACK_FAILED',
+                'ROLLBACK_IN_PROGRESS',
+                'ROLLBACK_COMPLETE'
+            ):
+            raise Exception("CloudFormation Stack Failed - Account: {0} Region: {1} Status: {2}".format(
+                event['account_id'],
+                region,
+                status))
+
         if event.get('is_deployment_account'):
             update_deployment_account_output_parameters(
-                deployment_account_region=event.get('deployment_account_region'),
+                deployment_account_region=event['deployment_account_region'],
                 region=region,
                 deployment_account_role=role,
                 cloudformation=cloudformation
