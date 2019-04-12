@@ -93,7 +93,7 @@ def lambda_handler(event, _):
                 'ROLLBACK_IN_PROGRESS',
                 'ROLLBACK_COMPLETE'
             ):
-            raise Exception("CloudFormation Stack Failed - Account: {0} Region: {1} Status: {2}".format(
+            raise Exception("Account Bootstrap Failed - Account: {0} Region: {1} Status: {2}".format(
                 event['account_id'],
                 region,
                 status))
