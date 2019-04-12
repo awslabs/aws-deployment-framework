@@ -32,8 +32,6 @@ def extract_pipeline(message):
             "name": 'main'
         }
 
-
-
 def is_approval(message):
     """
     Determines if the message sent in was for an approval action
@@ -45,11 +43,13 @@ def is_approval(message):
 def is_bootstrap(event):
     """
     Determines if the message sent in was for an bootstrap action -
-    Bootstrap events are always just strings so loading it as json should
+    Bootstrap (success) events are always just strings so loading it as json should
     raise a ValueError
     """
     try:
-        json.loads(event['Records'][0]['Sns']['Message'])
+        message = json.loads(event['Records'][0]['Sns']['Message'])
+        if message.get('Error'):
+            return True
         return False
     except ValueError:
         return True
@@ -109,9 +109,14 @@ def create_bootstrap_message_text(channel, message):
     """
     Creates a dict that will be sent to send_message for bootstrapping completion
     """
+    if isinstance(message, dict):
+        if message.get('Error'):
+            message = json.loads(message.get('Cause')).get('errorMessage')
+
+    emote = ":red_circle:" if any(x in message for x in ['error', 'Failed']) else ":white_check_mark:"
     return {
         "channel": channel,
-        "text": ":white_check_mark: {0}".format(message)
+        "text": "{0} {1}".format(emote, message)
     }
 
 def send_message(url, payload):

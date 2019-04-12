@@ -66,3 +66,24 @@ stub_failed_pipeline_event = {
         }
     }]
 }
+
+stub_failed_bootstrap_event = {
+    'Records': [{
+        'EventSource': 'aws:sns',
+        'EventVersion': '1.0',
+        'EventSubscriptionArn': 'arn:aws:sns:eu-central-1:9999999:adf-pipeline-sample-vpc-PipelineSNSTopic-example',
+        'Sns': {
+            'Type': 'Notification',
+            'MessageId': '1',
+            'TopicArn': 'arn:aws:sns:eu-central-1:9999999:adf-pipeline-sample-vpc-PipelineSNSTopic-example',
+            'Subject': 'Failure - AWS Deployment Framework Bootstrap',
+            'Message': '{"Error":"Exception","Cause":"{\\"errorMessage\\": \\"CloudFormation Stack Failed - Account: 111 Region: eu-central-1 Status: ROLLBACK_IN_PROGRESS\\", \\"errorType\\": \\"Exception\\", \\"stackTrace\\": [[\\"/var/task/wait_until_complete.py\\", 99, \\"lambda_handler\\", \\"status))\\"]]}"}',
+            'Timestamp': '2019-03-10T11:09:49.953Z',
+            'SignatureVersion': '1',
+            'Signature': '2',
+            'SigningCertUrl': 'https://sns.eu-central-1.amazonaws.com/SimpleNotificationService',
+            'UnsubscribeUrl': 'https://sns.eu-central-1.amazonaws.com',
+            'MessageAttributes': {}
+        }
+    }]
+}

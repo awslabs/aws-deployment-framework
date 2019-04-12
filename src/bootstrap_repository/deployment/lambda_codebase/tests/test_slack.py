@@ -5,7 +5,7 @@
 
 from pytest import fixture
 from ..slack import *
-from .stubs.slack import stub_approval_event, stub_failed_pipeline_event, stub_bootstrap_event
+from .stubs.slack import stub_approval_event, stub_failed_pipeline_event, stub_bootstrap_event, stub_failed_bootstrap_event
 
 @fixture
 def stubs():
@@ -56,5 +56,8 @@ def test_create_bootstrap_message_text(stubs):
     assert assertion["channel"] == 'some_channel'
     assert assertion["text"] == ':white_check_mark: Account 1111111 has now been bootstrapped into banking/production'
 
-# def test_send_message(stubs):
-#     pass
+def test_create_bootstrap_message_fail_text(stubs):
+    message = extract_message(stub_failed_bootstrap_event)
+    assertion = create_bootstrap_message_text('some_channel', message)
+    assert assertion["channel"] == 'some_channel'
+    assert assertion["text"] == ':red_circle: CloudFormation Stack Failed - Account: 111 Region: eu-central-1 Status: ROLLBACK_IN_PROGRESS'
