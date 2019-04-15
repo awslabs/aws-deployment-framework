@@ -32,13 +32,8 @@ def test_validate_deployment_map_invalid_no_content(cls):
     with raises(InvalidDeploymentMapError):
         cls._validate_deployment_map()
 
-def test_validate_deployment_map_invalid_target(cls):
-    cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "region": 'eu-west-1'}]}]}
-    with raises(InvalidDeploymentMapError):
-        cls._validate_deployment_map()
-
 def test_validate_deployment_map_invalid_regions(cls):
-    cls.map_contents = {"pipelines": [{"targets": [{"regions": 'eu-west-1'}]}]}
+    cls.map_contents = {"pipelines": [{"targets": [{"region": 'eu-west-1'}]}]}
     with raises(InvalidDeploymentMapError):
         cls._validate_deployment_map()
 

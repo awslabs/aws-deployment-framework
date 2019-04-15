@@ -63,7 +63,7 @@ class DeploymentMap:
                 for target in pipeline["targets"]:
                     if isinstance(target, dict):
                         # Prescriptive information on the error should be raised
-                        assert target["regions"] and target["path"]
+                        assert target["regions"]
         except KeyError:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid"
