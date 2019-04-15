@@ -107,7 +107,7 @@ def main(): #pylint: disable=R0915
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
 
-        for target in p['targets']:
+        for target in p.get('targets', []):
             target_structure = TargetStructure(target)
             for step in target_structure.target:
                 for path in step.get('path'):
