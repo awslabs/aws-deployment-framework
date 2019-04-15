@@ -102,6 +102,9 @@ class Target():
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
 
+    def _target_is_region_only(self):
+        pass
+
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
@@ -114,5 +117,8 @@ class Target():
 
         if (str(self.path)).startswith('/'):
             return self._target_is_ou_path()
+
+        if self.path is None:
+            return self._target_is_region_only()
 
         raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))
