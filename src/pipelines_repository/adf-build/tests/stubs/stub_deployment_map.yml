@@ -27,3 +27,12 @@ pipelines:
       - NotificationEndpoint: my_email@email.com
     targets:
       - 123456789
+
+  - name: buildonly
+    type: cc-buildonly
+    params:
+      - SourceAccountId: 11111233321
+      - NotificationEndpoint: my_email@email.com
+    targets:
+      - regions: eu-west-1
+
