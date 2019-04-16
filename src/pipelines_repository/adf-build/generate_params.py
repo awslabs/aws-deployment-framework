@@ -105,7 +105,7 @@ class Parameters:
         """
         for key, value in comparison_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if not value.split(':')[1].startswith('/'):
+                if str(value).count(':') > 1:
                     regional_client = ParameterStore(value.split(':')[1], boto3)
                     stage_parameters[param][key] = regional_client.fetch_parameter(
                         value.split(':')[2]
@@ -119,7 +119,7 @@ class Parameters:
 
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if not value.split(':')[1].startswith('/'):
+                if str(value).count(':') > 1:
                     regional_client = ParameterStore(value.split(':')[1], boto3)
                     stage_parameters[param][key] = regional_client.fetch_parameter(
                         value.split(':')[2]
@@ -152,7 +152,7 @@ class Parameters:
         """
         for key, value in comparison_parameters.items():
             if str(value).startswith('resolve:'):
-                if not value.split(':')[1].startswith('/'):
+                if str(value).count(':') > 1:
                     regional_client = ParameterStore(value.split(':')[1], boto3)
                     stage_parameters[key] = regional_client.fetch_parameter(
                         value.split(':')[2]
@@ -167,7 +167,7 @@ class Parameters:
 
         for key, value in stage_parameters.items():
             if str(value).startswith('resolve:'):
-                if not value.split(':')[1].startswith('/'):
+                if str(value).count(':') > 1:
                     regional_client = ParameterStore(value.split(':')[1], boto3)
                     stage_parameters[key] = regional_client.fetch_parameter(
                         value.split(':')[2]
