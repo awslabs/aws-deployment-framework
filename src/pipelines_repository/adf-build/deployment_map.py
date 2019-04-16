@@ -60,7 +60,7 @@ class DeploymentMap:
         """
         try:
             for pipeline in self.map_contents["pipelines"]:
-                for target in pipeline["targets"]:
+                for target in pipeline.get("targets", []):
                     if isinstance(target, dict):
                         # Prescriptive information on the error should be raised
                         assert target["regions"] and target["path"]

@@ -27,3 +27,8 @@ pipelines:
       - NotificationEndpoint: my_email@email.com
     targets:
       - 123456789
+
+  - name: my-build
+    type: cc-buildonly
+    params:
+      - SourceAccountId: 123456789101
