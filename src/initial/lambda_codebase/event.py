@@ -108,7 +108,7 @@ class Event:
                 ),
                 'notification_endpoint': self.main_notification_endpoint,
                 'notification_type': self.notification_type,
-                'cross_account_iam_role': self.cross_account_access_role,
+                'cross_account_access_role': self.cross_account_access_role,
                 'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET
             }
         }
