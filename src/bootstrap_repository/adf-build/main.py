@@ -241,7 +241,7 @@ def main():
 
         threads = []
         account_ids = organizations.get_account_ids()
-        for account_id in account_ids:
+        for account_id in [account for account in account_ids if account != deployment_account_id]:
             t = PropagatingThread(target=worker_thread, args=(
                 account_id,
                 sts,
@@ -260,7 +260,7 @@ def main():
             deployment_account_id=deployment_account_id,
             deployment_account_region=config.deployment_account_region,
             regions=config.target_regions,
-            account_ids=[i for i in account_ids if i != config.deployment_account_region],
+            account_ids=account_ids,
             update_pipelines_only=0
         )
 
