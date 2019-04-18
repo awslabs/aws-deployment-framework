@@ -72,8 +72,6 @@ def configure_deployment_account(event, role):
                         value
                     )
 
-        parameters.put_parameter('organization_id', os.environ["ORGANIZATION_ID"])
-
 def lambda_handler(event, _):
     sts = STS(boto3)
     role = sts.assume_cross_account_role(
