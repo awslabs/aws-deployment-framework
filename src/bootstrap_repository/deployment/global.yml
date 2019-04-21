@@ -159,7 +159,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-org-access-adf"
+            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}"
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -385,7 +385,7 @@ Resources:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/shared/ ./adf-build/shared --recursive --quiet
                 - aws s3 cp ./adf-build s3://$S3_BUCKET_NAME/adf-build/ --recursive --quiet
                 - export PYTHONPATH=$PWD/adf-build/shared/python
-                - pytest -vvv -s
+                - pytest -vvv
                 - python ./adf-build/generate_pipelines.py
           artifacts:
             files:

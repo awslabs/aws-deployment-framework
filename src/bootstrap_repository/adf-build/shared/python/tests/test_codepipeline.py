@@ -6,7 +6,7 @@
 import os
 import boto3
 from pytest import fixture
-from .stubs import codepipeline
+from stubs import stub_codepipeline
 from mock import Mock
 
 from paginator import paginator
@@ -20,5 +20,5 @@ def cls():
 
 def test_get_pipeline_status(cls):
     cls.client = Mock()
-    cls.client.get_pipeline_state.return_value = codepipeline.stub_get_pipeline_state
+    cls.client.get_pipeline_state.return_value = stub_codepipeline.get_pipeline_state
     assert cls.get_pipeline_status('my_pipeline').get('status') == 'Succeeded'

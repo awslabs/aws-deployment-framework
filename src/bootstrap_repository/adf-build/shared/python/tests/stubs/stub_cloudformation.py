@@ -5,7 +5,7 @@
 Stubs for testing cloudformation.py
 """
 
-stub_describe_stack = {
+describe_stack = {
     'Stacks': [{
         'Outputs': [{
             'OutputKey': "DeploymentFrameworkRegionalKMSKey",

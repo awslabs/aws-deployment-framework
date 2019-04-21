@@ -43,10 +43,10 @@ def lambda_handler(event, _):
         'adf-cloudformation-role': 'adf-cloudformation-role-policy'
     }
 
-    sts = STS(boto3)
+    sts = STS()
     parameter_store = ParameterStore(
-        event.get('deployment_account_region'),
-        boto3
+        region=event.get('deployment_account_region'),
+        role=boto3
     )
     for region in list(set([event.get('deployment_account_region')] + event.get("regions"))):
         kms_key_arn = parameter_store.fetch_parameter(
@@ -64,7 +64,7 @@ def lambda_handler(event, _):
                         'adf-cloudformation-deployment-role'
                         ), 'base_cfn_role'
                 )
-                LOGGER.info("Role has bee assumed for %s", account_id)
+                LOGGER.debug("Role has bee assumed for %s", account_id)
                 update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
             except ClientError:
                 LOGGER.debug("%s not yet configured, continuing", account_id)

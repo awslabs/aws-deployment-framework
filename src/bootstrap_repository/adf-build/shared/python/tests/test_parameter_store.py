@@ -6,7 +6,7 @@
 import os
 import boto3
 from pytest import fixture
-from .stubs import parameters
+from stubs import stub_parameter_store
 from mock import Mock
 
 from parameter_store import ParameterStore
@@ -24,12 +24,12 @@ def cls():
 # Needs pagination and associated tests
 def test_fetch_parameters_by_path(cls):
     cls.client = Mock()
-    cls.client.get_parameters_by_path.return_value = parameters.stub_get_parameters_by_path
+    cls.client.get_parameters_by_path.return_value = stub_parameter_store.get_parameters_by_path
     assert cls.fetch_parameters_by_path(
-        'some_path') == parameters.stub_get_parameters_by_path.get('Parameters')
+        'some_path') == stub_parameter_store.get_parameters_by_path.get('Parameters')
 
 
 def test_fetch_parameter(cls):
     cls.client = Mock()
-    cls.client.get_parameter.return_value = parameters.stub_get_parameter
+    cls.client.get_parameter.return_value = stub_parameter_store.get_parameter
     assert cls.fetch_parameter('some_path') == 'some_parameter_value'

@@ -5,7 +5,7 @@
 Stubs for testing parameter_store.py
 """
 
-stub_get_parameter = {
+get_parameter = {
     'Parameter': {
         'Name': 'string',
         'Type': 'String',
@@ -18,7 +18,7 @@ stub_get_parameter = {
     }
 }
 
-stub_get_parameters_by_path = {
+get_parameters_by_path = {
     'Parameters': [
         {
             'Name': 'string',

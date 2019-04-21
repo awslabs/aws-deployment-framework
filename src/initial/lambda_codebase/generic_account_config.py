@@ -11,8 +11,6 @@ To Update the IAM Role, KMS Policy and S3 Bucket Policy
 To include the newly created account.
 """
 
-import boto3
-
 from logger import configure_logger
 from sts import STS
 from stepfunctions import StepFunctions
@@ -21,12 +19,12 @@ LOGGER = configure_logger(__name__)
 
 
 def lambda_handler(event, _):
-    sts = STS(boto3)
+    sts = STS()
 
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
             event['deployment_account_id'],
-            event['cross_account_iam_role']),
+            event['cross_account_access_role']),
         'step_function')
 
     step_functions = StepFunctions(

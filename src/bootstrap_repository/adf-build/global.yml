@@ -2,7 +2,7 @@
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Role to be assumed by CodePipeline service cross account
+Description: ADF CloudFormation Template - Role to be assumed by CodePipeline in Deployment Account
 Parameters:
   DeploymentAccountId:
     Type : 'AWS::SSM::Parameter::Value<String>'
@@ -16,7 +16,7 @@ Resources:
   OrganizationsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${CrossAccountAccessRole}-org-access-adf"
+      RoleName: !Ref CrossAccountAccessRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -24,6 +24,7 @@ Resources:
             Principal:
               AWS:
                 - !Ref DeploymentAccountId
+                - !Ref AWS::AccountId
             Action:
               - sts:AssumeRole
       Path: /
@@ -36,11 +37,22 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
+              - ssm:PutParameter
+              - ssm:GetParameters 
+              - ssm:GetParameter 
               - organizations:ListAccounts
               - organizations:ListAccountsForParent
               - organizations:DescribeAccount
               - organizations:ListOrganizationalUnitsForParent
               - organizations:ListRoots
+              - iam:CreateRole
+              - iam:CreatePolicy
+              - iam:UpdateAssumeRolePolicy
+              - iam:GetRole
+              - iam:DeleteRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - cloudformation:*
             Resource: "*"
       Roles:
         - !Ref OrganizationsRole

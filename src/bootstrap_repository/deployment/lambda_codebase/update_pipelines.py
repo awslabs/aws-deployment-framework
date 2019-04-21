@@ -20,8 +20,11 @@ def generate_notify_message(event):
     The message we want to pass into the next step (Notify) of the state machine
     if the current account in execution has been bootstrapped
     """
+    update_status = event.get('update_only', 1)
+    if len(event.get('account_ids')) > 1:
+        update_status = 1
     return {
-        "update_only": event.get('update_only', 1),
+        "update_only": update_status,
         "message": "Account {0} has now been bootstrapped into {1}".format(event["account_ids"][0], event["full_path"])
     }
 

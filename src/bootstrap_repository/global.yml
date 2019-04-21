@@ -182,7 +182,6 @@ Resources:
               - "kms:DescribeKey"
               - "kms:Get*"
               - "ec2:*"
-              - "iot:*"
               - "xray:*"
               - "dax:*"
               - "application-autoscaling:*"

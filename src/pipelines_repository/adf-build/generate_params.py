@@ -89,7 +89,7 @@ class Parameters:
         try:
             with open(filename) as file:
                 return json.load(file)
-        except BaseException:
+        except FileNotFoundError:
             return {'Parameters': {}, 'Tags': {}}
 
     def _update_params(self, new_params, filename):

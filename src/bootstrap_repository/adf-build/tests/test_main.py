@@ -41,15 +41,15 @@ def sts():
 
 
 def test_is_account_valid_state(cls):
-    assert is_account_invalid_state('ou-123', cls.__dict__) == False
+    assert is_account_in_invalid_state('ou-123', cls.__dict__) == False
 
-def test_is_account_invalid_state(cls):
+def test_is_account_in_invalid_state(cls):
     cls.protected = []
     cls.protected.append('ou-123')
-    assert is_account_invalid_state('ou-123', cls.__dict__) == True
+    assert is_account_in_invalid_state('ou-123', cls.__dict__) == 'Is a in a protected Organizational Unit ou-123, it will be skipped.'
 
 def test_is_account_is_in_root(cls):
-    assert is_account_invalid_state('r-123', cls.__dict__) == True
+    assert is_account_in_invalid_state('r-123', cls.__dict__) == 'Is in the Root of the Organization, it will be skipped.'
 
 def test_ensure_generic_account_can_be_setup(cls, sts):
     assert ensure_generic_account_can_be_setup(sts, cls, '12345678910') == sts.assume_cross_account_role()
@@ -77,11 +77,11 @@ def test_update_deployment_account_output_parameters(cls, sts):
         mock.assert_has_calls(expected_calls, any_order=True)
 
 
-def test_prepare_deployment_account(cls, sts):
-    pass
+# def test_prepare_deployment_account(cls, sts):
+#     pass
 
-def test_worker_thread(cls):
-    pass
+# def test_worker_thread(cls):
+#     pass
 
-def test_main(cls):
-    pass
+# def test_main(cls):
+#     pass

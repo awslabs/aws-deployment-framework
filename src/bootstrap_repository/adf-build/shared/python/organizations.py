@@ -4,6 +4,8 @@
 """Organizations module used throughout the ADF
 """
 
+import json
+
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from errors import RootOUIDError
@@ -13,7 +15,7 @@ from paginator import paginator
 LOGGER = configure_logger(__name__)
 
 
-class Organizations:
+class Organizations: # pylint: disable=R0904
     """Class used for modeling Organizations
     """
 
@@ -25,6 +27,7 @@ class Organizations:
             config=Organizations._config)
         self.account_id = account_id
         self.account_ids = []
+        self.root_id = None
 
     def get_parent_info(self):
         response = self.list_parents(self.account_id)
@@ -33,11 +36,98 @@ class Organizations:
             "ou_parent_type": response.get('Type')
         }
 
+    def enable_scp(self):
+        try:
+            self.client.enable_policy_type(
+                RootId=self.get_ou_root_id(),
+                PolicyType='SERVICE_CONTROL_POLICY'
+            )
+        except self.client.exceptions.PolicyTypeAlreadyEnabledException:
+            LOGGER.info('SCPs are currently enabled within the Organization')
+
+    @staticmethod
+    def trim_scp_path(scp):
+        return scp[2:] if scp.startswith('//') else scp
+
+    def get_organization_map(self, org_structure, counter=0):
+        for name, ou_id in org_structure.copy().items():
+            for organization_id in [organization_id['Id'] for organization_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ORGANIZATIONAL_UNIT"})]:
+                if organization_id in org_structure.values() and counter != 0:
+                    continue
+                ou_name = self.describe_ou_name(organization_id)
+                trimmed_path = Organizations.trim_scp_path("{0}/{1}".format(name, ou_name))
+                org_structure[trimmed_path] = organization_id
+        counter = counter + 1
+        # Counter is greater than 4 here is the conditional as organizations cannot have more than 5 levels of nested OUs
+        return org_structure if counter > 4 else self.get_organization_map(org_structure, counter)
+
+    def update_scp(self, content, policy_id):
+        self.client.update_policy(
+            PolicyId=policy_id,
+            Content=content
+        )
+
+    def create_scp(self, content, ou_path):
+        response = self.client.create_policy(
+            Content=content,
+            Description='ADF Managed Service Control Policy',
+            Name='adf-scp-{0}'.format(ou_path),
+            Type='SERVICE_CONTROL_POLICY'
+        )
+        return response['Policy']['PolicySummary']['Id']
+
+    @staticmethod
+    def get_scp_body(path):
+        with open(path, 'r') as scp:
+            return json.dumps(json.load(scp))
+
+    def list_scps(self, name):
+        response = list(paginator(self.client.list_policies, Filter="SERVICE_CONTROL_POLICY"))
+        print(response)
+        try:
+            return [policy for policy in response if policy['Name'] == name][0]['Id']
+        except IndexError:
+            return []
+
+    def describe_scp_id_for_target(self, target_id):
+        response = self.client.list_policies_for_target(
+            TargetId=target_id,
+            Filter='SERVICE_CONTROL_POLICY'
+        )
+        try:
+            return [p for p in response['Policies'] if p['Description'] == 'ADF Managed Service Control Policy'][0]['Id']
+        except IndexError:
+            return []
+
+    def describe_scp(self, policy_id):
+        response = self.client.describe_policy(
+            PolicyId=policy_id
+        )
+        return response.get('Policy')
+
+    def attach_scp(self, policy_id, target_id):
+        self.client.attach_policy(
+            PolicyId=policy_id,
+            TargetId=target_id
+        )
+
+    def detach_scp(self, policy_id, target_id):
+        self.client.detach_policy(
+            PolicyId=policy_id,
+            TargetId=target_id
+        )
+
+    def delete_scp(self, policy_id):
+        self.client.delete_policy(
+            PolicyId=policy_id
+        )
+
     def get_account_ids(self):
         for account in paginator(self.client.list_accounts):
-            if account.get('Status') == 'ACTIVE':
-                self.account_ids.append(account['Id'])
-
+            if not account.get('Status') == 'ACTIVE':
+                LOGGER.warning('Account %s is not an Active AWS Account', account['Id'])
+                continue
+            self.account_ids.append(account['Id'])
         return self.account_ids
 
     def get_organization_info(self):
@@ -47,7 +137,8 @@ class Organizations:
                 'Organization').get(
                     'MasterAccountId'
                 ),
-            "organization_id": response.get('Organization').get('Id')
+            "organization_id": response.get('Organization').get('Id'),
+            "feature_set": response.get('Organization').get('FeatureSet')
         }
 
     def describe_ou_name(self, ou_id):
@@ -81,9 +172,12 @@ class Organizations:
             ParentId=parent_id
         )
 
+    def get_ou_root_id(self):
+        return self.client.list_roots().get('Roots')[0].get('Id')
+
     def dir_to_ou(self, path):
         p = path.split('/')[1:]
-        ou_id = self.client.list_roots().get('Roots')[0].get('Id')
+        ou_id = self.get_ou_root_id()
 
         while p:
             for ou in self.get_child_ous(ou_id):
@@ -93,7 +187,7 @@ class Organizations:
                     break
             else:
                 raise Exception(
-                    "Path {} failed to return a child OU at '{}'".format(
+                    "Path {0} failed to return a child OU at '{1}'".format(
                         path, p[0]))
         else:  # pylint: disable=W0120
             return self.get_accounts_for_parent(ou_id)

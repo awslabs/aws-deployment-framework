@@ -6,7 +6,7 @@
 import os
 import boto3
 from pytest import fixture
-from .stubs import iam
+from stubs import stub_iam
 from mock import Mock
 
 from iam import IAM
@@ -18,7 +18,7 @@ def cls():
         boto3
     )
     cls.client = Mock()
-    cls.client.get_role_policy.return_value = iam.stub_get_role_policy
+    cls.client.get_role_policy.return_value = stub_iam.get_role_policy
     cls._fetch_policy_document('some_role_name', 'some_policy_name')
     return cls
 

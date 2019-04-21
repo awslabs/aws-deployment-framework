@@ -5,7 +5,7 @@
 Stubs for testing s3.py
 """
 
-stub_s3_get_bucket_policy = {
+s3_get_bucket_policy = {
     'Policy': {
         "Version": "2012-10-17",
         "Id": "Policy14564645656",

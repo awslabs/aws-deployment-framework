@@ -29,6 +29,26 @@ Parameters:
     Description: The ID Of Your AWS Organization which will be used as conditional boundry for access
     Type: String
 Resources:
+  BootstrapTemplatesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref "BootstrapTemplatesBucket"
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:Get*
+              - s3:PutObject*
+              - s3:PutReplicationConfiguration
+              - s3:List*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+            Resource:
+              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}
+              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}/*
+            Principal:
+              AWS: "*"
   BootstrapTemplatesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -232,7 +252,7 @@ Resources:
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-codecommit-role"
+      RoleName: "adf-codecommit-role-base"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -287,15 +307,33 @@ Resources:
             Action:
               - "codecommit:*"
               - "codebuild:*" 
+              - "organizations:AttachPolicy"
+              - "organizations:DetachPolicy"
+              - "organizations:DeletePolicy"
+              - "organizations:EnablePolicyType"
+              - "organizations:CreatePolicy"
+              - "organizations:UpdatePolicy"
               - "organizations:ListAccounts"
               - "organizations:ListAccountsForParent"
+              - "organizations:ListParents"
+              - "organizations:ListRoots"
+              - "organizations:ListPoliciesForTarget"
+              - "organizations:ListChildren"
+              - "organizations:ListPolicies"
               - "organizations:DescribeAccount"
+              - "organizations:DescribePolicy"
               - "organizations:DescribeOrganization"
               - "organizations:DescribeOrganizationalUnit"
-              - "organizations:ListParents"
               - "ssm:GetParameter"
               - "ssm:GetParameters"
               - "ssm:PutParameter"
+              - "iam:CreateRole"
+              - "iam:UpdateAssumeRolePolicy" 
+              - "iam:CreatePolicy"
+              - "iam:GetRole"
+              - "iam:DeleteRole"
+              - "iam:PutRolePolicy"
+              - "iam:DeleteRolePolicy"
               - "cloudformation:*"
               - "sts:GetCallerIdentity"
               - "logs:CreateLogGroup"
@@ -350,7 +388,7 @@ Resources:
             pre_build:
               commands:
                 - export PYTHONPATH=$PWD/adf-build/shared/python
-                - pytest -vvv -s
+                - pytest -vvv
             build:
               commands:
                 - aws cloudformation package --template-file $(pwd)/deployment/global.yml --output-template-file deployment/global.yml --s3-prefix deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET

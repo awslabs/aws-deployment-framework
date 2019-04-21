@@ -6,7 +6,7 @@
 import os
 import boto3
 from pytest import fixture
-from .stubs import s3
+from stubs import stub_s3
 from mock import Mock
 from s3 import S3
 
@@ -15,7 +15,6 @@ from s3 import S3
 def cls():
     cls = S3(
         'us-east-1',
-        boto3,
         'some_bucket'
     )
     return cls

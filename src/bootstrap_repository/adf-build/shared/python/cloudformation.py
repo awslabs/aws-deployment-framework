@@ -68,23 +68,12 @@ class StackProperties:
             self._create_template_path(self.s3_key_path)
         )
 
-    def get_template_body(self):
-        key = self.s3.fetch_s3_url(
-            self._create_template_path(self.s3_key_path)
-        )
-        if isinstance(key, list):
-            return key
-        short_key = key.split('/')
-        del short_key[:4]
-        return self.s3.read_object("/".join(short_key))
-
     def get_parameters(self):
         try:
             key = self.s3.fetch_s3_url(
                 self._create_parameter_path(self.s3_key_path)
             )
             return self.s3.read_object(key) if key else []
-
         except ClientError:
             return []
 
@@ -102,7 +91,6 @@ class CloudFormation(StackProperties):
             deployment_account_region,
             role,
             template_url=None,
-            template_body=None,
             wait=False,
             stack_name=None,
             s3=None,
@@ -113,7 +101,6 @@ class CloudFormation(StackProperties):
         self.wait = wait
         self.parameters = parameters
         self.template_url = template_url
-        self.template_body = template_body
         StackProperties.__init__(
             self,
             region=region,
@@ -183,45 +170,35 @@ class CloudFormation(StackProperties):
         """Creates a Cloudformation change set from a template
         """
         try:
+            self.template_url = self.template_url if self.template_url is not None else self.get_template_url()
             if self.template_url:
                 self.client.create_change_set(
                     StackName=self.stack_name,
-                    TemplateURL=self.template_url if self.template_url is not None else self.get_template_url(),
+                    TemplateURL=self.template_url,
                     Parameters=self.parameters if self.parameters is not None else self.get_parameters(),
                     Capabilities=[
                         'CAPABILITY_NAMED_IAM',
                     ],
-                    ChangeSetName=self.stack_name,
-                    ChangeSetType=self._get_change_set_type())
-
-                self._wait_change_set()
-                return True
-
-            template_body = self.get_template_body()
-            if template_body:
-                self.client.create_change_set(
-                    StackName=self.stack_name,
-                    TemplateBody=template_body,
-                    Parameters=self.parameters if self.parameters is not None else self.get_parameters(),
-                    Capabilities=[
-                        'CAPABILITY_NAMED_IAM',
+                    Tags=[
+                        {
+                            'Key': 'createdBy',
+                            'Value': 'ADF'
+                        }
                     ],
                     ChangeSetName=self.stack_name,
                     ChangeSetType=self._get_change_set_type())
 
+                self.validate_template()
                 self._wait_change_set()
                 return True
             return False
         except WaiterError as error:
             err = error.last_response
-            status = err["Status"]
-            reason = err["StatusReason"]
-            if CloudFormation._change_set_failed_due_to_empty(status, reason):
+            if CloudFormation._change_set_failed_due_to_empty(err["Status"], err["StatusReason"]):
                 LOGGER.info("The submitted information does not contain changes.")
                 self._delete_change_set()
                 return False
 
-            LOGGER.error("%s - %s", status, reason)
             self._delete_change_set()
             raise
 

@@ -30,62 +30,66 @@ def configure_generic_account(sts, event, region, role):
     target account so it can be consumed in CloudFormation. These
     are required for the global.yml in all target accounts.
     """
-    deployment_role = sts.assume_cross_account_role(
+    deployment_account_role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
             event['deployment_account_id'],
-            event['cross_account_iam_role']
+            event['cross_account_access_role']
         ), 'configure_generic'
     )
-
-    kms_arn = ParameterStore(
+    parameter_store_deployment_account = ParameterStore(
         event['deployment_account_region'],
-        deployment_role
-    ).fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
-    parameters = ParameterStore(region, role)
-    parameters.put_parameter('kms_arn', kms_arn)
-    parameters.put_parameter(
-        'deployment_account_id',
-        event['deployment_account_id'])
+        deployment_account_role
+    )
+    parameter_store_target_account = ParameterStore(
+        region,
+        role
+    )
+    kms_arn = parameter_store_deployment_account.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
+    parameter_store_target_account.put_parameter('kms_arn', kms_arn)
+    parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
 
-def update_master_account_parameters(event, parameter_store):
+def configure_master_account_parameters(event):
     """
     Update the Master account parameter store in us-east-1 with the deployment_account_id
     then updates the main deployment region with that same value
     """
-    parameter_store.put_parameter('deployment_account_id', event['account_id'])
-    parameter_store = ParameterStore(event['deployment_account_region'], boto3)
-    parameter_store.put_parameter('deployment_account_id', event['account_id'])
+    parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
+    parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
 
-def configure_deployment_account(event, role):
+    parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
+    parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
+
+def configure_deployment_account_parameters(event, role):
     """
     Applies the Parameters from adfconfig plus other essential
     Parameters to the Deployment Account in each region as defined in
     adfconfig.yml
     """
-    for region in list(set([event['deployment_account_region']] + event['regions'])):
-        parameters = ParameterStore(region, role)
-        if region == event['deployment_account_region']:
-            for key, value in event['deployment_account_parameters'].items():
-                if value:
-                    parameters.put_parameter(
-                        key,
-                        value
-                    )
+    for region in list(set([event["deployment_account_region"]] + event["regions"])):
+        parameter_store = ParameterStore(region, role)
+        for key, value in event['deployment_account_parameters'].items():
+            parameter_store.put_parameter(
+                key,
+                value
+            )
 
 def lambda_handler(event, _):
-    sts = STS(boto3)
+    sts = STS()
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
             event["account_id"],
-            event["cross_account_iam_role"]
+            event["cross_account_access_role"]
         ), 'master_lambda'
     )
 
     if event['is_deployment_account']:
-        update_master_account_parameters(event, ParameterStore(REGION_DEFAULT, boto3))
-        configure_deployment_account(event, role)
+        configure_master_account_parameters(event)
+        configure_deployment_account_parameters(event, role)
 
-    s3 = S3(REGION_DEFAULT, boto3, S3_BUCKET)
+    s3 = S3(
+        region=REGION_DEFAULT,
+        bucket=S3_BUCKET
+    )
 
     for region in list(set([event["deployment_account_region"]] + event["regions"])):
         if not event["is_deployment_account"]:
@@ -95,7 +99,7 @@ def lambda_handler(event, _):
             deployment_account_region=event["deployment_account_region"],
             role=role,
             wait=False,
-            stack_name=None,
+            stack_name=None, # Stack name will be automatically defined based on event
             s3=s3,
             s3_key_path=event["full_path"]
         )

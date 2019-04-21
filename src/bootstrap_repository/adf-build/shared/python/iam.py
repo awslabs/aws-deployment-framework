@@ -71,7 +71,7 @@ class IAM:
             if statement['Sid'] == 'S3':
                 if "arn:aws:s3:::{0}".format(
                         bucket_name) not in statement['Resource']:
-                    LOGGER.info('Updating Role %s to be to access %s', self.role_name, bucket_name)
+                    LOGGER.info('Updating Role %s to access %s', self.role_name, bucket_name)
                     statement['Resource'].append(
                         "arn:aws:s3:::{0}".format(bucket_name))
                     statement['Resource'].append(

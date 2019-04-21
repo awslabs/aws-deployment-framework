@@ -6,7 +6,7 @@
 import os
 import boto3
 from pytest import fixture, raises
-from .stubs import event, step_functions
+from stubs import stub_step_functions
 from mock import Mock
 from stepfunctions import StepFunctions
 
@@ -28,21 +28,21 @@ def cls():
 
 
 def test_statemachine_start(cls):
-    cls.client.start_execution.return_value = step_functions.stub_start_execution
+    cls.client.start_execution.return_value = stub_step_functions.start_execution
     cls._start_statemachine()
     assert cls.execution_arn == 'some_execution_arn'
 
 
 def test_statemachine_get_status(cls):
-    cls.client.describe_execution.return_value = step_functions.stub_describe_execution
+    cls.client.describe_execution.return_value = stub_step_functions.describe_execution
     cls._start_statemachine()
     cls._fetch_statemachine_status()
     cls.execution_status == 'RUNNING'
 
 
 def test_wait_failed_state_machine_execution(cls):
-    step_functions.stub_describe_execution["status"] = "FAILED"
-    cls.client.describe_execution.return_value = step_functions.stub_describe_execution
+    stub_step_functions.describe_execution["status"] = "FAILED"
+    cls.client.describe_execution.return_value = stub_step_functions.describe_execution
     cls._start_statemachine()
     cls._fetch_statemachine_status()
     assert cls.execution_status == 'FAILED'

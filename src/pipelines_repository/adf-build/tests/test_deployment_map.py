@@ -32,6 +32,11 @@ def test_validate_deployment_map_invalid_no_content(cls):
     with raises(InvalidDeploymentMapError):
         cls._validate_deployment_map()
 
+def test_validate_deployment_leading_zero(cls):
+    cls._validate_deployment_map()
+    target_pipeline = [i for i in cls.map_contents['pipelines'] if i.get('name') == 'some-thing'][0]['targets']
+    assert '013456789101' in target_pipeline
+
 def test_validate_deployment_map_invalid_target(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "region": 'eu-west-1'}]}]}
     with raises(InvalidDeploymentMapError):

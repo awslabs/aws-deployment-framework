@@ -25,7 +25,7 @@ def cls():
 def test_validation(cls):
     assert cls.config.get(
         'main-notification-endpoint')[0].get('target') == 'jon@doe.com'
-    assert cls.config.get('moves')[0].get('action') == 'remove_base'
+    assert cls.config.get('moves')[0].get('action') == 'remove-base'
 
 
 def test_validation_list_deployment_target(cls):
@@ -33,44 +33,46 @@ def test_validation_list_deployment_target(cls):
     cls._parse_config()
     assert cls.target_regions == ["target1"]
 
-
 def test_validation_list_deployment_account_target(cls):
     cls.config_contents["regions"]["deployment-account"] = "target1"
     cls._parse_config()
     assert cls.deployment_account_region == "target1"
 
-
-def test_validation_remove_moves(cls):
+def test_raise_validation_remove_moves(cls):
     cls.config_contents.get('config').pop('moves', None)
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
-
-def test_validation_remove_roles(cls):
+def test_raise_validation_remove_roles(cls):
     cls.config_contents.get('roles', None).pop('cross-account-access', None)
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
-def test_validation_remove_target_regions(cls):
+def test_raise_validation_remove_target_regions(cls):
     cls.config_contents.get('regions', None).pop('targets', None)
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
-def test_validation_remove_deployment_target_region(cls):
+def test_raise_validation_remove_deployment_target_region(cls):
     cls.config_contents.get('regions', None).pop('deployment-account', None)
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
-def test_validation_length_deployment_target_region(cls):
+def test_raise_validation_length_deployment_target_region(cls):
     cls.config_contents["regions"]["deployment-account"] = ['region1', 'region2']
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
 
-def test_validation_length_deployment_target(cls):
+def test_raise_validation_organizations_scp(cls):
+    cls.config_contents['config']['scp']['keep-default-scp'] = 'blah'
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+def test_raise_validation_length_deployment_target(cls):
     cls.config_contents["regions"]["targets"] = []
     with raises(InvalidConfigError):
         assert cls._parse_config()

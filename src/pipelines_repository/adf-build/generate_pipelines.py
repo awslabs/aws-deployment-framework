@@ -88,14 +88,11 @@ def main(): #pylint: disable=R0915
     )
     s3 = S3(
         DEPLOYMENT_ACCOUNT_REGION,
-        boto3,
         S3_BUCKET_NAME
     )
-    sts = STS(
-        boto3
-    )
+    sts = STS()
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}-org-access-adf'.format(
+        'arn:aws:iam::{0}:role/{1}'.format(
             MASTER_ACCOUNT_ID,
             parameter_store.fetch_parameter('cross_account_access_role')
         ), 'pipeline'
@@ -114,8 +111,6 @@ def main(): #pylint: disable=R0915
                     regions = step.get(
                         'regions', p.get(
                             'regions', DEPLOYMENT_ACCOUNT_REGION))
-                    # imports = step.get('imports', []) # Imports / Exports functionality on hold
-                    # exports = step.get('exports', [])
                     pipeline.stage_regions.append(regions)
                     pipeline_target = Target(
                         path, regions, target_structure, organizations)
