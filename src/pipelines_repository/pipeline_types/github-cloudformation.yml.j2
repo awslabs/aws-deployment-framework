@@ -232,7 +232,7 @@ Resources:
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 TemplatePath: !Sub "${ProjectName}-build::template.yml"
                 TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
-                Capabilities: CAPABILITY_NAMED_IAM
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
                 {% if stage.imports  %}
                 ParameterOverrides: !Sub | 
