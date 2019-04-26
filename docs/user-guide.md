@@ -42,6 +42,7 @@ pipelines:
   - name: vpc
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
+    replace_on_failure: true
     params:
       - SourceAccountId: 8888877777777
       - NotificationEndpoint: channel1
