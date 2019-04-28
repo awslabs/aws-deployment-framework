@@ -2,5 +2,5 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-__init__ for tests in lambda_codebase
+__init__ for stubs in lambda_codebase
 """

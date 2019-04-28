@@ -4,6 +4,7 @@
 - [Pre-Requisites](#pre-requisites)
 - [Src Folder](#src-folder)
 - [Installation Instructions](#installation-instructions)
+- [adfconfig](#adfconfig)
 - [Accounts](#accounts)
   - [Master](#master-account)
   - [Deployment](#deployment-account)
@@ -13,6 +14,7 @@
     - [Regional Bootstrapping](#regional-bootstrapping)
     - [Global Bootstrapping](#global-bootstrapping)
     - [Bootstrapping Regions](#region-bootstrapping)
+- [Service Control Policies](#service-control-policies)
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
   - [Pipeline Types](#pipeline-types)
@@ -54,7 +56,7 @@ The below instructions are based on the use-case in which you have no resources 
 
 1. Ensure you have setup a new [AWS CloudTrail](https://aws.amazon.com/cloudtrail/) *(Not the default trail)* in your Master Account that spans all regions and that you are able to view trail information in the AWS CloudTrail console.
 
-2. Create an [AWS Organization](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_create.html). Make note of your Organization ID which is part of the ARN. *(eg o-zx2u19zz64 is the Organization ID in the ARN arn:aws:organizations::99999999999:root/o-zx2u19zz64/r-a3db)*
+2. Create an [AWS Organization](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_create.html). Make note of your Organization ID which is part of the ARN *(eg o-zx2u19zz64 is the Organization ID in the ARN arn:aws:organizations::99999999999:root/o-zx2u19zz64/r-a3db)*. In Order to use SCP management and automation within ADF the Organization must be created with All Features enabled *(which is default)*.
 
 3. Create a new AWS CloudFormation stack in the Master account from the `bucket.yml` template in the *us-east-1* region. *(BucketName can be whatever you like)*
 
@@ -95,15 +97,61 @@ OrganizationId=ORGANIZATION_ID \
 --region us-east-1
 ```
 
-6. Once the stack has completed, it will of created a [AWS CodeCommit](https://aws.amazon.com/codecommit/) repository **(aws-deployment-framework-bootstrap)** in the master account *(among other resources)*. This repository is used as a entry point for all [bootstrap stacks](#bootstrapping-accounts) throughout your organization. Familiarize yourself with the folder structure of **src/bootstrap_repository**, this folder should be initialized as a [git repository](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository) and be arranged to suit your desired [AWS Organization](https://aws.amazon.com/organizations/) structure and desired bootstrapping configuration. The *deployment* and *adf-build* folder are mandatory in the root of this repository, for everything else, please read [bootstrapping accounts](#bootstrapping-accounts). Before continuing to step 7, ensure you have defined your framework configuration in the *adfconfig.yml* file *(you can use example-adfconfig.yml as a starter)*. For more info on *adfconfig.yml* please see the section on [adfconfig](./user-guide.md/#adfconfig) in the user guide.
+6. Once the stack has completed, it will of created a [AWS CodeCommit](https://aws.amazon.com/codecommit/) repository **(aws-deployment-framework-bootstrap)** in the master account *(among other resources)*. This repository is used as a entry point for all [bootstrap stacks](#bootstrapping-accounts) and [SCPs](#service-control-policies) throughout your organization. Familiarize yourself with the folder structure of **src/bootstrap_repository**, this folder should be initialized as a [git repository](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository) and be arranged to suit your desired [AWS Organization](https://aws.amazon.com/organizations/) structure and desired bootstrapping configuration. The *deployment* and *adf-build* folder are mandatory in the root of this repository, for everything else, please read [bootstrapping accounts](#bootstrapping-accounts). Before continuing to step 7, ensure you have defined your framework configuration in the *adfconfig.yml* file *(you can use example-adfconfig.yml as a starter)*. For more info on *adfconfig.yml* please see the section on [adfconfig](#adfconfig) in this guide.
 
-7. Once you have defined what base templates will be applied to which organizational units you should push the contents of *bootstrap_repository* to the *aws-deployment-framework-bootstrap* repository in *us-east-1*. The change will be picked up and will start the Pipeline *(aws-deployment-framework-bootstrap-pipeline)* which was created in the master account. This pipeline is responsible for syncing the folder structure with Amazon S3. Each time you push to this Repository, AWS CodeBuild will sync the folder structure with S3 and also update any of the bootstrap stacks in AWS Accounts throughout your Organization. This allows you to update your templates, push them into CodeCommit which starts Codepipeline and thus CodeBuild to update bootstrap stacks throughout all of your accounts and regions in a way that promotes continuous integration and deployment. Pushing to this Repository also updates any of your configuration in the *adfconfig.yml* with Parameter Store.
+7. Once you have defined what base templates will be applied to which organizational units you should push the contents of *bootstrap_repository* to the *aws-deployment-framework-bootstrap* repository in *us-east-1*. The change will be picked up and will start the Pipeline *(aws-deployment-framework-bootstrap-pipeline)* which was created in the master account. This pipeline is responsible for syncing the folder structure with Amazon S3. Each time you push to this Repository, AWS CodeBuild will sync the folder structure with S3 and also update any of the bootstrap stacks and SCPs in AWS Accounts throughout your Organization. This allows you to update your templates, push them into CodeCommit which starts Codepipeline and thus CodeBuild to update bootstrap stacks throughout all of your accounts and regions in a way that promotes continuous integration and deployment. Pushing to this Repository also updates any of your configuration in the *adfconfig.yml* with Parameter Store.
 
 8. Once your pipeline has successfully synced the folder structure with Amazon S3. Create an new Organizational Unit in AWS Organizations in the root named **'deployment'**. This OU will hold the AWS Account that is referred to as the *'Deployment Account'* throughout the ADF.
 
 9. Move the Deployment Account that was created in step 4 into the OU called `deployment`. This action will trigger [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start the bootstrap process for the deployment account. You can view the progress of this in the AWS Step Functions console from the master account in the us-east-1 region.
 
-10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts, bootstrap those as desired by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF. Otherwise, if you just want to get started making pipelines you can create a `deployment_map.yml` file *(see example-deployment_map.yml for a starting point.)* in the *pipelines_repository* folder and define some pipelines that tie together a source and associated targets.
+10. Once the Deployment Account base stack is complete in the regions you defined, you are ready to create further accounts and build out your Organization. Bootstrap further accounts by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to follow along with the samples included in this repository which will show in detail how pipelines function in ADF. Otherwise, if you just want to get started making pipelines you can create a `deployment_map.yml` file *(see example-deployment_map.yml for a starting point.)* in the *pipelines_repository* folder and define some pipelines that tie together a source and associated targets.
+
+## adfconfig
+
+The `adfconfig.yml` file that resides on the [Master Account](#master-account) and defines the general high level configuration for the AWS Deployment Framework. These values are stored in AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents.
+
+```yaml
+roles:
+  cross-account-access: OrganizationAccountAccessRole
+
+regions:
+  deployment-account:
+    - eu-central-1
+  targets:
+    - eu-central-1
+    - eu-west-1
+
+config:
+  main-notification-endpoint:
+    - type: email
+      target: john@doe.com
+  moves:
+    - name: to-root
+      action: safe
+  protected:
+    - ou-123
+  scp:
+    keep-default-scp: enabled
+```
+
+In the above example we have three main properties in `roles`, `regions` and `config`.
+
+#### Roles
+
+Currently, the only role specification that the *adfconfig.yml* file requires is the role **name** you wish to use for cross account access. The AWS Deployment Framework requires an role that will be used to initiate bootstrapping and allow the [Master Account](#master-account) access to assume access in target accounts to facilitate bootstrapping creation and updating processes. When you create new accounts in your AWS Organization they will all need to be instantiated with a role of this same name. When creating a new account, by default, the role you choose as the [Organization Access role](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html) comes with Administrator Privileges in IAM.
+
+#### Regions
+The Regions specification plays an important role in how your Deployment Framework deployment is laid out. You should choose a single `deployment-account` region that you would consider your primary region of choice. You should also define target regions you would like to apply baselines to *and* have as deployment targets for your pipelines. If you decide to add more regions later that is also fine. If you add a new region to this list and push the *aws-deployment-framework-bootstrap* repository to the master account it will apply the bootstrapping process to all of your existing accounts for the new region added. You can **not** have AWS CodePipeline deployment pipelines deploy into regions that are not part of this list of bootstrapped regions. In the above example we want our main region to be the `eu-central-1` region and we also want to have that region as a target for the deployment pipelines along with `eu-west-1`. These are also the two regions we plan to have deployment pipelines deploy resources into.
+
+#### Config
+
+Config has three components in `main-notification-endpoint`, `moves` and `protected`.
+
+- **main-notification-endpoint** is the main notification endpoint for the bootstrapping pipeline and deployment account pipeline creation pipeline. This value should be a valid email address or [slack](./admin-guide/#integrating-slack) channel that will receive updates about the status *(Success/Failure)* of CodePipeline that is associated with bootstrapping and creation/updating of all pipelines throughout your organization.
+- **moves** is configuration related to moving accounts within your AWS Organization. Currently the only configuration options for `moves` is named *to-root* and allows either `safe` or `remove_base`. If you specify *safe* you are telling the framework that when an AWS Account is moved from whichever OU it currently is in, back into the root of the Organization it will not make any direct changes to the account. It will however update any AWS CodePipeline pipelines that the account belonged to so that it is no longer a valid target. If you specify `remove_base` for this option and move an account to the root of your organization it will attempt to the base CloudFormation stacks *(regional and global)* from the account and then update any associated pipeline.
+- **protected** is a configuration that allows you to specify a list of OUs that are not configured by the AWS Deployment Framework bootstrapping process. You can move accounts to the protected OUs which will skip the standard bootstrapping process. This is useful for migrating existing accounts into being managed by The ADF.
+- **scp** allows the definition of configuration options that relate to Service Control Policies. Currently the only option for *scp* is *keep-default-scp* which can either be *enabled* or *disabled*. This option determines if the default FullAWSAccess Service Control Policy should stay attached to OUs that are managed by an *scp.json* or if it should be removed to make way for a more specific SCP, by default this is *enabled*. Its important to understand how SCPs work before setting this setting to disabled. Please read [How SCPs work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_about-scps.html) for more information.
 
 ## Accounts
 
@@ -278,6 +326,11 @@ pipelines:
 Pipeline files use the Jinja2 *(.j2)* preprocessor in order to dynamically generate the deployment phases of your pipeline. For more information on Jinja2 take a look at the [documentation](http://jinja.pocoo.org/docs/2.10/).
 
 As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create which type you desire.
+
+## Service Control Policies
+Service control policies (SCPs) are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
+
+SCPs aren't available if your organization has enabled only the consolidated billing features. SCPs are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the SCPs.
 
 ### Source Control
 

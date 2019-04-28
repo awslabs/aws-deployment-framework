@@ -1,13 +1,21 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT-0
+#Copyright 2019 Amazon.com, Inc.or its affiliates.All Rights Reserved.#SPDX - License - Identifier: MIT - 0
 
 """
 Stubs for testing event.py
 """
 
-stub_config = {'main-notification-endpoint': [{'type': 'email', 'target': 'jon.doe@email.com'}], 'moves': [{'name': 'to-root', 'action': 'remove_base'}]}
+config = {
+    'main-notification-endpoint': [{
+        'type': 'email',
+        'target': 'jon.doe@email.com'
+    }],
+    'moves': [{
+        'name': 'to-root',
+        'action': 'remove-base'
+    }]
+}
 
-stub_event = {
+event = {
     'version': '0',
     'id': 'fb25e4d2-1c1b-c410-8eb6-5471160373aa',
     'detail-type': 'AWS API Call via CloudTrail',

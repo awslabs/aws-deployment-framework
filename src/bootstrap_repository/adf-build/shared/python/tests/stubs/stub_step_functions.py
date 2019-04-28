@@ -5,12 +5,12 @@
 Stubs for testing stepfunction.py
 """
 
-stub_start_execution = {
+start_execution = {
     'executionArn': 'some_execution_arn',
     'startDate': 123
 }
 
-stub_describe_execution = {
+describe_execution = {
     'executionArn': 'string',
     'stateMachineArn': 'string',
     'name': 'string',

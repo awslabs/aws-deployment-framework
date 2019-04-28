@@ -5,7 +5,7 @@
 Stubs for testing organization.py
 """
 
-stub_describe_organization = {
+describe_organization = {
     'Organization': {
         'Id': 'some_org_id',
         'Arn': 'string',
@@ -22,7 +22,7 @@ stub_describe_organization = {
     }
 }
 
-stub_list_parents = {
+list_parents = {
     'Parents': [
         {
             'Id': 'some_id',
@@ -32,7 +32,7 @@ stub_list_parents = {
     'NextToken': 'string'
 }
 
-stub_list_parents_root = {
+list_parents_root = {
     'Parents': [
         {
             'Id': 'some_id',
@@ -42,7 +42,7 @@ stub_list_parents_root = {
     'NextToken': 'string'
 }
 
-stub_describe_organizational_unit = {
+describe_organizational_unit = {
     'OrganizationalUnit': {
         'Id': 'some_org_unit_id',
         'Arn': 'string',

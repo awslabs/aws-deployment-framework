@@ -4,6 +4,8 @@
 """S3 module used throughout the ADF
 """
 
+import boto3
+
 from logger import configure_logger
 
 
@@ -14,10 +16,10 @@ class S3:
     """Class used for modeling S3
     """
 
-    def __init__(self, region, role, bucket):
+    def __init__(self, region, bucket):
         self.region = region
-        self.client = role.client('s3', region_name=region)
-        self.resource = role.resource('s3', region_name=region)
+        self.client = boto3.client('s3', region_name=region)
+        self.resource = boto3.resource('s3', region_name=region)
         self.bucket = bucket
 
     def put_object(self, key, file_path):
@@ -40,7 +42,6 @@ class S3:
         s3_object = self.resource.Object(self.bucket, key)
         return s3_object.get()['Body'].read().decode('utf-8')
 
-
     def fetch_s3_url(self, key):
         """Recursively search for an object in S3 and return its URL
         """
@@ -48,7 +49,7 @@ class S3:
         try:
             s3_object = self.resource.Object(self.bucket, key)
             s3_object.get()
-            LOGGER.info('Found Template at: %s', s3_object.key)
+            LOGGER.debug('Found Template at: %s', s3_object.key)
             if self.region == 'us-east-1':
                 return "https://s3.amazonaws.com/{bucket}/{key}".format(
                     bucket=self.bucket,
@@ -66,11 +67,11 @@ class S3:
             # Return None here if nothing could be found from recursive
             # searching
             if len(key_level_up) == 1:
-                LOGGER.info(
+                LOGGER.debug(
                     'Nothing could be found for %s when traversing the bucket', key)
                 return []
 
-            LOGGER.info(
+            LOGGER.debug(
                 'Unable to find the specified Key: %s - looking one level up', key)
             # remove the key name in which we did not find the file we wanted this attempt
             # (-1 will be json/yml file, -2 will be the key prefix) which we want to leave

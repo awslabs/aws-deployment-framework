@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
@@ -23,7 +25,7 @@ REGION_DEFAULT = os.environ["AWS_REGION"]
 
 
 def lambda_handler(event, _):
-    s3 = S3(REGION_DEFAULT, boto3, S3_BUCKET)
+    s3 = S3(region=REGION_DEFAULT, bucket=S3_BUCKET)
 
     cloudformation = CloudFormation(
         region=event['deployment_account_region'],
@@ -34,7 +36,6 @@ def lambda_handler(event, _):
         s3=s3,
         s3_key_path='adf-build'
     )
-
     cloudformation.create_stack()
 
     return event

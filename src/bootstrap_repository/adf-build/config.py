@@ -66,6 +66,15 @@ class Config:
                 'ADF requires you to have at least 1 target region '
                 'for deployments'
             )
+
+        try:
+            if self.config.get('scp'):
+                assert self.config.get('scp').get('keep-default-scp') in ['enabled', 'disabled']
+        except AssertionError:
+            raise InvalidConfigError(
+                'Configuration settings for organizations should be either enabled or disabled'
+            )
+
         if isinstance(self.deployment_account_region, list):
             if len(self.deployment_account_region) > 1:
                 raise InvalidConfigError(

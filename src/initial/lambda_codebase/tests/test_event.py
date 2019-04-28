@@ -7,13 +7,13 @@
 from pytest import fixture
 from event import Event
 from mock import Mock
-from .stubs import event
+from stubs import stub_event
 
 
 @fixture
 def cls():
     parameter_store = Mock()
-    parameter_store.fetch_parameter.return_value = str(event.stub_config)
+    parameter_store.fetch_parameter.return_value = str(stub_event.config)
 
     organizations = Mock()
     organizations.describe_ou_name.return_value = 'some_ou_name'
@@ -24,7 +24,7 @@ def cls():
     }
 
     return Event(
-        event=event.stub_event,
+        event=stub_event.event,
         parameter_store=parameter_store,
         organizations=organizations,
         account_id=111111111111
@@ -64,3 +64,4 @@ def test_create_output_object(cls):
     assertion = cls.create_output_object('/test')
     assert assertion.get('account_id') == 111111111111
     assert assertion.get('is_deployment_account') is 0
+    assert assertion.get('deployment_account_parameters').get('cross_account_access_role', None) is not None

@@ -40,7 +40,7 @@ def worker_thread(sts, region, account_id, role, event):
 
 
 def remove_base(account_id, regions, role, event):
-    sts = STS(boto3)
+    sts = STS()
     threads = []
 
     for region in list(set([event.get('deployment_account_region')] + regions)):
@@ -61,7 +61,7 @@ def remove_base(account_id, regions, role, event):
 
 def execute_move_action(action, account_id, parameter_store, event):
     LOGGER.info('Move to root action is %s for account %s', action, account_id)
-    if action == 'remove_base':
+    if action in ['remove_base', 'remove-base']:
         regions = ast.literal_eval(
             parameter_store.fetch_parameter('target_regions')
         )

@@ -1,10 +1,6 @@
 # User Guide
 
 - [Deployment Map](#deployment-map)
-- [adfconfig](#adfconfig)
-  - [Roles](#roles)
-  - [Regions](#regions)
-  - [Config](#config)
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [Repositories](#repositories)
   - [BuildSpec](#buildspec)
@@ -12,7 +8,6 @@
   - [Parameter Injection](#parameter-injection)
   - [Nested Stacks](#nested-stacks)
   - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
-  - [Passing information between Stages](#passing-information-between-stages)
 
 ## Deployment Map
 
@@ -51,7 +46,7 @@ pipelines:
       - 22222222222
 ```
 
-In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [adfconfig.yml](#adfconfig). Any failure during the pipeline will cause it to halt. 
+In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [./admin-guide/adfconfig.yml](#adfconfig). Any failure during the pipeline will cause it to halt. 
 
 The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can chose between a absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to one of deploy to a specific account you can use an AWS Account Id if required.
 
@@ -60,49 +55,6 @@ In this second example, we have defined a channel named `channel1` as the *Notif
 By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `replace_on_failure: true` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.*
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
-
-## adfconfig
-
-The `adfconfig.yml` file that resides on the [Master Account](#master-account) and defines the general high level configuration for the AWS Deployment Framework. These values are stored in AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Lets go through the below example of the extend of its contents.
-
-```yaml
-roles:
-  cross-account-access: OrganizationAccountAccessRole
-
-regions:
-  deployment-account:
-    - eu-central-1
-  targets:
-    - eu-central-1
-    - eu-west-1
-
-config:
-  main-notification-endpoint:
-    - type: email
-      target: john@doe.com
-  moves:
-    - name: to-root
-      action: safe
-  protected:
-    - ou-123
-```
-
-In the above example we have three main properties in `roles`, `regions` and `config`.
-
-#### Roles
-
-Currently, the only role specification that the *adfconfig.yml* file requires is the role **name** you wish to use for cross account access. The AWS Deployment Framework requires an role that will be used to initiate bootstrapping and allow the [Master Account](#master-account) access to assume access in target accounts to facilitate bootstrapping creation and updating processes. When you create new accounts in your AWS Organization they will all need to be instantiated with a role of this same name. When creating a new account, by default, the role you choose as the [Organization Access role](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html) comes with Administrator Privileges in IAM.
-
-#### Regions
-The Regions specification plays an important role in how your Deployment Framework deployment is laid out. You should choose a single `deployment-account` region that you would consider your primary region of choice. You should also define target regions you would like to apply baselines to *and* have as deployment targets for your pipelines. If you decide to add more regions later that is also fine. If you add a new region to this list and push the *aws-deployment-framework-bootstrap* repository to the master account it will apply the bootstrapping process to all of your existing accounts for the new region added. You can **not** have AWS CodePipeline deployment pipelines deploy into regions that are not part of this list of bootstrapped regions. In the above example we want our main region to be the `eu-central-1` region and we also want to have that region as a target for the deployment pipelines along with `eu-west-1`. These are also the two regions we plan to have deployment pipelines into.
-
-#### Config
-
-Config has three components in `main-notification-endpoint`, `moves` and `protected`.
-
-- **main-notification-endpoint** is the main notification endpoint for the bootstrapping pipeline and deployment account pipeline creation pipeline. This value should be a valid email address or [slack](./admin-guide/#integrating-slack) channel that will receive updates about the status *(Success/Failure)* of CodePipeline that is associated with bootstrapping and creation/updating of all pipelines throughout your organization.
-- **moves** is configuration related to moving accounts within your AWS Organization. Currently the only configuration options for `moves` is named *to-root* and allows either `safe` or `remove_base`. If you specify *safe* you are telling the framework that when an AWS Account is moved from whichever OU it currently is in, back into the root of the Organization it will not make any direct changes to the account. It will however update any AWS CodePipeline pipelines that the account belonged to so that it is no longer a valid target. If you specify `remove_base` for this option and move an account to the root of your organization it will attempt to the base CloudFormation stacks *(regional and global)* from the account and then update any associated pipeline.
-- **protected** is a configuration that allows you to specify a list of OUs that are not configured by the AWS Deployment Framework bootstrapping process. You can move accounts to the protected OUs which will skip the standard bootstrapping process. This is useful for migrating existing accounts into being managed by The ADF.
 
 ## Deploying via Pipelines
 
@@ -285,7 +237,3 @@ aws cloudformation package --template-file $PWD/template.yml --output-template-f
 ```
 
 This will update your `template.yml` and override it during the build phase before passing it on the following deployment steps.
-
-### Passing information between Stages
-
-When using AWS CloudFormation as a deployment provider you might want to have certain stack output a specific value and that value to be passed onto the next stage within a Pipeline. To do this you can use Parameter Overrides within your pipeline defition as described [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-parameter-override-functions.html).

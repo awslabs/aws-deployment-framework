@@ -27,6 +27,7 @@ pipelines:
       - NotificationEndpoint: my_email@email.com
     targets:
       - 123456789
+      - 013456789101
 
   - name: my-build
     type: cc-buildonly

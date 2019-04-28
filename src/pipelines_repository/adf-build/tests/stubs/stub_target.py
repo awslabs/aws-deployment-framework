@@ -7,43 +7,35 @@
 Stubs used for testing target.py
 """
 
-stub_target_is_approval = {
+target_is_approval = {
     'name': 'approval',
     'id': 'approval',
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    # 'imports': [], # imports / exports on hold
-    # 'exports': []
 }
 
-stub_create_target_info_default = {
+create_target_info_default = {
     'name': 'account_name',
     'id': 12345678910,
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    # 'imports': [], # imports / exports on hold
-    # 'exports': []
 }
 
-stub_create_target_info_regex_applied = {
+create_target_info_regex_applied = {
     'name': 'accountname',
     'id': 12345678910,
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    # 'imports': [], # imports / exports on hold
-    # 'exports': []
 }
 
-stub_target_output = {
+target_output = {
     'name': 'string',
     'id': 'fake',
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    # 'imports': [], # imports / exports on hold
-    # 'exports': []
 }
 
-stub_organizations_describe_account = {
+organizations_describe_account = {
     'Account': {
         'Id': 'fake',
         'Arn': 'fake::arn',
@@ -56,7 +48,7 @@ stub_organizations_describe_account = {
 }
 
 
-def stub_organizations_dir_to_ou():
+def organizations_dir_to_ou():
     yield {
         'Id': 'fake',
         'Arn': 'fake::arn',
@@ -68,7 +60,7 @@ def stub_organizations_dir_to_ou():
     }
 
 
-def stub_organizations_list_accounts_for_parent():
+def organizations_list_accounts_for_parent():
     yield {
         'Id': 'fake',
         'Arn': 'fake::arn',

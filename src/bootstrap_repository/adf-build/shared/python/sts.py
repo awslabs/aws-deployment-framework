@@ -14,8 +14,8 @@ class STS:
     """Class used for modeling STS
     """
 
-    def __init__(self, role):
-        self.client = role.client('sts')
+    def __init__(self):
+        self.client = boto3.client('sts')
 
     def assume_cross_account_role(self, role_arn, role_session_name):
         """Assumes a role in another account and returns the temporary credentials

@@ -9,6 +9,7 @@ import os
 from thread import PropagatingThread
 
 import boto3
+
 from botocore.exceptions import ClientError
 from logger import configure_logger
 from cache import Cache
@@ -20,6 +21,7 @@ from errors import GenericAccountConfigureError, ParameterNotFoundError
 from sts import STS
 from s3 import S3
 from config import Config
+from scp import SCP
 
 
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
@@ -28,12 +30,19 @@ DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
 LOGGER = configure_logger(__name__)
 
 
-def is_account_invalid_state(ou_id, config):
+def is_account_in_invalid_state(ou_id, config):
     """
     Check if Account is sitting in the root
     of the Organization or in Protected OU
     """
-    return ou_id.startswith('r-') or ou_id in config.get('protected', [])
+    if ou_id.startswith('r-'):
+        return "Is in the Root of the Organization, it will be skipped."
+
+    protected = config.get('protected', [])
+    if ou_id in protected:
+        return "Is a in a protected Organizational Unit {0}, it will be skipped.".format(ou_id)
+
+    return False
 
 
 def ensure_generic_account_can_be_setup(sts, config, account_id):
@@ -127,7 +136,6 @@ def prepare_deployment_account(sts, deployment_account_id, config):
 
     return deployment_account_role
 
-
 def worker_thread(
         account_id,
         sts,
@@ -138,16 +146,17 @@ def worker_thread(
     The Worker thread function that is created for each account
     in which CloudFormation create_stack is called
     """
-    LOGGER.info("Starting new worker thread for %s", account_id)
+    LOGGER.debug("Starting new worker thread for %s", account_id)
 
     organizations = Organizations(
-        boto3,
-        account_id
+        role=boto3,
+        account_id=account_id
     )
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
-    if is_account_invalid_state(ou_id, config.config):
-        LOGGER.info("%s is in an invalid state", account_id)
+    account_state = is_account_in_invalid_state(ou_id, config.config)
+    if account_state:
+        LOGGER.info("%s %s", account_id, account_state)
         return
 
     account_path = organizations.build_account_path(
@@ -155,8 +164,6 @@ def worker_thread(
         [],  # Initial empty array to hold OU Path,
         cache
     )
-    LOGGER.info("The Account path for %s is %s", account_id, account_path)
-
     try:
         role = ensure_generic_account_can_be_setup(
             sts,
@@ -184,6 +191,7 @@ def worker_thread(
 
 
 def main():
+    scp = SCP()
     config = Config()
     config.store_config()
 
@@ -192,13 +200,13 @@ def main():
         deployment_account_id = parameter_store.fetch_parameter(
             'deployment_account_id'
         )
-
         organizations = Organizations(
-            boto3,
-            deployment_account_id
+            role=boto3,
+            account_id=deployment_account_id
         )
+        scp.apply(organizations, parameter_store, config.config)
 
-        sts = STS(boto3)
+        sts = STS()
         deployment_account_role = prepare_deployment_account(
             sts=sts,
             deployment_account_id=deployment_account_id,
@@ -213,10 +221,21 @@ def main():
             cache=cache
         )
         s3 = S3(
-            REGION_DEFAULT,
-            boto3,
-            S3_BUCKET_NAME
+            region=REGION_DEFAULT,
+            bucket=S3_BUCKET_NAME
         )
+
+        # Updating the stack on the master account in deployment region
+        cloudformation = CloudFormation(
+            region=config.deployment_account_region,
+            deployment_account_region=config.deployment_account_region, # pylint: disable=R0801
+            role=boto3,
+            wait=True,
+            stack_name=None,
+            s3=s3,
+            s3_key_path='adf-build'
+        )
+        cloudformation.create_stack()
 
         # First Setup the Deployment Account in all regions (KMS Key and S3 Bucket + Parameter Store values)
         for region in list(set([config.deployment_account_region] + config.target_regions)):
@@ -242,15 +261,15 @@ def main():
         threads = []
         account_ids = organizations.get_account_ids()
         for account_id in [account for account in account_ids if account != deployment_account_id]:
-            t = PropagatingThread(target=worker_thread, args=(
+            thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
                 sts,
                 config,
                 s3,
                 cache
             ))
-            t.start()
-            threads.append(t)
+            thread.start()
+            threads.append(thread)
 
         for thread in threads:
             thread.join()

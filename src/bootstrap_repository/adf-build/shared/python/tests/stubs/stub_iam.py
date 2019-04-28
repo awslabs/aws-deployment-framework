@@ -7,7 +7,7 @@
 Stubs for testing iam.py
 """
 
-stub_get_role_policy = {
+get_role_policy = {
     'RoleName': 'string',
     'PolicyName': 'string',
     'PolicyDocument': {

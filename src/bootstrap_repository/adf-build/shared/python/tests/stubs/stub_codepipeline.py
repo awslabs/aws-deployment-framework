@@ -6,7 +6,7 @@
 Stubs for testing codepipeline.py
 """
 
-stub_list_pipelines = {
+list_pipelines = {
     'pipelines': [
         {
             'name': 'my_pipeline',
@@ -18,7 +18,7 @@ stub_list_pipelines = {
     'nextToken': 'string'
 }
 
-stub_get_pipeline_state = {
+get_pipeline_state = {
     'pipelineName': 'string',
     'pipelineVersion': 123,
     'stageStates': [

@@ -12,7 +12,7 @@ import os
 from errors import ParameterNotFoundError, RootOUIDError
 
 DEPLOYMENT_ACCOUNT_OU_NAME = 'deployment'
-DEPLOYMENT_ACCOUNT_S3_BUCKET = os.environ.get("DEPLOYMENT_ACCOUNT_BUCKET")
+DEPLOYMENT_ACCOUNT_S3_BUCKET = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
 
 
 class Event:
@@ -90,7 +90,7 @@ class Event:
 
         return {
             'account_id': self.account_id,
-            'cross_account_iam_role': self.cross_account_access_role,
+            'cross_account_access_role': self.cross_account_access_role,
             'deployment_account_id': self.deployment_account_id,
             'regions': self.regions,
             'deployment_account_region': self.deployment_account_region,
@@ -99,6 +99,7 @@ class Event:
             'is_deployment_account': self.is_deployment_account,
             'ou_name': self.destination_ou_name,
             'full_path': "ROOT" if self.moved_to_root else account_path,
+            'destination_ou_id': self.destination_ou_id,
             'deployment_account_parameters' : {
                 'organization_id': organization_information.get(
                     "organization_id"

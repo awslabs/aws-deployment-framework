@@ -13,4 +13,8 @@ config:
       target: jon@doe.com
   moves:
     - name: to-root
-      action: remove_base
+      action: remove-base
+  protected:
+    - ou-a9ny-123test
+  scp:
+    keep-default-scp: enabled 

@@ -10,7 +10,6 @@ are met.
 """
 
 import os
-import boto3
 
 from sts import STS
 from s3 import S3
@@ -56,17 +55,17 @@ def update_deployment_account_output_parameters(
 def lambda_handler(event, _):
     """Main Lambda Entry point
     """
-    sts = STS(boto3)
+    sts = STS()
 
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
             event['account_id'],
-            event['cross_account_iam_role'],
+            event['cross_account_access_role'],
         ),
         'master'
     )
 
-    s3 = S3(REGION_DEFAULT, boto3, S3_BUCKET)
+    s3 = S3(REGION_DEFAULT, S3_BUCKET)
 
     for region in list(set([event['deployment_account_region']] + event['regions'])):
 
