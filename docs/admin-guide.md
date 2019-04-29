@@ -34,7 +34,7 @@
 
 ## Pre-Requisites
 
-- [awscli](https://aws.amazon.com/cli/)
+- [awscli](https://aws.amazon.com/cli/) version 1.16.147 or up
 - [git](https://git-scm.com/)
   - [AWS CodeCommit Setup](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html) 
 - [AWS CloudTrail configured](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html) in the AWS Organizations Master account.
