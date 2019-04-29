@@ -639,6 +639,7 @@ Resources:
       Layers:
           - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - EnableCrossAccountAccess"
+      MemorySize: 1024
       Environment:
         Variables:
           KMS_KEY_ID: !Ref KMSKey
@@ -647,7 +648,7 @@ Resources:
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
-      Timeout: 300
+      Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties: 
@@ -795,7 +796,7 @@ Resources:
                         "Type": "Task",
                         "Resource": "${EnableCrossAccountAccess.Arn}",
                         "Next": "UpdateDeploymentPipelines",
-                        "TimeoutSeconds": 60
+                        "TimeoutSeconds": 900
                     },
                     "UpdateDeploymentPipelines": {
                         "Type": "Task",
