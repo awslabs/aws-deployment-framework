@@ -28,10 +28,6 @@ class TargetStructure:
         if isinstance(target, dict):
             if not isinstance(target.get('path'), list):
                 target["path"] = [target.get('path')]
-            #if not isinstance(target.get('exports'), list): # imports / exports on hold
-                #target["exports"] = [target.get('exports')] if target.get('exports', None) else []
-            #if not isinstance(target.get('imports'), list):
-                #target["imports"] = [target.get('imports')] if target.get('imports', None) else []
 
         if not isinstance(target, list):
             target = [target]
@@ -40,19 +36,16 @@ class TargetStructure:
 
 
 class Target():
-    def __init__(self, path, regions, target_structure, organizations): #  imports, exports on hold
+    def __init__(self, path, regions, target_structure, organizations, step_name): #  imports, exports on hold
         self.path = path
+        self.step_name = step_name or ''
         self.regions = [regions] if not isinstance(regions, list) else regions
-        # self.imports = [imports] if not isinstance(imports, list) else imports # Imports / exports functionality on hold
-        # self.exports = [exports] if not isinstance(imports, list) else exports
         self.target_structure = target_structure
         self.organizations = organizations
 
     @staticmethod
     def _account_is_active(account):
-        if account.get('Status') == 'ACTIVE':
-            return True
-        return False
+        return bool(account.get('Status') == 'ACTIVE')
 
     def _create_target_info(self, name, account_id):
         return {
@@ -60,8 +53,7 @@ class Target():
             "id": account_id,
             "path": self.path,
             "regions": self.regions,
-            # "imports": self.imports, # imports, exports on hold
-            # "exports": self.exports
+            "step_name": self.step_name
         }
 
     def _target_is_approval(self):

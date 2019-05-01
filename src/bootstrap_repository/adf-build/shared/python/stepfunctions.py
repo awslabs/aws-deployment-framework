@@ -69,17 +69,19 @@ class StepFunctions:
 
         self._fetch_statemachine_status()
 
-    def _get_execution_status(self):
+    @property
+    def execution_status(self):
         """
         Returns the status of the state machine
         """
-        return self.execution_status
+        return self._execution_status
 
-    def _set_execution_status(self, execution_status):
+    @execution_status.setter
+    def execution_status(self, execution_status):
         """
         Set the status of the state machine
         """
-        self.execution_status = execution_status
+        self._execution_status = execution_status
 
     def _fetch_statemachine_status(self):
         """Get the current status of the state machine
@@ -87,22 +89,20 @@ class StepFunctions:
         execution = self.client.describe_execution(
             executionArn=self.execution_arn
         )
-
-        self._set_execution_status(
-            execution.get('status', None)
-        )
+        self._execution_status = execution.get('status', None)
 
     # Is there a legit waiter for this?
     def _wait_state_machine_execution(self):
         """
         Waits until the statemachine is complete
         """
-        while self._get_execution_status() == 'RUNNING':
+        while self.execution_status == 'RUNNING':
             self._fetch_statemachine_status()
             sleep(10)  # Wait for 10 seconds and check the status again
 
-        if self._get_execution_status() in ('FAILED', 'ABORTED', 'TIMED_OUT'):
+        if self.execution_status in ('FAILED', 'ABORTED', 'TIMED_OUT'):
             raise Exception(
                 'State Machine on Deployment account {0} has status: {1}, see logs'.format(
                     self.deployment_account_id,
-                    self._get_execution_status()))
+                    self.execution_status)
+                )

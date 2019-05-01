@@ -55,12 +55,12 @@ class SCP():
                         try:
                             organizations.detach_scp('p-FullAWSAccess', organization_mapping[path])
                         except organizations.client.exceptions.PolicyNotAttachedException:
-                            LOGGER.info('FullAWSAccess will stay detached since keep-default-scp is not enabled. Path is: %s', organization_mapping[path])
+                            LOGGER.info('FullAWSAccess will stay detached since keep-default-scp is not enabled. Path is: %s', path)
                     else:
                         try:
                             organizations.attach_scp('p-FullAWSAccess', organization_mapping[path])
                         except organizations.client.exceptions.DuplicatePolicyAttachmentException:
-                            LOGGER.info('FullAWSAccess will stay attached since keep-default-scp is enabled. Path is: %s', organization_mapping[path])
+                            LOGGER.info('FullAWSAccess will stay attached since keep-default-scp is enabled. Path is: %s', path)
                             pass
                 if stored_scp not in scps:
                     scp_id = organizations.describe_scp_id_for_target(organization_mapping[path])

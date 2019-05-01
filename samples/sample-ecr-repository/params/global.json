@@ -3,8 +3,8 @@
         "TestingAccountId": "11111111111",
         "ProductionAccountId": "999999999999"
     },
-    "Tags" : {
-        "TagKey" : "TagValue",
-        "MyKey" : "MyValue"
-      }
+    "Tags": {
+        "TagKey": "TagValue",
+        "MyKey": "MyValue"
+    }
 }
