@@ -183,9 +183,9 @@ Resources:
               - Name: !Sub "${ProjectName}-build"
 {% for target in environments['targets'] %}
 {% if target|length > 0 and target[0].get('name') == "approval" %}
-        - Name: approval-stage-{{loop.index}}
+        - Name: {{ target[0].get('step_name') or "approval-stage-" ~ loop.index }}
           Actions:
-            - Name: Approve
+            - Name: {{ target[0].get('step_name') or "Approval"}}
               ActionTypeId:
                 Category: Approval
                 Owner: AWS
@@ -198,7 +198,7 @@ Resources:
                 CustomData: !Ref AWS::AccountId
               RunOrder: 1
 {% else %}
-        - Name: deployment-stage-{{loop.index}}
+        - Name: {{ target[0].get('step_name') or "deployment-stage-" ~ loop.index }}
           Actions:
 {% for stage in target %}
 {% if top_level_regions == [] %}

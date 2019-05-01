@@ -37,7 +37,7 @@ pipelines:
   - name: vpc
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
-    replace_on_failure: true
+    action: replace_on_failure
     params:
       - SourceAccountId: 8888877777777
       - NotificationEndpoint: channel1
@@ -52,7 +52,7 @@ The second example is a simple example that deploys to an OU using its OU identi
 
 In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel`*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack).
 
-By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `replace_on_failure: true` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.*
+By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `action: replace_on_failure` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.* You can use any of the action types such as *create_update* defined [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html).
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 

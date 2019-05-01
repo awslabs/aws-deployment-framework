@@ -111,9 +111,10 @@ def main(): #pylint: disable=R0915
                     regions = step.get(
                         'regions', p.get(
                             'regions', DEPLOYMENT_ACCOUNT_REGION))
+                    step_name = step.get('name')
                     pipeline.stage_regions.append(regions)
                     pipeline_target = Target(
-                        path, regions, target_structure, organizations)
+                        path, regions, target_structure, organizations, step_name)
                     pipeline_target.fetch_accounts_for_target()
 
             pipeline.template_dictionary["targets"].append(

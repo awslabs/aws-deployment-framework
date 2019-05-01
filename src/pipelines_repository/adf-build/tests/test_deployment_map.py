@@ -37,10 +37,9 @@ def test_validate_deployment_leading_zero(cls):
     target_pipeline = [i for i in cls.map_contents['pipelines'] if i.get('name') == 'some-thing'][0]['targets']
     assert '013456789101' in target_pipeline
 
-def test_validate_deployment_map_invalid_target(cls):
-    cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "region": 'eu-west-1'}]}]}
-    with raises(InvalidDeploymentMapError):
-        cls._validate_deployment_map()
+def test_validate_deployment_map_path_only(cls):
+    cls.map_contents = {"pipelines": [{"targets": [{"path": "/something"}]}]}
+    assert cls._validate_deployment_map() == None
 
 def test_validate_deployment_map_invalid_paths(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"paths": "/something", "regions": 'eu-west-1'}]}]}

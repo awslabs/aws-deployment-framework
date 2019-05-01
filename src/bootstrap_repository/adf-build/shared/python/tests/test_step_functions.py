@@ -37,7 +37,7 @@ def test_statemachine_get_status(cls):
     cls.client.describe_execution.return_value = stub_step_functions.describe_execution
     cls._start_statemachine()
     cls._fetch_statemachine_status()
-    cls.execution_status == 'RUNNING'
+    cls._execution_status == 'RUNNING'
 
 
 def test_wait_failed_state_machine_execution(cls):
@@ -45,6 +45,6 @@ def test_wait_failed_state_machine_execution(cls):
     cls.client.describe_execution.return_value = stub_step_functions.describe_execution
     cls._start_statemachine()
     cls._fetch_statemachine_status()
-    assert cls.execution_status == 'FAILED'
+    assert cls._execution_status == 'FAILED'
     with raises(Exception):
         cls._wait_state_machine_execution()
