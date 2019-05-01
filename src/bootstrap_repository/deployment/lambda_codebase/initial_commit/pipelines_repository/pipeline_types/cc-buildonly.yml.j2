@@ -42,6 +42,27 @@ Parameters:
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+  PipelineCloudWatchEventRole:
+    Condition: HasSchedule
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: 'execute-pipeline'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
   CronCloudwatchEventsRule:
     Type: "AWS::Events::Rule"
     Condition: HasSchedule
@@ -50,6 +71,7 @@ Resources:
       ScheduleExpression: !Ref ScheduleExpression
       Targets:
         - Arn: !GetAtt Pipeline.Arn
+          RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: !Sub "adf-cron-${AWS::StackName}"
   BuildProject:
     Type: AWS::CodeBuild::Project

@@ -1,0 +1,35 @@
+pipelines:
+  - name: sample-vpc
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 11111233321
+      - NotificationEndpoint: my_email@email.com
+    targets:
+      - path: /banking/testing
+        regions: eu-west-1
+      - approval
+      - path: /banking/production
+        regions: us-west-2
+
+  - name: example-sc
+    type: cc-service-catalog
+    targets:
+      - path: /banking/testing
+        regions: eu-west-1
+      - path: /banking/production
+        regions: us-west-2
+
+  - name: some-thing
+    type: cc-service-catalog
+    params:
+      - SourceAccountId: 11111233321
+      - ProductId: prod-some_id
+      - NotificationEndpoint: my_email@email.com
+    targets:
+      - 123456789
+      - 013456789101
+
+  - name: my-build
+    type: cc-buildonly
+    params:
+      - SourceAccountId: 123456789101

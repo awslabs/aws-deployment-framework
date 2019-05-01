@@ -26,9 +26,9 @@ Resources:
         Statement:
           - Action:
               - s3:Get*
+              - s3:List*
               - s3:PutObject*
               - s3:PutReplicationConfiguration
-              - s3:List*
             Effect: Allow
             Condition:
               StringEquals:
@@ -52,34 +52,34 @@ Resources:
             Principal:
               AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
             Action:
+              - "kms:CancelKeyDeletion"
               - "kms:Create*"
+              - "kms:Decrypt"
+              - "kms:Delete*"
               - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Disable*"
               - "kms:Enable*"
               - "kms:Encrypt"
-              - "kms:Decrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
               - "kms:List*"
               - "kms:Put*"
-              - "kms:Update*"
-              - "kms:Revoke*"
-              - "kms:Disable*"
               - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-              - "kms:Get*"
-              - "kms:Delete*"
+              - "kms:Revoke*"
               - "kms:ScheduleKeyDeletion"
-              - "kms:CancelKeyDeletion"
+              - "kms:Update*"
             Resource: "*"
           - Sid: Allow use of the key
             Effect: Allow
             Principal:
               AWS: "*"
             Action:
-              - kms:Encrypt
               - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: "*"
             Condition:
               StringEquals:

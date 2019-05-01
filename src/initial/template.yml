@@ -140,6 +140,7 @@ Resources:
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationId
+          ADF_VERSION: 0.3.3
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -159,6 +160,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !Ref DeploymentAccountBucket
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationId
+          ADF_VERSION: 0.3.3
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -178,6 +180,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !Ref DeploymentAccountBucket
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationId
+          ADF_VERSION: 0.3.3
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -195,6 +198,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ADF_VERSION: 0.3.3
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -212,6 +216,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ADF_VERSION: 0.3.3
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -229,6 +234,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ADF_VERSION: 0.3.3
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
@@ -362,7 +368,8 @@ Resources:
         Type: CODEPIPELINE
       Environment:
         ComputeType: !Ref ComputeType
-        Image: !Ref Image
+        PrivilegedMode: true
+        Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: './adf-build/shared/python'
@@ -374,6 +381,8 @@ Resources:
             Value: !Ref DeploymentAccountBucket
           - Name: ORGANIZATION_ID
             Value: !Ref OrganizationId
+          - Name: ADF_VERSION
+            Value: 0.3.3
         Type: LINUX_CONTAINER
       Name: 'aws-deployment-framework-base-templates'
       ServiceRole: !Ref CodeBuildRole
@@ -382,17 +391,19 @@ Resources:
           version: 0.2
           phases:
             install:
-              commands:
-                # You can add in cfn-lint here also if required for base-templates
-                - apt-get update -qq
-                - pip install --upgrade pip
-                - pip install -r adf-build/requirements.txt --upgrade --quiet
+              runtime-versions:
+                python: 3.7
+                docker: 18
             pre_build:
               commands:
+                - apt-get update -qq
+                - pip install --upgrade pip --quiet
+                - pip install -r adf-build/requirements.txt --upgrade --quiet
                 - pytest -vvv
             build:
               commands:
-                - aws cloudformation package --template-file $(pwd)/deployment/global.yml --output-template-file deployment/global.yml --s3-prefix deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - sam build -t deployment/global.yml
+                - sam package --output-template-file deployment/global.yml --s3-prefix deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build/shared --quiet # Shared Modules to be used with AWS CodeBuild
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
                 - python adf-build/main.py  # Updates config, updates (or creates) base stacks.
@@ -593,6 +604,10 @@ Resources:
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 Outputs:
+  ADFVersionNumber:
+    Value: 0.3.3
+    Export:
+      Name: "ADFVersionNumber"
   LayerArn:
     Description: "The Shared modules Lambda Layer Arn"
     Value: !Ref LambdaLayerVersion

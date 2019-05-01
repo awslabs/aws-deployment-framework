@@ -1,0 +1,10 @@
+{
+    "Parameters": {
+        "CostCenter": "123",
+        "Environment": "testing"
+    },
+    "Tags" : {
+        "TagKey" : "123",
+        "MyKey" : "new_value"
+      }
+}

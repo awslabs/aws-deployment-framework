@@ -45,27 +45,27 @@ Resources:
           - Effect: Allow
             Action:
               - "codecommit:BatchGetRepositories"
+              - "codecommit:CancelUploadArchive"
               - "codecommit:Get*"
               - "codecommit:GitPull"
               - "codecommit:List*"
-              - "codecommit:CancelUploadArchive"
               - "codecommit:UploadArchive"
               - "codepipeline:StartPipelineExecution"
+              - "events:PutEvents"
               - "s3:Get*"
               - "s3:List*"
               - "s3:Put*"
-              - "events:PutEvents"
             Resource: "*"
           - Effect: Allow
             Action:
-              - "kms:Describe*"
-              - "kms:Encrypt"
               - "kms:Decrypt"
+              - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
               - "kms:List*"
               - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-              - "kms:Get*"
             Resource: !Ref KMSArn
       Roles:
         - !Ref CodeCommitRole
@@ -80,25 +80,25 @@ Resources:
             Sid: "CloudFormation"
             Action:
               - cloudformation:*
+              - codedeploy:*
+              - iam:PassRole
               - s3:Get*
               - s3:List*
               - s3:Put*
-              - codedeploy:*
-              - iam:PassRole
-              - servicecatalog:ListProvisioningArtifacts
               - servicecatalog:CreateProvisioningArtifact
-              - servicecatalog:DescribeProvisioningArtifact
               - servicecatalog:DeleteProvisioningArtifact
+              - servicecatalog:DescribeProvisioningArtifact
+              - servicecatalog:ListProvisioningArtifacts
               - servicecatalog:UpdateProduct
             Resource: "*"
           - Effect: Allow
             Sid: "KMS"
             Action:
-             - kms:Encrypt
-             - kms:Decrypt
-             - kms:ReEncrypt*
-             - kms:GenerateDataKey*
-             - kms:DescribeKey
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationRole
@@ -152,68 +152,68 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              - "sqs:*"
-              - "s3:*"
+              - "apigateway:*"
+              - "application-autoscaling:*"
+              - "autoscaling:*"
+              - "cloudformation:*"
               - "cloudtrail:*"
-              - "config:*"
-              - "logs:*"
-              - "ecr:*"
               - "cloudwatch:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "codepipeline:*"
               - "cognito-identity:*"
               - "cognito-idp:*"
-              - "route53:*"
+              - "config:*"
+              - "dax:*"
               - "dynamodb:*"
+              - "ec2:*"
+              - "ecr:*"
               - "ecs:*"
-              - "events:*"
-              - "iam:*"
-              - "states:*"
-              - "kinesis:*"
-              - "lambda:*"
+              - "elasticbeanstalk:*"
               - "elasticloadbalancing:*"
-              - "sns:*"
-              - "tag:*"
-              - "kms:Describe*"
+              - "es:*"
+              - "events:*"
+              - "guardduty:*"
+              - "iam:*"
+              - "kinesis:*"
               - "kms:Create*"
-              - "kms:Encrypt"
               - "kms:Decrypt"
+              - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
               - "kms:List*"
               - "kms:Put*"
               - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-              - "kms:Get*"
-              - "ec2:*"
-              - "xray:*"
-              - "dax:*"
-              - "application-autoscaling:*"
-              - "apigateway:*"
-              - "codepipeline:*"
-              - "codecommit:*"
-              - "codedeploy:*"
-              - "codebuild:*"
-              - "elasticbeanstalk:*"
-              - "servicecatalog:ListProvisioningArtifacts"
-              - "servicecatalog:CreateProvisioningArtifact"
-              - "servicecatalog:DescribeProvisioningArtifact"
-              - "servicecatalog:DeleteProvisioningArtifact"
-              - "servicecatalog:UpdateProduct"
-              - "ssm:GetParameters"
-              - "ssm:GetParameter"
+              - "lambda:*"
+              - "logs:*"
               - "opsworks:*"
-              - "cloudformation:*"
-              - "es:*"
-              - "autoscaling:*"
-              - "guardduty:*"
+              - "route53:*"
+              - "s3:*"
+              - "servicecatalog:CreateProvisioningArtifact"
+              - "servicecatalog:DeleteProvisioningArtifact"
+              - "servicecatalog:DescribeProvisioningArtifact"
+              - "servicecatalog:ListProvisioningArtifacts"
+              - "servicecatalog:UpdateProduct"
+              - "sns:*"
+              - "sqs:*"
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "states:*"
+              - "tag:*"
+              - "xray:*"
             Resource:
               - "*"
           - Effect: Allow
             Sid: "KMS"
             Action:
-             - "kms:Encrypt"
-             - "kms:Decrypt"
-             - "kms:ReEncrypt*"
-             - "kms:GenerateDataKey*"
-             - "kms:DescribeKey"
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:ReEncrypt*"
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationDeploymentRole

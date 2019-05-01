@@ -2,6 +2,7 @@
 .pyc
 .zip
 .DS_Store
+.pylintrc
 cleanup.py
 config
 config.sec
@@ -12,19 +13,17 @@ template-sam.yaml
 template-deploy.yml
 master-deploy.yml
 .pytest_cache
-shared_layer.zip
+pipelines/
 
 # Byte-compiled / optimized / DLL files
-__pycache__
+__pycache__/
 *.py[cod]
 *$py.class
-outfile
+
 # C extensions
 *.so
 
 # Distribution / packaging
-package.yaml
-aws_deployment_framework.egg-info
 .Python
 develop-eggs/
 dist/

@@ -1,13 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: ADF CloudFormation Template For CodePipeline - Github Source and CloudFormation Deployment Target
+Description: ADF CloudFormation Template For CodePipeline - AWS CodeCommit Source and CloudFormation Deployment Target
 Parameters:
   ProjectName:
-    Description: Name of the Project
+    Description: Name of the Project (This is automatically passed in by ADF)
     Type: String
-  Image:
-    Description: The Image for CodeBuild to use
-    Type: String
-    Default: "aws/codebuild/python:3.7.1"
   StackPrefix:
     Description: Prefix to prepend to the stackname when deployed
     Type: String
@@ -16,6 +12,10 @@ Parameters:
     Description: The Schedule expression for this pipeline
     Type: String
     Default: ''
+  Image:
+    Description: The Image for CodeBuild to use
+    Type: String
+    Default: "aws/codebuild/python:3.7.1"
   NotificationEndpoint:
     Description: The Email Address / Slack channel notifications will go to for changes related to this pipeline
     Type: String
@@ -24,23 +24,13 @@ Parameters:
     Description: The ComputeType for CodeBuild
     Type: String
     Default: "BUILD_GENERAL1_SMALL"
-  WebhookSecret:
-    Description: Webhook Secret from Github
-    Type: AWS::SSM::Parameter::Value<String>
-    NoEcho: true
-    Default: /tokens/webhook/github
-  OAuthToken:
-    Description: OAuthToken from Github
-    Type: AWS::SSM::Parameter::Value<String>
-    NoEcho: true
-    Default: /tokens/oauth/github
-  Owner:
-    Description: The owner of the github Repo
+  SourceAccountId:
+    Description: The ID of the Source Account that will hold the CodeCommit Repo
     Type: String
   BranchName:
-    Description: Branch to trigger the pipeline from
+    Description: Name of the CodeCommit Branch you will use to trigger the pipeline
     Type: String
-    Default: "master"
+    Default: master
   RestartExecutionOnUpdate:
     Description: If the pipeline will automatically trigger based on update
     Type: String
@@ -58,6 +48,27 @@ Parameters:
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+  PipelineCloudWatchEventRole:
+    Condition: HasSchedule
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: 'execute-pipeline'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
   CronCloudwatchEventsRule:
     Type: "AWS::Events::Rule"
     Condition: HasSchedule
@@ -66,21 +77,8 @@ Resources:
       ScheduleExpression: !Ref ScheduleExpression
       Targets:
         - Arn: !GetAtt Pipeline.Arn
+          RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: !Sub "adf-cron-${AWS::StackName}"
-  Webhook:
-    Type: 'AWS::CodePipeline::Webhook'
-    Properties:
-      AuthenticationConfiguration:
-        SecretToken: !Ref WebhookSecret
-      Filters:
-      - JsonPath: "$.ref"
-        MatchEquals: !Sub "refs/heads/${BranchName}"
-      Authentication: GITHUB_HMAC
-      TargetPipeline: !Ref Pipeline
-      TargetAction: Source
-      Name: !Sub "adf-webhook-${ProjectName}"
-      TargetPipelineVersion: !GetAtt Pipeline.Version
-      RegisterWithThirdParty: 'true'
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -181,23 +179,21 @@ Resources:
       Name: !Ref AWS::StackName
       RestartExecutionOnUpdate: !Ref RestartExecutionOnUpdate
       Stages:
-        - Name: Source-GitHub
+        - Name: !Sub Source-${SourceAccountId}
           Actions:
-            - Name: Source
+            - Name: CodeCommit
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
+                Owner: AWS
                 Version: 1
-                Provider: GitHub
+                Provider: CodeCommit
               Configuration:
-                Owner: !Ref Owner
-                Repo: !Ref ProjectName
-                Branch: !Ref BranchName
-                OAuthToken: !Ref OAuthToken
-                PollForSourceChanges: false
-              OutputArtifacts: 
+                RepositoryName: !Ref ProjectName
+                BranchName: !Ref BranchName
+              OutputArtifacts:
                 - Name: TemplateSource
               RunOrder: 1
+              RoleArn: !Sub "arn:aws:iam::${SourceAccountId}:role/adf-codecommit-role" #Source Account
         - Name: Build
           Actions:
           - Name: Build
@@ -236,7 +232,7 @@ Resources:
 {% if top_level_regions == [] %}
 {% for region in stage.regions %}
 {% if action %}
-            - Name: {{ stage.name }}-{{ region }}
+            - Name: {{ stage.name }}-{{ region }}-replace
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS

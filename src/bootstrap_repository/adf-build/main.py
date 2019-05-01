@@ -116,6 +116,9 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_parameter_store.put_parameter(
         'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
     )
+    deployment_account_parameter_store.put_parameter(
+        'adf_version', os.environ["ADF_VERSION"]
+    )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
         config.notification_endpoint = "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
