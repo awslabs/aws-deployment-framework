@@ -21,4 +21,4 @@ def cls():
 def test_get_pipeline_status(cls):
     cls.client = Mock()
     cls.client.get_pipeline_state.return_value = stub_codepipeline.get_pipeline_state
-    assert cls.get_pipeline_status('my_pipeline').get('status') == 'Succeeded'
+    assert cls.get_pipeline_status('my_pipeline') == 'Succeeded'

@@ -30,7 +30,7 @@ def test_flatten_list():
 
 
 def test_pipeline_init_defaults(cls):
-    assert cls.replace_on_failure is None
+    assert cls.action == ''
     assert cls.notification_endpoint is None
 
 
@@ -41,10 +41,10 @@ def test_pipeline_replace_on_failure():
         "params": [{"key": "value"}],
         "targets": [],
         "type": "cc-cloudformation",
-        "replace_on_failure": True
+        "action": "replace_on_failure"
         }
     )
-    assert assertion_pipeline.replace_on_failure is True
+    assert assertion_pipeline.action == "REPLACE_ON_FAILURE"
 
 def test_generate_parameters(cls):
     parameters = cls.generate_parameters()

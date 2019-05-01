@@ -1,0 +1,18 @@
+roles: 
+  cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access 
+ 
+regions: 
+  deployment-account: eu-central-1 # The region you define as your main deployment region 
+  targets: # A list of regions you wish to bootstrap and also deploy into via pipelines 
+    - eu-west-1 
+    - eu-central-1 
+ 
+config: 
+  main-notification-endpoint:  
+    - type: email # slack or email 
+      target: jon.doe@email.com # Email/Slack channel who receives notifications for the main bootstrapping pipeline 
+  moves: 
+    - name: to-root 
+      action: remove-base  # Can be safe or remove-base 
+  scp: 
+    keep-default-scp: enabled  # determines if the default AWSFullAccess SCP stays attached to all OU's  

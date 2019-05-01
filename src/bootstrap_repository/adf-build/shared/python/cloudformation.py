@@ -114,7 +114,7 @@ class CloudFormation(StackProperties):
         try:
             return self.client.validate_template(TemplateURL=self.template_url)
         except ClientError as error:
-            raise InvalidTemplateError(error.response['Error']['Message'])
+            raise InvalidTemplateError from error
 
     def _wait_stack(self, waiter_type):
         waiter = self.client.get_waiter(waiter_type)
@@ -238,8 +238,8 @@ class CloudFormation(StackProperties):
 
     def get_stack_regional_outputs(self):
         return {
-            "kms_arn": self._get_stack_output("DeploymentFrameworkRegionalKMSKey"),
-            "s3_regional_bucket": self._get_stack_output("DeploymentFrameworkRegionalS3Bucket")
+            "kms_arn": self.get_stack_output("DeploymentFrameworkRegionalKMSKey"),
+            "s3_regional_bucket": self.get_stack_output("DeploymentFrameworkRegionalS3Bucket")
         }
 
     def delete_all_base_stacks(self):
@@ -255,7 +255,7 @@ class CloudFormation(StackProperties):
                         stack.get('StackName'))
                     self.delete_stack(stack.get('StackName'))
 
-    def _get_stack_output(self, value):
+    def get_stack_output(self, value):
         try:
             response = self.client.describe_stacks(
                 StackName=self.stack_name

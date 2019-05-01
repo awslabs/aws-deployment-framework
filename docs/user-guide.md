@@ -37,7 +37,6 @@ pipelines:
   - name: vpc
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
-    replace_on_failure: true
     params:
       - SourceAccountId: 8888877777777
       - NotificationEndpoint: channel1
@@ -46,13 +45,26 @@ pipelines:
       - 22222222222
 ```
 
-In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [./admin-guide/adfconfig.yml](#adfconfig). Any failure during the pipeline will cause it to halt. 
+In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
 The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can chose between a absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to one of deploy to a specific account you can use an AWS Account Id if required.
 
 In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel`*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack).
 
-By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `replace_on_failure: true` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.*
+By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `action: replace_on_failure` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.* You can use any of the action types such as *create_update* defined [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html).
+
+You can also run pipelines on a specific schedule, this is common for pipelines that produce some sort of output on a regular basis. For example, creating a new [AMI each week](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html). To do this specify the cron expression as the input for the *ScheduleExpression* parameter within the pipeline of your choice. You can choose between a *rate* expression or *cron* expression, [read more](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html).
+
+```yaml
+  - name: ami-builder
+    type: cc-buildonly
+    params:
+      - ScheduleExpression: rate(7 days)
+      - SourceAccountId: 111111111111
+    targets:
+      - path: 9999999999
+        name: some-account
+```
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 
@@ -60,7 +72,7 @@ If you decide you no longer require a specific pipeline you can remove it from t
 
 ### Repositories
 
-Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon S3 Buckets or GitHub Repositories. Repositories are attached to pipelines in a 1:1 relationship however you can chose to clone or bring other repositories into your code during the build phase of your pipeline. You should define a suitable [buildspec](#buildspec) that matches your desired outcome and is applicable to the type of resource you are deploying.
+Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon S3 Buckets or GitHub Repositories. Repositories are attached to pipelines in a 1:1 relationship, however, you can chose to clone or bring other repositories into your code during the build phase of your pipeline. You should define a suitable [buildspec](#buildspec) that matches your desired outcome and is applicable to the type of resource you are deploying.
 
 ### BuildSpec
 
@@ -68,7 +80,7 @@ If you are using [AWS CodeBuild](https://aws.amazon.com/codebuild/) as your buil
 
 Lets take a look an example to breakdown how the AWS Deployment Framework uses `buildspec.yml` files to elevate heavy lifting when it comes to deploying CloudFormation templates.
 
-*Note:* Did you know you can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild?
+*Note:* You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild.
 
 ```yaml
 version: 0.2
@@ -78,7 +90,7 @@ phases:
     commands:
       - export PYTHONPATH=$PWD/adf-build/shared/python # Set PYTHONPATH to look locally for shared modules
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet # Copy down the shared modules from S3
-      - pip install -r adf-build/requirements.txt # Install Requirements via requirements.txt
+      - pip install -r adf-build/requirements.txt -q # Install Requirements via requirements.txt
       - python adf-build/generate_params.py # Generate Parameter files dynamically
 artifacts:
   files: '**/*' # Package up all outputs and pass them along to next stage
@@ -158,7 +170,7 @@ This concept also works for applying **Tags** to the resources within your stack
 
 This means that all resources that support tags within your CloudFormation stack will be tagged as defined above.
 
-It is important to keep in mind that each Deployment Provider *(Code Deploy, CloudFormation, Service Catalog etc)* have their own Parameter structure and configuration files. For example, Service catalog allows you to pass a configuration file as such:
+It is important to keep in mind that each Deployment Provider *(Code Deploy, CloudFormation, Service Catalog etc)* have their [own Parameter structure](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html) and configuration files. For example, Service catalog allows you to pass a configuration file as such:
 
 ```json
 {
@@ -175,6 +187,8 @@ It is important to keep in mind that each Deployment Provider *(Code Deploy, Clo
 You can create the above parameter files if you are deploying products to your Service Catalog's in the same fashion as with CloudFormation *(global.json etc)*.
 
 For more examples of parameters and their usage see the `samples` folder in the root of the repository.
+
+*Note:* Currently only Strings type values are supported as parameters to CloudFormation templates.
 
 ### Parameter Injection
 
@@ -208,7 +222,7 @@ phases:
     commands:
       - export PYTHONPATH=$PWD/adf-build/shared/python
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
-      - pip install -r adf-build/requirements.txt
+      - pip install -r adf-build/requirements.txt -q
       - python adf-build/generate_params.py
   build:
     commands:

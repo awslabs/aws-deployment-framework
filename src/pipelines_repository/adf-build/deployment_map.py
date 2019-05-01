@@ -63,7 +63,7 @@ class DeploymentMap:
                 for target in pipeline.get("targets", []):
                     if isinstance(target, dict):
                         # Prescriptive information on the error should be raised
-                        assert target["regions"] and target["path"]
+                        assert target["path"]
         except KeyError:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid"
@@ -73,10 +73,10 @@ class DeploymentMap:
         for parameter in self.parameter_store.fetch_parameters_by_path(
                 '/deployment/{0}/'.format(name)):
             LOGGER.warning(
-                'Removing Deployment Parameters for %s',
+                'Removing Resources for %s',
                 parameter.get('Name'))
             self.parameter_store.delete_parameter(parameter.get('Name'))
-            self._clean_stale_stacks(name)
+        self._clean_stale_stacks(name)
 
     def _clean_stale_stacks(self, name):
         cloudformation = CloudFormation(
@@ -85,7 +85,6 @@ class DeploymentMap:
             role=boto3,
         )
 
-        LOGGER.warning('Removing Deployment Pipeline for %s', name)
         cloudformation.delete_stack("{0}-{1}".format(
             self.pipeline_name_prefix,
             name

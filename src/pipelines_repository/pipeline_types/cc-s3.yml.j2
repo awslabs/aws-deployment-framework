@@ -12,6 +12,10 @@ Parameters:
     Description: The Image for CodeBuild to use
     Type: String
     Default: "aws/codebuild/python:3.7.1"
+  ScheduleExpression:
+    Description: The Schedule expression for this pipeline
+    Type: String
+    Default: ''
   NotificationEndpoint:
     Description: The Email Address / Slack channel notifications will go to for changes related to this pipeline
     Type: String
@@ -52,7 +56,86 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /cross_region/kms_arn/{{ region }}
 {% endfor %}
+Conditions:
+  HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+  CronCloudwatchEventsRule:
+    Type: "AWS::Events::Rule"
+    Condition: HasSchedule
+    Properties: 
+      Description: !Sub Triggers ${AWS::StackName} on a Schedule
+      ScheduleExpression: !Ref ScheduleExpression
+      Targets:
+        - Arn: !GetAtt CronLambdaFunction.Arn
+          Id: !Sub "adf-cron-${AWS::StackName}"
+  CronLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Condition: HasSchedule
+    Properties:
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          def handler(event, _):
+            client = boto3.client('codepipeline', region_name="${AWS::Region}")
+            client.start_pipeline_execution(name="${AWS::StackName}")
+      Handler: 'index.handler'
+      FunctionName: !Sub "adf-cron-pipeline-${AWS::StackName}"
+      Description: !Sub "ADF Lambda Function - Cron ${AWS::StackName}"
+      MemorySize: 128
+      Role: !GetAtt CronLambdaRole.Arn
+      Runtime: 'python3.7'
+      Timeout: 60
+  CronPermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Condition: HasSchedule
+    Properties: 
+      FunctionName: !Ref CronLambdaFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt CronCloudwatchEventsRule.Arn
+  CronLambdaRole:
+    Type: "AWS::IAM::Role"
+    Condition: HasSchedule
+    Properties:
+      RoleName: !Sub "adf-cron-lambda-role-${AWS::StackName}"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - PolicyName: "adf-lambda-execution-role"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+                Action: 
+                  - "codepipeline:StartPipelineExecution"
+              - Effect: "Allow"
+                Resource: "arn:aws:logs:*:*:*"
+                Action: "logs:*"
+              - Effect: "Allow"
+                Resource: "*"
+                Action: 
+                  - "lambda:GetAccountSettings"
+                  - "lambda:ListFunctions"
+                  - "lambda:ListTags"
+                  - "lambda:GetFunction"
+                  - "lambda:GetEventSourceMapping"
+                  - "lambda:ListEventSourceMappings"
+                  - "lambda:DeleteEventSourceMapping"
+                  - "lambda:UpdateEventSourceMapping"
+                  - "lambda:CreateEventSourceMapping"
+                  - "iam:ListRoles"
+                Condition:
+                  StringEquals:
+                    lambda:FunctionArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-cron-pipeline-${AWS::StackName}"
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -183,9 +266,9 @@ Resources:
               - Name: !Sub "${ProjectName}-build"
 {% for target in environments['targets'] %}
 {% if target|length > 0 and target[0].get('name') == "approval" %}
-        - Name: approval-stage-{{loop.index}}
+        - Name: {{ target[0].get('step_name') or "approval-stage-" ~ loop.index }}
           Actions:
-            - Name: Approve
+            - Name: {{ target[0].get('step_name') or "Approval"}}
               ActionTypeId:
                 Category: Approval
                 Owner: AWS
@@ -198,7 +281,7 @@ Resources:
                 CustomData: !Ref AWS::AccountId
               RunOrder: 1
 {% else %}
-        - Name: deployment-stage-{{loop.index}}
+        - Name: {{ target[0].get('step_name') or "deployment-stage-" ~ loop.index }}
           Actions:
 {% for stage in target %}
 {% if top_level_regions == [] %}

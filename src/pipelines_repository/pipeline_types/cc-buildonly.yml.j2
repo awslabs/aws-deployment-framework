@@ -4,10 +4,10 @@ Parameters:
   ProjectName:
     Description: Name of the Project (This is automatically passed in by ADF)
     Type: String
-  StackPrefix:
-    Description: Prefix to prepend to the stackname when deployed
+  ScheduleExpression:
+    Description: The Schedule expression for this pipeline
     Type: String
-    Default: adf
+    Default: ''
   Image:
     Description: The Image for CodeBuild to use
     Type: String
@@ -39,7 +39,86 @@ Parameters:
     Description: The KMSKey Arn for Cross region deployment for {{ deployment_account_region }}
     Type: AWS::SSM::Parameter::Value<String>
     Default: /cross_region/kms_arn/{{ deployment_account_region }}
+Conditions:
+  HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+  CronCloudwatchEventsRule:
+    Type: "AWS::Events::Rule"
+    Condition: HasSchedule
+    Properties: 
+      Description: !Sub Triggers ${AWS::StackName} on a Schedule
+      ScheduleExpression: !Ref ScheduleExpression
+      Targets:
+        - Arn: !GetAtt CronLambdaFunction.Arn
+          Id: !Sub "adf-cron-${AWS::StackName}"
+  CronLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Condition: HasSchedule
+    Properties:
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          def handler(event, _):
+            client = boto3.client('codepipeline', region_name="${AWS::Region}")
+            client.start_pipeline_execution(name="${AWS::StackName}")
+      Handler: 'index.handler'
+      FunctionName: !Sub "adf-cron-pipeline-${AWS::StackName}"
+      Description: !Sub "ADF Lambda Function - Cron ${AWS::StackName}"
+      MemorySize: 128
+      Role: !GetAtt CronLambdaRole.Arn
+      Runtime: 'python3.7'
+      Timeout: 60
+  CronPermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Condition: HasSchedule
+    Properties: 
+      FunctionName: !Ref CronLambdaFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt CronCloudwatchEventsRule.Arn
+  CronLambdaRole:
+    Type: "AWS::IAM::Role"
+    Condition: HasSchedule
+    Properties:
+      RoleName: !Sub "adf-cron-lambda-role-${AWS::StackName}"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - PolicyName: "adf-lambda-execution-role"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+                Action: 
+                  - "codepipeline:StartPipelineExecution"
+              - Effect: "Allow"
+                Resource: "arn:aws:logs:*:*:*"
+                Action: "logs:*"
+              - Effect: "Allow"
+                Resource: "*"
+                Action: 
+                  - "lambda:GetAccountSettings"
+                  - "lambda:ListFunctions"
+                  - "lambda:ListTags"
+                  - "lambda:GetFunction"
+                  - "lambda:GetEventSourceMapping"
+                  - "lambda:ListEventSourceMappings"
+                  - "lambda:DeleteEventSourceMapping"
+                  - "lambda:UpdateEventSourceMapping"
+                  - "lambda:CreateEventSourceMapping"
+                  - "iam:ListRoles"
+                Condition:
+                  StringEquals:
+                    lambda:FunctionArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-cron-pipeline-${AWS::StackName}"
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:

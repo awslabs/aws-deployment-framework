@@ -6,6 +6,7 @@
 """
 
 from logger import configure_logger
+from botocore.exceptions import ClientError
 
 LOGGER = configure_logger(__name__)
 
@@ -25,10 +26,10 @@ class CodePipeline():
                 name=pipeline_name
             )
 
-            return [i['actionStates'][0] for i in response.get(
-                'stageStates', None)][0]['latestExecution']
-        except BaseException:
-            return None  # TODO handle this with a not exist error and warning
+            return [i for i in response.get(
+                'stageStates')][0]['latestExecution']['status']
+        except KeyError:
+            return None
 
     def start_pipeline_execution(self, pipeline_name):
         self.client.start_pipeline_execution(

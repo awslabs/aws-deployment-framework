@@ -129,10 +129,10 @@ config:
   moves:
     - name: to-root
       action: safe
-  protected:
+  protected: # Optional
     - ou-123
   scp:
-    keep-default-scp: enabled
+    keep-default-scp: enabled # Optional
 ```
 
 In the above example we have three main properties in `roles`, `regions` and `config`.
@@ -267,25 +267,37 @@ We recommend to keep the bootstrapping templates for your accounts as thin as po
 
 #### Pipeline Parameters
 
-Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder *(src/pipelines_repository/pipeline_types)* on the deployment account. As a minimum, you will need to pass in a source account in which this pipeline will be linked to as an entry point.
+Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder *(src/pipelines_repository/pipeline_types)* on the Deployment account. As a minimum *(if you are using CodeCommit)*, you will need to pass in a source account in which this pipeline will be linked to as an entry point.
 
-The project name you specify in the deployment_map.yml will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes *(via slack or email)*. The Source Account Id plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
+The name you specify in the *deployment_map.yml* will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes *(via slack or email)*. The *SourceAccountId* plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
 
-The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **SourceAccountId** value.
+The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the AWS Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **SourceAccountId** value.
 
-When you enter an Account Id in the parameter file of a pipeline you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to master)*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source.
+When you enter the *SourceAccountId* in the *deployment_map.yml**, you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to master)*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source. Another common parameter used in pipelines is `RestartExecutionOnUpdate`, when this is set to *True* it will automatically trigger a run of the pipeline whenever its structure is updated. This is useful when you want a pipeline to automatically execute when a new account is moved into an Organizational Unit that a pipeline deploys into.
 
-Here is an example of passing in a parameter to a pipeline to override the default branch that is used to trigger the pipeline from.
 
 ```yaml
 pipelines:
-  - name: vpc
+  - name: vpc # <-- The CodeCommit repository on the source account would need to have this name
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 111111111111 # <-- This teams account is the only one able to push into this pipeline
+    targets:
+      - /security # Shorthand target example
+```
+
+Here is an example of passing in a parameter to a pipeline to override the default branch that is used to trigger the pipeline from, this time using Github as a source *(No need for SourceAccountId)*.
+
+
+```yaml
+pipelines:
+  - name: vpc # The Github repo would have this name
     type: github-cloudformation
     params:
-      - Owner: github_owner
+      - Owner: bundyfx # <-- The owner of the Repository on Github
       - BranchName: dev/feature
     targets:
-      - /security
+      - /security # Shorthand example
 ```
 
 **Note** If you find yourself specifying the same set of parameters over and over through-out the deployment map consider moving the value into the template itself *(in the pipelines_type folder)* as the default value.
@@ -357,8 +369,10 @@ pipelines:
       - NotificationEndpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
       - RestartExecutionOnUpdate: True
     targets:
-      - /banking/testing
-      - /banking/production
+      - path: /banking/testing
+        name: testing
+      - path: /banking/production
+        name: omg_production
 ```
 
 Slack can also be used as the `main-notification-endpoint` in the `adfconfig.yml` file like so:

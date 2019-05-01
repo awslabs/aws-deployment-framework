@@ -6,8 +6,8 @@ phases:
       - add-apt-repository ppa:deadsnakes/ppa
       - apt-get update -qq
       - apt-get install jq wget -y -qq
-      - apt-get install python3.6 -y
-      - apt-get install python3-pip -y
+      - apt-get install python3.6 -y -qq
+      - apt-get install python3-pip -y -qq
       - apt-get upgrade -qq
   pre_build:
     commands:
