@@ -108,20 +108,20 @@ class Parameters:
 
         for key, value in comparison_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, param, key):
+                if resolver.fetch_parameter_store_value(value, key, param):
                     continue
             if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, param, key):
+                if resolver.fetch_stack_output(value, key, param):
                     continue
             resolver.update_cfn(key, param)
 
 
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, param, key):
+                if resolver.fetch_parameter_store_value(value, key, param):
                     continue
             if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, param, key):
+                if resolver.fetch_stack_output(value, key, param):
                     continue
 
         return resolver.__dict__.get('stage_parameters')

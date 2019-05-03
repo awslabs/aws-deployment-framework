@@ -6,7 +6,6 @@
 """
 
 from logger import configure_logger
-from botocore.exceptions import ClientError
 
 LOGGER = configure_logger(__name__)
 

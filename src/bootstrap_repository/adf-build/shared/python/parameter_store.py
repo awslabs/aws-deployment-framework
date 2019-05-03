@@ -34,10 +34,10 @@ class ParameterStore:
         """
         try:
             response = paginator(self.client.get_parameters_by_path,
-                Path=path,
-                Recursive=True,
-                WithDecryption=False
-            )
+                                 Path=path,
+                                 Recursive=True,
+                                 WithDecryption=False
+                                )
             return response
 
         except self.client.exceptions.ParameterNotFound:

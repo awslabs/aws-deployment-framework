@@ -4,8 +4,8 @@
 """This file is pulled into CodeBuild containers
    and used to resolve values from Parameter Store and CloudFormation
 """
-import boto3
 import os
+import boto3
 
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
@@ -21,7 +21,7 @@ class Resolver:
         self.comparison_parameters = comparison_parameters
         self.sts = STS()
 
-    def fetch_stack_output(self, value, param, key):
+    def fetch_stack_output(self, value, param, key=None):
         try:
             [_, account_id, region, stack_name, export] = str(value).split(':')
         except ValueError:
@@ -31,9 +31,9 @@ class Resolver:
             )
 
         LOGGER.info("Assuming the role %s", 'arn:aws:iam::{0}:role/{1}'.format(
-                account_id,
-                'adf-cloudformation-deployment-role')
-        )
+            account_id,
+            'adf-cloudformation-deployment-role'
+            ))
         role = self.sts.assume_cross_account_role(
             'arn:aws:iam::{0}:role/{1}'.format(
                 account_id,
@@ -52,19 +52,29 @@ class Resolver:
             raise Exception("No Key was found on {0} with the name {1}".format(stack_name, export))
 
         LOGGER.info("Stack output value is %s", stack_output)
-        self.stage_parameters[param][key] = stack_output
+        self.stage_parameters[param][key] = stack_output if key is not None else self.stage_parameters[param]
 
-    def fetch_parameter_store_value(self, value, param, key):
+    def fetch_parameter_store_value(self, value, key, param=None):
         if str(value).count(':') > 1:
             regional_client = ParameterStore(value.split(':')[1], boto3)
-            self.stage_parameters[param][key] = regional_client.fetch_parameter(
-                value.split(':')[2]
-            )
+            if param:
+                self.stage_parameters[param][key] = regional_client.fetch_parameter(
+                    value.split(':')[2]
+                )
+            else:
+                self.stage_parameters[key] = regional_client.fetch_parameter(
+                    value.split(':')[2]
+                )
             LOGGER.info("Fetching Parameter from %s", value.split(':')[2])
             return True
-        self.stage_parameters[param][key] = self.parameter_store.fetch_parameter(
-            value.split('resolve:')[1]
-        )
+        if param:
+            self.stage_parameters[param][key] = self.parameter_store.fetch_parameter(
+                value.split('resolve:')[1]
+            )
+        else:
+            self.stage_parameters[key] = self.parameter_store.fetch_parameter(
+                value.split('resolve:')[1]
+            )
         return False
 
     def update_cfn(self, key, param):

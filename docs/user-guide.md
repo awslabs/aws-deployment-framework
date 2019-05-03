@@ -37,6 +37,8 @@ pipelines:
   - name: vpc
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
+    action: replace_on_failure
+    contains_transform: true
     params:
       - SourceAccountId: 8888877777777
       - NotificationEndpoint: channel1
@@ -65,6 +67,8 @@ You can also run pipelines on a specific schedule, this is common for pipelines 
       - path: 9999999999
         name: some-account
 ```
+
+If the template that is being deployed contains a Transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will need to be deployed. This can be achieved by setting the `contains_transform: true` parameter and updating the buildspec for your pipeline to call the `bash adf-build/helpers/package_transform.sh` script. This script will package your lambda to each region and generate a region specific template.yml for the pipeline deploy stages.
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 
