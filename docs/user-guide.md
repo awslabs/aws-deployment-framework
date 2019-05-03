@@ -38,6 +38,7 @@ pipelines:
     type: github-cloudformation
     regions: [ eu-west-1, eu-central-1 ]
     action: replace_on_failure
+    contains_transform: true
     params:
       - SourceAccountId: 8888877777777
       - NotificationEndpoint: channel1
@@ -46,13 +47,15 @@ pipelines:
       - 22222222222
 ```
 
-In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [./admin-guide/adfconfig.yml](#adfconfig). Any failure during the pipeline will cause it to halt. 
+In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. It will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [./admin-guide/adfconfig.yml](#adfconfig). Any failure during the pipeline will cause it to halt.
 
 The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can chose between a absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to one of deploy to a specific account you can use an AWS Account Id if required.
 
 In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel`*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack).
 
 By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `action: replace_on_failure` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.* You can use any of the action types such as *create_update* defined [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html).
+
+If the template that is being deployed contains a Transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will need to be deployed. This can be achieved by setting the `contains_transform: true` parameter and updating the buildspec for your pipeline to call the `bash adf-build/helpers/package_lambda.sh` script. This script will package your lambda to each region and generate a region specific template.yml for the pipeline deploy stages.
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 
