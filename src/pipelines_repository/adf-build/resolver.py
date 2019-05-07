@@ -52,28 +52,34 @@ class Resolver:
             raise Exception("No Key was found on {0} with the name {1}".format(stack_name, export))
 
         LOGGER.info("Stack output value is %s", stack_output)
-        self.stage_parameters[param][key] = stack_output if key is not None else self.stage_parameters[param]
+        if key:
+            self.stage_parameters[key][param] = stack_output
+            return
+        self.stage_parameters[key] = stack_output
 
     def fetch_parameter_store_value(self, value, key, param=None):
         if str(value).count(':') > 1:
-            regional_client = ParameterStore(value.split(':')[1], boto3)
+            [_, region, value] = value.split(':')
+            regional_client = ParameterStore(region, boto3)
+            LOGGER.info("Fetching Parameter from %s", value)
             if param:
                 self.stage_parameters[param][key] = regional_client.fetch_parameter(
-                    value.split(':')[2]
+                    value
                 )
             else:
                 self.stage_parameters[key] = regional_client.fetch_parameter(
-                    value.split(':')[2]
+                    value
                 )
-            LOGGER.info("Fetching Parameter from %s", value.split(':')[2])
             return True
+        [_, value] = value.split(':')
+        LOGGER.info("Fetching Parameter from %s", value)
         if param:
             self.stage_parameters[param][key] = self.parameter_store.fetch_parameter(
-                value.split('resolve:')[1]
+                value
             )
         else:
             self.stage_parameters[key] = self.parameter_store.fetch_parameter(
-                value.split('resolve:')[1]
+                value
             )
         return False
 

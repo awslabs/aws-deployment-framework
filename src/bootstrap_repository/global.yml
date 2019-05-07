@@ -163,7 +163,6 @@ Resources:
               - "cognito-idp:*"
               - "route53:*"
               - "dynamodb:*"
-              - "elasticfilesystem:*"
               - "ecs:*"
               - "events:*"
               - "iam:*"

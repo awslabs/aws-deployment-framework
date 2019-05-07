@@ -196,7 +196,9 @@ For more examples of parameters and their usage see the `samples` folder in the 
 
 ### Parameter Injection
 
-Parameter injection solves problems that occur with Cross Account parameter access. This concept allows you to use your Deployment Account as the central location for all parameters throughout your Organization. Firstly, You store these in SSM Parameter Parameter store on the Deployment Account *(in the region you specific in adfconfig.yml)*. Then in your *global.json* or *account-name.json* you can do the the following:
+Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of exported values from CloudFormation stacks across accounts and regions.
+
+If you wish to resolve values from Parameter Store on the Deployment Account directly into your parameter files you can do the the following:
 
 ```json
 {
@@ -211,6 +213,18 @@ Parameter injection solves problems that occur with Cross Account parameter acce
 When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using any sensitive data, ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs. Resolving parameters across regions is also possible using the notation of *resolve:region:/my/path/to/value*. This allows you to fetch values from the deployment account in other regions other than the main deployment region.
 
 To highlight an example of how Parameter Injection can work well, think of the following scenario: You have some value that you wish to rotate on a monthly bases. You have some automation in place that updates the value of a Parameter store parameter to add in this new value. Each time this pipeline runs it will check for that value and update the resources accordingly, effectively detaching the parameters from the pipeline itself.
+
+Parameter injection is also useful for importing exported values from CloudFormation stacks in other accounts or regions. Using the special **"import"** syntax you can access these values directly into your parameter files.
+
+```json
+{
+    "Parameters": {
+        "BucketInLoggingAccount": "import:123456789101:eu-west-1:stack_name:export_key"
+    }
+}
+```
+
+In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *export_key* is the output key name *(not export name)*.
 
 ### Nested Stacks
 

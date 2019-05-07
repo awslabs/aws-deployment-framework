@@ -115,7 +115,6 @@ class Parameters:
                     continue
             resolver.update_cfn(key, param)
 
-
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
                 if resolver.fetch_parameter_store_value(value, key, param):
