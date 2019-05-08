@@ -76,15 +76,15 @@ If you decide you no longer require a specific pipeline you can remove it from t
 
 The Deployment map has a shorthand syntax along with a more detailed version when you need extra configuration for the *targets* key as detailed below:
 
-Shorthand:
+**Shorthand:**
 
 ```yaml
 targets:
   - 9999999999 # Single Account, Deployment Account region
-  - /my_ou/production  # Group of Accounts, Deployment Account Region
+  - /my_ou/production  # Group of Accounts, Deployment Account region
 ```
 
-Detailed:
+**Detailed:**
 
 ```yaml
 targets:
