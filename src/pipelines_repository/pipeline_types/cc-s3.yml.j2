@@ -150,6 +150,8 @@ Resources:
         ComputeType: !Ref ComputeType
         Image: !Ref Image
         EnvironmentVariables:
+          - Name: PYTHONPATH
+            Value: './adf-build/shared/python'
           - Name: PROJECT_NAME
             Value: !Ref ProjectName
           - Name: S3_BUCKET_NAME

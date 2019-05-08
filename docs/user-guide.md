@@ -72,6 +72,30 @@ If the template that is being deployed contains a Transform, such as a Serverles
 
 If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 
+#### Syntax
+
+The Deployment map has a shorthand syntax along with a more detailed version when you need extra configuration for the *targets* key as detailed below:
+
+**Shorthand:**
+
+```yaml
+targets:
+  - 9999999999 # Single Account, Deployment Account region
+  - /my_ou/production  # Group of Accounts, Deployment Account region
+```
+
+**Detailed:**
+
+```yaml
+targets:
+  - path: 9999999999
+    regions: eu-west-1
+    name: my-special-account
+  - path: /my_ou/production
+    regions: eu-central-1
+    name: production_step
+```
+
 ## Deploying via Pipelines
 
 ### Repositories
@@ -92,7 +116,6 @@ version: 0.2
 phases:
   install:
     commands:
-      - export PYTHONPATH=$PWD/adf-build/shared/python # Set PYTHONPATH to look locally for shared modules
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet # Copy down the shared modules from S3
       - pip install -r adf-build/requirements.txt -q # Install Requirements via requirements.txt
       - python adf-build/generate_params.py # Generate Parameter files dynamically
@@ -228,7 +251,7 @@ In the above example *123456789101* is the AWS Account Id in which we want to pu
 
 ### Nested Stacks
 
-AWS CloudFormation allows stacks to create other stacks via the [nested stacks](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html) feature. Since ADF supports a single entry template titled `template.yml` the stacks that you wish to nest will need to spawn from this template. Nested stacks allow users to pass a `TemplateURL` value that points directly to another CloudFormation template that is either in S3 or on the File System. If you reference a template on the file system you will need to use the `aws cloudformtion package` command during AWS CodeBuild execution *(during the build phase)* in your pipeline to package up the contents of your templates into finalized artifacts.
+AWS CloudFormation allows stacks to create other stacks via the [nested stacks](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html) feature. Since ADF supports a single entry template titled `template.yml` the stacks that you wish to nest will need to spawn from this template. Nested stacks allow users to pass a `TemplateURL` value that points directly to another CloudFormation template that is either in S3 or on the File System. If you reference a template on the file system you will need to use the `package_transform.sh` helper script during AWS CodeBuild execution *(during the build phase)* in your pipeline to package up the contents of your templates into finalized artifacts.
 
 This can be achieved with a `buildspec.yml` like so:
 
@@ -238,13 +261,12 @@ version: 0.2
 phases:
   install:
     commands:
-      - export PYTHONPATH=$PWD/adf-build/shared/python
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
       - pip install -r adf-build/requirements.txt -q
       - python adf-build/generate_params.py
   build:
     commands:
-      - aws cloudformation package --template-file $(pwd)/template.yml --output-template-file template.yml --s3-prefix some_location/sam --s3-bucket $S3_BUCKET_NAME
+      - bash adf-build/helpers/package_transform.sh
 artifacts:
   files: '**/*'
 ```
@@ -255,17 +277,31 @@ This allows us to specify nested stacks that are in the same repository as out m
   MyStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: another_template.yml
+      TemplateURL: another_template.yml # file path to the nested stack template
 ```
 
-When the `aws cloudformation package` command is executed, the file will be packaged up and uploaded to Amazon S3. Its *TemplateURL* key will be updated to point to the object in S3 and this will be a valid path when `template.yml` is executed in the deploy stages of your pipeline.
+When the `package_transform.sh` command is executed, the file will be packaged up and uploaded to Amazon S3. Its *TemplateURL* key will be updated to point to the object in S3 and this will be a valid path when `template.yml` is executed in the deploy stages of your pipeline.
 
 ### Deploying Serverless Applications with SAM
 
-Serverless Applications can also be deployed trivially via ADF. The only extra step required to deploy a SAM template is that you execute `aws cloudformation package` from within your build stage like so:
+Serverless Applications can also be deployed via ADF. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
 
-```bash
-aws cloudformation package --template-file $PWD/template.yml --output-template-file template.yml --s3-prefix my-sam-app/sam --s3-bucket $S3_BUCKET_NAME
+For example, deploying a NodeJS Serverless Application can be done with a *buildspec.yml* that looks like the following:
+
+```yaml
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - pip install -r adf-build/requirements.txt -q
+      - python adf-build/generate_params.py
+      - curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+      - apt-get install nodejs -y # Optionally install NodeJS 10
+  build:
+    commands:
+      - bash adf-build/helpers/package_transform.sh
+artifacts:
+  files: '**/*'
 ```
-
-This will update your `template.yml` and override it during the build phase before passing it on the following deployment steps.
