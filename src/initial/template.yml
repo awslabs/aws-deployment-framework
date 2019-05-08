@@ -364,6 +364,8 @@ Resources:
         ComputeType: !Ref ComputeType
         Image: !Ref Image
         EnvironmentVariables:
+          - Name: PYTHONPATH
+            Value: './adf-build/shared/python'
           - Name: S3_BUCKET
             Value: !Ref BootstrapTemplatesBucket
           - Name: MASTER_ACCOUNT_ID
@@ -387,7 +389,6 @@ Resources:
                 - pip install -r adf-build/requirements.txt --upgrade --quiet
             pre_build:
               commands:
-                - export PYTHONPATH=$PWD/adf-build/shared/python
                 - pytest -vvv
             build:
               commands:

@@ -139,6 +139,8 @@ Resources:
         ComputeType: !Ref ComputeType
         Image: !Ref Image
         EnvironmentVariables:
+          - Name: PYTHONPATH
+            Value: './adf-build/shared/python'
           - Name: PROJECT_NAME
             Value: !Ref ProjectName
           - Name: S3_BUCKET_NAME
@@ -284,7 +286,6 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ActionMode: {{ action }}
-                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json"
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
 {% if contains_transform %}
@@ -333,7 +334,6 @@ Resources:
               Configuration:
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
-                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ region }}.json"
                 StackName: !Sub "${StackPrefix}-${ProjectName}"
                 RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-deployment-role"
               RunOrder: 2
@@ -373,7 +373,6 @@ Resources:
                 Version: 1
                 Provider: CloudFormation
               Configuration:
-                OutputFileName: !Sub "${AWS::AccountId}-${StackPrefix}-${ProjectName}-{{ top_level_region }}.json"
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
                 StackName: !Sub "${StackPrefix}-${ProjectName}"

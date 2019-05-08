@@ -8,6 +8,10 @@ set -e
 # PROJECT_NAME is an environment variable that is passed to the CodeBuild Project
 # CODEBUILD_SRC_DIR is an environment variable provided by CodeBuild
 
+pip install --upgrade awscli aws-sam-cli -q
+
+# Build our template and its potential dependancies
+sam build
 
 # Get list of regions supported by this application
 app_regions=`aws ssm get-parameters --names /deployment/$PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
@@ -19,7 +23,7 @@ do
     if grep -q Transform: "$CODEBUILD_SRC_DIR/template.yml"; then
         ssm_bucket_name="/cross_region/s3_regional_bucket/$region"
         bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`
-        aws cloudformation package --template-file $CODEBUILD_SRC_DIR/template.yml --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --s3-prefix $PROJECT_NAME --s3-bucket $bucket
+        sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml
     else
         # If package is not needed, just copy the file for each region
         cp $CODEBUILD_SRC_DIR/template.yml $CODEBUILD_SRC_DIR/template_$region.yml

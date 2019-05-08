@@ -391,6 +391,8 @@ Resources:
         ComputeType: !Ref ComputeType
         Image: !Ref Image
         EnvironmentVariables:
+          - Name: PYTHONPATH
+            Value: './adf-build/shared/python'
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref MasterAccountId
           - Name: S3_BUCKET_NAME
@@ -414,7 +416,6 @@ Resources:
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/shared/ ./adf-build/shared --recursive --quiet
                 - aws s3 cp ./adf-build s3://$S3_BUCKET_NAME/adf-build/ --recursive --quiet
-                - export PYTHONPATH=$PWD/adf-build/shared/python
                 - pytest -vvv
                 - python ./adf-build/generate_pipelines.py
           artifacts:

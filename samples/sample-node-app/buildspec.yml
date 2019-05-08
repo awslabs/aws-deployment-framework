@@ -22,7 +22,6 @@ phases:
       - docker push $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
-      - export PYTHONPATH=$PWD/adf-build/shared/python
       - tmp=$(mktemp); jq --arg REPOSITORY_URI "$REPOSITORY_URI" --arg IMAGE_TAG "$IMAGE_TAG"  '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' params/global.json > "$tmp" && mv "$tmp" params/global.json
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
       - pip3 install -t adf-build/shared/python boto3

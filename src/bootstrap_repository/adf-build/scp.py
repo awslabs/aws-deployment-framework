@@ -34,13 +34,13 @@ class SCP():
 
     def apply(self, organizations, parameter_store, config): #pylint: disable=R0912, R0915
         status = organizations.get_organization_info()
-        scps = SCP._find_all()
 
         if status.get('feature_set') != 'ALL':
             LOGGER.info('All Features are currently NOT enabled for this Organization, this is required to apply SCPs')
             return
 
         organizations.enable_scp()
+        scps = SCP._find_all()
         organization_mapping = organizations.get_organization_map({'/': organizations.get_ou_root_id()})
         scp_keep_full_access = config.get('scp')
 
