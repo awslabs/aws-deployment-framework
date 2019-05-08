@@ -31,6 +31,7 @@ def clean(parameter_store, deployment_map):
     """
     current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
         '/deployment/')
+
     for parameter in current_pipeline_parameters:
         name = parameter.get('Name').split('/')[-2]
         if name not in [p.get('name')
@@ -64,7 +65,7 @@ def upload_pipeline(s3, pipeline):
     """
     Responsible for uploading the object (global.yml) to S3
     and returning the URL that can be referenced in the CloudFormation
-    create_stack call - TODO move into CloudFormation class and remove wrapper
+    create_stack call.
     """
     s3_object_path = s3.put_object(
         "pipelines/{0}/global.yml".format(

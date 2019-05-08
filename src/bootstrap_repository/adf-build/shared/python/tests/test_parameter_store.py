@@ -20,15 +20,6 @@ def cls():
     )
     return cls
 
-
-# Needs pagination and associated tests
-def test_fetch_parameters_by_path(cls):
-    cls.client = Mock()
-    cls.client.get_parameters_by_path.return_value = stub_parameter_store.get_parameters_by_path
-    assert cls.fetch_parameters_by_path(
-        'some_path') == stub_parameter_store.get_parameters_by_path.get('Parameters')
-
-
 def test_fetch_parameter(cls):
     cls.client = Mock()
     cls.client.get_parameter.return_value = stub_parameter_store.get_parameter

@@ -11,6 +11,7 @@ import os
 import ast
 import boto3
 
+from resolver import Resolver
 from logger import configure_logger
 from parameter_store import ParameterStore
 
@@ -103,33 +104,26 @@ class Parameters:
         """
         Generic CFN Updater method
         """
+        resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
+
         for key, value in comparison_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if str(value).count(':') > 1:
-                    regional_client = ParameterStore(value.split(':')[1], boto3)
-                    stage_parameters[param][key] = regional_client.fetch_parameter(
-                        value.split(':')[2]
-                    )
+                if resolver.fetch_parameter_store_value(value, key, param):
                     continue
-                stage_parameters[param][key] = self.parameter_store.fetch_parameter(
-                    value.split('resolve:')[1]
-                )
-            if key not in stage_parameters[param]:
-                stage_parameters[param][key] = comparison_parameters[param][key]
+            if str(value).startswith('import:'):
+                if resolver.fetch_stack_output(value, key, param):
+                    continue
+            resolver.update_cfn(key, param)
 
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
-                if str(value).count(':') > 1:
-                    regional_client = ParameterStore(value.split(':')[1], boto3)
-                    stage_parameters[param][key] = regional_client.fetch_parameter(
-                        value.split(':')[2]
-                    )
+                if resolver.fetch_parameter_store_value(value, key, param):
                     continue
-                stage_parameters[param][key] = self.parameter_store.fetch_parameter(
-                    value.split('resolve:')[1]
-                )
+            if str(value).startswith('import:'):
+                if resolver.fetch_stack_output(value, key, param):
+                    continue
 
-        return stage_parameters
+        return resolver.__dict__.get('stage_parameters')
 
     def _compare_cfn(self, comparison_parameters, stage_parameters):
         """
@@ -150,34 +144,26 @@ class Parameters:
         """
         Compares parameter files used for the Service Catalog deployment type
         """
+        resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
+
         for key, value in comparison_parameters.items():
             if str(value).startswith('resolve:'):
-                if str(value).count(':') > 1:
-                    regional_client = ParameterStore(value.split(':')[1], boto3)
-                    stage_parameters[key] = regional_client.fetch_parameter(
-                        value.split(':')[2]
-                    )
+                if resolver.fetch_parameter_store_value(value, key):
                     continue
-                stage_parameters[key] = self.parameter_store.fetch_parameter(
-                    value.split('resolve:')[1]
-                )
-
-            if key not in stage_parameters:
-                stage_parameters[key] = comparison_parameters[key]
+            if str(value).startswith('import:'):
+                if resolver.fetch_stack_output(value, key):
+                    continue
+            resolver.update_sc(key)
 
         for key, value in stage_parameters.items():
             if str(value).startswith('resolve:'):
-                if str(value).count(':') > 1:
-                    regional_client = ParameterStore(value.split(':')[1], boto3)
-                    stage_parameters[key] = regional_client.fetch_parameter(
-                        value.split(':')[2]
-                    )
+                if resolver.fetch_parameter_store_value(value, key):
                     continue
-                stage_parameters[key] = self.parameter_store.fetch_parameter(
-                    value.split('resolve:')[1]
-                )
+            if str(value).startswith('import:'):
+                if resolver.fetch_stack_output(value, key):
+                    continue
 
-        return stage_parameters
+        return resolver.__dict__.get('stage_parameters')
 
     def _compare(self, comparison_parameters, stage_parameters):
         """
@@ -198,6 +184,7 @@ def main():
         )
     )
     parameters.create_parameter_files()
+
 
 
 if __name__ == '__main__':

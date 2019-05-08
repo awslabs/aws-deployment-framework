@@ -40,7 +40,7 @@ def lambda_handler(event, _):
 
     pipeline_status = codepipeline.get_pipeline_status(
         'aws-deployment-framework-pipelines'
-    ).get('status')
+    )
 
     if pipeline_status == 'Failed':
         LOGGER.info(

@@ -22,6 +22,7 @@ class Pipeline:
         self.pipeline_type = pipeline.get('type', None)
         self.replace_on_failure = pipeline.get('replace_on_failure', '') # Legacy, and will be replaced in 1.0.0 in favour of below 'action'
         self.action = pipeline.get('action', '').upper()
+        self.contains_transform = pipeline.get('contains_transform', '')
 
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
@@ -80,7 +81,8 @@ class Pipeline:
             top_level_regions=sorted(self.flatten_list(list(set(self.top_level_regions)))),
             regions=sorted(list(set(self.flatten_list(self.stage_regions)))),
             deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-            action=self.action or self.replace_on_failure
+            action=self.action or self.replace_on_failure,
+            contains_transform=self.contains_transform
         )
 
         self._create_pipelines_folder()

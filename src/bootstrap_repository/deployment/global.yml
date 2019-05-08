@@ -162,6 +162,13 @@ Resources:
             Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}"
           - Effect: Allow
             Action:
+              - "sts:AssumeRole"
+            Resource: !Sub "arn:aws:iam::*:role/adf-cloudformation-deployment-role"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+          - Effect: Allow
+            Action:
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
@@ -180,8 +187,21 @@ Resources:
               - "ssm:DeleteParameter"
               - "sns:*"
               - "iam:PassRole"
+              - "iam:PutRolePolicy"
+              - "iam:GetRole"
+              - "iam:CreateRole"
+              - "iam:CreatePolicy"
+              - "iam:CreatePolicy"
+              - "iam:DeleteRolePolicy"
+              - "iam:DeleteRole"
               - "lambda:AddPermission"
+              - "lambda:CreateFunction"
+              - "lambda:GetFunctionConfiguration"
+              - "lambda:DeleteFunction"
+              - "lambda:GetFunction"
               - "lambda:RemovePermission"
+              - "lambda:UpdateFunctionCode"
+              - "lambda:UpdateFunctionConfiguration"
               - "events:PutRule"
               - "events:RemoveTargets"
               - "events:DeleteRule"
@@ -250,6 +270,11 @@ Resources:
                 - cloudformation.amazonaws.com
             Action:
               - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt CodeBuildRole.Arn
+            Action:
+              - sts:AssumeRole
       Path: /
   CloudFormationDeploymentPolicy:
     Type: AWS::IAM::Policy
@@ -265,9 +290,11 @@ Resources:
               - "s3:Get*"
               - "s3:Put*"
               - "s3:List*"
+              - "s3:Create*"
               - "logs:*"
               - "ecr:*"
               - "cloudwatch:*"
+              - "elasticfilesystem:*"
               - "cognito-identity:*"
               - "dynamodb:*"
               - "events:*"
@@ -280,6 +307,9 @@ Resources:
               - "elasticloadbalancing:*"
               - "sns:*"
               - "tag:*"
+              - "kms:List*"
+              - "kms:Update*"
+              - "kms:Create*"
               - "kms:Encrypt"
               - "kms:Decrypt"
               - "kms:ReEncrypt*"
