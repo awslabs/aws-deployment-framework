@@ -2,29 +2,15 @@ version: 0.2
 
 phases:
   install:
-    commands:
-      - add-apt-repository ppa:deadsnakes/ppa
-      - apt-get update -qq
-      - apt-get install jq wget -y -qq
-      - apt-get install python3.6 -y -qq
-      - apt-get install python3-pip -y -qq
-      - apt-get upgrade -qq
-  pre_build:
-    commands:
-      - $(aws ecr get-login --region $AWS_REGION --no-include-email)
-      - REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$PROJECT_NAME
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+    runtime-versions:
+      docker: 18
+      python: 3.7
   build:
     commands:
-      - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - bash build/docker.sh
   post_build:
     commands:
-      - tmp=$(mktemp); jq --arg REPOSITORY_URI "$REPOSITORY_URI" --arg IMAGE_TAG "$IMAGE_TAG"  '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' params/global.json > "$tmp" && mv "$tmp" params/global.json
-      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
-      - pip3 install -t adf-build/shared/python boto3
-      - python3.6 adf-build/generate_params.py
+      - bash build/adf_post_build.sh
+
 artifacts:
   files: '**/*'

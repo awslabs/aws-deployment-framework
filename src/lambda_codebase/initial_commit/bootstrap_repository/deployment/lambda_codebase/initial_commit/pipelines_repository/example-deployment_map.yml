@@ -1,0 +1,20 @@
+pipelines:
+  - name: sample-pipeline  # The name of your pipeline (This will match the name of your repository)
+    type: cc-cloudformation  # The pipeline_type you wish to use for this pipeline
+    params:
+      - SourceAccountId: 111111111111  # The source account that will hold the codebase
+      - NotificationEndpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
+    targets:  # Deployment stages
+      - /business_unit/testing
+      - /business_unit/production
+
+  - name: another-pipeline
+    type: github-cloudformation # Rather than use AWS CodeCommit we can also use Github as a source
+    params:
+      - ScheduleExpression: rate(7 days) # Run every 7 days automatically
+      - Owner: github_username # See Docs for Github integration
+      - NotificationEndpoint: slack_channel # See Docs for Slack integration for notifications
+    targets: # Long hand syntax including regions and names for stages
+      - path: 22222222222 # Paths can be single AWS Accounts or Organization Units
+        regions: us-east-1
+        name: fancy-name

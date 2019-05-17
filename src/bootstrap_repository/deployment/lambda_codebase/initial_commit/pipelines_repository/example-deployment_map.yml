@@ -1,9 +1,0 @@
-pipelines:
-  - name: sample-pipeline  # The name of your pipeline (This will match the name of your repository)
-    type: cc-cloudformation  # The pipeline_type you wish to use for this pipeline
-    params:
-      - SourceAccountId: 111111111111  # The source account that will hold the codebase
-      - NotificationEndpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
-    targets:  # Deployment stages
-      - /business_unit/testing
-      - /business_unit/production
