@@ -84,7 +84,7 @@ ParameterKey=DeploymentAccountId,ParameterValue=111111111111 \
 ```bash
 aws cloudformation package \
 --template-file $PWD/src/initial/template.yml \
---s3-bucket MASTER_ACCOUNT_BUCKET_NAME \
+--s3-bucket $MASTER_ACCOUNT_BUCKET_NAME \
 --output-template-file $PWD/template-deploy.yml \
 --region us-east-1
 
@@ -92,8 +92,8 @@ aws cloudformation deploy \
 --stack-name aws-deployment-framework-base \
 --template-file $PWD/template-deploy.yml \
 --capabilities CAPABILITY_NAMED_IAM \
---parameter-overrides DeploymentAccountBucket=DEPLOYMENT_ACCOUNT_BUCKET_NAME \
-OrganizationId=ORGANIZATION_ID \
+--parameter-overrides DeploymentAccountBucket=$DEPLOYMENT_ACCOUNT_BUCKET_NAME \
+OrganizationId=$ORGANIZATION_ID \
 --region us-east-1
 ```
 
@@ -392,7 +392,7 @@ To update ADF between *minor* releases you can run the same commands used to ins
 ```bash
 aws cloudformation package \
 --template-file $PWD/src/initial/template.yml \
---s3-bucket MASTER_ACCOUNT_BUCKET_NAME \
+--s3-bucket $MASTER_ACCOUNT_BUCKET_NAME \
 --output-template-file $PWD/template-deploy.yml \
 --region us-east-1
 
@@ -400,8 +400,8 @@ aws cloudformation deploy \
 --stack-name aws-deployment-framework-base \
 --template-file $PWD/template-deploy.yml \
 --capabilities CAPABILITY_NAMED_IAM \
---parameter-overrides DeploymentAccountBucket=DEPLOYMENT_ACCOUNT_BUCKET_NAME \
-OrganizationId=ORGANIZATION_ID \
+--parameter-overrides DeploymentAccountBucket=$DEPLOYMENT_ACCOUNT_BUCKET_NAME \
+OrganizationId=$ORGANIZATION_ID \
 --region us-east-1
 ```
 
