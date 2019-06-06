@@ -182,7 +182,7 @@ Let's add the pipeline we need into the map once more.
     action: replace_on_failure
     params:
       - SourceAccountId: 111111111111
-      - Image: aws/codebuild/docker:18.09.0
+      - Image: aws/codebuild/standard:2.0
     targets:
       - path: /banking/testing
         regions: eu-west-1
