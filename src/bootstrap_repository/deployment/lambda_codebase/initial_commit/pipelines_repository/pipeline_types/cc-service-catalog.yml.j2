@@ -1,17 +1,21 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: ADF CloudFormation Template For CodePipeline - AWS CodeCommit Source and CodeBuild (No Deployment Steps)
+Description: ADF CloudFormation Template For CodePipeline - AWS CodeCommit Source and Service Catalog Target
 Parameters:
   ProjectName:
     Description: Name of the Project (This is automatically passed in by ADF)
     Type: String
-  ScheduleExpression:
-    Description: The Schedule expression for this pipeline
+  StackPrefix:
+    Description: Prefix to prepend to the stackname when deployed
     Type: String
-    Default: ''
+    Default: adf
   Image:
     Description: The Image for CodeBuild to use
     Type: String
     Default: "aws/codebuild/python:3.7.1"
+  ScheduleExpression:
+    Description: The Schedule expression for this pipeline
+    Type: String
+    Default: ''
   NotificationEndpoint:
     Description: The Email Address / Slack channel notifications will go to for changes related to this pipeline
     Type: String
@@ -20,6 +24,9 @@ Parameters:
     Description: The ComputeType for CodeBuild
     Type: String
     Default: "BUILD_GENERAL1_SMALL"
+  ProductId:
+    Description: The Product Id
+    Type: String
   SourceAccountId:
     Description: The ID of the Source Account that will hold the CodeCommit Repo
     Type: String
@@ -31,17 +38,40 @@ Parameters:
     Description: If the pipeline will automatically trigger based on update
     Type: String
     Default: False
-  S3Bucket{{ deployment_account_region|replace("-", "") }}:
-    Description: The S3 Bucket for Cross region deployment for {{ deployment_account_region }}
+{% for region in regions %}
+  S3Bucket{{ region|replace("-", "") }}:
+    Description: The S3 Bucket for Cross region deployment for {{ region }}
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /cross_region/s3_regional_bucket/{{ deployment_account_region }}
-  KMSKey{{ deployment_account_region|replace("-", "") }}:
-    Description: The KMSKey Arn for Cross region deployment for {{ deployment_account_region }}
+    Default: /cross_region/s3_regional_bucket/{{ region }}
+  KMSKey{{ region|replace("-", "") }}:
+    Description: The KMSKey Arn for Cross region deployment for {{ region }}
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /cross_region/kms_arn/{{ deployment_account_region }}
+    Default: /cross_region/kms_arn/{{ region }}
+{% endfor %}
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+  PipelineCloudWatchEventRole:
+    Condition: HasSchedule
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: 'execute-pipeline'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
   CronCloudwatchEventsRule:
     Type: "AWS::Events::Rule"
     Condition: HasSchedule
@@ -50,6 +80,7 @@ Resources:
       ScheduleExpression: !Ref ScheduleExpression
       Targets:
         - Arn: !GetAtt Pipeline.Arn
+          RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: !Sub "adf-cron-${AWS::StackName}"
   BuildProject:
     Type: AWS::CodeBuild::Project
@@ -179,14 +210,76 @@ Resources:
             RunOrder: 1
             InputArtifacts:
               - Name: TemplateSource
+            OutputArtifacts:
+              - Name: !Sub "${ProjectName}-build"
+{% for target in environments['targets'] %}
+{% if target|length > 0 and target[0].get('name') == "approval" %}
+        - Name: {{ target[0].get('step_name') or "approval-stage-" ~ loop.index }}
+          Actions:
+            - Name: {{ target[0].get('step_name') or "Approval"}}
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: 1
+                Provider: Manual
+              Configuration:
+                {% if notification_endpoint %}
+                NotificationArn: !Ref PipelineSNSTopic
+                {% endif %}
+                CustomData: !Ref AWS::AccountId
+              RunOrder: 1
+{% else %}
+        - Name: {{ target[0].get('step_name') or "deployment-stage-" ~ loop.index }}
+          Actions:
+{% for stage in target %}
+{% if top_level_regions == [] %}
+{% for region in stage.regions %}
+            - Name: {{ stage.name }}-{{ region }}
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ServiceCatalog
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ConfigurationFilePath: "params/{{ stage.name }}_{{ region }}.json"
+                ProductId: !Ref ProductId
+              InputArtifacts:
+              - Name: !Sub "${ProjectName}-build"
+              Region: {{ region }}
+              RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
+{% endfor %}
+{% else %}
+{% for top_level_region in top_level_regions %}
+            - Name: {{ stage.name }}-{{ top_level_region }}
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ServiceCatalog
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ConfigurationFilePath: "params/{{ stage.name }}_{{ top_level_region }}.json"
+                ProductId: !Ref ProductId
+              InputArtifacts:
+              - Name: !Sub "${ProjectName}-build"
+              Region: {{ top_level_region }}
+              RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
       ArtifactStores:
-        - Region: {{ deployment_account_region }}
+{% for region in regions %}
+        - Region: {{ region }}
           ArtifactStore:
             EncryptionKey:
-              Id: !Ref KMSKey{{ deployment_account_region|replace("-", "") }}
+              Id: !Ref KMSKey{{ region|replace("-", "") }}
               Type: KMS
-            Location: !Ref S3Bucket{{ deployment_account_region|replace("-", "") }}
+            Location: !Ref S3Bucket{{ region|replace("-", "") }}
             Type: S3
+{% endfor %}
 Outputs:
   PipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}

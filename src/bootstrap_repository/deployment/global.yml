@@ -5,6 +5,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Template (Global) for Deployment Account
 Parameters:
+  ADFVersion:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: adf_version
   MasterAccountId:
     Type : 'AWS::SSM::Parameter::Value<String>'
     Default: master_account_id
@@ -70,34 +73,34 @@ Resources:
             Principal:
               AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
             Action:
+              - "kms:CancelKeyDeletion"
               - "kms:Create*"
+              - "kms:Decrypt"
+              - "kms:Delete*"
               - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Disable*"
               - "kms:Enable*"
               - "kms:Encrypt"
-              - "kms:Decrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
               - "kms:List*"
               - "kms:Put*"
-              - "kms:Update*"
-              - "kms:Revoke*"
-              - "kms:Disable*"
               - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-              - "kms:Get*"
-              - "kms:Delete*"
+              - "kms:Revoke*"
               - "kms:ScheduleKeyDeletion"
-              - "kms:CancelKeyDeletion"
+              - "kms:Update*"
             Resource: "*"
           - Sid: Allow use of the key
             Effect: Allow
             Principal:
               AWS: "*"
             Action:
-              - kms:Encrypt
               - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: "*"
             Condition:
               StringEquals:
@@ -140,21 +143,21 @@ Resources:
           - Effect: Allow
             Sid: "S3"
             Action:
-              - s3:PutObject
-              - s3:GetBucketPolicy
               - s3:Get*
+              - s3:GetBucketPolicy
               - s3:List*
+              - s3:PutObject
             Resource:
               - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
               - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
           - Effect: Allow
             Sid: "KMS"
             Action:
-              - kms:Encrypt
               - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: !GetAtt KMSKey.Arn
           - Effect: Allow
             Action:
@@ -169,44 +172,44 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codedeploy:*"
+              - "codepipeline:*"
+              - "ecr:*"
+              - "events:DeleteRule"
+              - "events:DescribeRule"
+              - "events:PutRule"
+              - "events:PutTargets"
+              - "events:RemoveTargets"
+              - "iam:CreatePolicy"
+              - "iam:CreatePolicy"
+              - "iam:CreateRole"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:GetRole"
+              - "iam:PassRole"
+              - "iam:PutRolePolicy"
+              - "lambda:AddPermission"
+              - "lambda:CreateFunction"
+              - "lambda:DeleteFunction"
+              - "lambda:GetFunction"
+              - "lambda:GetFunctionConfiguration"
+              - "lambda:RemovePermission"
+              - "lambda:UpdateFunctionCode"
+              - "lambda:UpdateFunctionConfiguration"
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-              - "codepipeline:*"
-              - "cloudformation:*"
-              - "ecr:*"
               - "s3:Get*"
               - "s3:List*"
               - "s3:Put*"
-              - "codebuild:*"
-              - "codedeploy:*"
+              - "sns:*"
+              - "ssm:DeleteParameter"
               - "ssm:GetParameter"
               - "ssm:GetParameters"
               - "ssm:GetParametersByPath"
               - "ssm:PutParameter"
-              - "ssm:DeleteParameter"
-              - "sns:*"
-              - "iam:PassRole"
-              - "iam:PutRolePolicy"
-              - "iam:GetRole"
-              - "iam:CreateRole"
-              - "iam:CreatePolicy"
-              - "iam:CreatePolicy"
-              - "iam:DeleteRolePolicy"
-              - "iam:DeleteRole"
-              - "lambda:AddPermission"
-              - "lambda:CreateFunction"
-              - "lambda:GetFunctionConfiguration"
-              - "lambda:DeleteFunction"
-              - "lambda:GetFunction"
-              - "lambda:RemovePermission"
-              - "lambda:UpdateFunctionCode"
-              - "lambda:UpdateFunctionConfiguration"
-              - "events:PutRule"
-              - "events:RemoveTargets"
-              - "events:DeleteRule"
-              - "events:DescribeRule"
-              - "events:PutTargets"
             Resource: "*"
       Roles:
         - !Ref CodeBuildRole
@@ -241,19 +244,19 @@ Resources:
             Sid: "CloudFormation"
             Action:
               - cloudformation:*
-              - s3:Get*
-              - s3:Put*
-              - s3:List*
               - iam:PassRole
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
             Resource: "*"
           - Effect: Allow
             Sid: "KMS"
             Action:
-              - kms:Encrypt
               - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CloudFormationRole
@@ -286,53 +289,53 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              - "sqs:*"
-              - "s3:Get*"
-              - "s3:Put*"
-              - "s3:List*"
-              - "s3:Create*"
-              - "logs:*"
-              - "ecr:*"
-              - "cloudwatch:*"
-              - "elasticfilesystem:*"
-              - "cognito-identity:*"
-              - "dynamodb:*"
-              - "events:*"
-              - "iam:*"
-              - "cloudtrail:*"
-              - "config:*"
-              - "states:*"
-              - "kinesis:*"
-              - "lambda:*"
-              - "elasticloadbalancing:*"
-              - "sns:*"
-              - "tag:*"
-              - "kms:List*"
-              - "kms:Update*"
-              - "kms:Create*"
-              - "kms:Encrypt"
-              - "kms:Decrypt"
-              - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-              - "ec2:*"
-              - "iot:*"
-              - "xray:*"
-              - "dax:*"
-              - "application-autoscaling:*"
-              - "datapipeline:*"
               - "apigateway:*"
-              - "codepipeline:*"
+              - "application-autoscaling:*"
+              - "autoscaling:*"
+              - "cloudformation:*"
+              - "cloudtrail:*"
+              - "cloudwatch:*"
+              - "codebuild:*"
               - "codecommit:*"
               - "codedeploy:*"
-              - "codebuild:*"
+              - "codepipeline:*"
+              - "cognito-identity:*"
+              - "config:*"
+              - "datapipeline:*"
+              - "dax:*"
+              - "dynamodb:*"
+              - "ec2:*"
+              - "ecr:*"
               - "elasticbeanstalk:*"
-              - "ssm:GetParameters"
-              - "ssm:GetParameter"
-              - "opsworks:*"
-              - "cloudformation:*"
+              - "elasticfilesystem:*"
+              - "elasticloadbalancing:*"
               - "es:*"
-              - "autoscaling:*"
+              - "events:*"
+              - "iam:*"
+              - "iot:*"
+              - "kinesis:*"
+              - "kms:Create*"
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:List*"
+              - "kms:ReEncrypt*"
+              - "kms:Update*"
+              - "lambda:*"
+              - "logs:*"
+              - "opsworks:*"
+              - "s3:Create*"
+              - "s3:Get*"
+              - "s3:List*"
+              - "s3:Put*"
+              - "sns:*"
+              - "sqs:*"
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "states:*"
+              - "tag:*"
+              - "xray:*"
             Resource: "*"
           - Effect: Allow
             Sid: "KMS"
@@ -351,8 +354,8 @@ Resources:
               - s3:GetObject
               - s3:ListBucket
             Resource:
-             - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
-             - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
+              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
+              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
       Roles:
         - !Ref CloudFormationDeploymentRole
   CodeBuildPolicy:
@@ -393,6 +396,8 @@ Resources:
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: './adf-build/shared/python'
+          - Name: ACCOUNT_ID
+            Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref MasterAccountId
           - Name: S3_BUCKET_NAME
@@ -505,8 +510,8 @@ Resources:
         - Effect: Allow
           Principal:
             Service:
-              - events.amazonaws.com
               - codecommit.amazonaws.com
+              - events.amazonaws.com
               - states.amazonaws.com
           Action: sns:Publish
           Resource: "*"
@@ -522,9 +527,9 @@ Resources:
           - Effect: Allow
             Principal:
               Service:
-                - codepipeline.amazonaws.com
-                - codedeploy.amazonaws.com
                 - cloudformation.amazonaws.com
+                - codedeploy.amazonaws.com
+                - codepipeline.amazonaws.com
                 - s3.amazonaws.com
             Action:
               - sts:AssumeRole
@@ -544,65 +549,65 @@ Resources:
           - Effect: Allow
             Sid: "CodePipeline"
             Action:
-              - codepipeline:*
-              - iam:ListRoles
-              - cloudformation:Describe*
               - cloudFormation:List*
-              - codecommit:*
-              - codedeploy:*
-              - codebuild:BatchGetBuilds
-              - codebuild:StartBuild
-              - cloudformation:CreateStack
-              - cloudformation:DeleteStack
-              - cloudformation:DescribeStacks
-              - cloudformation:UpdateStack
               - cloudformation:CreateChangeSet
+              - cloudformation:CreateStack
               - cloudformation:DeleteChangeSet
+              - cloudformation:DeleteStack
+              - cloudformation:Describe*
               - cloudformation:DescribeChangeSet
+              - cloudformation:DescribeStacks
               - cloudformation:ExecuteChangeSet
               - cloudformation:SetStackPolicy
+              - cloudformation:UpdateStack
               - cloudformation:ValidateTemplate
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - codecommit:*
+              - codedeploy:*
+              - codepipeline:*
+              - iam:CreatePolicy
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:DeleteRolePolicy
+              - iam:GetRole
+              - iam:ListRoles
               - iam:PassRole
+              - iam:PutRolePolicy
+              - lambda:AddPermission
+              - lambda:CreateFunction
+              - lambda:DeleteFunction
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:InvokeFunction
+              - lambda:ListFunctions
+              - lambda:RemovePermission
+              - lambda:UpdateFunctionCode
+              - lambda:UpdateFunctionConfiguration
               - s3:GetObjectVersion
               - s3:GetObjectVersionAcl
               - s3:GetObjectVersionTagging
               - s3:GetReplicationConfiguration
               - s3:ListBucket
-              - servicecatalog:ListProvisioningArtifacts
-              - servicecatalog:CreateProvisioningArtifact
-              - servicecatalog:DescribeProvisioningArtifact
-              - servicecatalog:DeleteProvisioningArtifact
-              - servicecatalog:UpdateProduct
-              - s3:ReplicateObject
               - s3:ReplicateDelete
+              - s3:ReplicateObject
               - s3:ReplicateTags
-              - lambda:AddPermission
-              - lambda:CreateFunction
-              - lambda:DeleteFunction
-              - lambda:InvokeFunction
-              - lambda:RemovePermission
-              - lambda:UpdateFunctionCode
-              - lambda:GetFunctionConfiguration
-              - lambda:GetFunction
-              - lambda:ListFunctions
-              - lambda:UpdateFunctionConfiguration
-              - iam:CreateRole
-              - iam:CreatePolicy
-              - iam:GetRole
-              - iam:DeleteRole
-              - iam:PutRolePolicy
-              - iam:DeleteRolePolicy
+              - servicecatalog:CreateProvisioningArtifact
+              - servicecatalog:DeleteProvisioningArtifact
+              - servicecatalog:DescribeProvisioningArtifact
+              - servicecatalog:ListProvisioningArtifacts
+              - servicecatalog:UpdateProduct
               - sns:Publish
             Resource:
               - "*"
           - Effect: Allow
             Sid: "KMS"
             Action:
-              - kms:Encrypt
               - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: !GetAtt KMSKey.Arn
           - Action:
             - sts:AssumeRole
@@ -618,10 +623,10 @@ Resources:
             Sid: "S3"
             Action:
               - s3:Get*
-              - s3:Put*
               - s3:List*
-              - s3:ReplicateObject
+              - s3:Put*
               - s3:ReplicateDelete
+              - s3:ReplicateObject
               - s3:ReplicateTags
             Resource:
               - !Sub arn:aws:s3:::${PipelineBucket}
@@ -661,7 +666,7 @@ Resources:
       Environment:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
-      Runtime: python3.6
+      Runtime: python3.7
       Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
@@ -678,7 +683,7 @@ Resources:
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.6
+      Runtime: python3.7
       Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
@@ -694,7 +699,7 @@ Resources:
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.6
+      Runtime: python3.7
       Timeout: 120
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -722,27 +727,27 @@ Resources:
                 Resource: "*"
               - Effect: "Allow"
                 Action: 
-                  - "kms:Encrypt"
-                  - "kms:Decrypt"
-                  - "kms:ReEncrypt*"
-                  - "kms:GenerateDataKey*"
-                  - "kms:Describe*"
-                  - "kms:List*"
-                  - "kms:Get*"
-                  - "kms:PutKeyPolicy"
+                  - "codepipeline:GetPipelineState"
+                  - "codepipeline:ListPipelines"
+                  - "codepipeline:PutJobFailureResult"
+                  - "codepipeline:PutJobSuccessResult"
+                  - "codepipeline:StartPipelineExecution"
                   - "iam:GetRolePolicy"
                   - "iam:PutRolePolicy"
-                  - "ssm:GetParameters"
-                  - "ssm:GetParameter"
+                  - "kms:Decrypt"
+                  - "kms:Describe*"
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey*"
+                  - "kms:Get*"
+                  - "kms:List*"
+                  - "kms:PutKeyPolicy"
+                  - "kms:ReEncrypt*"
                   - "lambda:GetLayerVersion"
-                  - "codepipeline:PutJobSuccessResult"
-                  - "codepipeline:PutJobFailureResult"
-                  - "codepipeline:StartPipelineExecution"
-                  - "codepipeline:ListPipelines"
-                  - "codepipeline:GetPipelineState"
                   - "s3:Get*"
                   - "s3:Put*"
                   - "sns:Publish"
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
                 Resource: "*"
               - Effect: "Allow"
                 Action: 
@@ -773,10 +778,10 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - states.amazonaws.com
                 - events.amazonaws.com
                 - lambda.amazonaws.com
                 - sns.amazonaws.com
+                - states.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
@@ -873,7 +878,39 @@ Resources:
                 }
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
+  InitialCommit:
+    Type: Custom::InitialCommit
+    Properties:
+      ServiceToken: !GetAtt InitialCommitHandler.Arn
+      RepositoryArn: !GetAtt CodeCommitRepository.Arn
+      Version: !Ref ADFVersion
+      DirectoryName: pipelines_repository
+  InitialCommitHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: lambda_codebase/initial_commit
+      Description: "ADF Lambda Function - PipelinesCreateInitialCommitFunction"
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+            - Effect: Allow
+              Action: 
+                - codecommit:CreateBranch
+                - codecommit:CreateCommit
+                - codecommit:CreatePullRequest
+                - codecommit:DeleteBranch
+                - codecommit:GetBranch
+                - codecommit:GetDifferences
+              Resource: !GetAtt CodeCommitRepository.Arn
+      FunctionName: PipelinesCreateInitialCommitFunction
+      Runtime: python3.7
+      Timeout: 300
 Outputs:
+  ADFVersionNumber:
+    Value: !Ref ADFVersion
+    Export:
+      Name: "ADFVersionNumber"
   SlackLambdaArn:
     Value: !GetAtt SendSlackNotification.Arn
     Export:

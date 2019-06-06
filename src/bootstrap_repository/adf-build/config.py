@@ -57,7 +57,7 @@ class Config:
                 self.config.get('main-notification-endpoint')
         ):
             raise InvalidConfigError(
-                'adf_config.yml is missing required properties. '
+                'adfconfig.yml is missing required properties. '
                 'Please see the documentation.'
             )
 
