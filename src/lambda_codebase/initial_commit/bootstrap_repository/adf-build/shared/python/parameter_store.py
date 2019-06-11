@@ -9,7 +9,7 @@ from paginator import paginator
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
-PARAMETER_DESCRIPTION='DO NOT EDIT - Used by The AWS Deployment Framework'
+PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
 
 class ParameterStore:
     """Class used for modeling Parameters
@@ -27,7 +27,7 @@ class ParameterStore:
             LOGGER.debug('No need to update parameter %s with value %s since they are the same', name, value)
         except (ParameterNotFoundError, AssertionError):
             LOGGER.debug('Putting SSM Parameter %s with value %s', name, value)
-            return self.client.put_parameter(
+            self.client.put_parameter(
                 Name=name,
                 Description=PARAMETER_DESCRIPTION,
                 Value=value,
@@ -37,14 +37,13 @@ class ParameterStore:
 
     def delete_parameter(self, name):
         try:
+            LOGGER.debug('Deleting Parameter %s', name)
             return self.client.delete_parameter(
                 Name=name
             )
-            LOGGER.debug('Deleted Parameter %s', name)
         except self.client.exceptions.ParameterNotFound:
             LOGGER.debug('Attempted to delete Parameter %s but it was not found', name)
             pass
-
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)

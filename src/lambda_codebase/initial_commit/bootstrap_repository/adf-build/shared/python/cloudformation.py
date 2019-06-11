@@ -303,7 +303,6 @@ class CloudFormation(StackProperties):
 
     def delete_stack(self, stack_name):
         self.stack_name = stack_name
-        
         self.client.delete_stack(
             StackName=self.stack_name
         )
