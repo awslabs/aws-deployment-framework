@@ -5,11 +5,8 @@
 Module used for working with the Deployment Map (yml) file.
 """
 
-import os
 import yaml
-import boto3
 
-from cloudformation import CloudFormation
 from errors import InvalidDeploymentMapError
 from logger import configure_logger
 LOGGER = configure_logger(__name__)
@@ -74,24 +71,3 @@ class DeploymentMap:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid"
             )
-
-    def clean_stale_resources(self, name):
-        for parameter in self.parameter_store.fetch_parameters_by_path(
-                '/deployment/{0}/'.format(name)):
-            LOGGER.warning(
-                'Removing Resources for %s',
-                parameter.get('Name'))
-            self.parameter_store.delete_parameter(parameter.get('Name'))
-        self._clean_stale_stacks(name)
-
-    def _clean_stale_stacks(self, name):
-        cloudformation = CloudFormation(
-            region=os.environ['AWS_REGION'],
-            deployment_account_region=os.environ['AWS_REGION'],
-            role=boto3,
-        )
-
-        cloudformation.delete_stack("{0}-{1}".format(
-            self.pipeline_name_prefix,
-            name
-        ))

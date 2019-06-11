@@ -8,7 +8,7 @@ import re
 import os
 
 from botocore.exceptions import WaiterError, ClientError
-from errors import InvalidTemplateError
+from errors import InvalidTemplateError, GenericAccountConfigureError
 from logger import configure_logger
 from paginator import paginator
 
@@ -173,6 +173,7 @@ class CloudFormation(StackProperties):
     def _create_change_set(self):
         """Creates a Cloudformation change set from a template
         """
+        LOGGER.debug("%s - calling _create_change_set for %s", self.account_id, self.stack_name)
         try:
             self.template_url = self.template_url if self.template_url is not None else self.get_template_url()
             if self.template_url:
@@ -196,6 +197,8 @@ class CloudFormation(StackProperties):
                 self._wait_change_set()
                 return True
             return False
+        except ClientError as error:
+            raise GenericAccountConfigureError(error)
         except WaiterError as error:
             err = error.last_response
             if CloudFormation._change_set_failed_due_to_empty(err["Status"], err["StatusReason"]):
@@ -303,5 +306,6 @@ class CloudFormation(StackProperties):
         self.client.delete_stack(
             StackName=self.stack_name
         )
+        LOGGER.debug('Attempted Delete of stack: %s', stack_name)
         if self.wait:
             self._wait_stack('stack_delete_complete')
