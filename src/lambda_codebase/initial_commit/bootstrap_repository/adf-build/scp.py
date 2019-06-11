@@ -41,9 +41,10 @@ class SCP():
 
         organizations.enable_scp()
         scps = SCP._find_all()
+
+        LOGGER.info('Determining if SCP changes are required')
         organization_mapping = organizations.get_organization_map({'/': organizations.get_ou_root_id()})
         scp_keep_full_access = config.get('scp')
-
         try:
             current_stored_scps = ast.literal_eval(
                 parameter_store.fetch_parameter('scp')
@@ -72,6 +73,7 @@ class SCP():
                     organizations.delete_scp(scp_id)
                     LOGGER.info('SCP %s will be deleted. Path is: %s', organization_mapping[path], path)
         except ParameterNotFoundError:
+            LOGGER.debug('Parameter "scp" was not found in Parameter Store, continuing.')
             pass
 
         for scp in scps:
