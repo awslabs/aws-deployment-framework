@@ -23,6 +23,7 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ.get("MASTER_ACCOUNT_ID", 'us-east-1')
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -35,11 +36,24 @@ def clean(parameter_store, deployment_map):
     current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
         '/deployment/')
 
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+    cloudformation = CloudFormation(
+        region=DEPLOYMENT_ACCOUNT_REGION,
+        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
+        role=boto3
+    )
+    stacks_to_remove = []
     for parameter in current_pipeline_parameters:
         name = parameter.get('Name').split('/')[-2]
-        if name not in [p.get('name')
-                        for p in deployment_map.map_contents['pipelines']]:
-            deployment_map.clean_stale_resources(name)
+        if name not in [p.get('name') for p in deployment_map.map_contents['pipelines']]:
+            parameter_store.delete_parameter(name)
+            stacks_to_remove.append(name)
+
+    for stack in list(set(stacks_to_remove)):
+        cloudformation.delete_stack("{0}-{1}".format(
+            ADF_PIPELINE_PREFIX,
+            stack
+        ))
 
 
 def store_regional_parameter_config(pipeline, parameter_store):
@@ -91,7 +105,7 @@ def main(): #pylint: disable=R0915
     )
     deployment_map = DeploymentMap(
         parameter_store,
-        os.environ["ADF_PIPELINE_PREFIX"]
+        ADF_PIPELINE_PREFIX
     )
     s3 = S3(
         DEPLOYMENT_ACCOUNT_REGION,
@@ -144,7 +158,7 @@ def main(): #pylint: disable=R0915
             parameters=parameters,
             wait=True,
             stack_name="{0}-{1}".format(
-                os.environ["ADF_PIPELINE_PREFIX"],
+                ADF_PIPELINE_PREFIX,
                 pipeline.name
             ),
             s3=None,

@@ -27,6 +27,11 @@ def worker_thread(sts, region, account_id, role, event):
         'arn:aws:iam::{0}:role/{1}'.format(account_id, role),
         'remove_base')
 
+    parameter_store = ParameterStore(region, role)
+    parameters = [param['Name'] for param in parameter_store.client.describe_parameters()['Parameters'] if 'Used by The AWS Deployment Framework' in param['Description']]
+    for parameter in parameters:
+        parameter_store.delete_parameter(parameter)
+
     cloudformation = CloudFormation(
         region=region,
         deployment_account_region=event.get('deployment_account_region'),

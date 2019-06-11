@@ -6,6 +6,10 @@
 
 from errors import ParameterNotFoundError
 from paginator import paginator
+from logger import configure_logger
+
+LOGGER = configure_logger(__name__)
+PARAMETER_DESCRIPTION='DO NOT EDIT - Used by The AWS Deployment Framework'
 
 class ParameterStore:
     """Class used for modeling Parameters
@@ -17,22 +21,36 @@ class ParameterStore:
     def put_parameter(self, name, value):
         """Puts a Parameter into Parameter Store
         """
-        return self.client.put_parameter(
-            Name=name,
-            Description='DO NOT EDIT - Used by The AWS Deployment Framework',
-            Value=value,
-            Type='String',
-            Overwrite=True)
+        try:
+            current_value = self.fetch_parameter(name)
+            assert current_value == value
+            LOGGER.debug('No need to update parameter %s with value %s since they are the same', name, value)
+        except (ParameterNotFoundError, AssertionError):
+            LOGGER.debug('Putting SSM Parameter %s with value %s', name, value)
+            return self.client.put_parameter(
+                Name=name,
+                Description=PARAMETER_DESCRIPTION,
+                Value=value,
+                Type='String',
+                Overwrite=True
+            )
 
     def delete_parameter(self, name):
-        return self.client.delete_parameter(
-            Name=name
-        )
+        try:
+            return self.client.delete_parameter(
+                Name=name
+            )
+            LOGGER.debug('Deleted Parameter %s', name)
+        except self.client.exceptions.ParameterNotFound:
+            LOGGER.debug('Attempted to delete Parameter %s but it was not found', name)
+            pass
+
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
         """
         try:
+            LOGGER.debug('Fetching Parameters from path %s', path)
             return paginator(self.client.get_parameters_by_path,
                              Path=path,
                              Recursive=True,
@@ -48,6 +66,7 @@ class ParameterStore:
         """Gets a Parameter from Parameter Store (Returns the Value)
         """
         try:
+            LOGGER.debug('Fetching Parameter %s', name)
             response = self.client.get_parameter(
                 Name=name,
                 WithDecryption=with_decryption
