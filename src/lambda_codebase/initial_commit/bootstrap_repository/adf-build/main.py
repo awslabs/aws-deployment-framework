@@ -195,8 +195,16 @@ def worker_thread(
                 s3_key_path=account_path,
                 account_id=account_id
             )
-
-            cloudformation.create_stack()
+            try:
+                cloudformation.create_stack()
+            except GenericAccountConfigureError as error:
+                if 'Unable to fetch parameters' in str(error):
+                    LOGGER.error(
+                        '%s - Failed to update its base stack due to missing parameters (deployment_account_id or kms_arn), '
+                        'ensure this account has been bootstrapped correctly by being moved from the root '
+                        'into an Organizational Unit within AWS Organizations.', account_id
+                    )
+                raise Exception from error
 
     except GenericAccountConfigureError as generic_account_error:
         LOGGER.info(generic_account_error)
@@ -265,7 +273,6 @@ def main(): #pylint: disable=R0915
                 s3_key_path=account_path,
                 account_id=deployment_account_id
             )
-
             cloudformation.create_stack()
 
             update_deployment_account_output_parameters(
