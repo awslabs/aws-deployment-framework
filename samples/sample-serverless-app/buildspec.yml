@@ -3,14 +3,11 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      docker: 18
       python: 3.7
   build:
     commands:
-      - bash build/docker.sh
-  post_build:
-    commands:
-      - bash build/adf_post_build.sh
+      - bash build/generate_parameters.sh
+      - bash adf-build/helpers/package_transform.sh
 
 artifacts:
   files: '**/*'

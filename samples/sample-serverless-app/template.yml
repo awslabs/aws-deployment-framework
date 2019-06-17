@@ -1,0 +1,24 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ADF CloudFormation Sample Template (Serverless Application)
+Metadata:
+  License: Apache-2.0
+Resources:
+  ExampleServerlessApp:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.handler
+      Runtime: python3.7
+      CodeUri: .
+      Description: Sample Lambda Function
+      MemorySize: 128
+      Timeout: 3
+      Events:
+        GetResource:
+          Type: Api
+          Properties:
+            Path: /resource/{id}
+            Method: get

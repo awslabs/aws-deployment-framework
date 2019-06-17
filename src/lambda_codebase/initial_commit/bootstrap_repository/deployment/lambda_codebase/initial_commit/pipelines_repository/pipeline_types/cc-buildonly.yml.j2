@@ -67,7 +67,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Condition: HasSchedule
     Properties: 
-      Description: !Sub Triggers ${AWS::StackName} on a Schedule
+      Description: !Sub "Triggers ${AWS::StackName} on a Schedule"
       ScheduleExpression: !Ref ScheduleExpression
       Targets:
         - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
@@ -90,7 +90,7 @@ Resources:
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: './adf-build/shared/python'
-          - Name: PROJECT_NAME
+          - Name: ADF_PROJECT_NAME
             Value: !Ref ProjectName
           - Name: S3_BUCKET_NAME
             Value: !ImportValue S3Bucket-{{ deployment_account_region }}

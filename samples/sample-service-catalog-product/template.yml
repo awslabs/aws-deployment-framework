@@ -1,0 +1,54 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Sample Template (Service Catalog Product)
+Metadata:
+  License: Apache-2.0
+Parameters: 
+  ProductXTemplateURL:
+    Type: String
+    Description: Service Catalog CloudFormation Template URL
+Resources:
+  Portfolio:
+    Type: AWS::ServiceCatalog::Portfolio
+    Properties: 
+      AcceptLanguage: en
+      Description: Portfolio containing Cloud9 Development Environment
+      DisplayName: IDE Portfolio
+      ProviderName: Company
+  IDETagOption:
+    Type: "AWS::ServiceCatalog::TagOption"
+    Properties:
+      Key: "ProductType"
+      Value: "IDE"
+  IDEPortfolioTagOptionAssociation:
+    Type: "AWS::ServiceCatalog::TagOptionAssociation"
+    Properties:
+      ResourceId: !Ref Portfolio
+      TagOptionId: !Ref IDETagOption
+  Cloud9Product:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties: 
+      AcceptLanguage: en
+      Description: CloudFormation Template to deploy Cloud9 Development Environment
+      Distributor: Company
+      Name: Cloud9 Development Environment
+      Owner: Company
+      ProvisioningArtifactParameters:
+        - Info: { "LoadTemplateFromURL": !Ref ProductXTemplateURL }
+      SupportDescription: For help with Cloud9 Dev Environment contact us
+      SupportEmail: jon@doe.com
+      SupportUrl: http://example.com
+  Association:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties: 
+      AcceptLanguage: en
+      PortfolioId: !Ref Portfolio
+      ProductId: !Ref Cloud9Product
+  IDEPortfolioPrincipalAssociation:
+    Type: "AWS::ServiceCatalog::PortfolioPrincipalAssociation"
+    Properties:
+      PortfolioId: !Ref Portfolio
+      PrincipalARN: !ImportValue DevelopersIAMGroupARN
+      PrincipalType: "IAM"

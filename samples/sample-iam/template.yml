@@ -1,0 +1,103 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Sample Template (IAM)
+Metadata:
+  License: Apache-2.0
+Resources:
+  DevelopersIAMGroup:
+    Type: AWS::IAM::Group
+    Properties: 
+      GroupName: sample-developers
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AWSServiceCatalogEndUserFullAccess'
+        - 'arn:aws:iam::aws:policy/AWSCloud9User'
+        - 'arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AWSCodeCommitFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
+  SampleDeveloper:
+    Type: AWS::IAM::User
+    Properties:
+      Groups: 
+        - !Ref DevelopersIAMGroup
+      LoginProfile:
+        Password: 'sample-password' # Use Secrets Manager -> https://aws.amazon.com/blogs/security/how-to-create-and-retrieve-secrets-managed-in-aws-secrets-manager-using-aws-cloudformation-template/
+      UserName: sample-developer
+  GlobalInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref "GlobalInstanceRole"
+  GlobalInstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref "DefaultInstanceManagedPolicy"
+      RoleName: "global-instance-role"
+  DefaultInstanceManagedPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Managed policy for default rights needed for EC2 instances"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "autoscaling:Describe*"
+              - "autoscaling:EnterStandby"
+              - "autoscaling:ExitStandby"
+              - "autoscaling:SetInstanceHealth"
+              - "autoscaling:UpdateAutoScalingGroup"
+              - "cloudformation:SignalResource"
+              - "ec2:DescribeTags"
+              - "elasticloadbalancing:DeregisterTargets"
+              - "elasticloadbalancing:DescribeTargetGroups"
+              - "elasticloadbalancing:DescribeTargetHealth"
+              - "elasticloadbalancing:RegisterTargets"
+              - "kms:Decrypt"
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
+            Resource:
+              - "*"
+  CodeDeployServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "codedeploy.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+      RoleName: "codedeploy-service-role"
+Outputs:
+  DevelopersIAMGroupARN:
+    Description: The ARN of the Developers IAM Group to be exported.
+    Export:
+      Name: DevelopersIAMGroupARN
+    Value: !GetAtt DevelopersIAMGroup.Arn
+  CodeDeployRoleARN:
+    Description: The ARN of the Developers IAM Group to be exported.
+    Export:
+      Name: CodeDeployRoleARN
+    Value: !GetAtt CodeDeployServiceRole.Arn
+  DefaultInstanceManagedPolicyArn:
+    Description: "The ARN of the Default EC2 Instance Managed Policy to be imported into application stacks"
+    Value: !Ref "DefaultInstanceManagedPolicy"
+    Export:
+      Name: "DefaultInstanceManagedPolicyArn"

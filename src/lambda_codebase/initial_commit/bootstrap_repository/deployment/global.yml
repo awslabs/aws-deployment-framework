@@ -1,27 +1,27 @@
 # // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: 'AWS::Serverless-2016-10-31'
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
 Description: ADF CloudFormation Template (Global) for Deployment Account
 Parameters:
   ADFVersion:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: adf_version
   ADFLogLevel:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: adf_log_level
   MasterAccountId:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: master_account_id
   SharedModulesBucket:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: deployment_account_bucket
   OrganizationId:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
   CrossAccountAccessRole:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: cross_account_access_role
   Image:
     Description: The Image you wish to use for CodeBuild.
@@ -36,15 +36,15 @@ Parameters:
       - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
       - "BUILD_GENERAL1_LARGE"  #15 GB memory, 8 vCPU
   NotificationEndpoint:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: notification_endpoint
   NotificationType:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type : "AWS::SSM::Parameter::Value<String>"
     Default: notification_type
   PipelinePrefix:
     Description: The Prefix that will be attached to all cloudformation stacks for ADF pipelines (joined by - to the name)
     Type: String
-    Default: 'adf-pipeline'
+    Default: "adf-pipeline"
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -152,8 +152,8 @@ Resources:
               - s3:List*
               - s3:PutObject
             Resource:
-              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
-              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
+              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket, "/*"]]
+              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket]]
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -358,8 +358,8 @@ Resources:
               - s3:ListBucket
               - s3:PutObject
             Resource:
-              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket, '/*']]
-              - !Join ['',['arn:aws:s3:::',!Ref PipelineBucket]]
+              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket, "/*"]]
+              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket]]
       Roles:
         - !Ref CloudFormationDeploymentRole
   CodeBuildPolicy:
@@ -380,15 +380,15 @@ Resources:
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
-      RepositoryName: 'aws-deployment-framework-pipelines'
+      RepositoryName: "aws-deployment-framework-pipelines"
       RepositoryDescription: !Sub "CodeCommit Repo for all pipelines in ${AWS::AccountId}"
       Triggers:
       - Name: Email
         DestinationArn: !Ref PipelineSNSTopic
         Branches:
-        - master
+          - master
         Events:
-        - all
+          - all
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -399,7 +399,7 @@ Resources:
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: './adf-build/shared/python'
+            Value: "./adf-build/shared/python"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
@@ -415,7 +415,7 @@ Resources:
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
         Type: LINUX_CONTAINER
-      Name: 'aws-deployment-framework-base'
+      Name: "aws-deployment-framework-base"
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub | 
@@ -431,13 +431,51 @@ Resources:
                 - aws s3 cp ./adf-build s3://$S3_BUCKET_NAME/adf-build/ --recursive --quiet
                 - pytest -vvv
                 - python ./adf-build/generate_pipelines.py
-          artifacts:
-            files:
-              - '**/*'
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
-        - Key: 'Name'
-          Value: 'aws-deployment-framework-base'
+        - Key: "Name"
+          Value: "aws-deployment-framework-base"
+  CodePipelineCloudWatchEventRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - events.amazonaws.com
+              Action: "sts:AssumeRole"
+        Path: /
+        Policies:
+          - PolicyName: "execute-pipeline"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: codepipeline:StartPipelineExecution
+                  Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+  CodeCommitCloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - "CodeCommit Repository State Change"
+        resources:
+          - !GetAtt CodeCommitRepository.Arn
+        detail:
+          event:
+            - referenceCreated
+          referenceType:
+            - branch
+          referenceName:
+            - master
+      Targets:
+        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+          RoleArn: !GetAtt CodePipelineCloudWatchEventRole.Arn
+          Id: codepipeline-trigger
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -445,7 +483,8 @@ Resources:
         Type: S3
         Location: !Ref PipelineBucket
       RoleArn: !GetAtt CodePipelineRole.Arn
-      Name: 'aws-deployment-framework-pipelines'
+      RestartExecutionOnUpdate: true
+      Name: "aws-deployment-framework-pipelines"
       Stages:
         - Name: CodeCommit
           Actions:
@@ -453,13 +492,14 @@ Resources:
               ActionTypeId:
                 Category: Source
                 Owner: AWS
-                Version: '1'
+                Version: "1"
                 Provider: CodeCommit
               OutputArtifacts:
                 - Name: "Source"
               Configuration:
                 BranchName: "master"
-                RepositoryName: 'aws-deployment-framework-pipelines'
+                RepositoryName: !GetAtt CodeCommitRepository.Name
+                PollForSourceChanges: false
               RunOrder: 1
         - Name: CreateOrUpdatePipelines
           Actions:
@@ -467,7 +507,7 @@ Resources:
               ActionTypeId:
                   Category: Build
                   Owner: AWS
-                  Version: '1'
+                  Version: "1"
                   Provider: CodeBuild
               OutputArtifacts:
                 - Name: "aws-deployment-pipelines-build"
@@ -513,7 +553,7 @@ Resources:
     Properties:
       PolicyDocument:
         Id: !Sub "${AWS::StackName}"
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
         - Effect: Allow
           Principal:
@@ -773,9 +813,9 @@ Resources:
                   - "s3:List*"
                 Resource:
                   !Join
-                    - ''
+                    - ""
                     - - !GetAtt PipelineBucket.Arn
-                      - '/*'
+                      - "/*"
               - Effect: "Allow"
                 Action: "logs:*"
                 Resource: "arn:aws:logs:*:*:*"

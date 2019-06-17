@@ -3,6 +3,8 @@
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (VPC) - Designed to be launched into a region with 3 availability zones
+Metadata:
+  License: Apache-2.0
 Mappings:
   SubnetConfig:
     VPC:
@@ -93,8 +95,8 @@ Outputs:
 Parameters:
   Environment:
     AllowedValues:
-    - testing
-    - production
+      - testing
+      - production
     ConstraintDescription: Must be one of the values from the list.
     Description: Environment in which resources are deployed
     Type: String
@@ -197,9 +199,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 0
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 0
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateOne', 'CIDR']
       Tags:
@@ -223,9 +225,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 1
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 1
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateTwo', 'CIDR']
       Tags:
@@ -249,9 +251,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 2
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 2
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateThree', 'CIDR']
       Tags:
@@ -299,9 +301,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 0
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 0
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicOne', 'CIDR']
       MapPublicIpOnLaunch: true
@@ -326,9 +328,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 1
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 1
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicTwo', 'CIDR']
       Tags:
@@ -352,9 +354,9 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-         Fn::Select:
-         - 2
-         - Fn::GetAZs: {Ref: 'AWS::Region'}
+          Fn::Select:
+          - 2
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicThree', 'CIDR']
       Tags:

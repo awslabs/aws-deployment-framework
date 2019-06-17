@@ -7,18 +7,22 @@
 import os
 import boto3
 
+from s3 import S3
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
 from sts import STS
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
+DEFAULT_REGION = os.environ["AWS_REGION"]
+S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 
 class Resolver:
     def __init__(self, parameter_store, stage_parameters, comparison_parameters):
         self.parameter_store = parameter_store
         self.stage_parameters = stage_parameters
         self.comparison_parameters = comparison_parameters
+        self.s3 = S3(DEFAULT_REGION, S3_BUCKET_NAME)
         self.sts = STS()
 
     def fetch_stack_output(self, value, param, key=None):
@@ -57,6 +61,39 @@ class Resolver:
             self.stage_parameters[key][param] = stack_output
             return
         self.stage_parameters[key] = stack_output
+
+    def upload(self, value, key, file_name, param=None):
+        if str(value).count(':') > 1:
+            [_, region, value] = value.split(':')
+            bucket_name = self.parameter_store.fetch_parameter(
+                '/cross_region/s3_regional_bucket/{0}'.format(region)
+            )
+            regional_client = S3(region, bucket_name)
+            LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", value, file_name, bucket_name, region)
+            if param:
+                self.stage_parameters[param][key] = regional_client.put_object(
+                    "adf-upload/{0}/{1}".format(value, file_name),
+                    "{0}".format(value)
+                )
+            else:
+                self.stage_parameters[key] = regional_client.put_object(
+                    "adf-upload/{0}/{1}".format(value, file_name),
+                    "{0}".format(value)
+                )
+            return True
+        [_, value] = value.split(':')
+        LOGGER.info("Uploading %s to S3", value)
+        if param:
+            self.stage_parameters[param][key] = self.s3.put_object(
+                "adf-upload/{0}/{1}".format(value, file_name),
+                "{0}".format(value)
+            )
+        else:
+            self.stage_parameters[key] = self.s3.put_object(
+                "adf-upload/{0}/{1}".format(value, file_name),
+                "{0}".format(value)
+            )
+        return False
 
     def fetch_parameter_store_value(self, value, key, param=None):
         if str(value).count(':') > 1:

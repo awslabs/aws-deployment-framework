@@ -3,6 +3,8 @@
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (Shared ECR Repository)
+Metadata:
+  License: Apache-2.0
 Parameters:
   TestingAccountId:
     Description: Testing Accound Id that will pull from this repository

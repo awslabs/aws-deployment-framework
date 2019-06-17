@@ -53,7 +53,7 @@ The `src` folder contains a nesting of folders that go on to make two different 
 
 4. Once the AWS CodePipeline Execution from the previous step is complete, move the Deployment Account that was created in step 2 *(or pre-existing)* into the OU called `deployment`. This action will trigger [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start the bootstrap process for the deployment account. You can view the progress of this in the AWS Step Functions console from the master account in the us-east-1 region.
 
-5. Once the Step Function has completed, switch roles over to the newly bootstrapped deployment account in the region you defined as your main region from step 2. An AWS CodeCommit repository will have been created and will contain the initial skeleton structure committed which serves as a starting point for defining your pipelines through your organization. Before defining pipelines you will most likely want to create more AWS accounts and build out your Organization. Bootstrap further accounts by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to get started with the samples included in this repository which will show in detail how pipelines function in ADF. Otherwise, if you just want to get started making pipelines you can create a `deployment_map.yml` file *(see example-deployment_map.yml in your aws-deployment-framework-pipelines)* repository. Each account you reference in your `deployment_map.yml` must be bootstrapped into an OU prior to adding it to a pipeline.
+5. Once the Step Function has completed, switch roles over to the newly bootstrapped deployment account in the region you defined as your main region from step 2. An AWS CodeCommit repository will have been created and will contain the initial skeleton structure committed which serves as a starting point for defining your pipelines throughout your organization. Before defining pipelines you will most likely want to create more AWS accounts and build out your Organization. Bootstrap further accounts by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to get started with the samples included in this repository which will show in detail how pipelines function in ADF. **Note** Each account you reference in your `deployment_map.yml` must be bootstrapped into an OU prior to adding it to a pipeline.
 
 ## adfconfig
 
@@ -190,7 +190,7 @@ bootstrap_repository
 │
 ```
 
-Now what we have done is removed two folder representations of the Organizational Units and moved our generic `test & dev` base stacks into the root of our repository *(as a single template)*. This means that any account move into an OU that cannot find its `regional.yml` or `global.yml` will recursively search one level up until it reaches the root. This same logic is applied for parameter files such as `regional-params.json` and `global-params.json`.
+What we have done is removed two folder representations of the Organizational Units and moved our generic `test & dev` base stacks into the root of our repository *(as a single template)*. This means that any account move into an OU that cannot find its `regional.yml` or `global.yml` will recursively search one level up until it reaches the root. This same logic is applied for parameter files such as `regional-params.json` and `global-params.json`.
 
 #### Regional Bootstrapping
 
@@ -247,6 +247,30 @@ pipelines:
 
 **Note** If you find yourself specifying the same set of parameters over and over through-out the deployment map consider moving the value into the template itself *(in the pipelines_type folder)* as the default value.
 
+Along with Pipeline Parameters there can potentially be stage parameters if required. Take for example the following pipeline to perform ETL processing on workloads as they land in one Amazon S3 Bucket and, after transformed, moved into new Buckets in other AWS Accounts.
+
+```yaml
+  - name: sample-etl
+    type: s3-s3
+    params:
+      - SourceAccountId: 111111111111
+      - SourceAccountBucket: banking-etl-bucket-source
+      - SourceObjectKey: input.zip
+    targets:
+      - path: 222222222222
+        regions: eu-west-1
+        params:
+          OutputBucketName: account-blah-bucket-etl
+          OutputObjectKey: some_path/output.zip
+      - path: 333333333333
+        params:
+          OutputBucketName: business_unit_bucket-etl
+          OutputObjectKey: another/path/output.zip
+```
+
+In this example, we want to take our `input.zip` file from the Amazon S3 Bucket `banking-etl-bucket-source` that lives in the account `111111111111`. When the data lands in the bucket we want to run our pipeline which will run some ETL scripts *(see samples folder)* against the data and output `output.zip`. We then want to deploy this artifact into other Amazon S3 Buckets that live in other AWS Accounts and potentially other AWS Regions. Since Bucket Names are globally unique we need some way to define which bucket we want to deploy our `output.zip` into at a stage level. The way we accomplish this is we can pass in `params` in the form of *key/value* into the stage itself. This key/value pairs go directly into the pipeline type definition and can be referenced as required.
+
+
 #### Pipeline Types
 
 In the [deployment map](#deployment-map) file you will notice that there is a property called **type**. This value maps directly the the type of pipeline you wish to use for that specific pipeline. As your organization grows you might have different needs for different types of pipelines. For example, one might handle all the CloudFormation deployment aspects however you might also want a pipeline that uses other third-party integrations for CodePipeline such as Jenkins or TeamCity, or maybe deploys directly to Lambda as opposed to using CloudFormation as a deployment configuration. In the deployment account pipelines repository, in the folder titled *pipeline_types* you can create the pipeline file that best suits your needs. From there you can add or update the deployment_map.yml file with the name of the pipeline file you wish to use. This allows you to create a pipeline once and have it used many times with a different combination of accounts and regions as targets.
@@ -282,7 +306,7 @@ pipelines:
 
 Pipeline files use the Jinja2 *(.j2)* preprocessor in order to dynamically generate the deployment phases of your pipeline. For more information on Jinja2 take a look at the [documentation](http://jinja.pocoo.org/docs/2.10/).
 
-As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create which type you desire.
+As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create whichever type you desire.
 
 ## Service Control Policies
 Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
@@ -332,6 +356,6 @@ As per the same as the `deployment_map.yml` style configuration, this would requ
 
 ### Updating Between Versions
 
-To update ADF between releases, open the Serverless Application Repository *(SAR)* on the master account in us-east-1. From here, search for *adf* and click deploy. During an update of ADF there is no need to pass in any parameters other than the defaults.
+To update ADF between releases, open the Serverless Application Repository *(SAR)* on the master account in us-east-1. From here, search for *adf* and click deploy. During an update of ADF there is no need to pass in any parameters other than the defaults *(granted you used the defaults to deploy initially)*.
 
 This will cause your *serverlessrepo-aws-deployment-framework* stack to update with any new changes that were included in that release of ADF. However, we also might make changes to some of the foundational aspects of ADF and how it works, because of this, we might want to change files that live within the *bootstrap* or *pipelines* repository with AWS CodeCommit on your account. To do this, AWS CloudFormation will run the *InitialCommit* Custom CloudFormation resource when updating via the SAR, this resource will open a pull request against the current *master* branch on the respective repositories with a set of changes that you can optionally choose to merge. Initially when updating via the SAR a PR will be opened if there are any changes to make against the *bootstrap* repository, if those are merged the bootstrap pipeline will run and will update the deployment account base stack, which will in-turn make a PR against the deployment accounts *pipeline* repository with any changes from upstream.

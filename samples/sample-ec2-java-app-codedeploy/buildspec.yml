@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: openjdk8
+  build:
+    commands:
+      - mvn clean package --quiet
+artifacts:
+  discard-paths: yes
+  files:
+    - target/*
+    - scripts/*
+    - appspec.yml

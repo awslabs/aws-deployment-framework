@@ -24,7 +24,8 @@ def cls():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step_name=None
+        step_name=None,
+        params={}
     )
     return cls
 
@@ -91,7 +92,8 @@ def test_fetch_accounts_for_target_ou_path():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step_name=None
+        step_name=None,
+        params={}
     )
 
     with patch.object(cls, '_target_is_ou_path') as mock:
@@ -105,7 +107,8 @@ def test_fetch_accounts_for_target_account_id():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step_name=None
+        step_name=None,
+        params={}
     )
     with patch.object(cls, '_target_is_account_id') as mock:
         cls.fetch_accounts_for_target()
@@ -118,7 +121,8 @@ def test_fetch_accounts_for_target_ou_id():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step_name=None
+        step_name=None,
+        params={}
     )
     with patch.object(cls, '_target_is_ou_id') as mock:
         cls.fetch_accounts_for_target()
@@ -131,7 +135,8 @@ def test_fetch_accounts_for_approval():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step_name=None
+        step_name=None,
+        params={}
     )
     with patch.object(cls, '_target_is_approval') as mock:
         cls.fetch_accounts_for_target()
@@ -143,7 +148,8 @@ def test_fetch_account_error():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=Mock(),
-        step_name=None
+        step_name=None,
+        params={}
     )
     with raises(InvalidDeploymentMapError):
         cls.fetch_accounts_for_target()
@@ -154,7 +160,8 @@ def test_fetch_account_error_invalid_account_id():
         regions=['region1', 'region2'],
         target_structure=MockTargetStructure(),
         organizations=Mock(),
-        step_name=None
+        step_name=None,
+        params={}
     )
     with raises(InvalidDeploymentMapError):
         cls.fetch_accounts_for_target()

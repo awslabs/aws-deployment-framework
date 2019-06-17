@@ -12,7 +12,8 @@ target_is_approval = {
     'id': 'approval',
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    'step_name': ''
+    'step_name': '',
+    'params': {}
 }
 
 create_target_info_default = {
@@ -20,7 +21,8 @@ create_target_info_default = {
     'id': 12345678910,
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    'step_name': ''
+    'step_name': '',
+    'params': {}
 }
 
 create_target_info_regex_applied = {
@@ -28,7 +30,8 @@ create_target_info_regex_applied = {
     'id': 12345678910,
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    'step_name': ''
+    'step_name': '',
+    'params': {}
 }
 
 target_output = {
@@ -36,7 +39,8 @@ target_output = {
     'id': 'fake',
     'path': '/thing/path',
     'regions': ['region1', 'region2'],
-    'step_name': ''
+    'step_name': '',
+    'params': {}
 }
 
 organizations_describe_account = {

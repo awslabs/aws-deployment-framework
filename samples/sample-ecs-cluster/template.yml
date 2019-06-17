@@ -1,10 +1,12 @@
 # // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-# Builds ontop of the great work of Nathan Peck => https://github.com/nathanpeck/aws-cloudformation-fargate
+# This Template builds on top of the great work of Nathan Peck => https://github.com/nathanpeck/aws-cloudformation-fargate
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (ECS Cluster)
+Metadata:
+  License: Apache-2.0
 Parameters: 
     Environment:
         Description: The Current Environment
