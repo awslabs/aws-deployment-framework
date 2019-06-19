@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+      python: 3.7
+  build:
+    commands:
+      - bash build/docker.sh
+  post_build:
+    commands:
+      - bash build/generate_parameters.sh
+
+artifacts:
+  files: '**/*'

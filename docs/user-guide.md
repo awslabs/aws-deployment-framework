@@ -91,9 +91,13 @@ targets:
   - path: 9999999999
     regions: eu-west-1
     name: my-special-account
+    params:
+      Foo: Bar
   - path: /my_ou/production
     regions: eu-central-1
     name: production_step
+    params:
+      Baz: Waffle
 ```
 
 ## Deploying via Pipelines
@@ -215,7 +219,7 @@ You can create the above parameter files if you are deploying products to your S
 
 For more examples of parameters and their usage see the `samples` folder in the root of the repository.
 
-*Note:* Currently only Strings type values are supported as parameters to CloudFormation templates.
+*Note:* Currently only Strings type values are supported as parameters to CloudFormation templates when deploying via AWS CodePipeline.
 
 ### Parameter Injection
 
@@ -248,6 +252,23 @@ Parameter injection is also useful for importing exported values from CloudForma
 ```
 
 In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *export_key* is the output key name *(not export name)*.
+
+Another built-in function is **upload**, You can use *upload* to perform an automated upload of a resource such as a template or file into Amazon S3 as part of the build process.
+Once the upload is complete, the Amazon S3 URL for the object will be put in place of the *upload* string in the parameter file. 
+
+For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization *(see samples)* you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point since the file has not yet been uploaded to S3.
+
+```json
+{
+    "Parameters": {
+        "ProductYTemplateURL": "upload:productY/template.yml"
+    }
+}
+```
+
+In the above example, we are calling the **upload** function on a file called `template.yml` that lives in the *productY* folder within our repository. The string *"upload:productY/template.yml"* will be replaced by the URL of the object in S3 once it has been uploaded. You can also upload files to S3 Buckets within specific regions by adding in the region name as part of the string *(eg upload:us-west-1:productY/template.yml)*.
+
+The bucket being used to hold the uploaded object is the same Amazon S3 Bucket that holds deployment artifacts *(On the Deployment Account)* for the specific region which they are intended to be deployed to. Files that are uploaded using this functionality will receive a random name each time they are uploaded.
 
 ### Nested Stacks
 
@@ -284,7 +305,7 @@ When the `package_transform.sh` command is executed, the file will be packaged u
 
 ### Deploying Serverless Applications with SAM
 
-Serverless Applications can also be deployed via ADF. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
+Serverless Applications can also be deployed via ADF *(see samples)*. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
 
 For example, deploying a NodeJS Serverless Application from AWS CodeBuild with the *aws/codebuild/standard:2.0* image can be done with a *buildspec.yml* that looks like the following [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 

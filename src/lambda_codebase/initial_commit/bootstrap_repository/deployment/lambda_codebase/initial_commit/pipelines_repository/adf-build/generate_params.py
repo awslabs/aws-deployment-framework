@@ -7,6 +7,8 @@
 """
 
 import json
+import secrets
+import string  # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
 import os
 import ast
 import boto3
@@ -17,7 +19,7 @@ from parameter_store import ParameterStore
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
-PROJECT_NAME = os.environ.get('PROJECT_NAME')
+PROJECT_NAME = os.environ.get("ADF_PROJECT_NAME")
 
 
 class Parameters:
@@ -45,35 +47,43 @@ class Parameters:
             return None
 
     def create_parameter_files(self):
+        file_name = "".join(
+            secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
+        )
         global_params = self._parse(self.global_path)
         for acc, ou in self.account_ous.items():
             for region in self.regions:
                 for params in ["{0}_{1}.json".format(acc, region)]:
                     compare_params = self._compare(
                         self._parse("{0}/params/{1}.json".format(self.cwd, acc)),
-                        self._parse("{0}/params/{1}".format(self.cwd, params))
+                        self._parse("{0}/params/{1}".format(self.cwd, params)),
+                        file_name
                     )
 
                     if not str(ou).isnumeric():
                         # Compare account_region final to ou_region
                         compare_params = self._compare(
                             self._parse("{0}/params/{1}_{2}.json".format(self.cwd, ou, region)),
-                            compare_params
+                            compare_params,
+                            file_name
                         )
                         # Compare account_region final to ou
                         compare_params = self._compare(
                             self._parse("{0}/params/{1}.json".format(self.cwd, ou)),
-                            compare_params
+                            compare_params,
+                            file_name
                         )
                     # Compare account_region final to deployment_account_region
                     compare_params = self._compare(
                         self._parse("{0}/params/global_{1}.json".format(self.cwd, region)),
-                        compare_params
+                        compare_params,
+                        file_name
                     )
                     # Compare account_region final to global
                     compare_params = self._compare(
                         global_params,
-                        compare_params
+                        compare_params,
+                        file_name
                     )
 
                     if compare_params is not None:
@@ -100,7 +110,7 @@ class Parameters:
         with open("{0}/params/{1}".format(self.cwd, filename), 'w') as outfile:
             json.dump(new_params, outfile)
 
-    def _cfn_param_updater(self, param, comparison_parameters, stage_parameters):
+    def _cfn_param_updater(self, param, comparison_parameters, stage_parameters, file_name): # pylint: disable=R0912
         """
         Generic CFN Updater method
         """
@@ -113,6 +123,9 @@ class Parameters:
             if str(value).startswith('import:'):
                 if resolver.fetch_stack_output(value, key, param):
                     continue
+            if str(value).startswith('upload:'):
+                if resolver.upload(value, key, file_name, param):
+                    continue
             resolver.update_cfn(key, param)
 
         for key, value in stage_parameters[param].items():
@@ -122,25 +135,28 @@ class Parameters:
             if str(value).startswith('import:'):
                 if resolver.fetch_stack_output(value, key, param):
                     continue
+            if str(value).startswith('upload:'):
+                if resolver.upload(value, key, file_name, param):
+                    continue
 
         return resolver.__dict__.get('stage_parameters')
 
-    def _compare_cfn(self, comparison_parameters, stage_parameters):
+    def _compare_cfn(self, comparison_parameters, stage_parameters, file_name):
         """
         Compares parameter files used for the CloudFormation deployment type
         """
         if comparison_parameters.get('Parameters'):
             stage_parameters = self._cfn_param_updater(
-                'Parameters', comparison_parameters, stage_parameters
+                'Parameters', comparison_parameters, stage_parameters, file_name
             )
         if comparison_parameters.get('Tags'):
             stage_parameters = self._cfn_param_updater(
-                'Tags', comparison_parameters, stage_parameters
+                'Tags', comparison_parameters, stage_parameters, file_name
             )
 
         return stage_parameters
 
-    def _sc_param_updater(self, comparison_parameters, stage_parameters):
+    def _sc_param_updater(self, comparison_parameters, stage_parameters, file_name): # pylint: disable=R0912
         """
         Compares parameter files used for the Service Catalog deployment type
         """
@@ -153,6 +169,9 @@ class Parameters:
             if str(value).startswith('import:'):
                 if resolver.fetch_stack_output(value, key):
                     continue
+            if str(value).startswith('upload:'):
+                if resolver.upload(value, key, file_name):
+                    continue
             resolver.update_sc(key)
 
         for key, value in stage_parameters.items():
@@ -162,17 +181,20 @@ class Parameters:
             if str(value).startswith('import:'):
                 if resolver.fetch_stack_output(value, key):
                     continue
+            if str(value).startswith('upload:'):
+                if resolver.upload(value, key, file_name):
+                    continue
 
         return resolver.__dict__.get('stage_parameters')
 
-    def _compare(self, comparison_parameters, stage_parameters):
+    def _compare(self, comparison_parameters, stage_parameters, file_name):
         """
         Determine the type of parameter file that should be compared
         (currently only SC/CFN)
         """
         if comparison_parameters.get('Parameters') or comparison_parameters.get('Tags'):
-            return self._compare_cfn(comparison_parameters, stage_parameters)
-        return self._sc_param_updater(comparison_parameters, stage_parameters)
+            return self._compare_cfn(comparison_parameters, stage_parameters, file_name)
+        return self._sc_param_updater(comparison_parameters, stage_parameters, file_name)
 
 
 def main():

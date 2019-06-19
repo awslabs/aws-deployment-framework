@@ -3,6 +3,8 @@
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (NodeJS Application)
+Metadata:
+  License: Apache-2.0
 Parameters:
   Environment:
     Description: The Current Environment

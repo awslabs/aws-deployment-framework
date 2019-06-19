@@ -5,7 +5,7 @@ set -e
 # This script will package all source code and send it to an S3 bucket in each region
 # where the lambda needs to be deployed to.
 #
-# PROJECT_NAME is an environment variable that is passed to the CodeBuild Project
+# ADF_PROJECT_NAME is an environment variable that is passed to the CodeBuild Project
 # CODEBUILD_SRC_DIR is an environment variable provided by CodeBuild
 
 pip install --upgrade awscli aws-sam-cli -q
@@ -14,7 +14,7 @@ pip install --upgrade awscli aws-sam-cli -q
 sam build
 
 # Get list of regions supported by this application
-app_regions=`aws ssm get-parameters --names /deployment/$PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
+app_regions=`aws ssm get-parameters --names /deployment/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
 # Convert json list to bash list (space delimited regions)
 regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g"`"
 for region in $regions

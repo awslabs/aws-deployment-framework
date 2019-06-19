@@ -56,7 +56,8 @@ def test_compare_cfn(cls):
     )
     compare = cls._compare_cfn(
         parse,
-        {'Parameters': {}, 'Tags': {}}
+        {'Parameters': {}, 'Tags': {}},
+        'some_name'
     )
     assert compare == parse
 

@@ -1,0 +1,26 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ec2-user/server
+
+permissions:
+  - object: /
+    pattern: "**"
+    owner: ec2-user
+    group: ec2-user
+
+hooks:
+  ApplicationStop:
+    - location: stop.sh
+      timeout: 20
+      runas: ec2-user
+  ApplicationStart:
+    - location: start.sh
+      timeout: 20
+      runas: ec2-user
+  ValidateService:
+    - location: validate.sh
+      timeout: 120
+      runas: ec2-user

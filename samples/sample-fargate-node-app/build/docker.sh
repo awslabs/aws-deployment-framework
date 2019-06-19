@@ -3,7 +3,7 @@
 set -e
 
 $(aws ecr get-login --region $AWS_REGION --no-include-email)
-REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$PROJECT_NAME
+REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ADF_PROJECT_NAME
 IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
 docker build -t $REPOSITORY_URI:latest .

@@ -1,5 +1,7 @@
 ## Sample NodeJS Web Application running on AWS Fargate
 
+This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-node-app*.
+
 ### Deployment Map example
 ```yaml
   - name: sample-node-app

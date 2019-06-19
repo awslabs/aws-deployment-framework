@@ -35,12 +35,6 @@ Parameters:
     Description: If the pipeline will automatically trigger based on update
     Type: String
     Default: false
-  TargetBucket:
-    Description: The Name of the S3 Bucket you wish to deploy to - Since S3 Bucket names are Globally unique you may want use Jinja2 to join the bucket name based on stage name or region in your loops below
-    Type: String
-  ObjectKey:
-    Description: The Object Key you wish to deploy into S3
-    Type: String
   Extract:
     Description: If you want to extract the artifact in S3 (unzip)
     Type: String
@@ -84,7 +78,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Condition: HasSchedule
     Properties: 
-      Description: !Sub Triggers ${AWS::StackName} on a Schedule
+      Description: !Sub "Triggers ${AWS::StackName} on a Schedule"
       ScheduleExpression: !Ref ScheduleExpression
       Targets:
         - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
@@ -107,7 +101,7 @@ Resources:
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: './adf-build/shared/python'
-          - Name: PROJECT_NAME
+          - Name: ADF_PROJECT_NAME
             Value: !Ref ProjectName
           - Name: S3_BUCKET_NAME
             Value: !ImportValue S3Bucket-{{ deployment_account_region }}
@@ -251,9 +245,9 @@ Resources:
                 Version: '1'
               RunOrder: 1
               Configuration:
-                BucketName: !Ref TargetBucket
+                BucketName: {{ stage.params.get('OutputBucketName')}}
                 Extract: !Ref Extract
-                ObjectKey: !Ref ObjectKey
+                ObjectKey: {{ stage.params.get('OutputObjectKey')}}
               InputArtifacts:
               - Name: !Sub "${ProjectName}-build"
               Region: {{ region }}
@@ -269,9 +263,9 @@ Resources:
                 Version: '1'
               RunOrder: 1
               Configuration:
-                BucketName: !Ref TargetBucket
+                BucketName: {{ stage.params.get('OutputBucketName')}}
                 Extract: !Ref Extract
-                ObjectKey: !Ref ObjectKey
+                ObjectKey: {{ stage.params.get('OutputObjectKey')}}
               InputArtifacts:
               - Name: "${ProjectName}-build"
               Region: {{ top_level_region }}
