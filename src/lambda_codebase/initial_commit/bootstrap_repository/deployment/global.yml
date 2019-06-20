@@ -435,47 +435,6 @@ Resources:
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base"
-  CodePipelineCloudWatchEventRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - events.amazonaws.com
-              Action: "sts:AssumeRole"
-        Path: /
-        Policies:
-          - PolicyName: "execute-pipeline"
-            PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                - Effect: Allow
-                  Action: codepipeline:StartPipelineExecution
-                  Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
-  CodeCommitCloudWatchEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventPattern:
-        source:
-          - aws.codecommit
-        detail-type:
-          - "CodeCommit Repository State Change"
-        resources:
-          - !GetAtt CodeCommitRepository.Arn
-        detail:
-          event:
-            - referenceCreated
-          referenceType:
-            - branch
-          referenceName:
-            - master
-      Targets:
-        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
-          RoleArn: !GetAtt CodePipelineCloudWatchEventRole.Arn
-          Id: codepipeline-trigger
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -499,7 +458,6 @@ Resources:
               Configuration:
                 BranchName: "master"
                 RepositoryName: !GetAtt CodeCommitRepository.Name
-                PollForSourceChanges: false
               RunOrder: 1
         - Name: CreateOrUpdatePipelines
           Actions:
