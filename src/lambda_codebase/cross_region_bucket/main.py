@@ -145,7 +145,7 @@ def ensure_bucket(region: str, bucket_name_prefix: str) -> Tuple[BucketName, Cre
         try:
             config = {'Bucket': bucket_name}
             if region != 'us-east-1':
-                config["LocationConstraint"] = region
+                config["CreateBucketConfiguration"] = {"LocationConstraint": region}
             s3_client.create_bucket(
                 **config
             )
