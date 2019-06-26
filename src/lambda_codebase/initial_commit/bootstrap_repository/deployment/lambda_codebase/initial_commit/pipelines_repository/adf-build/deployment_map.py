@@ -65,7 +65,7 @@ class DeploymentMap:
         if os.path.isdir(self.map_dir_path):
             for file in os.listdir(self.map_dir_path):
                 if file.endswith(".yml"): 
-                    deployment_map = self._get_deployment_map('{}/{}'.format(self.map_dir_path,file))
+                    deployment_map = self._get_deployment_map('{}/{}'.format(self.map_dir_path, file))
                     if 'pipelines' not in self.map_contents:
                         self.map_contents['pipelines'] = []
                     if 'pipelines' in deployment_map:
