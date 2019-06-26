@@ -23,7 +23,7 @@ class DeploymentMap:
         self.map_path = map_path or 'deployment_map.yml'
         self.map_dir_path = map_path or 'deployment_map'
         self.parameter_store = parameter_store
-        self.map_contents = self._get_deployment_map(self.map_path)
+        self.map_contents = self._get_deployment_map()
         self.map_contents = self._get_deployment_apps_from_dir()
         self.pipeline_name_prefix = pipeline_name_prefix
         self.account_ou_names = {}
@@ -50,7 +50,9 @@ class DeploymentMap:
                 str(pipeline.notification_endpoint)
             )
 
-    def _get_deployment_map(self, file_path):
+    def _get_deployment_map(self, file_path=None):
+        if file_path is None:
+            file_path = self.map_path
         try:
             LOGGER.info('Load deployment_map file %s', file_path)
             with open(file_path, 'r') as stream:
