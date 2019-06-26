@@ -133,7 +133,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Ref AWS::AccountId
+              AWS: !GetAtt CodePipelineRole.Arn
             Action:
               - sts:AssumeRole
           - Effect: Allow
