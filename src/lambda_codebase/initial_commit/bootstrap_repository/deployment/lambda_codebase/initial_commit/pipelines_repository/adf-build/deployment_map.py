@@ -5,8 +5,8 @@
 Module used for working with the Deployment Map (yml) file.
 """
 
-import yaml
 import os
+import yaml
 
 from errors import InvalidDeploymentMapError
 from logger import configure_logger
