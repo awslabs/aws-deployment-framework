@@ -52,7 +52,7 @@ class DeploymentMap:
 
     def _get_deployment_map(self, file_path):
         try:
-            LOGGER.info('Load deployment_map file {}'.format(file_path))
+            LOGGER.info('Load deployment_map file %s', file_path)
             with open(file_path, 'r') as stream:
                 return yaml.load(stream, Loader=yaml.FullLoader)
         except FileNotFoundError:
@@ -64,14 +64,14 @@ class DeploymentMap:
     def _get_deployment_apps_from_dir(self):
         if os.path.isdir(self.map_dir_path):
             for file in os.listdir(self.map_dir_path):
-                if file.endswith(".yml"): 
+                if file.endswith(".yml"):
                     deployment_map = self._get_deployment_map('{}/{}'.format(self.map_dir_path, file))
                     if 'pipelines' not in self.map_contents:
                         self.map_contents['pipelines'] = []
                     if 'pipelines' in deployment_map:
                         self.map_contents['pipelines'].extend(deployment_map['pipelines'])
         return self.map_contents
-        
+
     def _validate_deployment_map(self):
         """
         Validates the deployment map contains valid configuration
