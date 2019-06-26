@@ -6,6 +6,7 @@ Module used for working with the Deployment Map (yml) file.
 """
 
 import yaml
+import os
 
 from errors import InvalidDeploymentMapError
 from logger import configure_logger
@@ -20,8 +21,10 @@ class DeploymentMap:
             map_path=None
     ):
         self.map_path = map_path or 'deployment_map.yml'
+        self.map_dir_path = map_path or 'deployment_map'
         self.parameter_store = parameter_store
-        self.map_contents = self._get_deployment_map()
+        self.map_contents = self._get_deployment_map(self.map_path)
+        self.map_contents = self._get_deployment_apps_from_dir()
         self.pipeline_name_prefix = pipeline_name_prefix
         self.account_ou_names = {}
         self._validate_deployment_map()
@@ -47,9 +50,10 @@ class DeploymentMap:
                 str(pipeline.notification_endpoint)
             )
 
-    def _get_deployment_map(self):
+    def _get_deployment_map(self, file_path):
         try:
-            with open(self.map_path, 'r') as stream:
+            LOGGER.info('Load deployment_map file {}'.format(file_path))
+            with open(file_path, 'r') as stream:
                 return yaml.load(stream, Loader=yaml.FullLoader)
         except FileNotFoundError:
             LOGGER.error('Cannot Create Deployment Pipelines as there '
@@ -57,6 +61,17 @@ class DeploymentMap:
                          'If this is your first time using ADF please see read the user guide'
                          , exc_info=True)
 
+    def _get_deployment_apps_from_dir(self):
+        if os.path.isdir(self.map_dir_path):
+            for file in os.listdir(self.map_dir_path):
+                if file.endswith(".yml"): 
+                    deployment_map = self._get_deployment_map('{}/{}'.format(self.map_dir_path,file))
+                    if 'pipelines' not in self.map_contents:
+                        self.map_contents['pipelines'] = []
+                    if 'pipelines' in deployment_map:
+                        self.map_contents['pipelines'].extend(deployment_map['pipelines'])
+        return self.map_contents
+        
     def _validate_deployment_map(self):
         """
         Validates the deployment map contains valid configuration
