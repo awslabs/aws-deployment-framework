@@ -124,6 +124,59 @@ Resources:
         ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: AES256
+  CodeCommitRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codecommit-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt CodePipelineRole.Arn
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-codecommit-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codecommit:BatchGetRepositories"
+              - "codecommit:CancelUploadArchive"
+              - "codecommit:Get*"
+              - "codecommit:GitPull"
+              - "codecommit:List*"
+              - "codecommit:UploadArchive"
+              - "codepipeline:StartPipelineExecution"
+              - "events:PutEvents"
+              - "s3:Get*"
+              - "s3:List*"
+              - "s3:Put*"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "kms:Decrypt"
+              - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
+              - "kms:List*"
+              - "kms:ReEncrypt*"
+            Resource: !GetAtt KMSKey.Arn
+      Roles:
+        - !Ref CodeCommitRole
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
