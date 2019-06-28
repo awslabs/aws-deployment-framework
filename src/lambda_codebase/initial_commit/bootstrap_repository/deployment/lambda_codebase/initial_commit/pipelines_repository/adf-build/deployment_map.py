@@ -21,7 +21,7 @@ class DeploymentMap:
             map_path=None
     ):
         self.map_path = map_path or 'deployment_map.yml'
-        self.map_dir_path = map_path or 'deployment_map'
+        self.map_dir_path = map_path or 'deployment_maps'
         self.parameter_store = parameter_store
         self.map_contents = self._get_deployment_map()
         self.map_contents = self._get_deployment_apps_from_dir()
