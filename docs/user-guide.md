@@ -11,11 +11,11 @@
 
 ## Deployment Map
 
-The deployment_map.yml file lives in the Repository named *aws-deployment-framework-pipelines* on the Deployment Account. This file is responsible for mapping the specific pipelines to their deployment targets and desired pipeline. When creating pipelines in the deployment account, a python file called *generate_pipelines.py* *(see adf-build folder)* will be executed during CodeBuild via CodePipeline. This small piece of code will parse the deployment_map.yml file and assume a role on the master account in the organization. It will then resolve the accounts in the organization unit's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values in the Jinja2 templating engine along side a template file *(see pipeline_types folder)*. The template of choice is taken from the type property in the mapping file.
+The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files is responsible for mapping the specific pipelines to their deployment targets and desired pipeline. When creating pipelines in the deployment account, a python file called *generate_pipelines.py* *(see adf-build folder)* will be executed during CodeBuild via CodePipeline. This small piece of code will parse the deployment_map.yml files and assume a role on the master account in the Organization. It will then resolve the accounts in the organization unit's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values in the Jinja2 templating engine along side a template file *(see pipeline_types folder)*. The template of choice is taken from the **type** property in the mapping file.
 
 The parameters *(params)* you chose to pass into the Jinja2 template are taken directly from the deployment_map.yml file. This allows you to build sensible defaults in your pipeline definitions and pass in only what is required for that specific pipeline creation.
 
-The Deployment map file allows for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
+The Deployment map files allow for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
 
 A basic example of a deployment_map.yml would look like the following *(assumes eu-west-1 and eu-central-1 have been bootstrapped in adfconfig.yml)*:
 
@@ -25,7 +25,7 @@ pipelines:
     type: cc-cloudformation
     params:
       - SourceAccountId: 111111222222
-      - NotificationEndpoint: janes_team@doe.com
+      - NotificationEndpoint: janes_team@doe.com # Optional
     targets:
       - path: /security
         regions: eu-west-1
@@ -41,7 +41,7 @@ pipelines:
     contains_transform: true
     params:
       - SourceAccountId: 8888877777777
-      - NotificationEndpoint: channel1
+      - NotificationEndpoint: channel1 # Slack Channel Example
     targets:
       - ou-12341
       - 22222222222
@@ -51,7 +51,7 @@ In the above example we are creating two pipelines. The first one will deploy fr
 
 The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can chose between a absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to one of deploy to a specific account you can use an AWS Account Id if required.
 
-In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel`*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack).
+In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel1*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack).
 
 By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `action: replace_on_failure` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.* You can use any of the action types such as *create_update* defined [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html).
 
@@ -100,6 +100,10 @@ targets:
       Baz: Waffle
 ```
 
+### Additional Deployment Maps
+
+You can also create additional deployment map files. These can live in a folder in the pipelines repository called *deployment_maps*. These are entirely optional but can help split up complex environments with many pipelines. For example, you might have a map used for infrastructure type pipelines and one used for deploying applications. Taking it a step further, you can even create a map per service. These additional deployment map files can have any name, as long as they end with *.yml*.
+
 ## Deploying via Pipelines
 
 ### Repositories
@@ -127,13 +131,13 @@ artifacts:
   files: '**/*' # Package up all outputs and pass them along to next stage
 ```
 
-In the example we have fours steps to our install phase in our build, the remaining phases and steps you add are up to you. In the above steps we simply bring in the shared modules we will need to run our main function in *generate_params.py*. The $S3_BUCKET_NAME variable is available in AWS CodeBuild as we pass this in from our initial creation of the that defines the CodeBuild Project. You do not need to change this.
+In the example we have three steps to our install phase in our build, the remaining phases and steps you add are up to you. In the above steps we simply bring in the shared modules we will need to run our main function in *generate_params.py*. The $S3_BUCKET_NAME variable is available in AWS CodeBuild as we pass this in from our initial creation of the that defines the CodeBuild Project. You do not need to change this.
 
 Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
 ### CloudFormation Parameters and Tagging
 
-When you define CloudFormation templates as artifacts to push through a pipeline you might want to have a set of parameters associated with the templates. You can utilize the `params` folder in your repository to add in parameters as you see fit. To avoid having to create a parameter file for each of the stacks you wish to deploy to, you can create a parameter file called `global.json` any parameters defined in this file will be merged into the parameters for any specific account parameter file at run time. For example you might have a single parameter for a template called `CostCenter` the value of this will be the same across every deployment of your application however you might have another parameter called `InstanceType` that you want to be different per account. Using this example we can create a `global.json` file that contains the following JSON:
+When you define CloudFormation templates as artifacts to push through a pipeline you might want to have a set of parameters associated with the templates. You can utilize the `params` folder in your repository to add in parameters as you see fit. To avoid having to create a parameter file for each of the stacks you wish to deploy to, you can create a parameter file called `global.json` *(or .yml)* any parameters defined in this file will be merged into the parameters for any specific account parameter file at build time. For example you might have a single parameter for a template called `CostCenter` the value of this will be the same across every deployment of your application however you might have another parameter called `InstanceType` that you want to be different per account. Using this example we can create a `global.json` file that contains the following JSON:
 
 ```json
 {
@@ -141,6 +145,13 @@ When you define CloudFormation templates as artifacts to push through a pipeline
         "CostCenter": "department-abc"
     }
 }
+```
+
+This can be represented in *yml* in the same way.
+
+```yaml
+Parameters:
+    CostCenter: department-abc
 ```
 
 Then we can have a more specific parameter for another account, this file should be called `account.json` where account is the name of the account you wish to apply these parameters too.
@@ -164,7 +175,7 @@ When the stack is executed it will be executed with the following parameters:
 }
 ```
 
-This aggregation of parameters works for a few different levels, where the most specific level takes precedence. In the example above, if CostCenter is defined in both `global.json` and `account.json` then the value in the `account.json` file will take precedence.
+This aggregation of parameters works for a few different levels, where the most specific level takes precedence. In the example above, if CostCenter is defined in both `global.json` and `account.json` *("account" here represents the name of the account)* then the value in the `account.json` file will take precedence.
 
 The different types of parameter files and their order of precedence *(in the tree below, the lowest level has the highest precedence)* can be used to simplify how parameters are specified. For example, a parameter such as `Environment` might be the same for all accounts under a certain OU, so placing it under a single `ou.json` params file means you don't need to populate it for each account under that OU.
 
@@ -197,6 +208,18 @@ This concept also works for applying **Tags** to the resources within your stack
         "MyKey" : "MyValue"
       }
 }
+```
+
+Again this example in *yaml* would look like:
+
+```yaml
+Parameters:
+    CostCenter: '123'
+    Environment: testing
+Tags:
+    TagKey: TagValue
+    MyKey: MyValue
+
 ```
 
 This means that all resources that support tags within your CloudFormation stack will be tagged as defined above.
@@ -254,7 +277,7 @@ Parameter injection is also useful for importing exported values from CloudForma
 In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *export_key* is the output key name *(not export name)*.
 
 Another built-in function is **upload**, You can use *upload* to perform an automated upload of a resource such as a template or file into Amazon S3 as part of the build process.
-Once the upload is complete, the Amazon S3 URL for the object will be put in place of the *upload* string in the parameter file. 
+Once the upload is complete, the Amazon S3 URL for the object will be put in place of the *upload* string in the parameter file.
 
 For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization *(see samples)* you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point since the file has not yet been uploaded to S3.
 
@@ -292,7 +315,7 @@ artifacts:
   files: '**/*'
 ```
 
-This allows us to specify nested stacks that are in the same repository as out main `template.yml` in our like so:
+This allows us to specify nested stacks that are in the same repository as our main `template.yml` in our like so:
 
 ```yaml
   MyStack:

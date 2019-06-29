@@ -11,6 +11,7 @@ import secrets
 import string  # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
 import os
 import ast
+import yaml
 import boto3
 
 from resolver import Resolver
@@ -26,7 +27,7 @@ class Parameters:
     def __init__(self, build_name, parameter_store, directory=None):
         self.cwd = directory or os.getcwd()
         self._create_params_folder()
-        self.global_path = "params/global.json"
+        self.global_path = "params/global"
         self.parameter_store = parameter_store
         self.build_name = build_name
         self.account_ous = ast.literal_eval(
@@ -53,9 +54,9 @@ class Parameters:
         global_params = self._parse(self.global_path)
         for acc, ou in self.account_ous.items():
             for region in self.regions:
-                for params in ["{0}_{1}.json".format(acc, region)]:
+                for params in ["{0}_{1}".format(acc, region)]:
                     compare_params = self._compare(
-                        self._parse("{0}/params/{1}.json".format(self.cwd, acc)),
+                        self._parse("{0}/params/{1}".format(self.cwd, acc)),
                         self._parse("{0}/params/{1}".format(self.cwd, params)),
                         file_name
                     )
@@ -63,19 +64,19 @@ class Parameters:
                     if not str(ou).isnumeric():
                         # Compare account_region final to ou_region
                         compare_params = self._compare(
-                            self._parse("{0}/params/{1}_{2}.json".format(self.cwd, ou, region)),
+                            self._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
                             compare_params,
                             file_name
                         )
                         # Compare account_region final to ou
                         compare_params = self._compare(
-                            self._parse("{0}/params/{1}.json".format(self.cwd, ou)),
+                            self._parse("{0}/params/{1}".format(self.cwd, ou)),
                             compare_params,
                             file_name
                         )
                     # Compare account_region final to deployment_account_region
                     compare_params = self._compare(
-                        self._parse("{0}/params/global_{1}.json".format(self.cwd, region)),
+                        self._parse("{0}/params/global_{1}".format(self.cwd, region)),
                         compare_params,
                         file_name
                     )
@@ -98,17 +99,28 @@ class Parameters:
         and thus this would not fail.
         """
         try:
-            with open(filename) as file:
+            with open("{0}.json".format(filename)) as file:
                 return json.load(file)
         except FileNotFoundError:
-            return {'Parameters': {}, 'Tags': {}}
+            try:
+                with open("{0}.yml".format(filename)) as file:
+                    return yaml.load(file, Loader=yaml.FullLoader)
+            except yaml.scanner.ScannerError:
+                LOGGER.exception('Invalid Yaml for %s.yml', filename)
+            except FileNotFoundError:
+                return {'Parameters': {}, 'Tags': {}}
 
     def _update_params(self, new_params, filename):
         """
         Responsible for updating the parameters within the files themself
         """
-        with open("{0}/params/{1}".format(self.cwd, filename), 'w') as outfile:
-            json.dump(new_params, outfile)
+        try:
+            with open("{0}/params/{1}.yml".format(self.cwd, filename), 'r'):
+                with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as json_outfile:
+                    json.dump(new_params, json_outfile)
+        except FileNotFoundError:
+            with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
+                json.dump(new_params, outfile)
 
     def _cfn_param_updater(self, param, comparison_parameters, stage_parameters, file_name): # pylint: disable=R0912
         """
@@ -127,7 +139,6 @@ class Parameters:
                 if resolver.upload(value, key, file_name, param):
                     continue
             resolver.update_cfn(key, param)
-
         for key, value in stage_parameters[param].items():
             if str(value).startswith('resolve:'):
                 if resolver.fetch_parameter_store_value(value, key, param):

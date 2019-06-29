@@ -18,6 +18,7 @@
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
   - [Pipeline Types](#pipeline-types)
+  - [Chaining Pipelines](#chaining-pipelines)
 - [Default Deployment Account Region](#default-deployment-account-region)
 - [Integrating Slack](#integrating-slack)
 - [Updating Between Versions](#updating-between-versions)
@@ -273,7 +274,7 @@ In this example, we want to take our `input.zip` file from the Amazon S3 Bucket 
 
 #### Pipeline Types
 
-In the [deployment map](#deployment-map) file you will notice that there is a property called **type**. This value maps directly the the type of pipeline you wish to use for that specific pipeline. As your organization grows you might have different needs for different types of pipelines. For example, one might handle all the CloudFormation deployment aspects however you might also want a pipeline that uses other third-party integrations for CodePipeline such as Jenkins or TeamCity, or maybe deploys directly to Lambda as opposed to using CloudFormation as a deployment configuration. In the deployment account pipelines repository, in the folder titled *pipeline_types* you can create the pipeline file that best suits your needs. From there you can add or update the deployment_map.yml file with the name of the pipeline file you wish to use. This allows you to create a pipeline once and have it used many times with a different combination of accounts and regions as targets.
+In the [deployment map](#./user-guide/#deployment-map) file you will notice that there is a property called **type**. This value maps directly the the type of pipeline you wish to use for that specific pipeline. As your organization grows you might have different needs for different types of pipelines. For example, one might handle all the CloudFormation deployment aspects however you might also want a pipeline that uses other third-party integrations for CodePipeline such as Jenkins or TeamCity, or maybe deploys directly to Lambda as opposed to using CloudFormation as a deployment configuration. In the deployment account pipelines repository, in the folder titled *pipeline_types* you can create the pipeline file that best suits your needs. From there you can add or update the deployment_map.yml file with the name of the pipeline file you wish to use. This allows you to create a pipeline once and have it used many times with a different combination of accounts and regions as targets.
 
 Let's look at the `github-cloudformation.j2.yml` example that creates us a Webhook in our Github repository that triggers our Pipeline to run on any changes. The template itself is similar to the `cc-cloudformation.j2.yml` file with a few small differences. If we look at the parameters this template takes we can see the following:
 
@@ -292,7 +293,7 @@ Let's look at the `github-cloudformation.j2.yml` example that creates us a Webho
 
 In order for this template to generate a pipeline connected to Github you will need to create a Personal Access Token in Github that allows its connection to AWS CodePipeline. You can read more about creating a Token [here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html). Once the token has been created you can store that in Parameter Store on the Deployment Account. The Webhook secret is a value you define and store in Parameter Store with a path of `/tokens/webhook/github` *(Can have different path if required)*. Ensure that you control access to [Parameter Store paths](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html) with policies so that these values cannot be tampered with unintentionally.
 
-Once the values are stored, you can create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](#deployment-map) to use the new pipeline type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github, in this case the repository on github must be named 'vpc'.
+Once the values are stored, you can create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](#./user-guide/#deployment-map) to use the new pipeline type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github, in this case the repository on github must be named 'vpc'.
 
 ```yaml
 pipelines:
@@ -308,6 +309,44 @@ Pipeline files use the Jinja2 *(.j2)* preprocessor in order to dynamically gener
 
 As a guide we provide a few examples for you to get going with `pipeline_types` such as `cc-cloudformation.yml.j2` and `github-cloudformation.yml.j2` however you can go on to create whichever type you desire.
 
+#### Chaining Pipelines
+
+Sometimes its a need to chain pipelines together, when one finishes you might want another one to start, or maybe another five? Because of this, we have a *completion_trigger* property which can be added to any pipeline within your deployment map files. Chaining works by creating a CloudWatch event that triggers on completion of the pipeline to start one or many others. For example:
+
+```yaml
+pipelines:
+  - name: sample-vpc
+    type: cc-cloudformation
+    completion_trigger: # <--- When this pipeline finishes it will automatically start sample-iam and sample-ecs-cluster at the same time
+        pipelines:
+          - sample-iam
+          - sample-ecs-cluster
+    params:
+      - SourceAccountId: 1111111111111
+    targets:  # Deployment stages
+      - /banking/testing
+      - approval
+      - /banking/production
+
+  - name: sample-iam
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 1111111111111
+    targets:
+      - /banking/testing
+      - approval
+      - /banking/production
+
+  - name: sample-ecs-cluster
+    type: cc-cloudformation
+    params:
+      - SourceAccountId: 9999999999999
+    targets:
+      - /banking/testing
+      - approval
+      - /banking/production
+```
+
 ## Service Control Policies
 Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
 
@@ -317,7 +356,7 @@ SCPs are available only in an organization that has [all features enabled](https
 
 The AWS Deployment Framework allows you to use the supported AWS CodePipeline source types for source control which will act as entry points for your pipelines. Each of the options *(S3, AWS CodeCommit or Github)* have their own benefits when it comes to how they integrate with the ADF however they are interchangeable as desired. In order to use a different source type for your pipelines you will to define a pipeline type that uses the desired source control configuration. As a starting point you can find the *github-cloudformation.yml.j2* file in the *pipeline_types* folder that demonstrates how Github can be used as an entry point for your pipelines.
 
-The same goes for any pipeline configuration for that matter, if you wish to use other Pipeline integrations just make a *pipeline_type* that defines your use case and tie a pipeline to it in the [deployment map](#deployment-map).
+The same goes for any pipeline configuration for that matter, if you wish to use other Pipeline integrations just make a *pipeline_type* that defines your use case and tie a pipeline to it in the [deployment map](#./user-guide/#deployment-map).
 
 ### Default Deployment Account Region
 
