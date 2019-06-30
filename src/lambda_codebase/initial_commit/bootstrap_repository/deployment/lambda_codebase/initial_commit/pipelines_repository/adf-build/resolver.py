@@ -125,6 +125,7 @@ class Resolver:
         if key not in self.stage_parameters[param]:
             self.stage_parameters[param][key] = self.comparison_parameters[param][key]
 
+
     def update_sc(self, key):
         if key not in self.stage_parameters:
             self.stage_parameters[key] = self.comparison_parameters[key]

@@ -162,6 +162,9 @@ def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId
         commitId=commit_id
     )
     try:
+        puts = [f.as_dict() for f in files_to_commit]
+        deletes = [f.as_dict() for f in files_to_delete]
+
         CC_CLIENT.create_commit(
             repositoryName=repo_name,
             branchName=update_event.ResourceProperties.Version,
@@ -169,8 +172,8 @@ def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId
             authorName='ADF Update PR',
             email='adf-builders@amazon.com',
             commitMessage='ADF {0} Automated Update PR'.format(update_event.ResourceProperties.Version),
-            putFiles=[f.as_dict() for f in files_to_commit],
-            deleteFiles=[f.as_dict() for f in files_to_delete]
+            putFiles=puts,
+            deleteFiles=deletes
         )
         CC_CLIENT.create_pull_request(
             title='ADF {0} Automated Update PR'.format(update_event.ResourceProperties.Version),
@@ -184,7 +187,6 @@ def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId
             ]
         )
     except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
-        print("No changes require commiting")
         CC_CLIENT.delete_branch(
             repositoryName=repo_name,
             branchName=update_event.ResourceProperties.Version

@@ -38,21 +38,21 @@ def test_params_folder_created(cls):
 
 def test_parse(cls):
     parse = cls._parse(
-        '{0}/stub_cfn_global.json'.format(cls.cwd)
+        '{0}/stub_cfn_global'.format(cls.cwd)
     )
     assert parse == {'Parameters': {'CostCenter': '123', 'Environment': 'testing'}, 'Tags': {'MyKey': 'new_value', 'TagKey': '123'}}
 
 
 def test_parse_not_found(cls):
     parse = cls._parse(
-        '{0}/nothing.json'.format(cls.cwd)
+        '{0}/nothing'.format(cls.cwd)
     )
     assert parse == {'Parameters': {}, 'Tags': {}}
 
 
 def test_compare_cfn(cls):
     parse = cls._parse(
-        '{0}/stub_cfn_global.json'.format(cls.cwd)
+        '{0}/stub_cfn_global'.format(cls.cwd)
     )
     compare = cls._compare_cfn(
         parse,
@@ -63,7 +63,7 @@ def test_compare_cfn(cls):
 
 
 def test_create_parameter_files(cls):
-    cls.global_path = "{0}/stub_cfn_global.json".format(cls.cwd)
+    cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
     cls.create_parameter_files()
     assert os.path.exists("{0}/params/account_name1_eu-west-1.json".format(cls.cwd))
     assert os.path.exists("{0}/params/account_name1_eu-central-1.json".format(cls.cwd))
@@ -74,26 +74,34 @@ def test_create_parameter_files(cls):
 
 
 def test_ensure_parameter_default_contents(cls):
-    cls.global_path = "{0}/stub_cfn_global.json".format(cls.cwd)
+    cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
     cls.create_parameter_files()
 
     parse = cls._parse(
-        "{0}/params/account_name1_us-west-2.json".format(cls.cwd)
+        "{0}/params/account_name1_us-west-2".format(cls.cwd)
     )
 
     assert parse == {'Parameters': {'CostCenter': '123', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
 
 
 def test_ensure_parameter_specific_contents(cls):
-    cls.global_path = "{0}/stub_cfn_global.json".format(cls.cwd)
+    cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
     shutil.copy(
         "{0}/account_name1_eu-west-1.json".format(cls.cwd),
         "{0}/params/account_name1_eu-west-1.json".format(cls.cwd)
     )
+    shutil.copy(
+        "{0}/account_name1_eu-central-1.yml".format(cls.cwd),
+        "{0}/params/account_name1_eu-central-1.yml".format(cls.cwd)
+    )
     cls.create_parameter_files()
 
-    parse = cls._parse(
-        "{0}/params/account_name1_eu-west-1.json".format(cls.cwd)
+    parse_json = cls._parse(
+        "{0}/params/account_name1_eu-west-1".format(cls.cwd)
+    )
+    parse_yml = cls._parse(
+        "{0}/params/account_name1_eu-central-1".format(cls.cwd)
     )
 
-    assert parse == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+    assert parse_json == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+    assert parse_yml == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}

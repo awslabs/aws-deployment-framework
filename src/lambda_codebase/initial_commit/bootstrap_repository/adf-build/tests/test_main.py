@@ -71,6 +71,7 @@ def test_update_deployment_account_output_parameters(cls, sts):
             deployment_account_region='eu-central-1',
             region='eu-central-1',
             deployment_account_role=sts,
+            kms_dict={},
             cloudformation=cloudformation
         )
         assert 4 == mock.call_count

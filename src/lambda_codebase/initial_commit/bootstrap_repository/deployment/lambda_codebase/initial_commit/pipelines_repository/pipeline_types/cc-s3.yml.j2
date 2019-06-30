@@ -53,6 +53,51 @@ Parameters:
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
 Resources:
+{% if completion_trigger.get('pipelines', []) %}
+  PipelineTriggerEventRule:
+      Type: "AWS::Events::Rule"
+      Properties:
+        Description: !Sub "Triggers on completion of ${Pipeline}"
+        EventPattern:
+          source:
+            - "aws.codepipeline"
+          detail-type:
+            - "CodePipeline Pipeline Execution State Change"
+          detail:
+            state:
+              - "SUCCEEDED"
+            pipeline:
+              - !Ref Pipeline
+        State: "ENABLED"
+        Targets:
+{% for pipeline in completion_trigger.get('pipelines', []) %}
+          - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${StackPrefix}-pipeline-{{pipeline}}"
+            RoleArn: !GetAtt PipelineTriggerCloudWatchEventRole.Arn
+            Id: !Sub "adf-trigger-{{pipeline}}"
+{% endfor %}
+  PipelineTriggerCloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: !Sub 'adf-trigger-${Pipeline}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+{% for pipeline in completion_trigger.get('pipelines', []) %}
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${StackPrefix}-pipeline-{{pipeline}}"
+{% endfor %}
+{% endif %}
   PipelineCloudWatchEventRole:
     Condition: HasSchedule
     Type: AWS::IAM::Role
