@@ -7,8 +7,6 @@
 
 import os
 import boto3
-import yaml
-
 from s3 import S3
 from pipeline import Pipeline
 from repo import Repo
@@ -128,14 +126,14 @@ def main(): #pylint: disable=R0915
 
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
-        
+
         if CONFIG.get_config('auto-create-repositories', False):
             code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-            
+
             if code_account_id and str(code_account_id).isdigit():
                 repo = Repo(code_account_id, p.get('name'), p.get('description'))
                 repo.create_update()
-            
+
         for target in p.get('targets', []):
             target_structure = TargetStructure(target)
             for step in target_structure.target:

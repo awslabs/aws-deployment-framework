@@ -39,7 +39,7 @@ class Repo:
         arn = 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(account_id)
 
         response = sts.assume_role(
-            RoleArn=arn, 
+            RoleArn=arn,
             RoleSessionName='create_repo_{0}'.format(account_id)
         )
         creds = response['Credentials']
@@ -62,7 +62,7 @@ class Repo:
 
     def create_update(self):
         s3_object_path = s3.put_object(
-            "repo_templates/codecommit.yml", 
+            "repo_templates/codecommit.yml",
             "{0}/repo_templates/codecommit.yml".format(TARGET_DIR)
         )        
         parameters = [{
@@ -90,5 +90,5 @@ class Repo:
         # Update the stack if the repo and the adf contolled stack exist
         update_stack = (self.repo_exists() and cloudformation.get_stack_status())
         if create_stack or update_stack:
-            LOGGER.info('Creating Stack for Codecommit Repository {0}'.format(self.name))
+            LOGGER.info('Creating Stack for Codecommit Repository %s', self.name)
             cloudformation.create_stack()

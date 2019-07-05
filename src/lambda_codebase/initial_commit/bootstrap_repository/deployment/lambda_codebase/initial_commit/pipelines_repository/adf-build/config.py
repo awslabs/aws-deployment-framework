@@ -5,7 +5,6 @@
 Module used for loading Config from the config.yml.
 """
 
-import os
 import yaml
 
 class Config:
