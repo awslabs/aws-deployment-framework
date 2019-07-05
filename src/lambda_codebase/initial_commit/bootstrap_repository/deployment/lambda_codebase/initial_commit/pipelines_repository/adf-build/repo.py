@@ -56,7 +56,7 @@ class Repo:
             if repository['repositoryMetadata']['Arn']:
                 return True
         except BaseException:
-            LOGGER.debug("%s - Attempted to find the repo %s but it failed.", self.name)
+            LOGGER.debug('Attempted to find the repo %s but it failed.', self.name)
 
         return False  # Return False if the Repo Doesnt Exist
 
@@ -64,7 +64,7 @@ class Repo:
         s3_object_path = s3.put_object(
             "repo_templates/codecommit.yml",
             "{0}/repo_templates/codecommit.yml".format(TARGET_DIR)
-        )        
+        )
         parameters = [{
             'ParameterKey': 'RepoName',
             'ParameterValue': self.name
