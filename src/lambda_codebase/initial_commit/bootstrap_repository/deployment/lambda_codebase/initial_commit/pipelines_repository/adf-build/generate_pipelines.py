@@ -7,6 +7,7 @@
 
 import os
 import boto3
+import yaml
 
 from s3 import S3
 from pipeline import Pipeline
@@ -18,8 +19,10 @@ from cloudformation import CloudFormation
 from organizations import Organizations
 from sts import STS
 from parameter_store import ParameterStore
+from config import Config
 
 LOGGER = configure_logger(__name__)
+CONFIG = Config()
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ.get("MASTER_ACCOUNT_ID", 'us-east-1')
@@ -126,11 +129,12 @@ def main(): #pylint: disable=R0915
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
         
-        code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-        
-        if code_account_id and str(code_account_id).isdigit():
-            repo = Repo(code_account_id, p.get('name'), p.get('description'))
-            repo.create_update()
+        if CONFIG.get_config('auto-create-repositories', False):
+            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
+            
+            if code_account_id and str(code_account_id).isdigit():
+                repo = Repo(code_account_id, p.get('name'), p.get('description'))
+                repo.create_update()
             
         for target in p.get('targets', []):
             target_structure = TargetStructure(target)
