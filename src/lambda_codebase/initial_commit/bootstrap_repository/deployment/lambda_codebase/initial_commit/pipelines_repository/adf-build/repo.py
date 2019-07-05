@@ -30,14 +30,14 @@ class Repo:
 
         if not description:
             description = 'Created by ADF'
-            
+
         self.description = description
         self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
-        
+
         self.account_id = account_id
 
         arn = 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(account_id)
-        
+
         response = sts.assume_role(
             RoleArn=arn, 
             RoleSessionName='create_repo_{0}'.format(account_id)
@@ -48,7 +48,7 @@ class Repo:
             aws_secret_access_key=creds['SecretAccessKey'],
             aws_session_token=creds['SessionToken']
         )
-            
+
     def repo_exists(self):
         try:
             codecommit = self.session.client('codecommit', CODE_ACCOUNT_REGION)
@@ -57,21 +57,21 @@ class Repo:
                 return True
         except BaseException:
             LOGGER.debug("%s - Attempted to find the repo %s but it failed.", self.name)
-        
+
         return False  # Return False if the Repo Doesnt Exist
-        
+
     def create_update(self):
         s3_object_path = s3.put_object(
             "repo_templates/codecommit.yml", 
             "{0}/repo_templates/codecommit.yml".format(TARGET_DIR)
         )        
         parameters = [{
-                'ParameterKey': 'RepoName',
-                'ParameterValue': self.name
-            }, {
-                'ParameterKey': 'Description',
-                'ParameterValue': self.description
-            }]
+            'ParameterKey': 'RepoName',
+            'ParameterValue': self.name
+        }, {
+            'ParameterKey': 'Description',
+            'ParameterValue': self.description
+        }]
         cloudformation = CloudFormation(
             region=CODE_ACCOUNT_REGION,
             deployment_account_region=CODE_ACCOUNT_REGION,
@@ -84,7 +84,7 @@ class Repo:
             s3_key_path=None,
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
-        
+
         # Create the repo stack if the repo is missing and
         create_stack = not self.repo_exists()
         # Update the stack if the repo and the adf contolled stack exist
