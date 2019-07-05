@@ -27,30 +27,27 @@ s3 = S3(
 class Repo:
     def __init__(self, account_id, name, description=''):
         self.name = name
-        
+
         if not description:
             description = 'Created by ADF'
             
         self.description = description
-        self.stack_name = "{0}-{1}".format(
-                'adf-codecommit',
-                self.name
-            )
+        self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
+        
         self.account_id = account_id
-            
-        arn = 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(
-                account_id
-            )
+
+        arn = 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(account_id)
+        
         response = sts.assume_role(
-                            RoleArn=arn, 
-                            RoleSessionName='create_repo_{0}'.format(account_id)
-                        )
+            RoleArn=arn, 
+            RoleSessionName='create_repo_{0}'.format(account_id)
+        )
         creds = response['Credentials']
         self.session = Session(
-                aws_access_key_id=creds['AccessKeyId'],
-                aws_secret_access_key=creds['SecretAccessKey'],
-                aws_session_token=creds['SessionToken']
-            )
+            aws_access_key_id=creds['AccessKeyId'],
+            aws_secret_access_key=creds['SecretAccessKey'],
+            aws_session_token=creds['SessionToken']
+        )
             
     def repo_exists(self):
         try:
@@ -65,13 +62,13 @@ class Repo:
         
     def create_update(self):
         s3_object_path = s3.put_object(
-                "repo_templates/codecommit.yml", 
-                "{0}/repo_templates/codecommit.yml".format(TARGET_DIR)
-            )        
+            "repo_templates/codecommit.yml", 
+            "{0}/repo_templates/codecommit.yml".format(TARGET_DIR)
+        )        
         parameters = [{
                 'ParameterKey': 'RepoName',
                 'ParameterValue': self.name
-            },{
+            }, {
                 'ParameterKey': 'Description',
                 'ParameterValue': self.description
             }]
