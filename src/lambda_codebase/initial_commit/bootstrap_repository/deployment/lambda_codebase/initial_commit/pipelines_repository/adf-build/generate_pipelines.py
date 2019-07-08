@@ -17,10 +17,8 @@ from cloudformation import CloudFormation
 from organizations import Organizations
 from sts import STS
 from parameter_store import ParameterStore
-from config import Config
 
 LOGGER = configure_logger(__name__)
-CONFIG = Config()
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ.get("MASTER_ACCOUNT_ID", 'us-east-1')
@@ -127,10 +125,10 @@ def main(): #pylint: disable=R0915
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
 
-        if CONFIG.get_config('auto-create-repositories', False):
+        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+        if auto_create_repositories:
             code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-
-            if code_account_id and str(code_account_id).isdigit():
+            if auto_create_repositories and code_account_id and str(code_account_id).isdigit():
                 repo = Repo(code_account_id, p.get('name'), p.get('description'))
                 repo.create_update()
 
