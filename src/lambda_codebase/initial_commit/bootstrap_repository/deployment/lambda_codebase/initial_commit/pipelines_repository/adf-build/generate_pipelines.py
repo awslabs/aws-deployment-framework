@@ -7,9 +7,9 @@
 
 import os
 import boto3
-
 from s3 import S3
 from pipeline import Pipeline
+from repo import Repo
 from target import Target, TargetStructure
 from logger import configure_logger
 from deployment_map import DeploymentMap
@@ -124,6 +124,13 @@ def main(): #pylint: disable=R0915
 
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
+
+        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+        if auto_create_repositories:
+            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
+            if auto_create_repositories and code_account_id and str(code_account_id).isdigit():
+                repo = Repo(code_account_id, p.get('name'), p.get('description'))
+                repo.create_update()
 
         for target in p.get('targets', []):
             target_structure = TargetStructure(target)
