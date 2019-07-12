@@ -132,6 +132,11 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_parameter_store.put_parameter(
         'adf_version', os.environ["ADF_VERSION"]
     )
+    auto_create_repositories = config.config.get('scm', {}).get('auto-create-repositories')
+    if auto_create_repositories is not None:
+        deployment_account_parameter_store.put_parameter(
+            'auto_create_repositories', str(auto_create_repositories)
+        )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
         config.notification_endpoint = "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
