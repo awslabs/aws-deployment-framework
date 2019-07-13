@@ -35,7 +35,6 @@ class DeploymentMap:
                 {item['name']: item['path'] for item in account if item['name'] != 'approval'}
             )
 
-        # TODO Ensure this doesn't grow to reach max parameter store size (4092)
         self.parameter_store.put_parameter(
             "/deployment/{0}/account_ous".format(
                 pipeline.name
@@ -58,10 +57,8 @@ class DeploymentMap:
             with open(file_path, 'r') as stream:
                 return yaml.load(stream, Loader=yaml.FullLoader)
         except FileNotFoundError:
-            LOGGER.error('Cannot Create Deployment Pipelines as there '
-                         'is no deployment_map.yml file in the repository. '
-                         'If this is your first time using ADF please see read the user guide'
-                         , exc_info=True)
+            LOGGER.debug('Nothing found at %s', file_path)
+            return None
 
     def _get_deployment_apps_from_dir(self):
         if os.path.isdir(self.map_dir_path):
@@ -88,3 +85,9 @@ class DeploymentMap:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid"
             )
+        except TypeError:
+            LOGGER.error(
+                "No Deployment Map files found, create a deployment_map.yml file in the root of the repository to create pipelines. "
+                "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
+            )
+            raise Exception from None

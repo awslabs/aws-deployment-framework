@@ -35,6 +35,10 @@ Parameters:
     Description: If the pipeline will automatically trigger based on update
     Type: String
     Default: False
+  SharedModulesBucket:
+    Description: The S3 Bucket that holds shared modules between master and deployment account
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: deployment_account_bucket
 {% for region in regions %}
   S3Bucket{{ region|replace("-", "") }}:
     Description: The S3 Bucket for Cross region deployment for {{ region }}
@@ -140,11 +144,11 @@ Resources:
         PrivilegedMode: true
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: './adf-build/shared/python'
+            Value: './adf-build/python'
           - Name: ADF_PROJECT_NAME
             Value: !Ref ProjectName
           - Name: S3_BUCKET_NAME
-            Value: !ImportValue S3Bucket-{{ deployment_account_region }}
+            Value: !Ref SharedModulesBucket
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
       Source:

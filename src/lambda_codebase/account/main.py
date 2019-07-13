@@ -106,10 +106,7 @@ def delete_(event, _context):
         return
 
     if physical_resource.created:
-        raise NotImplementedError(
-            "Cannot delete account %s (%s). This is a manual process"
-            % (physical_resource.account_id, physical_resource.account_name)
-        )
+        return
 
 
 # pylint: disable=bad-continuation # https://github.com/PyCQA/pylint/issues/747

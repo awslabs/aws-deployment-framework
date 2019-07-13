@@ -46,7 +46,7 @@ class Event:
         self.moved_to_protected = 1 if self.destination_ou_id in self.protected_ou_list else 0
         self.regions = ast.literal_eval(
             parameter_store.fetch_parameter('target_regions')
-        )
+        ) or []
         self.deployment_account_region = parameter_store.fetch_parameter(
             'deployment_account_region')
         self.cross_account_access_role = parameter_store.fetch_parameter(

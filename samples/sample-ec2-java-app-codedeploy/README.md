@@ -11,6 +11,7 @@ This example is coupled with the `sample-ec2-with-codedeploy` repository and is 
     type: cc-codedeploy
     params:
       - SourceAccountId: 111111111111
+      - Image: "aws/codebuild/standard:2.0"
     targets:
       - path: 222222222222
         regions: eu-west-1

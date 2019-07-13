@@ -4,14 +4,3 @@
 """
 __init__ for adf-build
 """
-
-
-import sys
-import os
-
-sys.path.append(
-    os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
-            'shared',
-            'python')))

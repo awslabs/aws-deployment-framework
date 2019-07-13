@@ -48,13 +48,6 @@ def test_raise_validation_remove_roles(cls):
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
-
-def test_raise_validation_remove_target_regions(cls):
-    cls.config_contents.get('regions', None).pop('targets', None)
-    with raises(InvalidConfigError):
-        assert cls._parse_config()
-
-
 def test_raise_validation_remove_deployment_target_region(cls):
     cls.config_contents.get('regions', None).pop('deployment-account', None)
     with raises(InvalidConfigError):
@@ -69,10 +62,5 @@ def test_raise_validation_length_deployment_target_region(cls):
 
 def test_raise_validation_organizations_scp(cls):
     cls.config_contents['config']['scp']['keep-default-scp'] = 'blah'
-    with raises(InvalidConfigError):
-        assert cls._parse_config()
-
-def test_raise_validation_length_deployment_target(cls):
-    cls.config_contents["regions"]["targets"] = []
     with raises(InvalidConfigError):
         assert cls._parse_config()
