@@ -48,7 +48,7 @@ def lambda_handler(event, _):
         region=event.get('deployment_account_region'),
         role=boto3
     )
-    for region in list(set([event.get('deployment_account_region')] + event.get("regions"))):
+    for region in list(set([event.get('deployment_account_region')] + event.get("regions", []))):
         kms_key_arn = parameter_store.fetch_parameter(
             "/cross_region/kms_arn/{0}".format(region)
         )

@@ -1,4 +1,4 @@
-# Install libs here that you might want in AWS CodeBuild
+# Install libs here that you might want in AWS CodeBuild (On Master Account)
 boto3~=1.9.89
 pylint~=2.2.2
 pytest~=3.0.7

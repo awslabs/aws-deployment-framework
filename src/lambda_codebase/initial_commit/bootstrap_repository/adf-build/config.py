@@ -36,7 +36,7 @@ class Config:
         self.deployment_account_region = None
         self.notification_channel = None
         self.protected = None
-        self.target_regions = None
+        self.target_regions = []
         self.cross_account_access_role = None
         self._load_config_file()
 
@@ -60,12 +60,6 @@ class Config:
             raise InvalidConfigError(
                 'adfconfig.yml is missing required properties. '
                 'Please see the documentation.'
-            )
-
-        if not len(self.target_regions) >= 1:
-            raise InvalidConfigError(
-                'ADF requires you to have at least 1 target region '
-                'for deployments'
             )
 
         try:
@@ -99,11 +93,11 @@ class Config:
         """
         Parses the adfconfig.yml file and executes _validate
         """
-
+        regions = self.config_contents.get(
+            'regions', {}).get('targets', [])
         self.deployment_account_region = self.config_contents.get(
             'regions', None).get('deployment-account', None)
-        self.target_regions = self.config_contents.get(
-            'regions', None).get('targets', None)
+        self.target_regions = [] if regions[0] is None else regions
         self.cross_account_access_role = self.config_contents.get(
             'roles', None).get('cross-account-access', None)
         self.config = self.config_contents.get('config', None)

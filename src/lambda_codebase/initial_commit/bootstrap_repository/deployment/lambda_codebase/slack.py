@@ -48,8 +48,9 @@ def is_bootstrap(event):
     """
     try:
         message = json.loads(event['Records'][0]['Sns']['Message'])
-        if message.get('Error'):
-            return True
+        if isinstance(message, dict):
+            if message.get('Error'):
+                return True
         return False
     except ValueError:
         return True

@@ -8,8 +8,8 @@ import boto3
 from errors import InvalidDeploymentMapError
 from pytest import fixture, raises
 from mock import Mock, patch
-from stubs import stub_target
-from target import Target
+from .stubs import stub_target
+from ..target import Target
 
 
 class MockTargetStructure:

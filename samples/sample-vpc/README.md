@@ -1,5 +1,4 @@
 ## Sample VPC to showcase ADF Pipelines
-## Sample VPC to showcase ADF Pipelines
 
 This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-vpc*.
 

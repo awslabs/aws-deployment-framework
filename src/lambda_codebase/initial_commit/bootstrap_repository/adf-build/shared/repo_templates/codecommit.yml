@@ -5,7 +5,7 @@ Parameters:
     Type: String
     Default: Created by ADF
 Resources:
-  MyRepo:
+  Repo:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryName: !Ref RepoName

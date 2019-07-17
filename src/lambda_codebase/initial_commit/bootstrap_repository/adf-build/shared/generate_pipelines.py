@@ -12,6 +12,7 @@ from pipeline import Pipeline
 from repo import Repo
 from target import Target, TargetStructure
 from logger import configure_logger
+from errors import ParameterNotFoundError
 from deployment_map import DeploymentMap
 from cloudformation import CloudFormation
 from organizations import Organizations
@@ -21,12 +22,11 @@ from parameter_store import ParameterStore
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-MASTER_ACCOUNT_ID = os.environ.get("MASTER_ACCOUNT_ID", 'us-east-1')
+MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
-TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 def clean(parameter_store, deployment_map):
     """
@@ -86,8 +86,7 @@ def upload_pipeline(s3, pipeline):
     """
     s3_object_path = s3.put_object(
         "pipelines/{0}/global.yml".format(
-            pipeline.name), "{0}/{1}/{2}/global.yml".format(
-                TARGET_DIR,
+            pipeline.name), "{0}/{1}/global.yml".format(
                 'pipelines',
                 pipeline.name
             )
@@ -122,11 +121,15 @@ def main(): #pylint: disable=R0915
     organizations = Organizations(role)
     clean(parameter_store, deployment_map)
 
+    try:
+        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+    except ParameterNotFoundError:
+        auto_create_repositories = 'enabled'
+
     for p in deployment_map.map_contents.get('pipelines'):
         pipeline = Pipeline(p)
 
-        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
-        if auto_create_repositories:
+        if auto_create_repositories == 'enabled':
             code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
             if auto_create_repositories and code_account_id and str(code_account_id).isdigit():
                 repo = Repo(code_account_id, p.get('name'), p.get('description'))

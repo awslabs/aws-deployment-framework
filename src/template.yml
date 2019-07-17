@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: ../README.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 1.0.6
+    SemanticVersion: 1.2.0
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Parameters:
   CommitInitialBootstrapContent:
@@ -39,7 +39,7 @@ Parameters:
     Type: String
     Default: ""
   DeploymentAccountId:
-    Description: "The account number of the existing Deployment Account, only required if an existing account should be re-used. A deployment account will be created if this value is omitted. Only required if using pre-existing AWS Account as the Deployment Account, not required for updating."
+    Description: "The AWS Account number of the existing Deployment Account, only required if an existing account should be re-used. A deployment account will be created if this value is omitted. Only required if using pre-existing AWS Account as the Deployment Account, not required for updating."
     Type: String
     Default: ""
   DeploymentAccountMainRegion:
@@ -47,7 +47,7 @@ Parameters:
     Type: String
     Default: ""
   DeploymentAccountTargetRegions:
-    Description: "A List of regions that you may want to deploy resources (Applications, CloudFormation etc) into via CodePipeline (us-west-1,eu-west-1) This can always be updated later, not required for updating."
+    Description: "An optional comma separated list of regions that you may want to deploy resources (Applications, CloudFormation etc) into via CodePipeline, this can always be updated later, not required for updating. (us-west-1,eu-west-1)"
     Type: CommaDelimitedList
     Default: ""
   LogLevel:
@@ -94,7 +94,7 @@ Resources:
               - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}
               - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}/*
             Principal:
-              AWS: !Ref AWS::AccountId         
+              AWS: !Ref AWS::AccountId
   BootstrapTemplatesBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -187,7 +187,7 @@ Resources:
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -208,7 +208,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -229,7 +229,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
@@ -248,7 +248,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -267,7 +267,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -286,7 +286,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 1.0.6
+          ADF_VERSION: 1.2.0
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -425,7 +425,7 @@ Resources:
         Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 1.0.6
+            Value: 1.2.0
           - Name: TERMINATION_PROTECTION
             Value: !Ref TerminationProtection
           - Name: PYTHONPATH
@@ -460,7 +460,7 @@ Resources:
               commands:
                 - sam build -t deployment/global.yml
                 - sam package --output-template-file deployment/global.yml --s3-prefix deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
-                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build/shared --quiet # Shared Modules to be used with AWS CodeBuild
+                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet # Shared Modules to be used with AWS CodeBuild
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
                 - python adf-build/main.py  # Updates config, updates (or creates) base stacks.
         Type: CODEPIPELINE
@@ -664,7 +664,7 @@ Resources:
     Condition: ShouldCommitInitialBootstrapContent
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 1.0.6
+      Version: 1.2.0
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
@@ -837,7 +837,7 @@ Resources:
       Timeout: 300
 Outputs:
   ADFVersionNumber:
-    Value: 1.0.6
+    Value: 1.2.0
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

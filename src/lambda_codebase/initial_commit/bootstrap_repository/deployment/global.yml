@@ -452,7 +452,7 @@ Resources:
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: "./adf-build/shared/python"
+            Value: "./adf-build/python"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
@@ -476,13 +476,11 @@ Resources:
           phases:
             install:
               commands:
+                - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q
             build:
               commands:
-                - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/shared/ ./adf-build/shared --recursive --quiet
-                - aws s3 cp ./adf-build s3://$S3_BUCKET_NAME/adf-build/ --recursive --quiet
-                - pytest -vvv
                 - python ./adf-build/generate_pipelines.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:

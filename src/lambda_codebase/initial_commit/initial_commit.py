@@ -117,8 +117,12 @@ class UpdateEvent(Event):
             **self.OldResourceProperties  # pylint: disable=not-a-mapping
         )
 
+def chunks(l, n):
+    n = max(1, n)
+    return (l[i:i+n] for i in range(0, len(l), n))
+
 @create()
-def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], Data]:
+def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], Data]: #pylint: disable=R0912, R0915
     create_event = CreateEvent(**event)
     repo_name = repo_arn_to_name(create_event.ResourceProperties.RepositoryArn)
     directory = create_event.ResourceProperties.DirectoryName
@@ -133,15 +137,24 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
             branchName=create_event.ResourceProperties.Version,
             commitId=commit_id
         )
-        CC_CLIENT.create_commit(
-            repositoryName=repo_name,
-            branchName=create_event.ResourceProperties.Version,
-            parentCommitId=commit_id,
-            authorName='ADF Update PR',
-            email='adf-builders@amazon.com',
-            commitMessage='ADF {0} Automated Update PR'.format(create_event.ResourceProperties.Version),
-            putFiles=[f.as_dict() for f in files_to_commit]
-        )
+        for index, files in enumerate(chunks([f.as_dict() for f in files_to_commit], 99)):
+            commit_args = {
+                "repositoryName": repo_name,
+                "branchName": create_event.ResourceProperties.Version,
+                "authorName": "AWS ADF Builders Team",
+                "parentCommitId": commit_id,
+                "email": "adf-builders@amazon.com",
+                "commitMessage": "ADF {0} Automated Commit - Create Part {1}".format(create_event.ResourceProperties.Version, index),
+                "putFiles": files
+            }
+            if index == 0:
+                commit_response = CC_CLIENT.create_commit(**commit_args)
+                commit_id = commit_response["commitId"]
+            else:
+                commit_args["parentCommitId"] = commit_id
+                commit_response = CC_CLIENT.create_commit(**commit_args)
+                commit_id = commit_response["commitId"]
+
         CC_CLIENT.create_pull_request(
             title='ADF {0} Automated Update PR'.format(create_event.ResourceProperties.Version),
             description=PR_DESCRIPTION.format(create_event.ResourceProperties.Version),
@@ -165,18 +178,28 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
         if directory == "bootstrap_repository":
             adf_config = create_adf_config_file(create_event.ResourceProperties)
             files_to_commit.append(adf_config)
-        commit_response = CC_CLIENT.create_commit(
-            repositoryName=repo_name,
-            branchName="master",
-            authorName="AWS ADF Builders Team",
-            email="adf-builders@amazon.com",
-            commitMessage="Initial automated commit",
-            putFiles=[f.as_dict() for f in files_to_commit]
-        )
+        latest_commit_id = 0
+        for index, files in enumerate(chunks([f.as_dict() for f in files_to_commit], 99)):
+            commit_args = {
+                "repositoryName": repo_name,
+                "branchName": "master",
+                "authorName": "AWS ADF Builders Team",
+                "email": "adf-builders@amazon.com",
+                "commitMessage": "Initial Automated Commit - Create Part {0}".format(index),
+                "putFiles": files
+            }
+            if index == 0:
+                commit_response = CC_CLIENT.create_commit(**commit_args)
+                latest_commit_id = commit_response["commitId"]
+            else:
+                commit_args["parentCommitId"] = latest_commit_id
+                commit_response = CC_CLIENT.create_commit(**commit_args)
+                latest_commit_id = commit_response["commitId"]
+
         return commit_response["commitId"], {}
 
 @update()
-def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId, Data]:
+def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[PhysicalResourceId, Data]: #pylint: disable=R0912, R0915
     update_event = UpdateEvent(**event)
     directory = update_event.ResourceProperties.DirectoryName
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
@@ -192,17 +215,51 @@ def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId
         branchName=update_event.ResourceProperties.Version,
         commitId=commit_id
     )
-    try:
-        CC_CLIENT.create_commit(
-            repositoryName=repo_name,
-            branchName=update_event.ResourceProperties.Version,
-            parentCommitId=commit_id,
-            authorName='ADF Update PR',
-            email='adf-builders@amazon.com',
-            commitMessage='ADF {0} Automated Update PR'.format(update_event.ResourceProperties.Version),
-            putFiles=[f.as_dict() for f in files_to_commit],
-            deleteFiles=[f.as_dict() for f in files_to_delete]
-        )
+
+    if files_to_commit:
+        try:
+            for index, files in enumerate(chunks([f.as_dict() for f in files_to_commit], 99)):
+                commit_args = {
+                    "repositoryName": repo_name,
+                    "branchName": update_event.ResourceProperties.Version,
+                    "authorName": "AWS ADF Builders Team",
+                    "parentCommitId": commit_id,
+                    "email": "adf-builders@amazon.com",
+                    "commitMessage": "ADF {0} Automated Update PR - Create Part {1}".format(update_event.ResourceProperties.Version, index),
+                    "putFiles": files
+                }
+                if index == 0:
+                    commit_response = CC_CLIENT.create_commit(**commit_args)
+                    create_pr = True # pylint: disable=W0621
+                    commit_id = commit_response["commitId"]
+                else:
+                    commit_args["parentCommitId"] = commit_id
+                    commit_response = CC_CLIENT.create_commit(**commit_args)
+                    commit_id = commit_response["commitId"]
+        except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
+            pass
+    if files_to_delete:
+        try:
+            for index, deletes in enumerate(chunks([f.as_dict() for f in files_to_delete], 99)):
+                commit_args = {
+                    "repositoryName": repo_name,
+                    "branchName": update_event.ResourceProperties.Version,
+                    "authorName": "AWS ADF Builders Team",
+                    "parentCommitId": commit_id,
+                    "email": "adf-builders@amazon.com",
+                    "commitMessage": "ADF {0} Automated Update PR - Delete Part {1}".format(update_event.ResourceProperties.Version, index),
+                    "deleteFiles": deletes
+                }
+                if index == 0:
+                    commit_response = CC_CLIENT.create_commit(**commit_args)
+                    commit_id = commit_response["commitId"]
+                else:
+                    commit_args["parentCommitId"] = commit_id
+                    commit_response = CC_CLIENT.create_commit(**commit_args)
+                    commit_id = commit_response["commitId"]
+        except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
+            pass
+    if create_pr or files_to_delete:
         CC_CLIENT.create_pull_request(
             title='ADF {0} Automated Update PR'.format(update_event.ResourceProperties.Version),
             description=PR_DESCRIPTION.format(update_event.ResourceProperties.Version),
@@ -214,7 +271,7 @@ def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId
                 },
             ]
         )
-    except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
+    else:
         CC_CLIENT.delete_branch(
             repositoryName=repo_name,
             branchName=update_event.ResourceProperties.Version
@@ -243,8 +300,7 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         and 'scp.json' not in file['afterBlob']['path']
         and 'global.yml' not in file['afterBlob']['path']
         and 'regional.yml' not in file['afterBlob']['path']
-        and 'deployment_map.yml' not in file['afterBlob']['path']
-        and '.DS_Store' not in file['afterBlob']['path']
+        and file['afterBlob']['path'] != 'deployment_map.yml'
     ]
 
     # 31: trimming off /var/task/bootstrap_repository so we can compare correctly
@@ -261,6 +317,7 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
 
 def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName
+
     return [
         FileToCommit(
             str(get_relative_name(entry, directoryName)),

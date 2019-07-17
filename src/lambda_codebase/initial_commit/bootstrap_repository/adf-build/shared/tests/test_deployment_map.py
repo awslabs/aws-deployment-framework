@@ -9,8 +9,8 @@ import boto3
 from errors import InvalidDeploymentMapError
 from pytest import fixture, raises
 from mock import Mock
-from pipeline import Pipeline
-from deployment_map import DeploymentMap
+from ..pipeline import Pipeline
+from ..deployment_map import DeploymentMap
 
 
 @fixture

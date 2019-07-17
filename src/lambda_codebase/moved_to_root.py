@@ -70,7 +70,7 @@ def execute_move_action(action, account_id, parameter_store, event):
     if action in ['remove_base', 'remove-base']:
         regions = ast.literal_eval(
             parameter_store.fetch_parameter('target_regions')
-        )
+        ) or []
 
         role = parameter_store.fetch_parameter('cross_account_access_role')
         return remove_base(account_id, regions, role, event)
