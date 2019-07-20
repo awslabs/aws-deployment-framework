@@ -322,7 +322,7 @@ Resources:
                 TemplatePath: !Sub "${ProjectName}-build::template.yml"
 {% endif %}
                 TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
-                Capabilities: CAPABILITY_NAMED_IAM
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
