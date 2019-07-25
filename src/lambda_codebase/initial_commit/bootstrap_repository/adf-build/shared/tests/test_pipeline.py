@@ -38,11 +38,11 @@ def test_pipeline_init_defaults(cls):
 def test_pipeline_replace_on_failure():
     assertion_pipeline = Pipeline(
         pipeline={
-        "name": "pipeline",
-        "params": [{"key": "value"}],
-        "targets": [],
-        "type": "cc-cloudformation",
-        "action": "replace_on_failure"
+            "name": "pipeline",
+            "params": [{"key": "value"}],
+            "targets": [],
+            "type": "cc-cloudformation",
+            "action": "replace_on_failure"
         }
     )
     assert assertion_pipeline.action == "REPLACE_ON_FAILURE"
@@ -51,11 +51,11 @@ def test_pipeline_replace_on_failure():
 def test_pipeline_contains_transform():
     assertion_pipeline = Pipeline(
         pipeline={
-        "name": "pipeline",
-        "params": [{"key": "value"}],
-        "targets": [],
-        "type": "cc-cloudformation",
-        "contains_transform": "true"
+            "name": "pipeline",
+            "params": [{"key": "value"}],
+            "targets": [],
+            "type": "cc-cloudformation",
+            "contains_transform": "true"
         }
     )
     assert assertion_pipeline.contains_transform == "true"

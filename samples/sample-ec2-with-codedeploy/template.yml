@@ -246,3 +246,9 @@ Resources:
       Cooldown: 300
       PolicyType: "SimpleScaling"
       ScalingAdjustment: 1
+Outputs:
+  ExternalUrl:
+    Description: The url of the external load balancer
+    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Export:
+      Name: 'ExternalUrl'

@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 from s3 import S3
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
+from cache import Cache
 from errors import ParameterNotFoundError
 from sts import STS
 from logger import configure_logger
@@ -24,25 +25,25 @@ class Resolver:
         self.parameter_store = parameter_store
         self.stage_parameters = stage_parameters
         self.comparison_parameters = comparison_parameters
-        self.s3 = S3(DEFAULT_REGION, S3_BUCKET_NAME)
         self.sts = STS()
+        self.cache = Cache()
 
-    def fetch_stack_output(self, value, key, param=None, optional=False): #pylint: disable=R0912, R0915
+    @staticmethod
+    def _is_optional(value):
+        return value.endswith('?')
+
+    def fetch_stack_output(self, value, key, optional=False): # pylint: disable=too-many-statements
         try:
             [_, account_id, region, stack_name, export] = str(value).split(':')
-            if export.endswith('?'):
-                export = export[:-1]
-                LOGGER.info("Import %s is considered optional", export)
-                optional = True
         except ValueError:
             raise ValueError(
                 "{0} is not a valid import string."
                 "syntax should be import:account_id:region:stack_name:export_key".format(str(value))
             )
-        LOGGER.info("Assuming the role %s", 'arn:aws:iam::{0}:role/{1}'.format(
-            account_id,
-            'adf-cloudformation-deployment-role'
-            ))
+        if Resolver._is_optional(export):
+            LOGGER.info("Parameter %s is considered optional", export)
+            optional = True
+        export = export[:-1] if optional else export
         try:
             role = self.sts.assume_cross_account_role(
                 'arn:aws:iam::{0}:role/{1}'.format(
@@ -57,130 +58,108 @@ class Resolver:
                 stack_name=stack_name,
                 account_id=account_id
             )
-            LOGGER.info("Retrieving value of key %s from %s on %s in %s", export, stack_name, account_id, region)
-            stack_output = cloudformation.get_stack_output(export)
-            LOGGER.info("Stack output value is %s", stack_output)
+            stack_output = self.cache.check(value) or cloudformation.get_stack_output(export)
+            if stack_output:
+                LOGGER.info("Stack output value is %s", stack_output)
+                self.cache.add(value, stack_output)
         except ClientError:
             if not optional:
                 raise
             stack_output = ""
             pass
-        if optional:
-            if param:
-                self.stage_parameters[param][key] = stack_output
+        try:
+            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+            if optional:
+                self.stage_parameters[parent_key][key] = stack_output
             else:
+                if not stack_output:
+                    raise Exception("No Stack Output found on %s in %s with stack name %s and output key %s" % account_id, region, stack_name, export)
+                self.stage_parameters[parent_key][key] = stack_output
+        except IndexError:
+            if stack_output:
                 self.stage_parameters[key] = stack_output
-            return
-        else:
-            if not stack_output:
-                raise Exception("No Stack Output found on %s in %s with stack name %s and output key %s", account_id, region, stack_name, export) #pylint: disable=W0715
-            if param:
-                self.stage_parameters[param][key] = stack_output
             else:
-                self.stage_parameters[key] = stack_output
-            return
+                raise Exception("Could not determine the structure of the file in order to import from CloudFormation")
+        return True
 
-    def upload(self, value, key, file_name, param=None):
-        if str(value).count(':') > 1:
-            [_, region, value] = value.split(':')
-            bucket_name = self.parameter_store.fetch_parameter(
-                '/cross_region/s3_regional_bucket/{0}'.format(region)
+    def upload(self, value, key, file_name):
+        if not any(item in value for item in ['path', 'virtual-hosted']):
+            raise Exception(
+                'When uploading to S3 you need to specify a '
+                'pathing style for the response either path or virtual-hosted, '
+                'read more: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html'
             )
-            regional_client = S3(region, bucket_name)
-            LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", value, file_name, bucket_name, region)
-            if param:
-                self.stage_parameters[param][key] = regional_client.put_object(
-                    "adf-upload/{0}/{1}".format(value, file_name),
-                    "{0}".format(value)
-                )
-            else:
-                self.stage_parameters[key] = regional_client.put_object(
-                    "adf-upload/{0}/{1}".format(value, file_name),
-                    "{0}".format(value)
-                )
-            return True
-        [_, value] = value.split(':')
-        LOGGER.info("Uploading %s to S3", value)
-        if param:
-            self.stage_parameters[param][key] = self.s3.put_object(
-                "adf-upload/{0}/{1}".format(value, file_name),
-                "{0}".format(value)
-            )
+        if str(value).count(':') > 2:
+            [_, region, style, value] = value.split(':')
         else:
-            self.stage_parameters[key] = self.s3.put_object(
+            [_, style, value] = value.split(':')
+            region = DEFAULT_REGION
+        bucket_name = self.parameter_store.fetch_parameter(
+            '/cross_region/s3_regional_bucket/{0}'.format(region)
+        )
+        client = S3(region, bucket_name)
+        LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", value, file_name, bucket_name, region)
+        try:
+            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+        except IndexError:
+            self.stage_parameters[key] = client.put_object(
                 "adf-upload/{0}/{1}".format(value, file_name),
-                "{0}".format(value)
+                "{0}".format(value),
+                style
             )
-        return False
-
-    def fetch_parameter_store_value(self, value, key, param=None, optional=False): #pylint: disable=R0912, R0915
-        if str(value).count(':') > 1:
-            [_, region, value] = value.split(':')
-            if value.endswith('?'):
-                value = value[:-1]
-                LOGGER.info("Parameter %s is considered optional", value)
-                optional = True
-            regional_client = ParameterStore(region, boto3)
-            LOGGER.info("Fetching Parameter from %s", value)
-            if param:
-                try:
-                    self.stage_parameters[param][key] = regional_client.fetch_parameter(
-                        value
-                    )
-                except ParameterNotFoundError:
-                    if optional:
-                        LOGGER.info("Parameter %s not found, returning empty string", value)
-                        self.stage_parameters[param][key] = ""
-                    else:
-                        raise
-            else:
-                try:
-                    self.stage_parameters[key] = regional_client.fetch_parameter(
-                        value
-                    )
-                except ParameterNotFoundError:
-                    if optional:
-                        LOGGER.info("Parameter %s not found, returning empty string", value)
-                        self.stage_parameters[key] = ""
-                    else:
-                        raise
             return True
-        [_, value] = value.split(':')
-        if value.endswith('?'):
-            value = value[:-1]
+        self.stage_parameters[parent_key][key] = client.put_object(
+            "adf-upload/{0}/{1}".format(value, file_name),
+            "{0}".format(value),
+            style
+        )
+        return True
+
+    @staticmethod
+    def determine_parent_key(d, target_key, parent_key=None):
+        for key, value in d.items():
+            if key == target_key:
+                yield parent_key
+            if isinstance(value, dict):
+                for result in Resolver.determine_parent_key(value, target_key, key):
+                    yield result
+
+    def fetch_parameter_store_value(self, value, key, optional=False): # pylint: disable=too-many-statements
+        if self._is_optional(value):
             LOGGER.info("Parameter %s is considered optional", value)
             optional = True
-        LOGGER.info("Fetching Parameter from %s", value)
-        regional_client = ParameterStore(DEFAULT_REGION, boto3)
-        if param:
-            try:
-                self.stage_parameters[param][key] = regional_client.fetch_parameter(
-                    value
-                )
-            except ParameterNotFoundError:
-                if optional:
-                    LOGGER.info("Parameter %s not found, returning empty string", value)
-                    self.stage_parameters[param][key] = ""
-                else:
-                    raise
+        if str(value).count(':') > 1:
+            [_, region, value] = value.split(':')
         else:
-            try:
-                self.stage_parameters[key] = regional_client.fetch_parameter(
-                    value
-                )
-            except ParameterNotFoundError:
-                if optional:
-                    LOGGER.info("Parameter %s not found, returning empty string", value)
-                    self.stage_parameters[key] = ""
-                else:
-                    raise
-        return False
+            [_, value] = value.split(':')
+            region = DEFAULT_REGION
+        value = value[:-1] if optional else value
+        client = ParameterStore(region, boto3)
+        LOGGER.info("Fetching Parameter from %s", value)
+        try:
+            parameter = self.cache.check('{0}/{1}'.format(region, value)) or client.fetch_parameter(value)
+        except ParameterNotFoundError:
+            if optional:
+                LOGGER.info("Parameter %s not found, returning empty string", value)
+                parameter = ""
+            else:
+                raise
+        try:
+            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+            if parameter:
+                self.cache.add('{0}/{1}'.format(region, value), parameter)
+                self.stage_parameters[parent_key][key] = parameter
+        except IndexError as error:
+            if parameter:
+                self.stage_parameters[key] = parameter
+            else:
+                LOGGER.error("Parameter was not found, unable to fetch it from parameter store")
+                raise Exception("Parameter was not found, unable to fetch it from parameter store") from error
+        return True
 
-    def update_cfn(self, key, param):
-        if key not in self.stage_parameters[param]:
-            self.stage_parameters[param][key] = self.comparison_parameters[param][key]
-
-
-    def update_sc(self, key):
-        if key not in self.stage_parameters:
-            self.stage_parameters[key] = self.comparison_parameters[key]
+    def update(self, key):
+        for k, _ in self.comparison_parameters.items():
+            if not self.stage_parameters.get(k):
+                self.stage_parameters[k] = self.comparison_parameters[k]
+            if key not in self.stage_parameters[k] and self.comparison_parameters.get(k, {}).get(key):
+                self.stage_parameters[k][key] = self.comparison_parameters[k][key]

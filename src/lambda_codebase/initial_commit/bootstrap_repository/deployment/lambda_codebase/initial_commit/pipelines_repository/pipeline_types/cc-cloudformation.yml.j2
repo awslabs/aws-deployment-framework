@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Template For CodePipeline - AWS CodeCommit Source and CloudFormation Deployment Target
 Parameters:
+  RepositoryName:
+    Description: The Repository attached to this pipeline
+    Type: String
+    Default: ''
   ProjectName:
     Description: Name of the Project (This is automatically passed in by ADF)
     Type: String
@@ -35,6 +39,10 @@ Parameters:
     Description: If the pipeline will automatically trigger based on update
     Type: String
     Default: False
+  CustomBuildRole:
+    Description: If you wish to use a custom build role for CodeBuild
+    Type: String
+    Default: ""
   SharedModulesBucket:
     Description: The S3 Bucket that holds shared modules between master and deployment account
     Type: AWS::SSM::Parameter::Value<String>
@@ -51,6 +59,8 @@ Parameters:
 {% endfor %}
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
+  HasCustomBuildRole: !Not [!Equals [!Ref CustomBuildRole, '']]
+  HasCustomRepository: !Not [!Equals [!Ref RepositoryName, '']]
 Resources:
 {% if completion_trigger.get('pipelines', []) %}
   PipelineTriggerEventRule:
@@ -127,14 +137,14 @@ Resources:
       Targets:
         - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
           RoleArn: !GetAtt CronPipelineCloudWatchEventRole.Arn
-          Id: !Sub "adf-cron-${AWS::StackName}"
+          Id: !If [HasCustomRepository, !Sub "adf-cron-${ProjectName}", !Sub "adf-cron-${AWS::StackName}"]
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub "adf-build-${ProjectName}"
       Description: !Sub "CodeBuild Project ${ProjectName} created by ADF"
       EncryptionKey: !ImportValue KMSArn-{{ deployment_account_region }}
-      ServiceRole: !ImportValue CodeBuildRoleArn
+      ServiceRole: !If [HasCustomBuildRole, !Ref CustomBuildRole, !ImportValue CodeBuildRoleArn]
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -176,7 +186,7 @@ Resources:
       State: "ENABLED"
       Targets:
         - Arn: !Ref PipelineSNSTopic
-          Id: !Sub "${AWS::StackName}-pipeline"
+          Id: !If [HasCustomRepository, !Sub "adf-pipeline-${ProjectName}", !Sub "adf-pipeline-${AWS::StackName}"]
 {% if "@" in notification_endpoint %}
           InputTransformer:
             InputTemplate: '"The pipeline <pipeline> from account <account> has <state> at <at>."'
@@ -238,7 +248,7 @@ Resources:
                 Version: 1
                 Provider: CodeCommit
               Configuration:
-                RepositoryName: !Ref ProjectName
+                RepositoryName: !If [HasCustomRepository, !Ref RepositoryName, !Ref ProjectName] 
                 BranchName: !Ref BranchName
               OutputArtifacts:
                 - Name: TemplateSource
@@ -290,7 +300,7 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ActionMode: {{ action }}
-                StackName: !Sub "${StackPrefix}-${ProjectName}"
+                StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
 {% if contains_transform %}
                 TemplatePath: !Sub "${ProjectName}-build::template_{{ region }}.yml"
@@ -299,7 +309,11 @@ Resources:
 {% endif %}
                 TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
+{% if deployment_role %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, deployment_role) }}
+{% else %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeploymentRole')) if stage.get('params').get('DeploymentRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}
+{% endif %}
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
               RunOrder: 1
@@ -314,7 +328,7 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ActionMode: CHANGE_SET_REPLACE
-                StackName: !Sub "${StackPrefix}-${ProjectName}"
+                StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
 {% if contains_transform %}
                 TemplatePath: !Sub "${ProjectName}-build::template_{{ region }}.yml"
@@ -323,7 +337,11 @@ Resources:
 {% endif %}
                 TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ region }}.json"
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
+{% if deployment_role %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, deployment_role) }}
+{% else %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeploymentRole')) if stage.get('params').get('DeploymentRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}
+{% endif %}
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
               RunOrder: 1
@@ -338,8 +356,12 @@ Resources:
               Configuration:
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
-                StackName: !Sub "${StackPrefix}-${ProjectName}"
-                RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
+                StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
+{% if deployment_role %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, deployment_role) }}
+{% else %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeploymentRole')) if stage.get('params').get('DeploymentRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}
+{% endif %}
               RunOrder: 2
               Region: {{ region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"
@@ -355,7 +377,7 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ActionMode: CHANGE_SET_REPLACE
-                StackName: !Sub "${StackPrefix}-${ProjectName}"
+                StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
 {% if contains_transform %}
                 TemplatePath: !Sub "${ProjectName}-build::template_{{ region }}.yml"
@@ -364,8 +386,11 @@ Resources:
 {% endif %}
                 TemplateConfiguration: !Sub "${ProjectName}-build::params/{{ stage.name }}_{{ top_level_region }}.json"
                 Capabilities: CAPABILITY_NAMED_IAM
-                RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
-
+{% if deployment_role %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, deployment_role) }}
+{% else %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeploymentRole')) if stage.get('params').get('DeploymentRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}
+{% endif %}
               InputArtifacts:
                 - Name: !Sub "${ProjectName}-build"
               RunOrder: 1
@@ -380,9 +405,12 @@ Resources:
               Configuration:
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
                 ActionMode: CHANGE_SET_EXECUTE
-                StackName: !Sub "${StackPrefix}-${ProjectName}"
-                RoleArn: "{{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeployRole')) if stage.get('params').get('DeployRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}"
-
+                StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
+{% if deployment_role %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, deployment_role) }}
+{% else %}
+                RoleArn: {{ 'arn:aws:iam::{0}:role/{1}'.format(stage.id, stage.get('params').get('DeploymentRole')) if stage.get('params').get('DeploymentRole') else 'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(stage.id) }}
+{% endif %}
               RunOrder: 2
               Region: {{ top_level_region }}
               RoleArn: "arn:aws:iam::{{ stage.id }}:role/adf-cloudformation-role"

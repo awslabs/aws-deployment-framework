@@ -23,11 +23,10 @@ class DeploymentMap:
         self.map_path = map_path or 'deployment_map.yml'
         self.map_dir_path = map_path or 'deployment_maps'
         self.parameter_store = parameter_store
-        self.map_contents = self._get_deployment_map()
-        self.map_contents = self._get_deployment_apps_from_dir()
+        self._get_all()
         self.pipeline_name_prefix = pipeline_name_prefix
         self.account_ou_names = {}
-        self._validate_deployment_map()
+        self._validate()
 
     def update_deployment_parameters(self, pipeline):
         for account in pipeline.template_dictionary['targets']:
@@ -49,7 +48,7 @@ class DeploymentMap:
                 str(pipeline.notification_endpoint)
             )
 
-    def _get_deployment_map(self, file_path=None):
+    def _read(self, file_path=None):
         if file_path is None:
             file_path = self.map_path
         try:
@@ -57,21 +56,29 @@ class DeploymentMap:
             with open(file_path, 'r') as stream:
                 return yaml.load(stream, Loader=yaml.FullLoader)
         except FileNotFoundError:
-            LOGGER.debug('Nothing found at %s', file_path)
-            return None
+            LOGGER.info('No default map file found at %s, continuing', file_path)
+            return {}
 
-    def _get_deployment_apps_from_dir(self):
+    def determine_extend_map(self, deployment_map):
+        if deployment_map.get('pipelines'):
+            self.map_contents['pipelines'].extend(deployment_map['pipelines'])
+
+    def _get_all(self):
+        self.map_contents = {}
+        self.map_contents['pipelines'] = []
         if os.path.isdir(self.map_dir_path):
             for file in os.listdir(self.map_dir_path):
                 if file.endswith(".yml") and file != 'example-deployment_map.yml':
-                    deployment_map = self._get_deployment_map('{}/{}'.format(self.map_dir_path, file))
-                    if 'pipelines' not in self.map_contents:
-                        self.map_contents['pipelines'] = []
-                    if 'pipelines' in deployment_map:
-                        self.map_contents['pipelines'].extend(deployment_map['pipelines'])
-        return self.map_contents
+                    self.determine_extend_map(
+                        self._read('{0}/{1}'.format(self.map_dir_path, file))
+                    )
+        self.determine_extend_map(
+            self._read() # Calling with default no args to get deployment_map.yml in root if it exists
+        )
+        if not self.map_contents['pipelines']:
+            raise InvalidDeploymentMapError("No Deployment Map files found..")
 
-    def _validate_deployment_map(self):
+    def _validate(self):
         """
         Validates the deployment map contains valid configuration
         """
