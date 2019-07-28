@@ -282,6 +282,7 @@ class CloudFormation(StackProperties):
 
     def get_stack_output(self, value):
         try:
+            LOGGER.debug("Retrieving value: %s", value)
             response = self.client.describe_stacks(
                 StackName=self.stack_name
             )

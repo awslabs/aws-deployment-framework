@@ -9,9 +9,13 @@ import boto3
 import sys
 
 from pytest import fixture
-from mock import Mock
+from mock import Mock, patch
+from cache import Cache
 from generate_params import Parameters
-
+from parameter_store import ParameterStore
+from cloudformation import CloudFormation
+from sts import STS
+from resolver import Resolver
 
 @fixture
 def cls():
@@ -50,14 +54,13 @@ def test_parse_not_found(cls):
     assert parse == {'Parameters': {}, 'Tags': {}}
 
 
-def test_compare_cfn(cls):
+def test_param_updater(cls):
     parse = cls._parse(
         '{0}/stub_cfn_global'.format(cls.cwd)
     )
-    compare = cls._compare_cfn(
+    compare = cls._param_updater(
         parse,
-        {'Parameters': {}, 'Tags': {}},
-        'some_name'
+        {'Parameters': {}, 'Tags': {}}
     )
     assert compare == parse
 
@@ -94,14 +97,16 @@ def test_ensure_parameter_specific_contents(cls):
         "{0}/account_name1_eu-central-1.yml".format(cls.cwd),
         "{0}/params/account_name1_eu-central-1.yml".format(cls.cwd)
     )
-    cls.create_parameter_files()
 
-    parse_json = cls._parse(
-        "{0}/params/account_name1_eu-west-1".format(cls.cwd)
-    )
-    parse_yml = cls._parse(
-        "{0}/params/account_name1_eu-central-1".format(cls.cwd)
-    )
-
-    assert parse_json == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
-    assert parse_yml == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+    with patch.object(ParameterStore, 'fetch_parameter', return_value='something') as ssm_mock:
+        with patch.object(CloudFormation, 'get_stack_output', return_value='something_else') as cfn_mock:
+            with patch.object(STS, 'assume_cross_account_role', return_value={}) as sts_mock:
+                cls.create_parameter_files()
+                parse_json = cls._parse(
+                    "{0}/params/account_name1_eu-west-1".format(cls.cwd)
+                )
+                parse_yml = cls._parse(
+                    "{0}/params/account_name1_eu-central-1".format(cls.cwd)
+                )
+                assert parse_json == {'Parameters': {'CostCenter': 'free', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+                assert parse_yml == {'Parameters': {'CostCenter': 'free', 'MySpecialValue': 'something', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}

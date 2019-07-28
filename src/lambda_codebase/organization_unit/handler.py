@@ -7,7 +7,7 @@ The Organization Unit Handler that is called when ADF is installed to create the
 
 try:
     from main import lambda_handler # pylint: disable=unused-import
-except Exception as err:  # pylint: disable=broad-except
+except Exception as err: # pylint: disable=broad-except
     from urllib.request import Request, urlopen
     import json
 

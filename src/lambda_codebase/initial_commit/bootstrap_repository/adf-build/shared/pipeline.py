@@ -19,8 +19,8 @@ class Pipeline:
         self.notification_endpoint = self._extract_notification_endpoint()
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
+        self.deployment_role = pipeline.get('deployment_role', None)
         self.pipeline_type = pipeline.get('type', None)
-        self.replace_on_failure = pipeline.get('replace_on_failure', '') # Legacy, and will be replaced in 1.0.0 in favour of below 'action'
         self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.contains_transform = pipeline.get('contains_transform', '')
@@ -39,32 +39,30 @@ class Pipeline:
 
 
     def generate_parameters(self):
-        try:
-            params = []
-            # ProjectName should be a hidden param and passed in directly from the
-            # name of the "pipeline"
-            params.append({
-                'ParameterKey': str('ProjectName'),
-                'ParameterValue': self.name,
-            })
-            for param in self.parameters:
-                for key, value in param.items():
-                    params.append({
-                        'ParameterKey': str(key),
-                        'ParameterValue': str(value),
-                    })
-            return params
-        except BaseException:
-            return []
+        params = []
+        # ProjectName should be a hidden param and passed in directly from the
+        # name of the "pipeline"
+        params.append({
+            'ParameterKey': str('ProjectName'),
+            'ParameterValue': self.name,
+        })
+        for param in self.parameters:
+            for key, value in param.items():
+                params.append({
+                    'ParameterKey': str(key),
+                    'ParameterValue': str(value),
+                })
+        return params
+
 
     @staticmethod
-    def flatten_list(k):
+    def flatten_list(input_list):
         result = list()
-        for i in k:
-            if isinstance(i, list):
-                result.extend(Pipeline.flatten_list(i))
+        for item in input_list:
+            if isinstance(item, list):
+                result.extend(Pipeline.flatten_list(item))
             else:
-                result.append(i)
+                result.append(item)
         return sorted(result)
 
     def _create_pipelines_folder(self):
@@ -72,6 +70,11 @@ class Pipeline:
             return os.makedirs("pipelines/{0}".format(self.name))
         except FileExistsError:
             return None
+
+    def _write_output(self, output_template):
+        output_path = "pipelines/{0}/global.yml".format(self.name)
+        with open(output_path, 'w') as file_handler:
+            file_handler.write(output_template)
 
     def generate(self):
         env = Environment(loader=FileSystemLoader('pipeline_types'))
@@ -83,13 +86,10 @@ class Pipeline:
             top_level_regions=sorted(self.flatten_list(list(set(self.top_level_regions)))),
             regions=sorted(list(set(self.flatten_list(self.stage_regions)))),
             deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-            action=self.action or self.replace_on_failure,
+            deployment_role=self.deployment_role,
+            action=self.action,
             contains_transform=self.contains_transform,
             completion_trigger=self.completion_trigger
         )
-
         self._create_pipelines_folder()
-
-        output_path = "pipelines/{0}/global.yml".format(self.name)
-        with open(output_path, 'w') as file_handler:
-            file_handler.write(output_template)
+        self._write_output(output_template)

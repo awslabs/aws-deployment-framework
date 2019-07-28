@@ -11,6 +11,7 @@ phases:
       - python adf-build/generate_params.py
   build:
     commands:
+      - npm install aws-cdk -g
       - npm install
       - npm run build
       - cdk synth > template.yml

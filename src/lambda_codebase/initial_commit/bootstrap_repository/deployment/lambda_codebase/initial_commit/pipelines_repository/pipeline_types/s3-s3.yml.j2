@@ -37,6 +37,10 @@ Parameters:
   SourceObjectKey:
     Description: The Source Object Key you wish to deploy into another S3 Bucket.
     Type: String
+  CustomBuildRole:
+    Description: If you wish to use a custom build role for CodeBuild
+    Type: String
+    Default: ""
   Extract:
     Description: If you want to extract the artifact in S3 (unzip)
     Type: String
@@ -58,6 +62,7 @@ Parameters:
 {% endfor %}
 Conditions:
   HasSchedule: !Not [!Equals [!Ref ScheduleExpression, '']]
+  HasCustomBuildRole: !Not [!Equals [!Ref CustomBuildRole, '']]
 Resources:
 {% if completion_trigger.get('pipelines', []) %}
   PipelineTriggerEventRule:
@@ -141,7 +146,7 @@ Resources:
       Name: !Sub "adf-build-${ProjectName}"
       Description: !Sub "CodeBuild Project ${ProjectName} created by ADF"
       EncryptionKey: !ImportValue KMSArn-{{ deployment_account_region }}
-      ServiceRole: !ImportValue CodeBuildRoleArn
+      ServiceRole: !If [HasCustomBuildRole, !Ref CustomBuildRole, !ImportValue CodeBuildRoleArn]
       Artifacts:
         Type: CODEPIPELINE
       Environment:

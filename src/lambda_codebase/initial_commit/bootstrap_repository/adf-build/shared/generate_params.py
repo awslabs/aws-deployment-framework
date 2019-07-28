@@ -8,7 +8,7 @@
 
 import json
 import secrets
-import string  # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
+import string # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
 import os
 import ast
 import yaml
@@ -19,9 +19,8 @@ from logger import configure_logger
 from parameter_store import ParameterStore
 
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
-PROJECT_NAME = os.environ.get("ADF_PROJECT_NAME")
-
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
+PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 
 class Parameters:
     def __init__(self, build_name, parameter_store, directory=None):
@@ -30,16 +29,24 @@ class Parameters:
         self.global_path = "params/global"
         self.parameter_store = parameter_store
         self.build_name = build_name
-        self.account_ous = ast.literal_eval(
-            parameter_store.fetch_parameter(
-                "/deployment/{0}/account_ous".format(self.build_name)
-            )
+        self.file_name = "".join(
+            secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
         )
-        self.regions = ast.literal_eval(
-            parameter_store.fetch_parameter(
-                "/deployment/{0}/regions".format(self.build_name)
+        [self.account_ous, self.regions] = self._fetch_initial_parameter()
+
+    def _fetch_initial_parameter(self):
+        return [
+            ast.literal_eval(
+                self.parameter_store.fetch_parameter(
+                    "/deployment/{0}/account_ous".format(self.build_name)
+                )
+            ),
+            ast.literal_eval(
+                self.parameter_store.fetch_parameter(
+                    "/deployment/{0}/regions".format(self.build_name)
+                )
             )
-        )
+        ]
 
     def _create_params_folder(self):
         try:
@@ -47,50 +54,43 @@ class Parameters:
         except FileExistsError:
             return None
 
+    @staticmethod
+    def _is_account_id(value):
+        return str(value).isnumeric()
+
     def create_parameter_files(self):
-        file_name = "".join(
-            secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
-        )
-        global_params = self._parse(self.global_path)
-        for acc, ou in self.account_ous.items():
+        for account, ou in self.account_ous.items():
             for region in self.regions:
-                for params in ["{0}_{1}".format(acc, region)]:
-                    compare_params = self._compare(
-                        self._parse("{0}/params/{1}".format(self.cwd, acc)),
-                        self._parse("{0}/params/{1}".format(self.cwd, params)),
-                        file_name
+                compare_params = self._param_updater(
+                    Parameters._parse("{0}/params/{1}".format(self.cwd, account)),
+                    Parameters._parse("{0}/params/{1}".format(self.cwd, "{0}_{1}".format(account, region)))
+                )
+                if not Parameters._is_account_id:
+                    # Compare account_region final to ou_region
+                    compare_params = self._param_updater(
+                        Parameters._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
+                        compare_params
                     )
-
-                    if not str(ou).isnumeric():
-                        # Compare account_region final to ou_region
-                        compare_params = self._compare(
-                            self._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
-                            compare_params,
-                            file_name
-                        )
-                        # Compare account_region final to ou
-                        compare_params = self._compare(
-                            self._parse("{0}/params/{1}".format(self.cwd, ou)),
-                            compare_params,
-                            file_name
-                        )
-                    # Compare account_region final to deployment_account_region
-                    compare_params = self._compare(
-                        self._parse("{0}/params/global_{1}".format(self.cwd, region)),
-                        compare_params,
-                        file_name
+                    # Compare account_region final to ou
+                    compare_params = self._param_updater(
+                        Parameters._parse("{0}/params/{1}".format(self.cwd, ou)),
+                        compare_params
                     )
-                    # Compare account_region final to global
-                    compare_params = self._compare(
-                        global_params,
-                        compare_params,
-                        file_name
-                    )
+                # Compare account_region final to deployment_account_region
+                compare_params = self._param_updater(
+                    Parameters._parse("{0}/params/global_{1}".format(self.cwd, region)),
+                    compare_params
+                )
+                # Compare account_region final to global
+                compare_params = self._param_updater(
+                    Parameters._parse(self.global_path),
+                    compare_params
+                )
+                if compare_params is not None:
+                    self._update_params(compare_params, "{0}_{1}".format(account, region))
 
-                    if compare_params is not None:
-                        self._update_params(compare_params, params)
-
-    def _parse(self, filename):  # pylint: disable=R0201
+    @staticmethod
+    def _parse(filename):
         """
         Attempt to parse the parameters file and return he default
         CloudFormation parameter base object if not found. Returning
@@ -122,91 +122,38 @@ class Parameters:
             with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
                 json.dump(new_params, outfile)
 
-    def _cfn_param_updater(self, param, comparison_parameters, stage_parameters, file_name): # pylint: disable=R0912
-        """
-        Generic CFN Updater method
-        """
-        resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
+    def _determine_intrinsic_function(self, resolver, value, key):
+        if str(value).startswith('resolve:'):
+            return resolver.fetch_parameter_store_value(value, key)
+        if str(value).startswith('import:'):
+            return resolver.fetch_stack_output(value, key)
+        if str(value).startswith('upload:'):
+            return resolver.upload(value, key, self.file_name)
+        return False
 
-        for key, value in comparison_parameters[param].items():
-            if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, key, param):
+    def _determine_parameter_structure(self, parameters, resolver, update=True): # pylint: disable=inconsistent-return-statements
+        try:
+            for key, value in parameters.items():
+                if isinstance(value, dict):
+                    LOGGER.debug('Calling _determine_parameter_structure recursively')
+                    return self._determine_parameter_structure(value, resolver, update)
+                if self._determine_intrinsic_function(resolver, value, key):
                     continue
-            if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, key, param):
-                    continue
-            if str(value).startswith('upload:'):
-                if resolver.upload(value, key, file_name, param):
-                    continue
-            resolver.update_cfn(key, param)
-        for key, value in stage_parameters[param].items():
-            if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, key, param):
-                    continue
-            if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, key, param):
-                    continue
-            if str(value).startswith('upload:'):
-                if resolver.upload(value, key, file_name, param):
-                    continue
+                if update:
+                    resolver.update(key)
+        except AttributeError:
+            LOGGER.debug('Input was not a dict for _determine_parameter_structure, nothing to do.')
+            pass
 
-        return resolver.__dict__.get('stage_parameters')
-
-    def _compare_cfn(self, comparison_parameters, stage_parameters, file_name):
+    def _param_updater(self, comparison_parameters, stage_parameters):
         """
-        Compares parameter files used for the CloudFormation deployment type
-        """
-        if comparison_parameters.get('Parameters'):
-            stage_parameters = self._cfn_param_updater(
-                'Parameters', comparison_parameters, stage_parameters, file_name
-            )
-        if comparison_parameters.get('Tags'):
-            stage_parameters = self._cfn_param_updater(
-                'Tags', comparison_parameters, stage_parameters, file_name
-            )
-
-        return stage_parameters
-
-    def _sc_param_updater(self, comparison_parameters, stage_parameters, file_name): # pylint: disable=R0912
-        """
-        Compares parameter files used for the Service Catalog deployment type
+        Generic Parameter Updater method
         """
         resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
-
-        for key, value in comparison_parameters.items():
-            if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, key):
-                    continue
-            if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, key):
-                    continue
-            if str(value).startswith('upload:'):
-                if resolver.upload(value, key, file_name):
-                    continue
-            resolver.update_sc(key)
-
-        for key, value in stage_parameters.items():
-            if str(value).startswith('resolve:'):
-                if resolver.fetch_parameter_store_value(value, key):
-                    continue
-            if str(value).startswith('import:'):
-                if resolver.fetch_stack_output(value, key):
-                    continue
-            if str(value).startswith('upload:'):
-                if resolver.upload(value, key, file_name):
-                    continue
+        self._determine_parameter_structure(comparison_parameters, resolver)
+        self._determine_parameter_structure(stage_parameters, resolver, False)
 
         return resolver.__dict__.get('stage_parameters')
-
-    def _compare(self, comparison_parameters, stage_parameters, file_name):
-        """
-        Determine the type of parameter file that should be compared
-        (currently only SC/CFN)
-        """
-        if comparison_parameters.get('Parameters') or comparison_parameters.get('Tags'):
-            return self._compare_cfn(comparison_parameters, stage_parameters, file_name)
-        return self._sc_param_updater(comparison_parameters, stage_parameters, file_name)
-
 
 def main():
     parameters = Parameters(
@@ -217,7 +164,6 @@ def main():
         )
     )
     parameters.create_parameter_files()
-
 
 
 if __name__ == '__main__':

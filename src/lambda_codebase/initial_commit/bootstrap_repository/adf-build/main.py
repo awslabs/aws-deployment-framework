@@ -262,7 +262,7 @@ def main(): #pylint: disable=R0915
         # Updating the stack on the master account in deployment region
         cloudformation = CloudFormation(
             region=config.deployment_account_region,
-            deployment_account_region=config.deployment_account_region, # pylint: disable=R0801
+            deployment_account_region=config.deployment_account_region,
             role=boto3,
             wait=True,
             stack_name=None,
