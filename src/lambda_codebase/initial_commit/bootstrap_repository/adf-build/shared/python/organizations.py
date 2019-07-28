@@ -188,7 +188,7 @@ class Organizations: # pylint: disable=R0904
                 raise Exception(
                     "Path {0} failed to return a child OU at '{1}'".format(
                         path, p[0]))
-        else:  # pylint: disable=W0120
+        else: # pylint: disable=W0120
             return self.get_accounts_for_parent(ou_id)
 
     def build_account_path(self, ou_id, account_path, cache):

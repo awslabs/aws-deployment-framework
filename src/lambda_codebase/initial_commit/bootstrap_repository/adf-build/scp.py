@@ -12,7 +12,7 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 
-class SCP():
+class SCP:
     def __init__(self):
         pass
 

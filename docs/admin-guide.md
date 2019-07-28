@@ -22,6 +22,7 @@
 - [Default Deployment Account Region](#default-deployment-account-region)
 - [Integrating Slack](#integrating-slack)
 - [Updating Between Versions](#updating-between-versions)
+- [Removing ADF](#removing-adf)
 
 ## Overview
 
@@ -79,8 +80,10 @@ config:
       action: safe
   protected: # Optional
     - ou-123
-  scp:
+  scp: # Service Control Policy
     keep-default-scp: enabled # Optional
+  scm: # Source Control Management
+    auto-create-repositories: enabled # Optional
 ```
 
 In the above example we have four main properties in `roles`, `regions` and `config`.
@@ -94,12 +97,13 @@ The Regions specification plays an important role in how ADF is laid out. You sh
 
 #### Config
 
-Config has four components in `main-notification-endpoint`, `scp`, `moves` and `protected`.
+Config has five components in `main-notification-endpoint`, `scp`, `scm`, `moves` and `protected`.
 
 - **main-notification-endpoint** is the main notification endpoint for the bootstrapping pipeline and deployment account pipeline creation pipeline. This value should be a valid email address or [slack](./admin-guide/#integrating-slack) channel that will receive updates about the status *(Success/Failure)* of CodePipeline that is associated with bootstrapping and creation/updating of all pipelines throughout your organization.
 - **moves** is configuration related to moving accounts within your AWS Organization. Currently the only configuration options for `moves` is named *to-root* and allows either `safe` or `remove_base`. If you specify *safe* you are telling the framework that when an AWS Account is moved from whichever OU it currently is in, back into the root of the Organization it will not make any direct changes to the account. It will however update any AWS CodePipeline pipelines that the account belonged to so that it is no longer a valid target. If you specify `remove_base` for this option and move an account to the root of your organization it will attempt to the base CloudFormation stacks *(regional and global)* from the account and then update any associated pipeline.
 - **protected** is a configuration that allows you to specify a list of OUs that are not configured by the AWS Deployment Framework bootstrapping process. You can move accounts to the protected OUs which will skip the standard bootstrapping process. This is useful for migrating existing accounts into being managed by The ADF.
 - **scp** allows the definition of configuration options that relate to Service Control Policies. Currently the only option for *scp* is *keep-default-scp* which can either be *enabled* or *disabled*. This option determines if the default FullAWSAccess Service Control Policy should stay attached to OUs that are managed by an *scp.json* or if it should be removed to make way for a more specific SCP, by default this is *enabled*. Its important to understand how SCPs work before setting this setting to disabled. Please read [How SCPs work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_about-scps.html) for more information.
+- **scm** enables the automation aspect of creating AWS CodeCommit repositories automatically when creating a new Pipeline via ADF. This option is only relevant if you are using the *SourceAccountId* parameter in your Pipeline Parameters, if so, and this value is *enabled* ADF will automatically create the AWS CodeCommit Repository on the Source Account with the same name of the associated pipeline. If the Repository already exists on the source account this process will continue silently. If you wish to update/alter the CloudFormation template used to create this repository it can be found at */src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/repo_templates/codecommit.yml*.
 
 ## Accounts
 
@@ -317,6 +321,7 @@ Sometimes its a need to chain pipelines together, when one finishes you might wa
 pipelines:
   - name: sample-vpc
     type: cc-cloudformation
+    deployment_role: some_specific_role # <-- you can pass an optional IAM role of your choice that will be used as the deployment role for this pipeline
     completion_trigger: # <--- When this pipeline finishes it will automatically start sample-iam and sample-ecs-cluster at the same time
         pipelines:
           - sample-iam
@@ -398,3 +403,12 @@ As per the same as the `deployment_map.yml` style configuration, this would requ
 To update ADF between releases, open the Serverless Application Repository *(SAR)* on the master account in us-east-1. From here, search for *adf* and click deploy. During an update of ADF there is no need to pass in any parameters other than the defaults *(granted you used the defaults to deploy initially)*.
 
 This will cause your *serverlessrepo-aws-deployment-framework* stack to update with any new changes that were included in that release of ADF. However, we also might make changes to some of the foundational aspects of ADF and how it works, because of this, we might want to change files that live within the *bootstrap* or *pipelines* repository with AWS CodeCommit on your account. To do this, AWS CloudFormation will run the *InitialCommit* Custom CloudFormation resource when updating via the SAR, this resource will open a pull request against the current *master* branch on the respective repositories with a set of changes that you can optionally choose to merge. Initially when updating via the SAR a PR will be opened if there are any changes to make against the *bootstrap* repository, if those are merged the bootstrap pipeline will run and will update the deployment account base stack, which will in-turn make a PR against the deployment accounts *pipeline* repository with any changes from upstream.
+
+
+### Removing ADF
+
+If you wish to remove ADF you can delete the CloudFormation stack named *serverlessrepo-aws-deployment-framework* within on the master account in us-east-1. This will move into a DELETE_FAILED at some stage because there is an S3 Bucket that is created via a custom resource *(cross region)*. After it moves into DELETE_FAILED, you can right-click on the stack and hit delete again while selecting to skip the Bucket the stack will successfully delete, you can then manually delete the bucket and its contents. After the main stack has been removed you can remove the base stack in the deployment account *adf-global-base-deployment* and any associated regional deployment account base stacks. After you have deleted these stacks, you can manually remove any base stacks from accounts that were bootstrapped. Alternatively prior to removing the initial *serverlessrepo-aws-deployment-framework* stack, you can set the *moves* section of the *adfconfig.yml* file to *remove-base* which would automatically clean up the base stack when the account is moved to the Root of the AWS Organization.
+
+One thing to keep in mind if you are planning to re-install ADF is that you will want to clean up the parameter *deployment_account_id* within us-east-1 on the master account. AWS Step Functions uses this parameter to determine if ADF has already got a deployment account setup, if you re-install ADF with this parameter set with a value, ADF will attempt an assume role to the account to do some work, which will fail since that role will not be on the account at that point.
+
+There is also a CloudFormation stack named *adf-global-base-adf-build* which lives on the master account in your main deployment region. This stack creates two roles on the master account after the deployment account has been setup. These roles allow the deployment accounts CodeBuild role to assume a role back to the master account in order to query Organizations for AWS Accounts. This stack must be deleted manually also, if you do not remove this stack and then perform a fresh install of ADF, AWS CodeBuild on the deployment account will not be able to assume a role to the master account to query AWS Organizations. This is because this specific stack creates IAM roles with a strict trust relationship to the CodeBuild role on the deployment account, if that role gets deleted *(Which is will when you delete adf-global-base-deployment)* then this stack references invalid IAM roles that no longer exist. If you forget to remove this stack and notice the trust relationship of the IAM roles referenced in the stack are no longer valid, you can delete the stack and re-run the main bootstrap pipeline which will recreate it with valid roles and links to the correct roles.

@@ -6,7 +6,9 @@
 """
 
 import os
+from thread import PropagatingThread
 import boto3
+
 from s3 import S3
 from pipeline import Pipeline
 from repo import Repo
@@ -93,8 +95,60 @@ def upload_pipeline(s3, pipeline):
         )
     return s3_object_path
 
+def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+    pipeline = Pipeline(p)
 
-def main(): #pylint: disable=R0915
+    if auto_create_repositories == 'enabled':
+        code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
+        has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item])
+        if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
+            repo = Repo(code_account_id, p.get('name'), p.get('description'))
+            repo.create_update()
+
+    for target in p.get('targets', []):
+        target_structure = TargetStructure(target)
+        for step in target_structure.target:
+            for path in step.get('path'):
+                regions = step.get(
+                    'regions', p.get(
+                        'regions', DEPLOYMENT_ACCOUNT_REGION))
+                step_name = step.get('name')
+                params = step.get('params', {})
+                pipeline.stage_regions.append(regions)
+                pipeline_target = Target(
+                    path, regions, target_structure, organizations, step_name, params)
+                pipeline_target.fetch_accounts_for_target()
+
+        pipeline.template_dictionary["targets"].append(
+            target_structure.account_list)
+
+    if DEPLOYMENT_ACCOUNT_REGION not in regions:
+        pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
+
+    parameters = pipeline.generate_parameters()
+    pipeline.generate()
+    deployment_map.update_deployment_parameters(pipeline)
+    s3_object_path = upload_pipeline(s3, pipeline)
+
+    store_regional_parameter_config(pipeline, parameter_store)
+    cloudformation = CloudFormation(
+        region=DEPLOYMENT_ACCOUNT_REGION,
+        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
+        role=boto3,
+        template_url=s3_object_path,
+        parameters=parameters,
+        wait=True,
+        stack_name="{0}-{1}".format(
+            ADF_PIPELINE_PREFIX,
+            pipeline.name
+        ),
+        s3=None,
+        s3_key_path=None,
+        account_id=DEPLOYMENT_ACCOUNT_ID
+    )
+    cloudformation.create_stack()
+
+def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
@@ -126,57 +180,21 @@ def main(): #pylint: disable=R0915
     except ParameterNotFoundError:
         auto_create_repositories = 'enabled'
 
+    threads = []
     for p in deployment_map.map_contents.get('pipelines'):
-        pipeline = Pipeline(p)
+        thread = PropagatingThread(target=worker_thread, args=(
+            p,
+            organizations,
+            auto_create_repositories,
+            s3,
+            deployment_map,
+            parameter_store
+        ))
+        thread.start()
+        threads.append(thread)
 
-        if auto_create_repositories == 'enabled':
-            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-            if auto_create_repositories and code_account_id and str(code_account_id).isdigit():
-                repo = Repo(code_account_id, p.get('name'), p.get('description'))
-                repo.create_update()
-
-        for target in p.get('targets', []):
-            target_structure = TargetStructure(target)
-            for step in target_structure.target:
-                for path in step.get('path'):
-                    regions = step.get(
-                        'regions', p.get(
-                            'regions', DEPLOYMENT_ACCOUNT_REGION))
-                    step_name = step.get('name')
-                    params = step.get('params', {})
-                    pipeline.stage_regions.append(regions)
-                    pipeline_target = Target(
-                        path, regions, target_structure, organizations, step_name, params)
-                    pipeline_target.fetch_accounts_for_target()
-
-            pipeline.template_dictionary["targets"].append(
-                target_structure.account_list)
-
-        if DEPLOYMENT_ACCOUNT_REGION not in regions:
-            pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
-
-        parameters = pipeline.generate_parameters()
-        pipeline.generate()
-        deployment_map.update_deployment_parameters(pipeline)
-        s3_object_path = upload_pipeline(s3, pipeline)
-
-        store_regional_parameter_config(pipeline, parameter_store)
-        cloudformation = CloudFormation(
-            region=DEPLOYMENT_ACCOUNT_REGION,
-            deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-            role=boto3,
-            template_url=s3_object_path,
-            parameters=parameters,
-            wait=True,
-            stack_name="{0}-{1}".format(
-                ADF_PIPELINE_PREFIX,
-                pipeline.name
-            ),
-            s3=None,
-            s3_key_path=None,
-            account_id=DEPLOYMENT_ACCOUNT_ID
-        )
-        cloudformation.create_stack()
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == '__main__':

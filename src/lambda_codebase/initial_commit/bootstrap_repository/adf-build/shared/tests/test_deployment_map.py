@@ -23,27 +23,27 @@ def cls():
         )
     )
 
-def test_validate_deployment_map(cls):
-    assert cls._validate_deployment_map() == None
+def test_validate(cls):
+    assert cls._validate() == None
 
-def test_validate_deployment_map_invalid_no_content(cls):
+def test_validate_invalid_no_content(cls):
     cls.map_contents = {}
     with raises(InvalidDeploymentMapError):
-        cls._validate_deployment_map()
+        cls._validate()
 
 def test_validate_deployment_leading_zero(cls):
-    cls._validate_deployment_map()
+    cls._validate()
     target_pipeline = [i for i in cls.map_contents['pipelines'] if i.get('name') == 'some-thing'][0]['targets']
     assert '013456789101' in target_pipeline
 
-def test_validate_deployment_map_path_only(cls):
+def test_validate_path_only(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something"}]}]}
-    assert cls._validate_deployment_map() == None
+    assert cls._validate() == None
 
-def test_validate_deployment_map_invalid_paths(cls):
+def test_validate_invalid_paths(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"paths": "/something", "regions": 'eu-west-1'}]}]}
     with raises(InvalidDeploymentMapError):
-        cls._validate_deployment_map()
+        cls._validate()
 
 def test_update_deployment_parameters(cls):
     cls.parameter_store = Mock()
