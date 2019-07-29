@@ -1,0 +1,5 @@
+boto3
+aws_cdk.aws_codepipeline
+aws-cdk.aws-codepipeline-actions
+aws-cdk.aws-s3
+aws-cdk.aws-iam
