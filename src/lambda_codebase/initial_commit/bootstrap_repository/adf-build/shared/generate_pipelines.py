@@ -122,8 +122,8 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
-    if DEPLOYMENT_ACCOUNT_REGION not in regions:
-        pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
+        if DEPLOYMENT_ACCOUNT_REGION not in regions:
+            pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
     parameters = pipeline.generate_parameters()
     pipeline.generate()
