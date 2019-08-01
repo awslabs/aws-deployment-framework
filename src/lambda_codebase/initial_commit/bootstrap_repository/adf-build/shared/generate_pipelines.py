@@ -99,11 +99,14 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
     pipeline = Pipeline(p)
 
     if auto_create_repositories == 'enabled':
-        code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-        has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item])
-        if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
-            repo = Repo(code_account_id, p.get('name'), p.get('description'))
-            repo.create_update()
+        try:
+            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
+            has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item])
+            if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
+                repo = Repo(code_account_id, p.get('name'), p.get('description'))
+                repo.create_update()
+        except StopIteration:
+            LOGGER.debug("No need to create repository as SourceAccountId is not found in params")
 
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
