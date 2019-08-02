@@ -23,9 +23,9 @@ import_arns = [
     'SendSlackNotificationLambdaArn'
 ]
 
-def import_required_arns(import_arns):
+def import_required_arns(_import_arns):
     output = []
-    for arn in import_arns:
+    for arn in _import_arns:
         output.append(core.Fn.import_value(arn))
     return output
 
@@ -59,44 +59,85 @@ def generate_build_env_variables(codebuild, shared_modules_bucket):
         "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
     }
 
+def generate_stages(self, params, _env):
+    return [
+        _codepipeline.CfnPipeline.StageDeclarationProperty(
+            name='Source',
+            actions=[
+                _codepipeline.CfnPipeline.ActionDeclarationProperty(
+                action_type_id=_codepipeline.CfnPipeline.ActionTypeIdProperty(
+                    version="1",
+                    owner="AWS",
+                    provider="CodeCommit",
+                    category="Source"
+                ),
+                configuration={
+                    "BranchName": params.get('branch', 'master'),
+                    "RepositoryName": params.get('repository', ADF_PROJECT_NAME)
+                },
+                name="source",
+                run_order=1,
+                output_artifacts=[_codepipeline.CfnPipeline.OutputArtifactProperty(
+                    name="source"
+                )],
+                role_arn=params.get('source_role', ADF_DEFAULT_SOURCE_ROLE),
+            )]
+        ),
+        _codepipeline.CfnPipeline.StageDeclarationProperty(
+            name='Build',
+            actions=[_codepipeline.CfnPipeline.ActionDeclarationProperty(
+                action_type_id=_codepipeline.CfnPipeline.ActionTypeIdProperty(
+                    version="1",
+                    owner="AWS",
+                    provider="CodeBuild",
+                    category="Build"
+                ),
+                configuration={
+                    "ProjectName": "adf-build-{0}".format(ADF_PROJECT_NAME)
+                },
+                name="build",
+                region=ADF_DEPLOYMENT_REGION,
+                output_artifacts=[_codepipeline.CfnPipeline.OutputArtifactProperty(
+                    name="build-{0}".format(ADF_PROJECT_NAME)
+                )],
+                input_artifacts=[_codepipeline.CfnPipeline.InputArtifactProperty(
+                    name="source"
+                )],
+                run_order=1
+            )
+            ]
+        )
+    ]
+
+
+def generate_artifact_stores(self, regions, parameters):
+    output = []
+    for region in regions:
+        output.append(_codepipeline.CfnPipeline.ArtifactStoreMapProperty(
+            artifact_store=_codepipeline.CfnPipeline.ArtifactStoreProperty(
+                location=parameters[region]["s3"],
+                type="S3",
+                encryption_key=_codepipeline.CfnPipeline.EncryptionKeyProperty(
+                    id=parameters[region]["kms"],
+                    type="KMS"
+                )
+            ),
+            region=region
+        ))
+    return output
+
 class Pipeline(core.Construct):
     def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
 
         [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = import_required_arns(import_arns)
         _ssm_parameters = fetch_required_ssm_params(self, params['regions'])
-        _pipeline_args = {
-            "role": _iam.Role.from_role_arn(self, 'CodePipelineRole', role_arn=_codepipeline_role_arn),
-            "restart_execution_on_update": params.get('restart_execution_on_update', False),
-            "pipeline_name": params['name'],
-            "artifact_bucket": _s3.Bucket.from_bucket_name(self, 'ArtifactBucket', _ssm_parameters[ADF_DEPLOYMENT_REGION]["s3"])
-        }
-        if len(params['regions']) > 1:
-            _cross_region_buckets = { region:d["s3"] for [ region, d ] in _ssm_parameters.items() }
-            _pipeline_args['cross_region_replication_buckets'] = _cross_region_buckets
+        _deployment_region_kms_key = _kms.Key.from_key_arn(self, "DeploymentAccountKey", key_arn=_ssm_parameters[ADF_DEPLOYMENT_REGION]["kms"])
+        # _bucket = _s3.Bucket.from_bucket_name(self, 'ArtifactBucket', _ssm_parameters[ADF_DEPLOYMENT_REGION]["s3"])
 
-        pipeline = _codepipeline.Pipeline(self, "Pipeline",
-            **_pipeline_args
-        )
-        _input_artifact = _codepipeline.Artifact(artifact_name=ADF_PROJECT_NAME)
-        _output_artifact = _codepipeline.Artifact(artifact_name="{0}-build".format(ADF_PROJECT_NAME))
-        _source = _codepipeline_actions.CodeCommitSourceAction(
-            branch=params.get('branch_name', 'master'),
-            action_name='Source',
-            trigger=_codepipeline_actions.CodeCommitTrigger("POLL"),
-            repository=_codecommit.Repository.from_repository_arn(
-                self,
-                'SourceRepo',
-                repository_arn='arn:aws:codecommit:{0}:{1}:{2}'.format(
-                    ADF_DEPLOYMENT_REGION, 
-                    params.get('params')[0]['SourceAccountId'], 
-                    params.get('name', params.get('repository_name'))
-                )
-            ),
-            run_order=1,
-            role=_iam.Role.from_role_arn(self, 'SourceRole', role_arn=params.get('source_role', ADF_DEFAULT_SOURCE_ROLE)),
-            output=_input_artifact
-        )
+        # _input_artifact = _codepipeline.Artifact(artifact_name=ADF_PROJECT_NAME)
+        # _output_artifact = _codepipeline.Artifact(artifact_name="{0}-build".format(ADF_PROJECT_NAME))
+
         _env = _codebuild.BuildEnvironment(
             build_image=_codebuild.LinuxBuildImage.UBUNTU_14_04_PYTHON_3_7_1,
             compute_type=_codebuild.ComputeType.SMALL,
@@ -108,32 +149,42 @@ class Pipeline(core.Construct):
             'DefaultBuildRole', 
             role_arn=ADF_DEFAULT_BUILD_ROLE
         )
-
         _project = _codebuild.PipelineProject(self, 'Project', 
             environment=_env,
-            encryption_key=_kms.Key.from_key_arn(self, "DeploymentAccountKey", key_arn=_ssm_parameters[ADF_DEPLOYMENT_REGION]["kms"]),
+            encryption_key=_deployment_region_kms_key,
             description="ADF CodeBuild Project for {0}".format(ADF_PROJECT_NAME),
-            project_name=ADF_PROJECT_NAME,
+            project_name="adf-build-{0}".format(ADF_PROJECT_NAME),
             timeout=core.Duration.minutes(ADF_DEFAULT_BUILD_TIMEOUT),
             role=_build_role
         )
-        _build = _codepipeline_actions.CodeBuildAction(
-            action_name="Build",
-            input=_input_artifact,
-            project=_project,
-            outputs=[_output_artifact],
-            type=_codepipeline_actions.CodeBuildActionType.BUILD,
-            run_order=1
+        # _build = _codepipeline_actions.CodeBuildAction(
+        #     action_name="Build",
+        #     input=_input_artifact,
+        #     project=_project,
+        #     outputs=[_output_artifact],
+        #     type=_codepipeline_actions.CodeBuildActionType.BUILD,
+        #     run_order=1
+        # )
+        _pipeline_args = {
+            "role_arn": _codepipeline_role_arn,
+            "restart_execution_on_update": params.get('restart_execution_on_update', False),
+            "name": params['name'],
+            "stages": generate_stages(self, params, _env),
+            "artifact_stores": generate_artifact_stores(self, params["regions"], _ssm_parameters)
+        }
+
+        if len(params['regions']) > 1:
+            _cross_region_buckets = { region:d["s3"] for [ region, d ] in _ssm_parameters.items() }
+            _pipeline_args['cross_region_replication_buckets'] = _cross_region_buckets
+
+        print(_pipeline_args)
+        pipeline = _codepipeline.CfnPipeline(self, "Pipeline",
+            **_pipeline_args
         )
-        pipeline.add_stage(
-            actions=[_source],
-            stage_name="Source"
-        )
-        pipeline.add_stage(
-            actions=[_build],
-            stage_name="Build"
-        )
+        pipeline._validate()
         
+        
+
         # for stage, index in enumerate(params['stages']):
         #     _regions = stage.get('regions', params.get('top_level_regions', ADF_DEPLOYMENT_REGION))
         #     if not isinstance(_regions, list):

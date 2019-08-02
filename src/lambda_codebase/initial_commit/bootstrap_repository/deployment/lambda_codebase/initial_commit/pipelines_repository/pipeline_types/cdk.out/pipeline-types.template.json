@@ -14,331 +14,6 @@
     }
   },
   "Resources": {
-    "pipelinetypesCodePipelineRolePolicy0F15E783": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject*",
-                "s3:Abort*"
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      },
-                      "/*"
-                    ]
-                  ]
-                }
-              ]
-            },
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Resource": "arn:aws:iam::228171733466:role/adf-codecommit-role"
-            },
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "pipelinetypesPipelineBuildCodePipelineActionRole1A3339DB",
-                  "Arn"
-                ]
-              }
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "PolicyName": "pipelinetypesCodePipelineRolePolicy0F15E783",
-        "Roles": [
-          {
-            "Fn::Select": [
-              1,
-              {
-                "Fn::Split": [
-                  "/",
-                  {
-                    "Fn::Select": [
-                      5,
-                      {
-                        "Fn::Split": [
-                          ":",
-                          {
-                            "Fn::ImportValue": "CodePipelineRoleArn"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "pipeline-types/pipeline-types/CodePipelineRole/Policy/Resource"
-      }
-    },
-    "pipelinetypesPipelineC052EF6D": {
-      "Type": "AWS::CodePipeline::Pipeline",
-      "Properties": {
-        "RoleArn": {
-          "Fn::ImportValue": "CodePipelineRoleArn"
-        },
-        "Stages": [
-          {
-            "Actions": [
-              {
-                "ActionTypeId": {
-                  "Category": "Source",
-                  "Owner": "AWS",
-                  "Provider": "CodeCommit",
-                  "Version": "1"
-                },
-                "Configuration": {
-                  "RepositoryName": "sample-iam",
-                  "BranchName": "master",
-                  "PollForSourceChanges": true
-                },
-                "InputArtifacts": [],
-                "Name": "Source",
-                "OutputArtifacts": [
-                  {
-                    "Name": "sample-vpc"
-                  }
-                ],
-                "RoleArn": "arn:aws:iam::228171733466:role/adf-codecommit-role",
-                "RunOrder": 1
-              }
-            ],
-            "Name": "Source"
-          },
-          {
-            "Actions": [
-              {
-                "ActionTypeId": {
-                  "Category": "Build",
-                  "Owner": "AWS",
-                  "Provider": "CodeBuild",
-                  "Version": "1"
-                },
-                "Configuration": {
-                  "ProjectName": {
-                    "Ref": "pipelinetypesProject8E2AE782"
-                  }
-                },
-                "InputArtifacts": [
-                  {
-                    "Name": "sample-vpc"
-                  }
-                ],
-                "Name": "Build",
-                "OutputArtifacts": [
-                  {
-                    "Name": "sample-vpc-build"
-                  }
-                ],
-                "RoleArn": {
-                  "Fn::GetAtt": [
-                    "pipelinetypesPipelineBuildCodePipelineActionRole1A3339DB",
-                    "Arn"
-                  ]
-                },
-                "RunOrder": 1
-              }
-            ],
-            "Name": "Build"
-          }
-        ],
-        "ArtifactStore": {
-          "Location": {
-            "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-          },
-          "Type": "S3"
-        },
-        "Name": "sample-iam",
-        "RestartExecutionOnUpdate": false
-      },
-      "DependsOn": [
-        "pipelinetypesCodePipelineRolePolicy0F15E783"
-      ],
-      "Metadata": {
-        "aws:cdk:path": "pipeline-types/pipeline-types/Pipeline/Resource"
-      }
-    },
-    "pipelinetypesPipelineBuildCodePipelineActionRole1A3339DB": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":root"
-                    ]
-                  ]
-                }
-              }
-            }
-          ],
-          "Version": "2012-10-17"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "pipeline-types/pipeline-types/Pipeline/Build/Build/CodePipelineActionRole/Resource"
-      }
-    },
-    "pipelinetypesPipelineBuildCodePipelineActionRoleDefaultPolicy36CBDEB9": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "codebuild:BatchGetBuilds",
-                "codebuild:StartBuild",
-                "codebuild:StopBuild"
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "pipelinetypesProject8E2AE782",
-                  "Arn"
-                ]
-              }
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "PolicyName": "pipelinetypesPipelineBuildCodePipelineActionRoleDefaultPolicy36CBDEB9",
-        "Roles": [
-          {
-            "Ref": "pipelinetypesPipelineBuildCodePipelineActionRole1A3339DB"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "pipeline-types/pipeline-types/Pipeline/Build/Build/CodePipelineActionRole/DefaultPolicy/Resource"
-      }
-    },
-    "pipelinetypesSourceRolePolicy90809FD7": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject*",
-                "s3:Abort*"
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      },
-                      "/*"
-                    ]
-                  ]
-                }
-              ]
-            },
-            {
-              "Action": [
-                "codecommit:GetBranch",
-                "codecommit:GetCommit",
-                "codecommit:UploadArchive",
-                "codecommit:GetUploadArchiveStatus",
-                "codecommit:CancelUploadArchive"
-              ],
-              "Effect": "Allow",
-              "Resource": "arn:aws:codecommit:eu-central-1:228171733466:sample-iam"
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "PolicyName": "pipelinetypesSourceRolePolicy90809FD7",
-        "Roles": [
-          "adf-codecommit-role"
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "pipeline-types/pipeline-types/SourceRole/Policy/Resource"
-      }
-    },
     "pipelinetypesDefaultBuildRolePolicy683FE554": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
@@ -412,50 +87,6 @@
               "Resource": {
                 "Ref": "pipelinetypesKMSKeyeucentral1Parameter93CB8B3E"
               }
-            },
-            {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject*",
-                "s3:Abort*"
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":s3:::",
-                      {
-                        "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
-                      },
-                      "/*"
-                    ]
-                  ]
-                }
-              ]
             }
           ],
           "Version": "2012-10-17"
@@ -486,7 +117,7 @@
             {
               "Name": "ADF_PROJECT_NAME",
               "Type": "PLAINTEXT",
-              "Value": "sample-vpc"
+              "Value": "sample-iam"
             },
             {
               "Name": "S3_BUCKET_NAME",
@@ -511,15 +142,101 @@
         "Source": {
           "Type": "CODEPIPELINE"
         },
-        "Description": "ADF CodeBuild Project for sample-vpc",
+        "Description": "ADF CodeBuild Project for sample-iam",
         "EncryptionKey": {
           "Ref": "pipelinetypesKMSKeyeucentral1Parameter93CB8B3E"
         },
-        "Name": "sample-vpc",
+        "Name": "adf-build-sample-iam",
         "TimeoutInMinutes": 20
       },
       "Metadata": {
         "aws:cdk:path": "pipeline-types/pipeline-types/Project/Resource"
+      }
+    },
+    "pipelinetypesPipeline9AD3A15A": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "RoleArn": {
+          "Fn::ImportValue": "CodePipelineRoleArn"
+        },
+        "Stages": [
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "AWS",
+                  "Provider": "CodeCommit",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "BranchName": "master",
+                  "RepositoryName": "sample-iam"
+                },
+                "Name": "source",
+                "OutputArtifacts": [
+                  {
+                    "Name": "source"
+                  }
+                ],
+                "RoleArn": "arn:aws:iam::228171733466:role/adf-codecommit-role",
+                "RunOrder": 1
+              }
+            ],
+            "Name": "Source"
+          },
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Build",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": "adf-build-sample-iam"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "source"
+                  }
+                ],
+                "Name": "build",
+                "OutputArtifacts": [
+                  {
+                    "Name": "build-sample-iam"
+                  }
+                ],
+                "Region": "eu-central-1",
+                "RunOrder": 1
+              }
+            ],
+            "Name": "Build"
+          }
+        ],
+        "ArtifactStores": [
+          {
+            "ArtifactStore": {
+              "EncryptionKey": {
+                "Id": {
+                  "Ref": "pipelinetypesKMSKeyeucentral1Parameter93CB8B3E"
+                },
+                "Type": "KMS"
+              },
+              "Location": {
+                "Ref": "pipelinetypesS3Bucketeucentral1ParameterF32EE69C"
+              },
+              "Type": "S3"
+            },
+            "Region": "eu-central-1"
+          }
+        ],
+        "Name": "sample-iam",
+        "RestartExecutionOnUpdate": false
+      },
+      "Metadata": {
+        "aws:cdk:path": "pipeline-types/pipeline-types/Pipeline"
       }
     }
   }
