@@ -41,7 +41,6 @@ pipelines:
     type: github-cloudformation
     action: replace_on_failure
     params:
-      - ProjectName: "vpc-example" # Name of the Github repository
       - Owner: "githubrepowner" # Repository owner user
       - OAuthToken: "/tokens/oauth/github" # Name of SSM Param Store object
       - WebhookSecret: "/tokens/webhooksecret/github"
