@@ -36,14 +36,17 @@ pipelines:
       - path: /banking/testing
         regions: eu-central-1
 
-  - name: vpc
+  # Github source example
+  - name: vpc-example # Pipeline name MUST be equal to Github repository name.
     type: github-cloudformation
     action: replace_on_failure
     params:
-      - SourceAccountId: 8888877777777
+      - Owner: "githubrepowner" # Repository owner user
+      - OAuthToken: "/tokens/oauth/github" # Name of SSM Param Store object
+      - WebhookSecret: "/tokens/webhooksecret/github"
       - NotificationEndpoint: channel1 # Slack Channel Example
     targets:
-      - path: ou-12341
+      - path: ou-12341 # AWS Organizations OU ID
         regions: [ eu-west-1, eu-central-1 ]
       - 22222222222
 ```
