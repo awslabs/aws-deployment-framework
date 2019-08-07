@@ -127,7 +127,7 @@ Create a folder structure and associated CloudFormation templates *(global.yml)*
 
 Pushing to this repository will initiate AWS CodePipeline to run which will in-turn start AWS CodeBuild to sync the contents of the repository with S3. Once the files are in S3, moving an Account into a specific AWS Organization will trigger AWS Step Functions to run and to apply the bootstrap template for that specific Organizational Unit to that newly moved account.
 
-Any changes in the future made to this repository such as its templates contents or parameters files will trigger an update to any bootstrap template applied on accounts throughout the Organization.
+Any changes in the future made to this repository such as its templates contents or parameters files will trigger an update to any bootstrap template applied on accounts throughout the Organization. You can see these changes in CodePipeline. The  SAR Applications creates a bootstrap pipeline named `aws-deployment-framework-bootstrap-pipeline`.
 
 #### Bootstrapping Inheritance
 
