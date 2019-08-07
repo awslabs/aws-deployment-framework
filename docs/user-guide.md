@@ -37,10 +37,11 @@ pipelines:
         regions: eu-central-1
 
   # Github source example
-  - name: vpc-example # Pipeline name MUST be equal to Github repository name.
+  - name: vpc-example # Pipeline name.
     type: github-cloudformation
     action: replace_on_failure
     params:
+      - RepositoryName: "myrepositoryname" # Required if repo name differs from pipelinename (vpc-example).
       - Owner: "githubrepowner" # Repository owner user
       - OAuthToken: "/tokens/oauth/github" # Name of SSM Param Store object
       - WebhookSecret: "/tokens/webhooksecret/github"
