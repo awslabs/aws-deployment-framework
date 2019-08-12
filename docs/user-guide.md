@@ -4,7 +4,7 @@
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [Repositories](#repositories)
   - [BuildSpec](#buildspec)
-  - [Parameters](#parameters)
+  - [Parameters](#cloudformation-parameters-and-tagging)
   - [Parameter Injection](#parameter-injection)
   - [Nested Stacks](#nested-stacks)
   - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
