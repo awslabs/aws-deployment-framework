@@ -48,7 +48,7 @@ def clean(parameter_store, deployment_map):
     for parameter in current_pipeline_parameters:
         name = parameter.get('Name').split('/')[-2]
         if name not in [p.get('name') for p in deployment_map.map_contents['pipelines']]:
-            parameter_store.delete_parameter(name)
+            parameter_store.delete_parameter(parameter.get('Name'))
             stacks_to_remove.append(name)
 
     for stack in list(set(stacks_to_remove)):
