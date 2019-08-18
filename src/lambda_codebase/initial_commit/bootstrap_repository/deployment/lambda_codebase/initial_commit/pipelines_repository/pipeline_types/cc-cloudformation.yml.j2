@@ -380,7 +380,7 @@ Resources:
                 StackName: !If [HasCustomRepository, !Sub "${StackPrefix}-${RepositoryName}", !Sub "${StackPrefix}-${ProjectName}"]
                 ChangeSetName: !Sub "${StackPrefix}-${ProjectName}"
 {% if contains_transform %}
-                TemplatePath: !Sub "${ProjectName}-build::template_{{ region }}.yml"
+                TemplatePath: !Sub "${ProjectName}-build::template_{{ top_level_region }}.yml"
 {% else %}
                 TemplatePath: !Sub "${ProjectName}-build::template.yml"
 {% endif %}

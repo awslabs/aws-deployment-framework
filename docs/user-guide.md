@@ -4,7 +4,7 @@
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [Repositories](#repositories)
   - [BuildSpec](#buildspec)
-  - [Parameters](#parameters)
+  - [Parameters](#cloudformation-parameters-and-tagging)
   - [Parameter Injection](#parameter-injection)
   - [Nested Stacks](#nested-stacks)
   - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
@@ -13,7 +13,7 @@
 
 ## Deployment Map
 
-The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files is responsible for mapping the specific pipelines to their deployment targets and desired pipeline. When creating pipelines in the deployment account, a python file called *generate_pipelines.py* *(see adf-build folder)* will be executed during CodeBuild via CodePipeline. This small piece of code will parse the deployment_map.yml files and assume a role on the master account in the Organization. It will then resolve the accounts in the organization unit's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values in the Jinja2 templating engine along side a template file *(see pipeline_types folder)*. The template of choice is taken from the **type** property in the mapping file.
+The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files are responsible for mapping the specific pipelines to their deployment targets and desired pipeline. When creating pipelines in the deployment account, a python file called *generate_pipelines.py* *(see adf-build folder)* will be executed during CodeBuild via CodePipeline. This small piece of code will parse the deployment_map.yml files and assume a role on the master account in the Organization. It will then resolve the accounts in the organization units specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values in the Jinja2 templating engine along side a template file *(see pipeline_types folder)*. The template of choice is taken from the **type** property in the mapping file.
 
 The parameters *(params)* you chose to pass into the Jinja2 template are taken directly from the deployment_map.yml file. This allows you to build sensible defaults in your pipeline definitions and pass in only what is required for that specific pipeline creation.
 
@@ -36,21 +36,25 @@ pipelines:
       - path: /banking/testing
         regions: eu-central-1
 
-  - name: vpc
+  # Github source example
+  - name: vpc-example # Pipeline name.
     type: github-cloudformation
     action: replace_on_failure
     params:
-      - SourceAccountId: 8888877777777
+      - RepositoryName: "myrepositoryname" # Required if repo name differs from pipelinename (vpc-example).
+      - Owner: "githubrepowner" # Repository owner user
+      - OAuthToken: "/tokens/oauth/github" # Name of SSM Param Store object
+      - WebhookSecret: "/tokens/webhooksecret/github"
       - NotificationEndpoint: channel1 # Slack Channel Example
     targets:
-      - path: ou-12341
+      - path: ou-12341 # AWS Organizations OU ID
         regions: [ eu-west-1, eu-central-1 ]
       - 22222222222
 ```
 
 In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. This Repository will automatically be created for you by default if it does not exist. The pipeline will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt. Also in this first pipeline we have decided we want to override the role that is used for the deployment of our CloudFormation on the target accounts. We don't simply want to use the default *adf-cloudformation-deployment-role* but rather a role named *infrastructure_role*. This role will need to exist on all target accounts with the correct permissions to deploy our IAM stack. As a streamlined way to get this role onto all target accounts, consider adding it to your bootstrap stacks. You can even pass separate roles for each stage of the pipelines using stage parameters if required.
 
-The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can chose between a absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to one of deploy to a specific account you can use an AWS Account Id if required.
+The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can choose between an absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to deploy to a specific account you can use an AWS Account Id if required.
 
 In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel1*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack). We also specify two regions we would like to use for the first stage of the pipeline.
 
@@ -109,13 +113,13 @@ You can also create additional deployment map files. These can live in a folder 
 
 ### Repositories
 
-Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon S3 Buckets or GitHub Repositories. Repositories are attached to pipelines in a 1:1 relationship, however, you can chose to clone or bring other repositories into your code during the build phase of your pipeline. You should define a suitable [buildspec](#buildspec) that matches your desired outcome and is applicable to the type of resource you are deploying.
+Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon S3 Buckets or GitHub Repositories. Repositories are attached to pipelines in a 1:1 relationship, however, you can choose to clone or bring other repositories into your code during the build phase of your pipeline. You should define a suitable [buildspec](#buildspec) that matches your desired outcome and is applicable to the type of resource you are deploying.
 
 ### BuildSpec
 
 If you are using [AWS CodeBuild](https://aws.amazon.com/codebuild/) as your build phase you will need to specify a [buildspec.yml](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html) file that will live along side your resources in your repository. This file defines how and what AWS CodeBuild will do during certain phases.
 
-Lets take a look an example to breakdown how the AWS Deployment Framework uses `buildspec.yml` files to elevate heavy lifting when it comes to deploying CloudFormation templates.
+Let's take a look an example to breakdown how the AWS Deployment Framework uses `buildspec.yml` files to elevate heavy lifting when it comes to deploying CloudFormation templates.
 
 *Note:* You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild.
 
@@ -265,7 +269,7 @@ If you wish to resolve values from Parameter Store on the Deployment Account dir
 
 When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using any sensitive data, ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs. Resolving parameters across regions is also possible using the notation of *resolve:region:/my/path/to/value*. This allows you to fetch values from the deployment account in other regions other than the main deployment region.
 
-To highlight an example of how Parameter Injection can work well, think of the following scenario: You have some value that you wish to rotate on a monthly bases. You have some automation in place that updates the value of a Parameter store parameter to add in this new value. Each time this pipeline runs it will check for that value and update the resources accordingly, effectively detaching the parameters from the pipeline itself.
+To highlight an example of how Parameter Injection can work well, think of the following scenario: You have some value that you wish to rotate on a monthly basis. You have some automation in place that updates the value of a Parameter store parameter to add in this new value. Each time this pipeline runs it will check for that value and update the resources accordingly, effectively detaching the parameters from the pipeline itself.
 
 There is also the concept of optionally resolving or importing values. This can be achieved by ending the import or resolve function with a **?**. For example, if you want to resolve a value from Parameter Store that might or might not yet exist you can use an optional resolve *(eg resolve:/my/path/to/myMagicKey?)*. If the key *myMagicKey* does not exist in Parameter Store then an empty string will be returned as the value.
 

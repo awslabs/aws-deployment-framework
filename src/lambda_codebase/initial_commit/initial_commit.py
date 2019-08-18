@@ -175,7 +175,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
             commitId=commit_id
         )
         # CodeCommit only allows 100 files per commit, so we chunk them up here
-        for index, files in enumerate(chunks([f.as_dict() for f in get_files_to_commit(directory, False)], 99)):
+        for index, files in enumerate(chunks([f.as_dict() for f in get_files_to_commit(directory)], 99)):
             if index == 0:
                 commit_id = CC_CLIENT.create_commit(
                     **generate_commit_input(repo_name, index, puts=files)
@@ -195,7 +195,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
         return event.get("PhysicalResourceId"), {}
 
     except CC_CLIENT.exceptions.BranchDoesNotExistException:
-        files_to_commit = get_files_to_commit(directory, False)
+        files_to_commit = get_files_to_commit(directory)
         if directory == "bootstrap_repository":
             adf_config = create_adf_config_file(create_event.ResourceProperties)
             files_to_commit.append(adf_config)
@@ -217,7 +217,7 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
     update_event = UpdateEvent(**event)
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
     files_to_delete = get_files_to_delete(repo_name)
-    files_to_commit = get_files_to_commit(update_event.ResourceProperties.DirectoryName, True)
+    files_to_commit = get_files_to_commit(update_event.ResourceProperties.DirectoryName)
     commit_id = CC_CLIENT.get_branch(
         repositoryName=repo_name,
         branchName="master",
@@ -293,20 +293,8 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
     ]
 
 
-def get_files_to_commit(directoryName: str, update_files: bool) -> List[FileToCommit]:
+def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName
-    if update_files:
-        return [
-            FileToCommit(
-                str(get_relative_name(entry, directoryName)),
-                FileMode.NORMAL if not os.access(entry, os.X_OK) else FileMode.EXECUTABLE,
-                entry.read_bytes(),
-            )
-            for entry in path.glob("**/*")
-            if not entry.is_dir()
-            and entry.name != 'global.yml'
-            and entry.name != 'regional.yml'
-        ]
     return [
         FileToCommit(
             str(get_relative_name(entry, directoryName)),
