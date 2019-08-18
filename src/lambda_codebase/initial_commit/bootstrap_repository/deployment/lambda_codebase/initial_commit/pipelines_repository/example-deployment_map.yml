@@ -1,20 +1,33 @@
 pipelines:
   - name: sample-pipeline  # The name of your pipeline (This will match the name of your repository)
-    type: cc-cloudformation  # The pipeline_type you wish to use for this pipeline
+    type:
+      source: 
+        name: codecommit
+        account_id: 111111111111
+      build: 
+        name: codebuild
+      deploy: 
+        name: cloudformation
+        action: replace_on_failure
     params:
-      - SourceAccountId: 111111111111  # The source account that will hold the codebase
-      - NotificationEndpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
+        notification_endpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
     targets:  # Deployment stages
-      - /business_unit/testing
-      - /business_unit/production
+      - /business_unit/testing # will use action from type defined above,
+      - target: /business_unit/production
+        change_set: approval_needed # override deploy action above
 
-  - name: another-pipeline
-    type: github-cloudformation # Rather than use AWS CodeCommit we can also use Github as a source
+  - name: another-pipeline 
+    type:
+      source:
+        name: github
+        owner: bundyfx
+        repository_name: some_repo
+    # if we omit type we get a default of codecommit as the source and codebuild as the build
     params:
-      - ScheduleExpression: rate(7 days) # Run every 7 days automatically
-      - Owner: github_username # See Docs for Github integration
-      - NotificationEndpoint: slack_channel # See Docs for Slack integration for notifications
+        schedule: rate(7 days) # Run every 7 days automatically
+        notification_endpoint: slack_channel # See Docs for Slack integration for notifications
     targets: # Long hand syntax including regions and names for stages
-      - path: 22222222222 # Paths can be single AWS Accounts or Organization Units
+      - target: 22222222222
         regions: us-east-1
         name: fancy-name
+        type: cloudformation # the type we want to use for this target only

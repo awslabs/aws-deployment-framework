@@ -1,9 +1,6 @@
 # Administrator Guide
 
-- [Overview](#overview)
-- [Pre-Requisites](#pre-requisites)
 - [Src Folder](#src-folder)
-- [Installation Instructions](#installation-instructions)
 - [adfconfig](#adfconfig)
 - [Accounts](#accounts)
   - [Master](#master-account)
@@ -24,42 +21,15 @@
 - [Updating Between Versions](#updating-between-versions)
 - [Removing ADF](#removing-adf)
 
-## Overview
-
-### High Level Bootstrapping Process
-
-![bootstrap-process](./images/adf-bootstrap-high-level.png)
-
-### High Level Pipeline Process
-
-![pipeline-process](./images/adf-pipeline-high-level.png)
-
-## Pre-Requisites
-
-- [awscli](https://aws.amazon.com/cli/) version 1.16.147 or up
-- [git](https://git-scm.com/)
-  - [AWS CodeCommit Setup](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html)
-- [AWS CloudTrail configured](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html) in the AWS Organizations Master account.
 
 ## Src Folder
 
 The `src` folder contains a nesting of folders that go on to make two different git repositories. One of the repositories *(bootstrap)* lives on your AWS Master Account and is responsible for holding bootstrap AWS CloudFormation templates for your Organization that are used for bootstrapping AWS Accounts, these templates are automatically applied to accounts within specific AWS Organizations Organizational Units. The other repository *(pipelines)* lives on your *deployment* account and holds the various definitions and configuration that are used to facilitate deploying your applications and resources across many AWS Account and Regions. These two repositories will be automatically committed to AWS CodeCommit with the initial starting content as part of the initial deployment of ADF. From there, you can clone the repositories and work on alter the configuration in them as desired.
 
-## Installation Instructions
-
-1. Ensure you have setup a new [AWS CloudTrail](https://aws.amazon.com/cloudtrail/) *(Not the default trail)* in your Master Account that spans all regions and that you are able to view trail information in the AWS CloudTrail console.
-
-2. In the AWS Console from your master account within us-east-1, head over to the Serverless Application Repository *(SAR)*. From there, search for aws-deployment-framework *(or "adf")* (ensure the checkbox "Show apps that create custom IAM roles or resource policies" is checked). If you are deploying ADF for the first time, fill in the required parameters for your specific use-case. For example, if you have no AWS Organization or dedicated deployment account already created, you can enter an account name and email address and ADF will create you an AWS Organization, the deployment OU, along with an AWS Account that will be used to house deployment pipelines throughout your Organization. If you already have an AWS Account you want to use as your deployment account you can specify its Account ID in the parameter *DeploymentAccountId* and leave the *DeploymentAccountName* and *DeploymentAccountEmail* empty. Next, specify the *DeploymentAccountMainRegion* parameter as the region that will host your deployment pipelines and would be considered your main AWS region. In the *DeploymentAccountTargetRegions* section of the parameters enter a list of AWS Regions that you might want to deploy your resources or applications into via AWS CodePipeline *(this can be updated whenever)*. Also specify a main notification endpoint *(email or slack (see docs below))* to receive updates about the bootstrap process. When you have entered all required information press **'Deploy'**.
-
-3. As the stack *serverlessrepo-aws-deployment-framework* completes you can now open AWS CodePipeline from within the master account in us-east-1 and see that there is an initial pipeline execution that has been run. When ADF is deployed for the first time, it will make the initial commit with the skeleton structure of the *aws-deployment-framework-bootstrap* CodeCommit repository. From that initial commit you can clone the repository to your workstation and make the changes required to define your desired architectural landscape via AWS CloudFormation templates in regards to bootstrapping AWS Accounts within certain Organizational Unit's or apply SCP's from code *(see docs below)*.
-
-4. Once the AWS CodePipeline Execution from the previous step is complete, move the Deployment Account that was created in step 2 *(or pre-existing)* into the OU called `deployment`. This action will trigger [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start the bootstrap process for the deployment account. You can view the progress of this in the AWS Step Functions console from the master account in the us-east-1 region.
-
-5. Once the Step Function has completed, switch roles over to the newly bootstrapped deployment account in the region you defined as your main region from step 2. An AWS CodeCommit repository will have been created and will contain the initial skeleton structure committed which serves as a starting point for defining your pipelines throughout your organization. Before defining pipelines you will most likely want to create more AWS accounts and build out your Organization. Bootstrap further accounts by moving them into the OU that corresponds to their purpose. At this point you can follow the [sample guide](./samples-guide.md) to get started with the samples included in this repository which will show in detail how pipelines function in ADF. **Note** Each account you reference in your `deployment_map.yml` must be bootstrapped into an OU prior to adding it to a pipeline.
 
 ## adfconfig
 
-The `adfconfig.yml` file resides on the [Master Account](#master-account) and defines the general high level configuration for the AWS Deployment Framework. These values are stored in AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents. When you install ADF via the Serverless Application Repository, some of the information entered in the parameters will be passed into the *adfconfig.yml* that is committed to the bootstrap repository as a starting point, you can always edit it and push it back into the bootstrap repository to update any values.
+The `adfconfig.yml` file resides on the [Master Account](#master-account) and defines the general high level configuration for the AWS Deployment Framework. These values from the value are synced into AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents. When you install ADF via the Serverless Application Repository, some of the information entered in the parameters will be passed into the *adfconfig.yml* that is committed to the bootstrap repository as a starting point, you can always edit it and push it back into the bootstrap repository to update any values.
 
 ```yaml
 roles:

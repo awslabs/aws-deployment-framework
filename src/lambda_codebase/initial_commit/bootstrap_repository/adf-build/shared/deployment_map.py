@@ -76,6 +76,10 @@ class DeploymentMap:
             self._read() # Calling with default no args to get deployment_map.yml in root if it exists
         )
         if not self.map_contents['pipelines']:
+            LOGGER.error(
+                "No Deployment Map files found, create a deployment_map.yml file in the root of the repository to create pipelines. "
+                "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
+            )
             raise InvalidDeploymentMapError("No Deployment Map files found..")
 
     def _validate(self):
@@ -92,9 +96,3 @@ class DeploymentMap:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid"
             )
-        except TypeError:
-            LOGGER.error(
-                "No Deployment Map files found, create a deployment_map.yml file in the root of the repository to create pipelines. "
-                "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
-            )
-            raise Exception from None
