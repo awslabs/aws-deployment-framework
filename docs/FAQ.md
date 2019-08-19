@@ -4,7 +4,7 @@
 - > A: Organzations can only be accessed from the Master account of the Organization, read more about [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/APIReference/Welcome.html).
 
 - Q: What are the limits of AWS CodePipeline?
-- > A: Please read [AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html).
+- > A: Please read [AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html). A single pipeline of type cloudformation can have maximum of 200 deployment targets distributed across 8 organization units.
 
 - Q: I cannot get CodeCommit working nicely with git or it stops working after a short period of time.
 - > A: Please read [Setting up CodeCommit](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up.html).
