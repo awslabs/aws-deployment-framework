@@ -1,7 +1,8 @@
 {
     "Parameters": {
         "CostCenter": "123",
-        "Environment": "testing"
+        "Environment": "testing",
+        "MySpecialValue": "resolve:/values/some_value"
     },
     "Tags" : {
         "TagKey" : "123",
