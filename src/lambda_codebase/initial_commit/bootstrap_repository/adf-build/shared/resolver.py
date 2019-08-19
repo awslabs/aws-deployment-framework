@@ -68,7 +68,7 @@ class Resolver:
             stack_output = ""
             pass
         try:
-            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+            parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
             if optional:
                 self.stage_parameters[parent_key][key] = stack_output
             else:
@@ -77,7 +77,8 @@ class Resolver:
                 self.stage_parameters[parent_key][key] = stack_output
         except IndexError:
             if stack_output:
-                self.stage_parameters[key] = stack_output
+                if self.stage_parameters.get(key):
+                    self.stage_parameters[key] = stack_output
             else:
                 raise Exception("Could not determine the structure of the file in order to import from CloudFormation")
         return True
@@ -100,13 +101,14 @@ class Resolver:
         client = S3(region, bucket_name)
         LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", value, file_name, bucket_name, region)
         try:
-            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+            parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
         except IndexError:
-            self.stage_parameters[key] = client.put_object(
-                "adf-upload/{0}/{1}".format(value, file_name),
-                "{0}".format(value),
-                style
-            )
+            if self.stage_parameters.get(key):
+                self.stage_parameters[key] = client.put_object(
+                    "adf-upload/{0}/{1}".format(value, file_name),
+                    "{0}".format(value),
+                    style
+                )
             return True
         self.stage_parameters[parent_key][key] = client.put_object(
             "adf-upload/{0}/{1}".format(value, file_name),
@@ -135,7 +137,6 @@ class Resolver:
             region = DEFAULT_REGION
         value = value[:-1] if optional else value
         client = ParameterStore(region, boto3)
-        LOGGER.info("Fetching Parameter from %s", value)
         try:
             parameter = self.cache.check('{0}/{1}'.format(region, value)) or client.fetch_parameter(value)
         except ParameterNotFoundError:
@@ -145,13 +146,14 @@ class Resolver:
             else:
                 raise
         try:
-            parent_key = list(Resolver.determine_parent_key(self.stage_parameters, key))[0]
+            parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
             if parameter:
                 self.cache.add('{0}/{1}'.format(region, value), parameter)
                 self.stage_parameters[parent_key][key] = parameter
         except IndexError as error:
             if parameter:
-                self.stage_parameters[key] = parameter
+                if self.stage_parameters.get(key):
+                    self.stage_parameters[key] = parameter
             else:
                 LOGGER.error("Parameter was not found, unable to fetch it from parameter store")
                 raise Exception("Parameter was not found, unable to fetch it from parameter store") from error
@@ -159,7 +161,7 @@ class Resolver:
 
     def update(self, key):
         for k, _ in self.comparison_parameters.items():
-            if not self.stage_parameters.get(k):
+            if not self.stage_parameters.get(k) and not self.stage_parameters.get(k, {}).get(key):
                 self.stage_parameters[k] = self.comparison_parameters[k]
             if key not in self.stage_parameters[k] and self.comparison_parameters.get(k, {}).get(key):
                 self.stage_parameters[k][key] = self.comparison_parameters[k][key]
