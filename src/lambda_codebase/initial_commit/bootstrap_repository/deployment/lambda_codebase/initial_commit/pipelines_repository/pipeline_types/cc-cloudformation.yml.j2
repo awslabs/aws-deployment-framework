@@ -271,7 +271,7 @@ Resources:
               - Name: !Sub "${ProjectName}-build"
 {% for target in environments['targets'] %}
 {% if target|length > 0 and target[0].get('name') == "approval" %}
-        - Name: {{ target[0].get('step_name') or "approval-stage-" ~ loop.index }}
+        - Name: {{ target[0].get('step_name') or "deployment-{0}".format(target[0].get('name')) }}
           Actions:
             - Name: {{ target[0].get('step_name') or "Approval"}}
               ActionTypeId:
