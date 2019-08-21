@@ -145,7 +145,7 @@ Resources:
       Name: !Sub "adf-build-${ProjectName}"
       Description: !Sub "CodeBuild Project ${ProjectName} created by ADF"
       EncryptionKey: !ImportValue KMSArn-{{ deployment_account_region }}
-      ServiceRole: ServiceRole: !If [HasCustomBuildRole, !Ref CustomBuildRole, !ImportValue CodeBuildRoleArn]
+      ServiceRole: !If [HasCustomBuildRole, !Ref CustomBuildRole, !ImportValue CodeBuildRoleArn]
       Artifacts:
         Type: CODEPIPELINE
       Environment:
