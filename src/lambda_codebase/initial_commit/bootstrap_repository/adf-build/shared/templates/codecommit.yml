@@ -4,6 +4,9 @@ Parameters:
   Description:
     Type: String
     Default: Created by ADF
+  TargetArn:
+    Type: String
+    Default: Created by ADF
 Resources:
   Repo:
     Type: AWS::CodeCommit::Repository

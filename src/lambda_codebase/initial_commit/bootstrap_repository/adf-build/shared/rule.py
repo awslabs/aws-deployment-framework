@@ -43,8 +43,8 @@ class Rule:
 
     def create_update(self):
         s3_object_path = s3.put_object(
-            "adf-build/rule_templates/source_account_rules.yml",
-            "{0}/adf-build/rule_templates/source_account_rules.yml".format(TARGET_DIR)
+            "adf-build/templates/source_account_rules.yml",
+            "{0}/adf-build/templates/source_account_rules.yml".format(TARGET_DIR)
         )
         cloudformation = CloudFormation(
             region=CODE_ACCOUNT_REGION,

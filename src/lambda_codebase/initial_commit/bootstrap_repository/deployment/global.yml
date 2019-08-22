@@ -239,6 +239,7 @@ Resources:
               - "events:PutRule"
               - "events:PutTargets"
               - "events:RemoveTargets"
+              - "events:PutPermission"
               - "iam:CreatePolicy"
               - "iam:CreatePolicy"
               - "iam:CreateRole"

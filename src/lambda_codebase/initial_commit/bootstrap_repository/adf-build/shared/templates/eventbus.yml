@@ -1,0 +1,15 @@
+Parameters:
+  OrganizationId:
+    Type: String
+Resources:
+  SampleEventBusPolicy: 
+    Type: AWS::Events::EventBusPolicy
+    Properties: 
+        Action: events:PutEvents
+        Principal: '*'
+        StatementId: AllowOrgnaizationPuts
+        Condition: 
+            Type: StringEquals
+            Key: 'aws:PrincipalOrgID'
+            Value: !Ref OrganizationId
+ 

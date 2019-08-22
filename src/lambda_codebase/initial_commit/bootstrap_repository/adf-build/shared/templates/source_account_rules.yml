@@ -3,8 +3,10 @@ Parameters:
     Type: String
   DeployAccountId:
     Type: String
+    Default: Created by ADF
   TargetArn:
     Type: String
+    Default: Created by ADF
 Resources:
   AmazonCloudWatchEventRole:
     Type: AWS::IAM::Role
