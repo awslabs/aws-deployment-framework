@@ -1,0 +1,53 @@
+Parameters:
+  SourceAccountId:
+    Type: String
+  DeployAccountId:
+    Type: String
+    Default: Created by ADF
+  TargetArn:
+    Type: String
+    Default: Created by ADF
+Resources:
+  AmazonCloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: !Sub events-to-${DeployAccountId}
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: '*'
+  EventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: !Sub adf-cc-event-from-${SourceAccountId}-to-${DeployAccountId}
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - master
+      Targets:
+        - Arn: !Sub arn:aws:events:${AWS::Region}:${DeployAccountId}:event-bus/default
+          RoleArn: !GetAtt AmazonCloudWatchEventRole.Arn
+          Id: codepipeline-AppPipeline
