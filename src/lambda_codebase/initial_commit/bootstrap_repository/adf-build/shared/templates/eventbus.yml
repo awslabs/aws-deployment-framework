@@ -1,4 +1,6 @@
 Parameters:
+  PolicyName:
+    Type: String
   OrganizationId:
     Type: String
 Resources:
@@ -7,7 +9,7 @@ Resources:
     Properties: 
         Action: events:PutEvents
         Principal: '*'
-        StatementId: AllowOrgnaizationPuts
+        StatementId: !Ref PolicyName
         Condition: 
             Type: StringEquals
             Key: 'aws:PrincipalOrgID'

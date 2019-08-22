@@ -2,161 +2,218 @@
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the parameters for cloudformation stacks based on
-   param files in the params folder
+   and used to build the pipeline cloudformation stacks
 """
 
-import json
-import secrets
-import string # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
 import os
-import ast
-import yaml
+from thread import PropagatingThread
 import boto3
 
-from resolver import Resolver
+from s3 import S3
+from pipeline import Pipeline
+from rule import Rule
+from repo import Repo
+from eventbus import EventBusPolicy
+from target import Target, TargetStructure
 from logger import configure_logger
+from errors import ParameterNotFoundError
+from deployment_map import DeploymentMap
+from cloudformation import CloudFormation
+from organizations import Organizations
+from sts import STS
 from parameter_store import ParameterStore
 
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
-PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
+DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
+ADF_VERSION = os.environ["ADF_VERSION"]
+ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
-class Parameters:
-    def __init__(self, build_name, parameter_store, directory=None):
-        self.cwd = directory or os.getcwd()
-        self._create_params_folder()
-        self.global_path = "params/global"
-        self.parameter_store = parameter_store
-        self.build_name = build_name
-        self.file_name = "".join(
-            secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
-        )
-        [self.account_ous, self.regions] = self._fetch_initial_parameter()
+def clean(parameter_store, deployment_map):
+    """
+    Function used to remove stale entries in Parameter Store and
+    Deployment Pipelines that are no longer in the Deployment Map
+    """
+    current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
+        '/deployment/')
 
-    def _fetch_initial_parameter(self):
-        return [
-            ast.literal_eval(
-                self.parameter_store.fetch_parameter(
-                    "/deployment/{0}/account_ous".format(self.build_name)
-                )
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+    cloudformation = CloudFormation(
+        region=DEPLOYMENT_ACCOUNT_REGION,
+        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
+        role=boto3
+    )
+    stacks_to_remove = []
+    for parameter in current_pipeline_parameters:
+        name = parameter.get('Name').split('/')[-2]
+        if name not in [p.get('name') for p in deployment_map.map_contents['pipelines']]:
+            parameter_store.delete_parameter(parameter.get('Name'))
+            stacks_to_remove.append(name)
+
+    for stack in list(set(stacks_to_remove)):
+        cloudformation.delete_stack("{0}-{1}".format(
+            ADF_PIPELINE_PREFIX,
+            stack
+        ))
+
+
+def store_regional_parameter_config(pipeline, parameter_store):
+    """
+    Responsible for storing the region information for specific
+    pipelines. These regions are defined in the deployment_map
+    either as top level regions for a pipeline or stage specific regions
+    """
+    if pipeline.top_level_regions:
+        parameter_store.put_parameter(
+            "/deployment/{0}/regions".format(
+                pipeline.name
             ),
-            ast.literal_eval(
-                self.parameter_store.fetch_parameter(
-                    "/deployment/{0}/regions".format(self.build_name)
-                )
+            str(list(set(pipeline.top_level_regions)))
+        )
+        return
+
+    parameter_store.put_parameter(
+        "/deployment/{0}/regions".format(
+            pipeline.name
+        ),
+        str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
+    )
+
+def upload_pipeline(s3, pipeline):
+    """
+    Responsible for uploading the object (global.yml) to S3
+    and returning the URL that can be referenced in the CloudFormation
+    create_stack call.
+    """
+    s3_object_path = s3.put_object(
+        "pipelines/{0}/global.yml".format(
+            pipeline.name), "{0}/{1}/global.yml".format(
+                'pipelines',
+                pipeline.name
             )
-        ]
+        )
+    return s3_object_path
 
-    def _create_params_folder(self):
+def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+    pipeline = Pipeline(p)
+    if auto_create_repositories == 'enabled':
         try:
-            return os.mkdir('{0}/params'.format(self.cwd))
-        except FileExistsError:
-            return None
+            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
+            has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item])
+            if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
+                repo = Repo(code_account_id, p.get('name'), p.get('description'))
+                repo.create_update()
+        except StopIteration:
+            LOGGER.debug("No need to create repository as SourceAccountId is not found in params")
 
-    @staticmethod
-    def _is_account_id(value):
-        return str(value).isnumeric()
+    for target in p.get('targets', []):
+        target_structure = TargetStructure(target)
+        for step in target_structure.target:
+            for path in step.get('path'):
+                regions = step.get(
+                    'regions', p.get(
+                        'regions', DEPLOYMENT_ACCOUNT_REGION))
+                step_name = step.get('name')
+                params = step.get('params', {})
+                pipeline.stage_regions.append(regions)
+                pipeline_target = Target(
+                    path, regions, target_structure, organizations, step_name, params)
+                pipeline_target.fetch_accounts_for_target()
 
-    def create_parameter_files(self):
-        for account, ou in self.account_ous.items():
-            for region in self.regions:
-                compare_params = self._param_updater(
-                    Parameters._parse("{0}/params/{1}".format(self.cwd, account)),
-                    Parameters._parse("{0}/params/{1}".format(self.cwd, "{0}_{1}".format(account, region)))
-                )
-                if not Parameters._is_account_id(ou):
-                    # Compare account_region final to ou_region
-                    compare_params = self._param_updater(
-                        Parameters._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
-                        compare_params
-                    )
-                    # Compare account_region final to ou
-                    compare_params = self._param_updater(
-                        Parameters._parse("{0}/params/{1}".format(self.cwd, ou)),
-                        compare_params
-                    )
-                # Compare account_region final to deployment_account_region
-                compare_params = self._param_updater(
-                    Parameters._parse("{0}/params/global_{1}".format(self.cwd, region)),
-                    compare_params
-                )
-                # Compare account_region final to global
-                compare_params = self._param_updater(
-                    Parameters._parse(self.global_path),
-                    compare_params
-                )
-                if compare_params is not None:
-                    self._update_params(compare_params, "{0}_{1}".format(account, region))
+        pipeline.template_dictionary["targets"].append(
+            target_structure.account_list)
 
-    @staticmethod
-    def _parse(filename):
-        """
-        Attempt to parse the parameters file and return he default
-        CloudFormation parameter base object if not found. Returning
-        Base CloudFormation Parameters here since if the user was using
-        Any other type (SC, ECS) they would require a parameter file (global.json)
-        and thus this would not fail.
-        """
-        try:
-            with open("{0}.json".format(filename)) as file:
-                return json.load(file)
-        except FileNotFoundError:
-            try:
-                with open("{0}.yml".format(filename)) as file:
-                    return yaml.load(file, Loader=yaml.FullLoader)
-            except yaml.scanner.ScannerError:
-                LOGGER.exception('Invalid Yaml for %s.yml', filename)
-            except FileNotFoundError:
-                return {'Parameters': {}, 'Tags': {}}
+        if DEPLOYMENT_ACCOUNT_REGION not in regions:
+            pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
-    def _update_params(self, new_params, filename):
-        """
-        Responsible for updating the parameters within the files themself
-        """
-        with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
-            json.dump(new_params, outfile)
+    parameters = pipeline.generate_parameters()
+    pipeline.generate()
+    deployment_map.update_deployment_parameters(pipeline)
+    s3_object_path = upload_pipeline(s3, pipeline)
 
-    def _determine_intrinsic_function(self, resolver, value, key):
-        if str(value).startswith('resolve:'):
-            return resolver.fetch_parameter_store_value(value, key)
-        if str(value).startswith('import:'):
-            return resolver.fetch_stack_output(value, key)
-        if str(value).startswith('upload:'):
-            return resolver.upload(value, key, self.file_name)
-        return False
-
-    def _determine_parameter_structure(self, parameters, resolver): # pylint: disable=inconsistent-return-statements
-        try:
-            for key, value in parameters.items():
-                if isinstance(value, dict):
-                    LOGGER.debug('Calling _determine_parameter_structure recursively')
-                    return self._determine_parameter_structure(value, resolver)
-                if self._determine_intrinsic_function(resolver, value, key):
-                    continue
-                resolver.update(key)
-        except AttributeError:
-            LOGGER.debug('Input was not a dict for _determine_parameter_structure, nothing to do.')
-            pass
-
-    def _param_updater(self, comparison_parameters, stage_parameters):
-        """
-        Generic Parameter Updater method
-        """
-        resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
-        self._determine_parameter_structure(comparison_parameters, resolver)
-        self._determine_parameter_structure(stage_parameters, resolver)
-        return resolver.__dict__.get('stage_parameters')
+    store_regional_parameter_config(pipeline, parameter_store)
+    cloudformation = CloudFormation(
+        region=DEPLOYMENT_ACCOUNT_REGION,
+        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
+        role=boto3,
+        template_url=s3_object_path,
+        parameters=parameters,
+        wait=True,
+        stack_name="{0}-{1}".format(
+            ADF_PIPELINE_PREFIX,
+            pipeline.name
+        ),
+        s3=None,
+        s3_key_path=None,
+        account_id=DEPLOYMENT_ACCOUNT_ID
+    )
+    cloudformation.create_stack()
 
 def main():
-    parameters = Parameters(
-        PROJECT_NAME,
-        ParameterStore(
-            DEPLOYMENT_ACCOUNT_REGION,
-            boto3
-        )
+    LOGGER.info('ADF Version %s', ADF_VERSION)
+    LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
+
+    parameter_store = ParameterStore(
+        DEPLOYMENT_ACCOUNT_REGION,
+        boto3
     )
-    parameters.create_parameter_files()
+    deployment_map = DeploymentMap(
+        parameter_store,
+        ADF_PIPELINE_PREFIX
+    )
+    s3 = S3(
+        DEPLOYMENT_ACCOUNT_REGION,
+        S3_BUCKET_NAME
+    )
+    sts = STS()
+    role = sts.assume_cross_account_role(
+        'arn:aws:iam::{0}:role/{1}-readonly'.format(
+            MASTER_ACCOUNT_ID,
+            parameter_store.fetch_parameter('cross_account_access_role')
+        ), 'pipeline'
+    )
+
+    organizations = Organizations(role)
+    clean(parameter_store, deployment_map)
+    pipelines = deployment_map.map_contents.get('pipelines')
+
+    #Create Event Rule for cross account triggering of builds in Source Accounts
+    param_collections = list(pipe['params'] for pipe in pipelines if 'params' in pipe)
+    source_accounts = set(param['SourceAccountId'] for param_collection in param_collections for param in param_collection if 'SourceAccountId' in param)
+    LOGGER.info('List of all source accounts %s', source_accounts)
+
+    for source_account in source_accounts:
+        rule = Rule(source_account)
+        rule.create_update()
+
+    #Create Event Bus Policy in Deploy Account
+    eventbus_policy = EventBusPolicy('adf_cross_account_policy', parameter_store.fetch_parameter('organization_id'))
+    eventbus_policy.create_update()
+
+    #Create Repositories in Source Account
+    try:
+        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+    except ParameterNotFoundError:
+        auto_create_repositories = 'enabled'
+        
+    threads = []
+    for p in pipelines:
+        thread = PropagatingThread(target=worker_thread, args=(
+            p,
+            organizations,
+            auto_create_repositories,
+            s3,
+            deployment_map,
+            parameter_store
+        ))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == '__main__':
