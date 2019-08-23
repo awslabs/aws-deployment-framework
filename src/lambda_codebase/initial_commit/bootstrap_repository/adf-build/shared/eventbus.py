@@ -24,6 +24,8 @@ s3 = S3(
     DEPLOYMENT_ACCOUNT_REGION,
     S3_BUCKET_NAME
 )
+
+
 class EventBusPolicy:
     def __init__(self, policy_name, organization_id):
         self.organization_id = organization_id
@@ -35,7 +37,7 @@ class EventBusPolicy:
         return [{
             'ParameterKey': 'OrganizationId',
             'ParameterValue': self.organization_id
-        },{
+        }, {
             'ParameterKey': 'PolicyName',
             'ParameterValue': self.policy_name
         }]
@@ -57,6 +59,6 @@ class EventBusPolicy:
             s3_key_path=None,
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
-       
+
         LOGGER.info('Creating Stack for EventBusPolicy')
         cloudformation.create_stack()

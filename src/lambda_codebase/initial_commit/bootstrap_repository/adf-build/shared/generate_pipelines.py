@@ -190,11 +190,11 @@ def main():
     param_collections = list(pipe['params'] for pipe in pipelines if 'params' in pipe)
     source_accounts = set(param['SourceAccountId'] for param_collection in param_collections for param in param_collection if 'SourceAccountId' in param)
     LOGGER.info('List of all source accounts %s', source_accounts)
-    
+
     for source_account in source_accounts:
         rule = Rule(source_account)
         rule.create_update()
-        
+
     threads = []
     for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
         thread = PropagatingThread(target=worker_thread, args=(

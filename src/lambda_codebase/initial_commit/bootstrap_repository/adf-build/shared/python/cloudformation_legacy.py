@@ -4,13 +4,11 @@
 """CloudFormation module used throughout the ADF
 """
 
-import re
 import os
 
 from botocore.exceptions import WaiterError, ClientError
 from errors import InvalidTemplateError, GenericAccountConfigureError
 from logger import configure_logger
-from paginator import paginator
 from cloudformation import StackProperties
 
 LOGGER = configure_logger(__name__)
@@ -50,7 +48,6 @@ class CloudFormationLegacy(StackProperties):
         except ClientError as error:
             raise InvalidTemplateError("{0}: {1}".format(self.template_url, error)) from None
 
-
     def _update_stack_termination_protection(self):
         try:
             return self.client.update_termination_protection(
@@ -63,7 +60,6 @@ class CloudFormationLegacy(StackProperties):
                 self.account_id, self.stack_name, )
             pass
 
-
     def create_stack(self):
         try:
             params = {
@@ -72,12 +68,12 @@ class CloudFormationLegacy(StackProperties):
                 'Parameters': self.parameters,
             }
             if self._stack_exists(self.stack_name):
-                LOGGER.info('Updating {}'.format(self.stack_name))
-                stack_result = self.client.update_stack(**params)
+                LOGGER.info('Updating %s', self.stack_name)
+                self.client.update_stack(**params)
                 waiter = self.client.get_waiter('stack_update_complete')
             else:
-                LOGGER.info('Creating {}'.format(self.stack_name))
-                stack_result = self.client.create_stack(**params)
+                LOGGER.info('Creating %s', self.stack_name)
+                self.client.create_stack(**params)
                 waiter = self.client.get_waiter('stack_create_complete')
             LOGGER.info("...waiting for stack to be ready...")
             waiter.wait(StackName=self.stack_name)
@@ -88,7 +84,7 @@ class CloudFormationLegacy(StackProperties):
             else:
                 raise
         self._update_stack_termination_protection()
-            
+
     def _stack_exists(self, stack_name):
         stacks = self.client.list_stacks()['StackSummaries']
         for stack in stacks:
