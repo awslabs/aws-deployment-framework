@@ -1,0 +1,20 @@
+roles:
+  cross-account-access: some_role
+
+regions:
+  deployment-account: eu-central-1
+  targets:
+    - eu-west-1
+    - us-west-2
+
+config:
+  main-notification-endpoint: 
+    - type: email
+      target: jon@doe.com
+  moves:
+    - name: to-root
+      action: remove-base
+  protected:
+    - ou-a9ny-123test
+  scp:
+    keep-default-scp: enabled 

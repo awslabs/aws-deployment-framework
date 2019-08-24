@@ -26,7 +26,7 @@ Parameters:
   Image:
     Description: The Image you wish to use for CodeBuild.
     Type: String
-    Default: "aws/codebuild/python:3.7.1"
+    Default: "aws/codebuild/standard:2.0"
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
@@ -475,7 +475,12 @@ Resources:
           version: 0.2
           phases:
             install:
+              runtime-versions:
+                python: 3.7
+                nodejs: 10
+            pre_build:
               commands:
+                - npm install cdk -g
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q

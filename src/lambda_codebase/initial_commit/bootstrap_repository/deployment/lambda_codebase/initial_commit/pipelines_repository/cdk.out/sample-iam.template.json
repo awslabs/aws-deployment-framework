@@ -1,0 +1,687 @@
+{
+  "Parameters": {
+    "adfhelpersS3Bucketeucentral1Parameter969ECA20": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cross_region/s3_regional_bucket/eu-central-1"
+    },
+    "adfhelpersKMSKeyeucentral1ParameterCAF5FA01": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cross_region/kms_arn/eu-central-1"
+    },
+    "adfhelpersdeploymentaccountbucketParameterCB6CEAD4": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "deployment_account_bucket"
+    }
+  },
+  "Resources": {
+    "ADFNotificationsPipelineTopic8F4FF73B": {
+      "Type": "AWS::SNS::Topic",
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/ADFNotifications/PipelineTopic/Resource"
+      }
+    },
+    "ADFNotificationsPipelineTopicPolicy1895D8F3": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sns:Publish",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "sns.amazonaws.com",
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "codecommit.",
+                        {
+                          "Ref": "AWS::URLSuffix"
+                        }
+                      ]
+                    ]
+                  },
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "events.",
+                        {
+                          "Ref": "AWS::URLSuffix"
+                        }
+                      ]
+                    ]
+                  }
+                ]
+              },
+              "Resource": "*",
+              "Sid": "0"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Topics": [
+          {
+            "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/ADFNotifications/PipelineTopic/Policy/Resource"
+      }
+    },
+    "ADFNotificationsSNSSubscriptionBF018525": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Protocol": "email",
+        "TopicArn": {
+          "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+        },
+        "Endpoint": "your@email.com"
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/ADFNotifications/SNSSubscription/Resource"
+      }
+    },
+    "buildDefaultBuildRolePolicyE76E5B25": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":logs:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":log-group:/aws/codebuild/",
+                      {
+                        "Ref": "buildprojectAF8BD4CF"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":logs:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":log-group:/aws/codebuild/",
+                      {
+                        "Ref": "buildprojectAF8BD4CF"
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "adfhelpersKMSKeyeucentral1ParameterCAF5FA01"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "buildDefaultBuildRolePolicyE76E5B25",
+        "Roles": [
+          "adf-codebuild-role"
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/build/DefaultBuildRole/Policy/Resource"
+      }
+    },
+    "buildprojectAF8BD4CF": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Environment": {
+          "ComputeType": "BUILD_GENERAL1_SMALL",
+          "EnvironmentVariables": [
+            {
+              "Name": "PYTHONPATH",
+              "Type": "PLAINTEXT",
+              "Value": "./adf-build/python"
+            },
+            {
+              "Name": "ADF_PROJECT_NAME",
+              "Type": "PLAINTEXT",
+              "Value": "sample-iam"
+            },
+            {
+              "Name": "S3_BUCKET_NAME",
+              "Type": "PLAINTEXT",
+              "Value": {
+                "Ref": "adfhelpersdeploymentaccountbucketParameterCB6CEAD4"
+              }
+            },
+            {
+              "Name": "ACCOUNT_ID",
+              "Type": "PLAINTEXT",
+              "Value": {
+                "Ref": "AWS::AccountId"
+              }
+            }
+          ],
+          "Image": "aws/codebuild/python:3.7.1",
+          "PrivilegedMode": true,
+          "Type": "LINUX_CONTAINER"
+        },
+        "ServiceRole": "arn:aws:iam::361473679486:role/adf-codebuild-role",
+        "Source": {
+          "Type": "CODEPIPELINE"
+        },
+        "Description": "ADF CodeBuild Project for sample-iam",
+        "EncryptionKey": {
+          "Ref": "adfhelpersKMSKeyeucentral1ParameterCAF5FA01"
+        },
+        "Name": "adf-build-sample-iam",
+        "TimeoutInMinutes": 20
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/build/project/Resource"
+      }
+    },
+    "CodePipelinepipeline7EF8F7D6": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "RoleArn": {
+          "Fn::ImportValue": "CodePipelineRoleArn"
+        },
+        "Stages": [
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "AWS",
+                  "Provider": "CodeCommit",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "BranchName": "master",
+                  "RepositoryName": "sample-iam"
+                },
+                "Name": "source",
+                "OutputArtifacts": [
+                  {
+                    "Name": "output-source"
+                  }
+                ],
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::228171733466:role/adf-codecommit-role",
+                "RunOrder": 1
+              }
+            ],
+            "Name": "Source-228171733466"
+          },
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Build",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": "adf-build-sample-iam"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "output-source"
+                  }
+                ],
+                "Name": "build",
+                "OutputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Region": "eu-central-1",
+                "RunOrder": 1
+              }
+            ],
+            "Name": "Build"
+          },
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "REPLACE_ON_FAILURE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/bundyf752_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::642083723525:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "bundyf752-eu-central-1",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::642083723525:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "REPLACE_ON_FAILURE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/banking-testing_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::130330464033:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "banking-testing-eu-central-1",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::130330464033:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "REPLACE_ON_FAILURE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/bundyfx81_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::268933576961:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "bundyfx81-eu-central-1",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::268933576961:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "REPLACE_ON_FAILURE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/bundyf-testing_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::728154317245:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "bundyf-testing-eu-central-1",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::728154317245:role/adf-cloudformation-role",
+                "RunOrder": 1
+              }
+            ],
+            "Name": "deployment-stage-1"
+          },
+          {
+            "Actions": [
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_REPLACE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/bundyf-prod_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::944504663010:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "bundyf-prod-eu-central-1-create",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::944504663010:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Approval",
+                  "Owner": "AWS",
+                  "Provider": "Manual",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "NotificationArn": {
+                    "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+                  },
+                  "CustomData": "Approval stage for sample-iam"
+                },
+                "Name": "bundyf-prod-eu-central-1",
+                "Region": "eu-central-1",
+                "RunOrder": 2
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_EXECUTE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/bundyf-prod_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::944504663010:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "bundyf-prod-eu-central-1-execute",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::944504663010:role/adf-cloudformation-role",
+                "RunOrder": 3
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_REPLACE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/thursday-123_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::556759662654:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "thursday-123-eu-central-1-create",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::556759662654:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Approval",
+                  "Owner": "AWS",
+                  "Provider": "Manual",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "NotificationArn": {
+                    "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+                  },
+                  "CustomData": "Approval stage for sample-iam"
+                },
+                "Name": "thursday-123-eu-central-1",
+                "Region": "eu-central-1",
+                "RunOrder": 2
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_EXECUTE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/thursday-123_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::556759662654:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "thursday-123-eu-central-1-execute",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::556759662654:role/adf-cloudformation-role",
+                "RunOrder": 3
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_REPLACE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/banking-prod54_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::060429396082:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "banking-prod54-eu-central-1-create",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::060429396082:role/adf-cloudformation-role",
+                "RunOrder": 1
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Approval",
+                  "Owner": "AWS",
+                  "Provider": "Manual",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "NotificationArn": {
+                    "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+                  },
+                  "CustomData": "Approval stage for sample-iam"
+                },
+                "Name": "banking-prod54-eu-central-1",
+                "Region": "eu-central-1",
+                "RunOrder": 2
+              },
+              {
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CloudFormation",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_EXECUTE",
+                  "StackName": "adf-sample-iam",
+                  "ChangeSetName": "adf-sample-iam",
+                  "TemplatePath": "sample-iam-build::template.yml",
+                  "TemplateConfiguration": "sample-iam-build::params/banking-prod54_eu-central-1.json",
+                  "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                  "RoleArn": "arn:aws:iam::060429396082:role/adf-cloudformation-deployment-role"
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "sample-iam-build"
+                  }
+                ],
+                "Name": "banking-prod54-eu-central-1-execute",
+                "Region": "eu-central-1",
+                "RoleArn": "arn:aws:iam::060429396082:role/adf-cloudformation-role",
+                "RunOrder": 3
+              }
+            ],
+            "Name": "deployment-stage-2"
+          }
+        ],
+        "ArtifactStores": [
+          {
+            "ArtifactStore": {
+              "EncryptionKey": {
+                "Id": {
+                  "Ref": "adfhelpersKMSKeyeucentral1ParameterCAF5FA01"
+                },
+                "Type": "KMS"
+              },
+              "Location": {
+                "Ref": "adfhelpersS3Bucketeucentral1Parameter969ECA20"
+              },
+              "Type": "S3"
+            },
+            "Region": "eu-central-1"
+          }
+        ],
+        "Name": "adf-sample-iam",
+        "RestartExecutionOnUpdate": false
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/CodePipeline/pipeline"
+      }
+    },
+    "CodePipelineeventspipelinepipelinestatechangeevent6015777B": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "sample-iam | Trigger notifications based on pipeline state changes",
+        "EventPattern": {
+          "detail": {
+            "state": [
+              "FAILED",
+              "STARTED",
+              "SUCCEEDED"
+            ],
+            "pipeline": [
+              {
+                "Ref": "CodePipelinepipeline7EF8F7D6"
+              }
+            ]
+          },
+          "source": [
+            "aws.codepipeline"
+          ],
+          "resources": [
+            {
+              "Ref": "CodePipelinepipeline7EF8F7D6"
+            }
+          ],
+          "detail-type": [
+            "CodePipeline Pipeline Execution State Change"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Ref": "ADFNotificationsPipelineTopic8F4FF73B"
+            },
+            "Id": "Target0",
+            "InputTransformer": {
+              "InputPathsMap": {
+                "detail-pipeline": "$.detail.pipeline",
+                "detail-state": "$.detail.state",
+                "time": "$.time",
+                "account": "$.account"
+              },
+              "InputTemplate": "\"The pipeline <detail-pipeline> from account <detail-state> has <time> at <account>.\""
+            }
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "sample-iam/CodePipeline/events/pipeline/pipeline_state_change_event/Resource"
+      }
+    }
+  }
+}

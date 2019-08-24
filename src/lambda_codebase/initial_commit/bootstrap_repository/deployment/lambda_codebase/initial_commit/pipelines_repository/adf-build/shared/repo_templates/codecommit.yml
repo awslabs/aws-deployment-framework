@@ -1,0 +1,12 @@
+Parameters:
+  RepoName:
+    Type: String
+  Description:
+    Type: String
+    Default: Created by ADF
+Resources:
+  Repo:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref RepoName
+      RepositoryDescription: !Ref Description

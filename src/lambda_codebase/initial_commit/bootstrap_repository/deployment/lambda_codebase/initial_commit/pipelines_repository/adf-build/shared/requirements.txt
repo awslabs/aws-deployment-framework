@@ -1,0 +1,6 @@
+# Install libs here that you might want in AWS CodeBuild
+pytest==3.0.7
+mock==2.0.0
+boto3==1.9.89
+pyyaml>=5.1
+jinja2>=2.10.1

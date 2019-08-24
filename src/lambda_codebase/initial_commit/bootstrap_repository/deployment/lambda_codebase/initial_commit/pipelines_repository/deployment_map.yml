@@ -1,0 +1,30 @@
+pipelines:
+  - name: sample-iam  # The name of your pipeline (This will match the name of your repository)
+    type:
+      source: 
+        name: codecommit
+        account_id: 228171733466
+      build: 
+        name: codebuild
+      deploy: 
+        name: cloudformation
+        action: replace_on_failure
+    params:
+        notification_endpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
+    targets:  # Deployment stages
+      - /banking/testing # will use action from type defined above,
+      - path: /banking/production
+        change_set: approval_needed # override deploy action above and insert a approval in between create + execute change set
+
+  - name: sample-vpc
+    type: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
+      source: 
+        name: codecommit
+        account_id: 228171733466
+    params:
+        schedule: rate(7 days) # Run every 7 days automatically
+        notification_endpoint: slack_channel # See Docs for Slack integration for notifications
+    targets: # Long hand syntax including regions and names for stages
+      - path: /banking/testing
+        name: fancy-name
+        type: cloudformation # the type we want to use for this target only
