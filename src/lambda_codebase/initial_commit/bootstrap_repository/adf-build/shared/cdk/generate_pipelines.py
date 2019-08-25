@@ -7,8 +7,9 @@
    and used to build the pipeline cloudformation stacks
 """
 
+import random
 import os
-import sys
+import time
 from thread import PropagatingThread
 import boto3
 
@@ -196,7 +197,7 @@ def main():
         auto_create_repositories = 'enabled'
 
     threads = []
-    for p in deployment_map.map_contents.get('pipelines'):
+    for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,
@@ -207,6 +208,11 @@ def main():
         ))
         thread.start()
         threads.append(thread)
+        _batcher = counter % 10
+        if _batcher == 9: # 9 meaning we have hit a set of 10 threads since n % 10
+            _interval = random.randint(5, 11)
+            LOGGER.debug('Waiting for %s seconds before starting next batch of 10 threads.', _interval)
+            time.sleep(_interval)
 
     for thread in threads:
         thread.join()
