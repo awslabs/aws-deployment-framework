@@ -10,7 +10,6 @@ from aws_cdk import (
 ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
 ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
 ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
-ADF_PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
@@ -18,12 +17,16 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 class Events(core.Construct):
     def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
-        _topic = _sns.Topic.from_topic_arn(self, 'TopicArn', params["topic_arn"])
-        _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'Pipeline', params["pipeline"])
+        _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])
+        _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _on_state_change = _pipeline.on_state_change(
             id='pipeline_state_change_event',
-            description="{0} | Trigger notifications based on pipeline state changes".format(ADF_PROJECT_NAME),
+            description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
             event_pattern=_events.EventPattern(
+                resources=[
+                    "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
+                ],
+                account=[ADF_DEPLOYMENT_ACCOUNT_ID],
                 detail={
                     "state": [
                         "FAILED",
@@ -42,9 +45,9 @@ class Events(core.Construct):
                 message=_events.RuleTargetInput.from_text(
                     "The pipeline {0} from account {1} has {2} at {3}.".format(
                         _events.EventField.from_path('$.detail.pipeline'), # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
+                        _events.EventField.account,
                         _events.EventField.from_path('$.detail.state'),
-                        _events.EventField.time,
-                        _events.EventField.account
+                        _events.EventField.time
                     )
                 )
             )
@@ -72,7 +75,7 @@ class Events(core.Construct):
             _event = _events.Rule(
                 self,
                 'ScheduleRule',
-                description="Triggers {0} on a Schedule".format(ADF_PROJECT_NAME),
+                description="Triggers {0} on a Schedule".format(params['name']),
                 enabled=True,
                 schedule=params['schedule']
             )
@@ -80,7 +83,7 @@ class Events(core.Construct):
                 pipeline="arn:aws:codepipeline:${0}:${1}:${2}".format(
                     ADF_DEPLOYMENT_REGION,
                     ADF_DEPLOYMENT_ACCOUNT_ID,
-                    ADF_PROJECT_NAME
+                    params['name']
                 )
             )
             _event.add_target(

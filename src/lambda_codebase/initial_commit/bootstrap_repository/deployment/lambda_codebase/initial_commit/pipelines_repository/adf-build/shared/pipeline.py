@@ -15,7 +15,7 @@ class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
         self.type = pipeline.get('type', {})
-        self.parameters = pipeline.get('params', [])
+        self.parameters = pipeline.get('params', {})
         self.input = {}
         self.template_dictionary = {"targets": []}
         self.notification_endpoint = self.parameters.get('notification_endpoint', None)

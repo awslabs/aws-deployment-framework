@@ -4,6 +4,7 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
     aws_lambda as _lambda,
+    aws_secretsmanager as _secrets,
     core
 )
 from cdk_constructs import adf_events
@@ -11,14 +12,12 @@ from cdk_constructs import adf_events
 ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
 ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
 ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
-ADF_PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 class Action:
     _version = "1"
-    _owner = "AWS"
 
     def __init__(self, **kwargs):
         self.name = kwargs.get('name')
@@ -26,10 +25,11 @@ class Action:
         self.provider = kwargs.get('provider')
         self.category = kwargs.get('category')
         self.map_params = kwargs.get('map_params')
+        self.owner = kwargs.get('owner') or 'AWS'
         self.run_order = kwargs.get('run_order')
         self.index = kwargs.get('index')
         self.action_name = kwargs.get('action_name')
-        self.action_mode = kwargs.get('action_mode')
+        self.action_mode = kwargs.get('action_mode', '').upper()
         self.region = kwargs.get('target', {}).get('region') or ADF_DEPLOYMENT_REGION
         self.account_id = self.map_params["type"]["source"].get("account_id")
         self.role_arn = self._generate_role_arn()
@@ -50,36 +50,45 @@ class Action:
 
     def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
-            return {
-                "NotificationArn": self.map_params['topic_arn'],
-                "CustomData": "Approval stage for {0}".format(self.name)
+            _config = {
+                "CustomData": "Approval stage for {0}".format(self.map_params['name'])
             }
+            if self.map_params.get('params', {}).get('notification_endpoint'):
+                _config["NotificationArn"] = self.map_params['topic_arn']
+            return _config
         if self.provider == "S3" and self.category == "Source":
             return {}
         if self.provider == "S3" and self.category == "Deploy":
             return {}
-        if self.provider == "Github":
-            return {}
+        if self.provider == "GitHub":
+            return {
+                "Owner": self.map_params.get('type', {}).get('source').get('owner', {}),
+                "Repo": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
+                "Branch": self.map_params.get('branch', 'master'),
+                "OAuthToken": core.SecretValue.secrets_manager(self.map_params['type']['source'].get('oauth_token_path'),
+                        json_field=self.map_params['type']['source'].get('json_field')
+                ),
+                "PollForSourceChanges": False
+            }
         if self.provider == "CloudFormation":
             return {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, ADF_PROJECT_NAME),
-                "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, ADF_PROJECT_NAME),
-                "TemplatePath": "{0}-build::template.yml".format(ADF_PROJECT_NAME),
-                "TemplateConfiguration": "{0}-build::params/{1}_{2}.json".format(ADF_PROJECT_NAME, self.target['name'], self.region),
+                "StackName": self.target.get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "TemplatePath": "{0}-build::template.yml".format(self.map_params['name']),
+                "TemplateConfiguration": "{0}-build::params/{1}_{2}.json".format(self.map_params['name'], self.target['name'], self.region),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
             }
         if self.provider == "CodeBuild":
             return {
-                "ProjectName": "adf-build-{0}".format(ADF_PROJECT_NAME)
+                "ProjectName": "adf-build-{0}".format(self.map_params['name'])
             }
         if self.provider == "CodeCommit":
             return {
                 "BranchName": self.map_params.get('branch', 'master'),
-                "RepositoryName": self.map_params.get('repository', ADF_PROJECT_NAME)
+                "RepositoryName": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name']
             }
-        # TODO create error type
         raise Exception("{0} is not a valid provider".format(self.provider))
 
     def _generate_codepipeline_access_role(self):
@@ -97,12 +106,12 @@ class Action:
         action_props = {
             "action_type_id":_codepipeline.CfnPipeline.ActionTypeIdProperty(
                 version=Action._version,
-                owner=Action._owner,
+                owner=self.owner,
                 provider=self.provider,
                 category=self.category
             ),
             "configuration":self.configuration,
-            "name":self.action_name or self.map_params.get('name', 'deployment-stage-{0}'.format(self.index)),
+            "name": self.action_name,
             "region":self.region or ADF_DEPLOYMENT_REGION,
             "run_order":self.run_order
         }
@@ -118,13 +127,13 @@ class Action:
             ]
             action_props["output_artifacts"] = [
                 _codepipeline.CfnPipeline.OutputArtifactProperty(
-                    name="{0}-build".format(ADF_PROJECT_NAME)
+                    name="{0}-build".format(self.map_params['name'])
                 )
             ]
         if self.category == 'Deploy':
             action_props["input_artifacts"] = [
                 _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="{0}-build".format(ADF_PROJECT_NAME)
+                    name="{0}-build".format(self.map_params['name'])
                 )
             ]
         if self.category == 'Source':
@@ -153,19 +162,21 @@ class Pipeline(core.Construct):
         _pipeline_args = {
             "role_arn": _codepipeline_role_arn,
             "restart_execution_on_update": self.map_params.get('restart_execution_on_update', False),
-            "name": self.map_params['name'],
+            "name": "{0}{1}".format(ADF_STACK_PREFIX, map_params['name']),
             "stages": stages,
             "artifact_stores": self.generate_artifact_stores()
         }
-        _pipeline = _codepipeline.CfnPipeline(
+        self.cfn = _codepipeline.CfnPipeline(
             self,
-            'Pipeline',
+            'pipeline',
             **_pipeline_args
         )
-        adf_events.Events(self, 'Events', {
-            "pipeline": _pipeline.ref,
-            "topic_arn": map_params['topic_arn']
-        })
+        if map_params.get('topic_arn'):
+            adf_events.Events(self, 'events', {
+                "pipeline": self.cfn.ref,
+                "topic_arn": map_params['topic_arn'],
+                "name": map_params['name']
+            })
 
 
     def generate_artifact_stores(self):

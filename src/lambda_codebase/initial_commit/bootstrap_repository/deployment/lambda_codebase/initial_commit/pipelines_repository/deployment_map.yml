@@ -8,9 +8,8 @@ pipelines:
         name: codebuild
       deploy: 
         name: cloudformation
-        action: replace_on_failure
     params:
-        notification_endpoint: your@email.com # The Notification (user/team/slack) responsible for this pipeline
+        notification_endpoint: bundyf@amazon.nl # The Notification (user/team/slack) responsible for this pipeline
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
       - path: /banking/production
@@ -18,13 +17,22 @@ pipelines:
 
   - name: sample-vpc
     type: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
-      source: 
-        name: codecommit
-        account_id: 228171733466
+      source:
+        name: github
+        repository: example-vpc-adf # Optional, above name property will be used if this is not specified
+        owner: bundyfx
+        oauth_token_path: /github/secret # The path in AWS Secrets Manager that holds the GitHub Oauth token
+        json_field: token_github # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
-        schedule: rate(7 days) # Run every 7 days automatically
-        notification_endpoint: slack_channel # See Docs for Slack integration for notifications
+        notification_endpoint: bundyf@amazon.nl
     targets: # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
-        type: cloudformation # the type we want to use for this target only
+
+  - name: sample-ec2-app-codedeploy
+    type:
+      source:
+        name: codecommit
+        account_id: 228171733466
+    targets:
+      - 130330464033

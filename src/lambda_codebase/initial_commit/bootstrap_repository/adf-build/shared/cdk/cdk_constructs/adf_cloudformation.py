@@ -16,7 +16,6 @@ from cdk_constructs import adf_codepipeline
 ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
 ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
 ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
-ADF_PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
@@ -43,6 +42,19 @@ class CloudFormation(core.Construct):
                     action_name="{0}-{1}-create".format(target['name'], region)
                 ).config,
             )
+            if target.get('change_set'):
+                _actions.append(
+                    adf_codepipeline.Action(
+                        name="{0}-{1}".format(target['name'], region),
+                        provider="Manual",
+                        category="Approval",
+                        region=region,
+                        target=target,
+                        run_order=2,
+                        map_params=map_params,
+                        action_name="{0}-{1}".format(target['name'], region)
+                    ).config
+                )
             _actions.append(
                 adf_codepipeline.Action(
                     name="{0}-{1}-execute".format(target['name'], region),
@@ -50,7 +62,7 @@ class CloudFormation(core.Construct):
                     category="Deploy",
                     region=region,
                     target=target,
-                    run_order=2,
+                    run_order=3 if target.get('change_set') else 2,
                     action_mode="CHANGE_SET_EXECUTE",
                     map_params=map_params,
                     action_name="{0}-{1}-execute".format(target['name'], region)

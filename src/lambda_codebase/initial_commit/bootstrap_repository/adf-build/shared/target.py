@@ -31,18 +31,18 @@ class TargetStructure:
 
         if not isinstance(target, list):
             target = [target]
-
         return target
 
 
 class Target():
-    def __init__(self, path, regions, target_structure, organizations, step_name, params):
+    def __init__(self, path, regions, target_structure, organizations, step_name, params, change_set):
         self.path = path
         self.step_name = step_name or ''
         self.params = params or {}
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
+        self.change_set = change_set
 
     @staticmethod
     def _account_is_active(account):
@@ -55,7 +55,8 @@ class Target():
             "path": self.path,
             "regions": self.regions,
             "params": self.params,
-            "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name)
+            "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name),
+            "change_set": self.change_set
         }
 
     def _target_is_approval(self):
@@ -108,5 +109,4 @@ class Target():
 
         if (str(self.path)).startswith('/'):
             return self._target_is_ou_path()
-
         raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))

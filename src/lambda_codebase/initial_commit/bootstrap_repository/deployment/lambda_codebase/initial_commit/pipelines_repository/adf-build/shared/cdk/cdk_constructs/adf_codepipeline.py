@@ -4,6 +4,7 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
     aws_lambda as _lambda,
+    aws_secretsmanager as _secrets,
     core
 )
 from cdk_constructs import adf_events
@@ -17,7 +18,6 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 class Action:
     _version = "1"
-    _owner = "AWS"
 
     def __init__(self, **kwargs):
         self.name = kwargs.get('name')
@@ -25,6 +25,7 @@ class Action:
         self.provider = kwargs.get('provider')
         self.category = kwargs.get('category')
         self.map_params = kwargs.get('map_params')
+        self.owner = kwargs.get('owner') or 'AWS'
         self.run_order = kwargs.get('run_order')
         self.index = kwargs.get('index')
         self.action_name = kwargs.get('action_name')
@@ -49,16 +50,26 @@ class Action:
 
     def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
-            return {
-                "NotificationArn": self.map_params['topic_arn'],
+            _config = {
                 "CustomData": "Approval stage for {0}".format(self.map_params['name'])
             }
+            if self.map_params.get('params', {}).get('notification_endpoint'):
+                _config["NotificationArn"] = self.map_params['topic_arn']
+            return _config
         if self.provider == "S3" and self.category == "Source":
             return {}
         if self.provider == "S3" and self.category == "Deploy":
             return {}
-        if self.provider == "Github":
-            return {}
+        if self.provider == "GitHub":
+            return {
+                "Owner": self.map_params.get('type', {}).get('source').get('owner', {}),
+                "Repo": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
+                "Branch": self.map_params.get('branch', 'master'),
+                "OAuthToken": core.SecretValue.secrets_manager(self.map_params['type']['source'].get('oauth_token_path'),
+                        json_field=self.map_params['type']['source'].get('json_field')
+                ),
+                "PollForSourceChanges": False
+            }
         if self.provider == "CloudFormation":
             return {
                 "ActionMode": self.action_mode,
@@ -76,7 +87,7 @@ class Action:
         if self.provider == "CodeCommit":
             return {
                 "BranchName": self.map_params.get('branch', 'master'),
-                "RepositoryName": self.map_params.get('repository', self.map_params['name'])
+                "RepositoryName": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name']
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
@@ -95,7 +106,7 @@ class Action:
         action_props = {
             "action_type_id":_codepipeline.CfnPipeline.ActionTypeIdProperty(
                 version=Action._version,
-                owner=Action._owner,
+                owner=self.owner,
                 provider=self.provider,
                 category=self.category
             ),
@@ -155,16 +166,17 @@ class Pipeline(core.Construct):
             "stages": stages,
             "artifact_stores": self.generate_artifact_stores()
         }
-        _pipeline = _codepipeline.CfnPipeline(
+        self.cfn = _codepipeline.CfnPipeline(
             self,
             'pipeline',
             **_pipeline_args
         )
-        adf_events.Events(self, 'events', {
-            "pipeline": _pipeline.ref,
-            "topic_arn": map_params['topic_arn'],
-            "name": map_params['name']
-        })
+        if map_params.get('topic_arn'):
+            adf_events.Events(self, 'events', {
+                "pipeline": self.cfn.ref,
+                "topic_arn": map_params['topic_arn'],
+                "name": map_params['name']
+            })
 
 
     def generate_artifact_stores(self):

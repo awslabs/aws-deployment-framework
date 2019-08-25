@@ -6,7 +6,7 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Initial Base Stack for the Master Account in the us-east-1 region.
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: aws-deployment-framework
+    Name: beta-aws-deployment-framework
     Description: The AWS Deployment Framework (ADF) is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions based on AWS Organizations.
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0

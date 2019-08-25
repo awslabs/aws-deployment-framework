@@ -16,7 +16,6 @@ from cdk_constructs.adf_codepipeline import Action
 ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
 ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
 ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
-ADF_PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
@@ -26,7 +25,7 @@ class CodeBuild(core.Construct):
         _env = _codebuild.BuildEnvironment(
             build_image=_codebuild.LinuxBuildImage.UBUNTU_14_04_PYTHON_3_7_1,
             compute_type=_codebuild.ComputeType.SMALL,
-            environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket),
+            environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params['name']),
             privileged=True
         )
         _codebuild.PipelineProject(
@@ -34,8 +33,8 @@ class CodeBuild(core.Construct):
             'project',
             environment=_env,
             encryption_key=_kms.Key.from_key_arn(self, 'DefaultDeploymentAccountKey', key_arn=deployment_region_kms),
-            description="ADF CodeBuild Project for {0}".format(ADF_PROJECT_NAME),
-            project_name="adf-build-{0}".format(ADF_PROJECT_NAME),
+            description="ADF CodeBuild Project for {0}".format(map_params['name']),
+            project_name="adf-build-{0}".format(map_params['name']),
             timeout=core.Duration.minutes(ADF_DEFAULT_BUILD_TIMEOUT),
             role=_iam.Role.from_role_arn(self, 'DefaultBuildRole', role_arn=ADF_DEFAULT_BUILD_ROLE)
         )
@@ -54,10 +53,10 @@ class CodeBuild(core.Construct):
             )
 
     @staticmethod
-    def generate_build_env_variables(codebuild, shared_modules_bucket):
+    def generate_build_env_variables(codebuild, shared_modules_bucket, name):
         return {
             "PYTHONPATH": codebuild.BuildEnvironmentVariable(value='./adf-build/python'), 
-            "ADF_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=ADF_PROJECT_NAME),
+            "ADF_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=name),
             "S3_BUCKET_NAME": codebuild.BuildEnvironmentVariable(value=shared_modules_bucket),
             "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
         }

@@ -104,13 +104,13 @@ def upload_pipeline(s3, pipeline, file_name):
     return s3_object_path
 
 def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+    LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
-    app = core.App()
-
+    
     if auto_create_repositories == 'enabled':
         try:
-            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param) # TODO FIX
-            has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item]) # TODO FIX
+            code_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
+            has_custom_repo = p.get('type', {}).get('source', {}).get('repository', {})
             if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
                 repo = Repo(code_account_id, p.get('name'), p.get('description'))
                 repo.create_update()
@@ -141,6 +141,7 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
     pipeline.generate_input()
     deployment_map.update_deployment_parameters(pipeline)
     store_regional_parameter_config(pipeline, parameter_store)
+    app = core.App()
     PipelineStack(app, pipeline.input['name'], pipeline.input)
     app.synth()
     s3_object_path = upload_pipeline(s3, pipeline, pipeline.input['name'])
@@ -165,7 +166,7 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
-
+    
     parameter_store = ParameterStore(
         DEPLOYMENT_ACCOUNT_REGION,
         boto3
@@ -209,7 +210,7 @@ def main():
 
     for thread in threads:
         thread.join()
-
+    
 
 if __name__ == '__main__':
     main()

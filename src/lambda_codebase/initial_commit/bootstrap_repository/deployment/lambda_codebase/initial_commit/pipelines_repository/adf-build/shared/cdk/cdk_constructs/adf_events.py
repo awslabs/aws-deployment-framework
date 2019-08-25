@@ -23,6 +23,10 @@ class Events(core.Construct):
             id='pipeline_state_change_event',
             description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
             event_pattern=_events.EventPattern(
+                resources=[
+                    "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
+                ],
+                account=[ADF_DEPLOYMENT_ACCOUNT_ID],
                 detail={
                     "state": [
                         "FAILED",
@@ -41,9 +45,9 @@ class Events(core.Construct):
                 message=_events.RuleTargetInput.from_text(
                     "The pipeline {0} from account {1} has {2} at {3}.".format(
                         _events.EventField.from_path('$.detail.pipeline'), # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
+                        _events.EventField.account,
                         _events.EventField.from_path('$.detail.state'),
-                        _events.EventField.time,
-                        _events.EventField.account
+                        _events.EventField.time
                     )
                 )
             )

@@ -10,8 +10,8 @@ from cdk_constructs.adf_helpers import Helpers
 from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_codecommit
+from cdk_constructs import adf_github
 from cdk_constructs import adf_cloudformation
-from cdk_constructs import adf_events
 from cdk_constructs import adf_notifications
 from logger import configure_logger
 
@@ -25,24 +25,29 @@ LOGGER = configure_logger(__name__)
 class PipelineStack(core.Stack):
     def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
-        LOGGER.info('Pipeline creation of %s with CDK commenced', map_params['name'])
-        _helpers = Helpers(self, 'adf_helpers')
+        LOGGER.info('Pipeline creation/update of %s commenced', map_params['name'])
         _source_name = map_params["type"]["source"]["name"].lower()
         _build_name = map_params["type"]["build"]["name"].lower()
         _stages = []
-        if map_params.get('notification_endpoint'):
-            adf_notifications.Notifications(self, 'ADFNotifications', map_params)
-        ssm_params = _helpers.fetch_required_ssm_params(map_params["regions"])
+        if map_params.get('params', {}).get('notification_endpoint'):
+            adf_notifications.Notifications(self, 'adf_notifications', map_params)
+        ssm_params = Helpers.fetch_required_ssm_params(self, map_params["regions"])
         if 'codecommit' in _source_name:
             _stages.append(
-                    adf_codecommit.CodeCommit(
-                        self,
-                        'source',
-                        map_params
-                    ).source
-                )
+                adf_codecommit.CodeCommit(
+                    self,
+                    'source',
+                    map_params
+                ).source
+            )
         elif 'github' in _source_name:
-            pass
+            _stages.append(
+                adf_github.GitHub(
+                    self,
+                    'source',
+                    map_params
+                ).source
+            )
         elif 's3' in _source_name:
             pass
 
@@ -112,4 +117,6 @@ class PipelineStack(core.Stack):
                     actions=_actions
                 )
             )
-        adf_codepipeline.Pipeline(self, 'CodePipeline', map_params, ssm_params, _stages)
+        _pipeline = adf_codepipeline.Pipeline(self, 'CodePipeline', map_params, ssm_params, _stages)
+        if 'github' in _source_name:
+            adf_github.GitHub.create_webhook(self, _pipeline.cfn, map_params)

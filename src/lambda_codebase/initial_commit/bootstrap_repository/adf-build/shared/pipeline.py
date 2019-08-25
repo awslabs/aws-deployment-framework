@@ -15,10 +15,10 @@ class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
         self.type = pipeline.get('type', {})
-        self.parameters = pipeline.get('params', [])
+        self.parameters = pipeline.get('params', {})
         self.input = {}
         self.template_dictionary = {"targets": []}
-        self.notification_endpoint = self._extract_notification_endpoint()
+        self.notification_endpoint = self.parameters.get('notification_endpoint', None)
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.deployment_role = pipeline.get('deployment_role', None)
@@ -30,32 +30,6 @@ class Pipeline:
             self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
-
-
-    def _extract_notification_endpoint(self):
-        for parameter in self.parameters:
-            endpoint = parameter.get('NotificationEndpoint')
-            if endpoint:
-                return endpoint
-        return None
-
-
-    def generate_parameters(self):
-        params = []
-        # ProjectName should be a hidden param and passed in directly from the
-        # name of the "pipeline"
-        params.append({
-            'ParameterKey': str('ProjectName'),
-            'ParameterValue': self.name,
-        })
-        for param in self.parameters:
-            for key, value in param.items():
-                params.append({
-                    'ParameterKey': str(key),
-                    'ParameterValue': str(value),
-                })
-        return params
-
 
     @staticmethod
     def flatten_list(input_list):
@@ -79,14 +53,18 @@ class Pipeline:
             file_handler.write(output_template)
 
     def _input_type_validation(self, params):
-        print(params)
-        if not params.get('type', {}).get('source', {}).get('account_id'):
-            raise Exception('Invalid source configuration, you must specify a source name and account_id property')
+        if not params.get('type', {}):
+            params['type'] = {}
+        if params.get('type', {}).get('source', {}).get('name') == 'codecommit':
+            if not params.get('type', {}).get('source', {}).get('account_id'):
+                raise Exception('Invalid source configuration, you must specify a source name and account_id property')
         if not params.get('type', {}).get('source', {}):
             params['type']['source']['name'] = 'codecommit'
         if not params.get('type', {}).get('build', {}):
+            params['type']['build'] = {}
             params['type']['build']['name'] = 'codebuild'
         if not params.get('type', {}).get('deploy', {}):
+            params['type']['deploy'] = {}
             params['type']['deploy']['name'] = 'cloudformation'
         return params
 

@@ -60,9 +60,9 @@ def test_pipeline_contains_transform():
     )
     assert assertion_pipeline.contains_transform == "true"
 
-def test_generate_parameters(cls):
-    parameters = cls.generate_parameters()
-    assert parameters == [
-        {'ParameterKey': 'ProjectName', 'ParameterValue': 'pipeline'},
-        {'ParameterKey': 'key', 'ParameterValue': 'value'}
-    ]
+# def test_generate_parameters(cls):
+#     parameters = cls.generate_parameters()
+#     assert parameters == [
+#         {'ParameterKey': 'ProjectName', 'ParameterValue': 'pipeline'},
+#         {'ParameterKey': 'key', 'ParameterValue': 'value'}
+#     ]

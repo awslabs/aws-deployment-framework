@@ -57,8 +57,8 @@ class Repo:
 
     def create_update(self):
         s3_object_path = s3.put_object(
-            "adf-build/repo_templates/codecommit.yml",
-            "{0}/adf-build/repo_templates/codecommit.yml".format(TARGET_DIR)
+            "shared/repo_templates/codecommit.yml",
+            "{0}/shared/repo_templates/codecommit.yml".format(TARGET_DIR)
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,
@@ -76,5 +76,5 @@ class Repo:
         # Update the stack if the repo and the adf contolled stack exist
         update_stack = (self.repo_exists() and cloudformation.get_stack_status())
         if not self.repo_exists() or update_stack:
-            LOGGER.info('Creating Stack for Codecommit Repository %s on Account %s', self.name, self.account_id)
+            LOGGER.info('Ensuring State for Codecommit Repository Stack %s on Account %s', self.name, self.account_id)
             cloudformation.create_stack()
