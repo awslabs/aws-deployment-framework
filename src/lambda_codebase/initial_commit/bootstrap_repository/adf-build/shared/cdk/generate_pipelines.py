@@ -60,7 +60,7 @@ def clean(parameter_store, deployment_map):
             stacks_to_remove.append(name)
 
     for stack in list(set(stacks_to_remove)):
-        cloudformation.delete_stack("{0}-{1}".format(
+        cloudformation.delete_stack("{0}{1}".format(
             ADF_PIPELINE_PREFIX,
             stack
         ))
@@ -107,7 +107,6 @@ def upload_pipeline(s3, pipeline, file_name):
 def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
-    
     if auto_create_repositories == 'enabled':
         try:
             code_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
@@ -153,7 +152,7 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
         template_url=s3_object_path,
         parameters=[],
         wait=True,
-        stack_name="{0}-{1}".format(
+        stack_name="{0}{1}".format(
             ADF_PIPELINE_PREFIX,
             pipeline.name
         ),
@@ -167,7 +166,6 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
-    
     parameter_store = ParameterStore(
         DEPLOYMENT_ACCOUNT_REGION,
         boto3

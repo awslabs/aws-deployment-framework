@@ -57,8 +57,8 @@ class Repo:
 
     def create_update(self):
         s3_object_path = s3.put_object(
-            "shared/repo_templates/codecommit.yml",
-            "{0}/shared/repo_templates/codecommit.yml".format(TARGET_DIR)
+            "adf-build/repo_templates/codecommit.yml",
+            "{0}/adf-build/repo_templates/codecommit.yml".format(TARGET_DIR)
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,

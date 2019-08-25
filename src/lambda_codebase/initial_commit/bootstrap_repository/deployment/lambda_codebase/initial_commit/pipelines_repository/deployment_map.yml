@@ -1,15 +1,16 @@
 pipelines:
   - name: sample-iam  # The name of your pipeline (This will match the name of your repository)
     type:
-      source: 
+      source:
         name: codecommit
         account_id: 228171733466
-      build: 
+      build:
         name: codebuild
-      deploy: 
+      deploy:
         name: cloudformation
     params:
         notification_endpoint: bundyf@amazon.nl # The Notification (user/team/slack) responsible for this pipeline
+        restart_execution_on_update: True
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
       - path: /banking/production
@@ -33,6 +34,22 @@ pipelines:
     type:
       source:
         name: codecommit
-        account_id: 228171733466
+        account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
     targets:
       - 130330464033
+
+  - name: sample-ec2-java-app-codedeploy
+    type:
+      source: 
+        name: codecommit
+        account_id: 228171733466
+      build:
+        name: codebuild
+        image: "aws/codebuild/standard:2.0" # Use a specific docker image for the build stage in this pipeline
+      deploy:
+        name: codedeploy
+    targets:
+      - path: 130330464033
+        params:
+          application_name: sample
+          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html

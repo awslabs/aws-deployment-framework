@@ -22,7 +22,7 @@ def extract_pipeline(message):
     try:
         name = message.get('approval', {}).get('pipelineName', None) or message.get("detail", {}).get("pipeline", None)
         return {
-            "name": name.split("{0}-".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
+            "name": name.split("{0}".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
             "state": message.get("detail", {}).get("state"),
             "time": message.get("time"),
             "account_id": message.get("account")

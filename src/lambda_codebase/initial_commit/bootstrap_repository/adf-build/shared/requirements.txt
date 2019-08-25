@@ -3,4 +3,16 @@ pytest==3.0.7
 mock==2.0.0
 boto3==1.9.89
 pyyaml>=5.1
-jinja2>=2.10.1
+aws-cdk.core==1.5.0
+aws_cdk.aws_codepipeline==1.5.0
+aws-cdk.aws-codepipeline-actions==1.5.0
+aws_cdk.aws_codebuild==1.5.0
+aws_cdk.aws_codecommit==1.5.0
+aws-cdk.aws-s3==1.5.0
+aws-cdk.aws-iam==1.5.0
+aws-cdk.aws-kms==1.5.0
+aws-cdk.aws-lambda==1.5.0
+aws-cdk.aws-sns==1.5.0
+aws-cdk.aws_secretsmanager==1.5.0
+aws-cdk.aws_ssm==1.5.0
+aws-cdk.aws_events==1.5.0

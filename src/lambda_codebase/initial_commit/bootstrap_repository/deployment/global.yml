@@ -42,9 +42,13 @@ Parameters:
     Type : "AWS::SSM::Parameter::Value<String>"
     Default: notification_type
   PipelinePrefix:
-    Description: The Prefix that will be attached to all cloudformation stacks for ADF pipelines (joined by - to the name)
+    Description: The Prefix that will be attached to pipeline stacks and names for ADF.
     Type: String
-    Default: "adf-pipeline"
+    Default: "adf-pipeline-"
+  StackPrefix:
+    Description: The Prefix that will be attached to stacks deployed via ADF.
+    Type: String
+    Default: "adf-"
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -220,6 +224,10 @@ Resources:
             Action:
               - "sts:AssumeRole"
             Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
+          - Effect: Allow
+            Action:
+              - "secretsmanager:Get*"
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
@@ -452,7 +460,7 @@ Resources:
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: "./adf-build/shared/:./adf-build/shared/python/"
+            Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
@@ -463,6 +471,8 @@ Resources:
             Value: !Ref SharedModulesBucket
           - Name: ADF_PIPELINE_PREFIX
             Value: !Ref PipelinePrefix
+          - Name: ADF_STACK_PREFIX
+            Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
             Value: !Ref ADFLogLevel
           - Name: ADF_VERSION
@@ -480,14 +490,15 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk -g
+                - npm install cdk@1.5.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q
             build:
               commands:
                 - cdk --version
-                - cdk synth --app adf-build/shared/cdk/generate_pipelines.py
+                - chmod 755 adf-build/cdk/generate_pipelines.py
+                - cdk synth --app adf-build/cdk/generate_pipelines.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
         - Key: "Name"

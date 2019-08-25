@@ -13,9 +13,7 @@ from aws_cdk import (
 
 from cdk_constructs import adf_codepipeline
 
-ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
-ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
-ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
+ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 

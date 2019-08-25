@@ -7,7 +7,7 @@ from aws_cdk import (
     core
 )
 
-ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
+ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 LOGGER = configure_logger(__name__)

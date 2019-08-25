@@ -9,7 +9,7 @@ from .stubs.slack import stub_approval_event, stub_failed_pipeline_event, stub_b
 
 @fixture
 def stubs():
-    os.environ["ADF_PIPELINE_PREFIX"] = 'adf-pipeline'
+    os.environ["ADF_PIPELINE_PREFIX"] = 'adf-pipeline-'
 
     stub_approval = stub_approval_event
     stub_failed_pipeline = stub_failed_pipeline_event

@@ -9,11 +9,10 @@ from aws_cdk import (
 )
 from cdk_constructs import adf_events
 
-ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
-ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
-ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
+ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
+ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 class Action:
@@ -65,8 +64,9 @@ class Action:
                 "Owner": self.map_params.get('type', {}).get('source').get('owner', {}),
                 "Repo": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
                 "Branch": self.map_params.get('branch', 'master'),
-                "OAuthToken": core.SecretValue.secrets_manager(self.map_params['type']['source'].get('oauth_token_path'),
-                        json_field=self.map_params['type']['source'].get('json_field')
+                "OAuthToken": core.SecretValue.secrets_manager(
+                    self.map_params['type']['source'].get('oauth_token_path'),
+                    json_field=self.map_params['type']['source'].get('json_field')
                 ),
                 "PollForSourceChanges": False
             }
@@ -162,7 +162,7 @@ class Pipeline(core.Construct):
         _pipeline_args = {
             "role_arn": _codepipeline_role_arn,
             "restart_execution_on_update": self.map_params.get('restart_execution_on_update', False),
-            "name": "{0}{1}".format(ADF_STACK_PREFIX, map_params['name']),
+            "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
             "stages": stages,
             "artifact_stores": self.generate_artifact_stores()
         }

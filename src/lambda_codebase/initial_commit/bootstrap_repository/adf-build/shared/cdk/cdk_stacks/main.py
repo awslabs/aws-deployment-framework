@@ -15,9 +15,7 @@ from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
 from logger import configure_logger
 
-ADF_DEPLOYMENT_REGION = os.environ["ADF_DEPLOYMENT_REGION"]
-ADF_DEFAULT_SOURCE_ROLE = os.environ["ADF_DEFAULT_SOURCE_ROLE"]
-ADF_DEFAULT_BUILD_ROLE = os.environ["ADF_DEFAULT_BUILD_ROLE"]
+ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 LOGGER = configure_logger(__name__)
