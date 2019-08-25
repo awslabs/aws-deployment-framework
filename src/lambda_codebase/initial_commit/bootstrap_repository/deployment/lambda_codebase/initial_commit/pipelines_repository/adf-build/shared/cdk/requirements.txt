@@ -1,8 +1,0 @@
-boto3
-aws_cdk.aws_codepipeline
-aws-cdk.aws-codepipeline-actions
-aws_cdk.aws_codebuild
-aws_cdk.aws_codecommit
-aws-cdk.aws-s3
-aws-cdk.aws-iam
-aws-cdk.aws-kms

@@ -452,7 +452,7 @@ Resources:
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: "./adf-build/python"
+            Value: "./adf-build/shared/:./adf-build/shared/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
@@ -486,7 +486,8 @@ Resources:
                 - pip install -r adf-build/requirements.txt --upgrade -q
             build:
               commands:
-                - python ./adf-build/generate_pipelines.py
+                - cdk --version
+                - cdk synth --app adf-build/shared/cdk/generate_pipelines.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
         - Key: "Name"
