@@ -4,19 +4,25 @@
 """Parameter Store module used throughout the ADF
 """
 
+from botocore.config import Config
 from errors import ParameterNotFoundError
 from paginator import paginator
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
+SSM_CONFIG = Config(
+    retries=dict(
+        max_attempts=10
+    )
+)
 
 class ParameterStore:
     """Class used for modeling Parameters
     """
 
     def __init__(self, region, role):
-        self.client = role.client('ssm', region_name=region)
+        self.client = role.client('ssm', region_name=region, config=SSM_CONFIG)
 
     def put_parameter(self, name, value):
         """Puts a Parameter into Parameter Store
