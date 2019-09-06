@@ -66,6 +66,7 @@ Resources:
   PipelineTriggerEventRule:
       Type: "AWS::Events::Rule"
       Properties:
+        Name: !Sub adf-pipeline-trigger-${Pipeline}
         Description: !Sub "Triggers on completion of ${Pipeline}"
         EventPattern:
           source:
@@ -84,9 +85,11 @@ Resources:
             RoleArn: !GetAtt PipelineTriggerCloudWatchEventRole.Arn
             Id: !Sub "adf-trigger-{{pipeline}}"
 {% endfor %}
+{% endif %}
   PipelineTriggerCloudWatchEventRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub adf-trigger-${Pipeline}
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -101,43 +104,39 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+{% if completion_trigger.get('pipelines', []) %}
 {% for pipeline in completion_trigger.get('pipelines', []) %}
               - Effect: Allow
                 Action: codepipeline:StartPipelineExecution
                 Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${StackPrefix}-pipeline-{{pipeline}}"
 {% endfor %}
 {% endif %}
-  CronPipelineCloudWatchEventRole:
-    Condition: HasSchedule
-    Type: AWS::IAM::Role
+  PipelineTriggerSourceEventRule:
+    Type: AWS::Events::Rule
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action: "sts:AssumeRole"
-      Path: /
-      Policies:
-        - PolicyName: !Sub 'adf-cron-${Pipeline}'
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: codepipeline:StartPipelineExecution
-                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
-  CronCloudwatchEventsRule:
-    Type: "AWS::Events::Rule"
-    Condition: HasSchedule
-    Properties: 
-      Description: !Sub "Triggers ${AWS::StackName} on a Schedule"
-      ScheduleExpression: !Ref ScheduleExpression
+      Name: !Sub adf-cw-trigger-${ProjectName}
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        resources:
+          - !Sub arn:aws:codecommit:${AWS::Region}:${SourceAccountId}:${ProjectName}
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - master
       Targets:
-        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
-          RoleArn: !GetAtt CronPipelineCloudWatchEventRole.Arn
-          Id: !If [HasCustomRepository, !Sub "adf-cron-${ProjectName}", !Sub "adf-cron-${AWS::StackName}"]
+          - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+            RoleArn: !GetAtt PipelineTriggerCloudWatchEventRole.Arn
+            Id: !Sub "adf-trigger-${Pipeline}"
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -224,9 +223,9 @@ Resources:
           Resource: "*"
       Topics:
       - !Ref PipelineSNSTopic
-  LambdaInvokePermission: 
+  LambdaInvokePermission:
     Type: AWS::Lambda::Permission
-    Properties: 
+    Properties:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn: !Ref PipelineSNSTopic
@@ -248,8 +247,9 @@ Resources:
                 Version: 1
                 Provider: CodeCommit
               Configuration:
-                RepositoryName: !If [HasCustomRepository, !Ref RepositoryName, !Ref ProjectName] 
+                RepositoryName: !If [HasCustomRepository, !Ref RepositoryName, !Ref ProjectName]
                 BranchName: !Ref BranchName
+                PollForSourceChanges: false
               OutputArtifacts:
                 - Name: TemplateSource
               RunOrder: 1
