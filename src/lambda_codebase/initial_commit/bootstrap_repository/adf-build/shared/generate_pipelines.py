@@ -5,9 +5,7 @@
    and used to build the pipeline cloudformation stacks
 """
 
-import random
 import os
-import time
 from thread import PropagatingThread
 import boto3
 
@@ -15,6 +13,7 @@ from s3 import S3
 from pipeline import Pipeline
 from rule import Rule
 from repo import Repo
+from eventbus import EventBusPolicy
 from target import Target, TargetStructure
 from logger import configure_logger
 from errors import ParameterNotFoundError
@@ -32,6 +31,7 @@ S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
+
 
 def clean(parameter_store, deployment_map):
     """
@@ -83,6 +83,7 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
+
 def upload_pipeline(s3, pipeline):
     """
     Responsible for uploading the object (global.yml) to S3
@@ -92,15 +93,16 @@ def upload_pipeline(s3, pipeline):
     s3_object_path = s3.put_object(
         "pipelines/{0}/global.yml".format(
             pipeline.name), "{0}/{1}/global.yml".format(
-                'pipelines',
-                pipeline.name
-            )
+            'pipelines',
+            pipeline.name
         )
+    )
     return s3_object_path
+
 
 def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
     pipeline = Pipeline(p)
-
+    LOGGER.info('Generating repo and pipeline for "{}"'.format(pipeline.name))
     if auto_create_repositories == 'enabled':
         try:
             code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
@@ -154,6 +156,7 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
     )
     cloudformation.create_stack()
 
+
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
@@ -180,23 +183,31 @@ def main():
 
     organizations = Organizations(role)
     clean(parameter_store, deployment_map)
-
-    try:
-        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
-    except ParameterNotFoundError:
-        auto_create_repositories = 'enabled'
-
     pipelines = deployment_map.map_contents.get('pipelines')
+
+    # Create Event Rule for cross account triggering of builds in Source Accounts
     param_collections = list(pipe['params'] for pipe in pipelines if 'params' in pipe)
-    source_accounts = set(param['SourceAccountId'] for param_collection in param_collections for param in param_collection if 'SourceAccountId' in param)
+    source_accounts = set(
+        param['SourceAccountId'] for param_collection in param_collections for param in param_collection if
+        'SourceAccountId' in param)
     LOGGER.info('List of all source accounts %s', source_accounts)
 
     for source_account in source_accounts:
         rule = Rule(source_account)
         rule.create_update()
 
+    # Create Event Bus Policy in Deploy Account
+    eventbus_policy = EventBusPolicy('adf_cross_account_policy', parameter_store.fetch_parameter('organization_id'))
+    eventbus_policy.create_update()
+
+    # Create Repositories in Source Account
+    try:
+        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+    except ParameterNotFoundError:
+        auto_create_repositories = 'enabled'
+
     threads = []
-    for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
+    for p in pipelines:
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,
@@ -207,11 +218,6 @@ def main():
         ))
         thread.start()
         threads.append(thread)
-        _batcher = counter % 10
-        if _batcher == 9: # 9 meaning we have hit a set of 10 threads since n % 10
-            _interval = random.randint(5, 11)
-            LOGGER.debug('Waiting for %s seconds before starting next batch of 10 threads.', _interval)
-            time.sleep(_interval)
 
     for thread in threads:
         thread.join()
