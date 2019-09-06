@@ -91,18 +91,15 @@ def upload_pipeline(s3, pipeline):
     create_stack call.
     """
     s3_object_path = s3.put_object(
-        "pipelines/{0}/global.yml".format(
-            pipeline.name), "{0}/{1}/global.yml".format(
-            'pipelines',
-            pipeline.name
-        )
+        "pipelines/{0}/global.yml".format(pipeline.name),
+        "{0}/{1}/global.yml".format('pipelines', pipeline.name)
     )
     return s3_object_path
 
 
 def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
     pipeline = Pipeline(p)
-    LOGGER.info('Generating repo and pipeline for "{}"'.format(pipeline.name))
+    LOGGER.info('Generating repo and pipeline for "%s"', pipeline.name)
     if auto_create_repositories == 'enabled':
         try:
             code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)

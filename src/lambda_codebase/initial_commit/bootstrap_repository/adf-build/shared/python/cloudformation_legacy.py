@@ -6,8 +6,8 @@
 
 import os
 
-from botocore.exceptions import WaiterError, ClientError
-from errors import InvalidTemplateError, GenericAccountConfigureError
+from botocore.exceptions import ClientError
+from errors import InvalidTemplateError
 from logger import configure_logger
 from cloudformation import StackProperties
 
