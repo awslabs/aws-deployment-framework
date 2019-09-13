@@ -22,8 +22,8 @@ pipelines:
         name: github
         repository: example-vpc-adf # Optional, above name property will be used if this is not specified
         owner: bundyfx
-        oauth_token_path: /github/secret # The path in AWS Secrets Manager that holds the GitHub Oauth token
-        json_field: token_github # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
         notification_endpoint: bundyf@amazon.nl
     targets: # Long hand syntax including regions and names for stages

@@ -60,12 +60,12 @@ class PipelineStack(core.Stack):
                 ).build
             )
         elif 'jenkins' in _build_name:
-            pass
+            pass #TODO add in Jenkins
 
         for index, targets in enumerate(map_params.get('environments', {}).get('targets', [])):
             _actions = []
             top_level_deployment_type = map_params.get('type', {}).get('deploy', {}).get('name', {}) or 'cloudformation'
-            top_level_action = map_params.get('type', {}).get('deploy', {}).get('action')
+            top_level_action = map_params.get('type', {}).get('deploy', {}).get('action', '')
             for target in targets:
                 if target.get('name') == 'approval':
                     _actions.extend([
@@ -103,15 +103,39 @@ class PipelineStack(core.Stack):
                             continue
                         _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, map_params))
                     elif 'codedeploy' in target_deployment_override:
-                        pass
+                        _actions.extend([
+                            adf_codepipeline.Action(
+                                name="{0}-{1}".format(target['name'], region),
+                                provider="CodeDeploy",
+                                category="Deploy",
+                                region=region,
+                                target=target,
+                                action_mode=top_level_action,
+                                run_order=1,
+                                map_params=map_params,
+                                action_name="{0}-{1}".format(target['name'], region)
+                            ).config
+                        ])
                     elif 's3' in target_deployment_override:
                         pass
                     elif 'service_catalog' in target_deployment_override:
-                        pass
-            _name = 'approval' if targets[index]['name'].startswith('approval') else 'deployment'
+                        _actions.extend([
+                            adf_codepipeline.Action(
+                                name="{0}-{1}".format(target['name'], region),
+                                provider="ServiceCatalog",
+                                category="Deploy",
+                                region=region,
+                                target=target,
+                                action_mode=top_level_action,
+                                run_order=1,
+                                map_params=map_params,
+                                action_name="{0}-{1}".format(target['name'], region)
+                            ).config
+                        ])
+            _name = 'approval' if targets[0]['name'].startswith('approval') else 'deployment' # 0th Index since approvals won't be parallel
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
-                    name=targets[index].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1),
+                    name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target
                     actions=_actions
                 )
             )

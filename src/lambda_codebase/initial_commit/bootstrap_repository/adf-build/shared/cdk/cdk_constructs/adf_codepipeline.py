@@ -43,7 +43,6 @@ class Action:
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["build"].get("role"))
         if self.map_params["type"]["deploy"].get("role"):
             if self.category == 'Deploy':
-                # CodePipeline would need access to assume this if you pass in a custom role
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["deploy"]["role"])
         return None
 
@@ -84,6 +83,16 @@ class Action:
             return {
                 "ProjectName": "adf-build-{0}".format(self.map_params['name'])
             }
+        if self.provider == "ServiceCatalog":
+            return {
+                "ConfigurationFilePath": "params/{0}_{1}.json".format(self.target['name'], self.region),
+                "ProductId": self.map_params['type']['deploy'].get('product_id') # product_id is required for Service Catalog, meaning the product must already exist.
+            }
+        if self.provider == "CodeDeploy":
+            return {
+                "ApplicationName": self.target.get('params').get('application_name'),
+                "DeploymentGroupName": self.target.get('params').get('deployment_group_name')
+            }
         if self.provider == "CodeCommit":
             return {
                 "BranchName": self.map_params.get('branch', 'master'),
@@ -96,6 +105,12 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['type']['source']['account_id'])
         if self.provider == "CodeBuild":
             return None
+        if self.provider == "ServiceCatalog":
+            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+        if self.provider == "CodeDeploy":
+            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "CloudFormation":
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "Manual":

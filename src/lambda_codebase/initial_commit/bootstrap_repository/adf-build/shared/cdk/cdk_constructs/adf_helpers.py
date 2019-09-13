@@ -29,8 +29,8 @@ class Helpers():
                     ).string_value,
             }
         output[ADF_DEPLOYMENT_REGION]["modules"] = _ssm.StringParameter.from_string_parameter_attributes(
-                    scope, 
-                    'deployment_account_bucket', 
-                    parameter_name='deployment_account_bucket'
-                    ).string_value
+            scope, 
+            'deployment_account_bucket',
+            parameter_name='deployment_account_bucket'
+            ).string_value
         return output
