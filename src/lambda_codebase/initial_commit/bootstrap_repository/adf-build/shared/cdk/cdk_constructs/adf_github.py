@@ -1,3 +1,6 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 import os
 import random
 import string
@@ -69,7 +72,7 @@ class GitHub(core.Construct):
             scope,
             'github_webhook',
             authentication_configuration=_codepipeline.CfnWebhook.WebhookAuthConfigurationProperty(
-                secret_token=''.join(random.choice(string.ascii_lowercase) for i in range(40))
+                secret_token=map_params['name'] # We can't have a randomly generated string here as it could update and change its value frequently
             ),
             authentication="GITHUB_HMAC",
             target_pipeline=pipeline.ref,
@@ -84,4 +87,3 @@ class GitHub(core.Construct):
             target_pipeline_version=core.Token.as_number(_version),
             register_with_third_party=True
         )
-

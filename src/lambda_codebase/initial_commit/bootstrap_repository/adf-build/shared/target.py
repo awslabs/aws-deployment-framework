@@ -35,9 +35,10 @@ class TargetStructure:
 
 
 class Target():
-    def __init__(self, path, regions, target_structure, organizations, step_name, params, change_set):
+    def __init__(self, path, regions, target_structure, organizations, step_name, params, change_set, target_type):
         self.path = path
         self.step_name = step_name or ''
+        self.target_type = target_type
         self.params = params or {}
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
@@ -55,6 +56,7 @@ class Target():
             "path": self.path,
             "regions": self.regions,
             "params": self.params,
+            "type": self.target_type,
             "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name),
             "change_set": self.change_set
         }

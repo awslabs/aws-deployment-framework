@@ -14,14 +14,9 @@ Metadata:
     ReadmeUrl: ../README.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 2.2.24
+    SemanticVersion: 2.2.79
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Parameters:
-  CommitInitialBootstrapContent:
-    Type: String
-    Description: "If you want AWS CloudFormation to automatically make the initial commit into the Bootstrap AWS CodeCommit Repository for on your behalf, the commit will only be made if the master branch does not yet exist - can be left as true while updating"
-    Default: true
-    AllowedValues: [true, false]
   CrossAccountAccessRoleName:
     Description: "The Name of the Role that ADF will use to access other AWS Accounts within your Organization and create base and update stacks."
     Type: String
@@ -65,8 +60,6 @@ Parameters:
     Description: "Termination Protection can be passed in to enable Protection for all ADF base stacks"
     Default: false
     AllowedValues: [true, false]
-Conditions:
-  ShouldCommitInitialBootstrapContent: !Equals [true, !Ref CommitInitialBootstrapContent]
 Resources:
   BootstrapTemplatesBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -187,7 +180,7 @@ Resources:
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -208,7 +201,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -229,7 +222,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
@@ -248,7 +241,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -267,7 +260,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -286,7 +279,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.2.24
+          ADF_VERSION: 2.2.79
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -420,12 +413,12 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-        ComputeType: "BUILD_GENERAL1_SMALL"
+        ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: true
         Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 2.2.24
+            Value: 2.2.79
           - Name: TERMINATION_PROTECTION
             Value: !Ref TerminationProtection
           - Name: PYTHONPATH
@@ -661,10 +654,9 @@ Resources:
       RoleArn: !GetAtt StatesExecutionRole.Arn
   InitialCommit:
     Type: Custom::InitialCommit
-    Condition: ShouldCommitInitialBootstrapContent
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 2.2.24
+      Version: 2.2.79
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
@@ -673,7 +665,6 @@ Resources:
       NotificationEndpoint: !Ref MainNotificationEndpoint
   InitialCommitHandler:
     Type: AWS::Serverless::Function
-    Condition: ShouldCommitInitialBootstrapContent
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/initial_commit
@@ -837,7 +828,7 @@ Resources:
       Timeout: 300
 Outputs:
   ADFVersionNumber:
-    Value: 2.2.24
+    Value: 2.2.79
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

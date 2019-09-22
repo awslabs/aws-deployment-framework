@@ -25,6 +25,7 @@ class Pipeline:
         self.pipeline_type = pipeline.get('type', None)
         self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
+        self.schedule = self.parameters.get('params', {}).get('schedule', None)
         self.contains_transform = pipeline.get('contains_transform', '')
         if not isinstance(self.completion_trigger.get('pipelines', []), list):
             self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
@@ -80,5 +81,6 @@ class Pipeline:
             "deployment_role": self.deployment_role,
             "action": self.action,
             "contains_transform": self.contains_transform,
-            "completion_trigger": self.completion_trigger
+            "completion_trigger": self.completion_trigger,
+            "schedule": self.schedule
         })

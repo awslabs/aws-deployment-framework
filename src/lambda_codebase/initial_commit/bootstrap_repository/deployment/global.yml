@@ -30,7 +30,7 @@ Parameters:
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    Default: "BUILD_GENERAL1_SMALL"
+    Default: "BUILD_GENERAL1_LARGE" # For threading with large amounts of pipelines this is the most effective default
     AllowedValues:
       - "BUILD_GENERAL1_SMALL"  #3 GB memory, 2 vCPU
       - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
@@ -247,6 +247,7 @@ Resources:
               - "events:PutRule"
               - "events:PutTargets"
               - "events:RemoveTargets"
+              - "events:PutPermission"
               - "iam:CreatePolicy"
               - "iam:CreatePolicy"
               - "iam:CreateRole"
@@ -255,6 +256,7 @@ Resources:
               - "iam:GetRole"
               - "iam:PassRole"
               - "iam:PutRolePolicy"
+              - "lambda:CreateEventSourceMapping"
               - "lambda:AddPermission"
               - "lambda:CreateFunction"
               - "lambda:DeleteFunction"
@@ -477,6 +479,8 @@ Resources:
             Value: !Ref ADFLogLevel
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
+          - Name: ORGANIZATION_ID
+            Value: !Ref OrganizationId
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base"
       Source:
@@ -490,7 +494,7 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk@1.8.0 -g -y --quiet --no-progress
+                - npm install cdk@1.9.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q
@@ -803,12 +807,13 @@ Resources:
                 Action: "sts:AssumeRole"
                 Resource: "*"
               - Effect: "Allow"
-                Action: 
+                Action:
                   - "codepipeline:GetPipelineState"
                   - "codepipeline:ListPipelines"
                   - "codepipeline:PutJobFailureResult"
                   - "codepipeline:PutJobSuccessResult"
                   - "codepipeline:StartPipelineExecution"
+                  - "events:PutPermission"
                   - "iam:GetRolePolicy"
                   - "iam:PutRolePolicy"
                   - "kms:Decrypt"
@@ -826,6 +831,10 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:GetParameters"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:Get*"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow Lambda access to get secrets that start with /adf/*
               - Effect: "Allow"
                 Action: 
                   - "s3:Get*"

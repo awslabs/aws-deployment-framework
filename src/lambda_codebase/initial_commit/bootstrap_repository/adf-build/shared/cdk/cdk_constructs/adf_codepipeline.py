@@ -1,10 +1,10 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 import os
 # from errors import InvalidProviderError
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
-    aws_sns as _sns,
-    aws_lambda as _lambda,
-    aws_secretsmanager as _secrets,
     core
 )
 from cdk_constructs import adf_events
@@ -32,7 +32,7 @@ class Action:
         self.region = kwargs.get('target', {}).get('region') or ADF_DEPLOYMENT_REGION
         self.account_id = self.map_params["type"]["source"].get("account_id")
         self.role_arn = self._generate_role_arn()
-        self.notification_endpoint = self.target.get("params", {}).get("notification_endpoint") or self.map_params.get("params", {}).get("notification_endpoint")
+        self.notification_endpoint = self.target.get("params", {}).get("notification_endpoint") or self.map_params.get("notification_endpoint")
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
@@ -49,20 +49,28 @@ class Action:
     def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
             _config = {
-                "CustomData": "Approval stage for {0}".format(self.map_params['name'])
+                "CustomData": self.target.get('params', {}).get('message') or "Approval stage for {0}".format(self.map_params['name']),
             }
-            if self.map_params.get('params', {}).get('notification_endpoint'):
-                _config["NotificationArn"] = self.map_params['topic_arn']
+            if self.map_params.get('notification_endpoint') or self.target.get('params', {}).get('topic_arn'):
+                # You can pass a topic arn in at the target level, otherwise just use the topic arn from the notification_endpoint property
+                _config["NotificationArn"] = self.target.get('params', {}).get('topic_arn') or self.map_params.get('topic_arn')
             return _config
         if self.provider == "S3" and self.category == "Source":
-            return {}
+            return {
+                "S3Bucket": self.target.get('params').get('bucket_name'),
+                "S3ObjectKey": self.target.get('params').get('object_key')
+            }
         if self.provider == "S3" and self.category == "Deploy":
-            return {}
+            return {
+                "BucketName": self.target.get('params').get('bucket_name'),
+                "Extract": self.target.get('params').get('extract', "false"),
+                "ObjectKey": self.target.get('params').get('object_key')
+            }
         if self.provider == "GitHub":
             return {
                 "Owner": self.map_params.get('type', {}).get('source').get('owner', {}),
                 "Repo": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
-                "Branch": self.map_params.get('branch', 'master'),
+                "Branch": self.map_params.get('type', {}).get('source', {}).get('branch', {}) or 'master',
                 "OAuthToken": core.SecretValue.secrets_manager(
                     self.map_params['type']['source'].get('oauth_token_path'),
                     json_field=self.map_params['type']['source'].get('json_field')
@@ -96,7 +104,8 @@ class Action:
         if self.provider == "CodeCommit":
             return {
                 "BranchName": self.map_params.get('branch', 'master'),
-                "RepositoryName": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name']
+                "RepositoryName": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
+                "PollForSourceChanges": self.map_params['type']['source'].get('poll_for_changes', False)
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
@@ -134,7 +143,7 @@ class Action:
             action_props["role_arn"] = _role
         if self.category == 'Manual':
             del action_props['region']
-        if self.category == 'Build':
+        if self.category == 'Build' and not self.target:
             action_props["input_artifacts"] = [
                 _codepipeline.CfnPipeline.InputArtifactProperty(
                     name="output-source"
@@ -142,6 +151,12 @@ class Action:
             ]
             action_props["output_artifacts"] = [
                 _codepipeline.CfnPipeline.OutputArtifactProperty(
+                    name="{0}-build".format(self.map_params['name'])
+                )
+            ]
+        if self.category == 'Build' and self.target:
+            action_props["input_artifacts"] = [
+                _codepipeline.CfnPipeline.InputArtifactProperty(
                     name="{0}-build".format(self.map_params['name'])
                 )
             ]
@@ -169,40 +184,41 @@ class Pipeline(core.Construct):
     ]
 
     def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs):
-        self.map_params = map_params
-        self.ssm_params = ssm_params
-
         super().__init__(scope, id, **kwargs)
         [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns()
         _pipeline_args = {
             "role_arn": _codepipeline_role_arn,
-            "restart_execution_on_update": self.map_params.get('restart_execution_on_update', False),
+            "restart_execution_on_update": map_params.get('restart_execution_on_update', False),
             "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
             "stages": stages,
-            "artifact_stores": self.generate_artifact_stores()
+            "artifact_stores": self.generate_artifact_stores(map_params, ssm_params)
         }
         self.cfn = _codepipeline.CfnPipeline(
             self,
             'pipeline',
             **_pipeline_args
         )
-        if map_params.get('topic_arn'):
-            adf_events.Events(self, 'events', {
-                "pipeline": self.cfn.ref,
-                "topic_arn": map_params['topic_arn'],
-                "name": map_params['name']
-            })
+        adf_events.Events(self, 'events', {
+            "pipeline": self.cfn.ref,
+            "topic_arn": map_params.get('topic_arn'),
+            "name": map_params['name'],
+            "completion_trigger": map_params.get('completion_trigger'),
+            "schedule": map_params.get('schedule'),
+            "source": {
+                "account_id": map_params.get('type', {}).get('source', {}).get('source_account_id'),
+                "repo_name": map_params.get('type', {}).get('source', {}).get('repository') or map_params['name']
+            }
+        })
 
-
-    def generate_artifact_stores(self):
+    def generate_artifact_stores(self, map_params, ssm_params):
         output = []
-        for region in self.map_params["regions"]:
+        for region in map_params["regions"]:
             output.append(_codepipeline.CfnPipeline.ArtifactStoreMapProperty(
                 artifact_store=_codepipeline.CfnPipeline.ArtifactStoreProperty(
-                    location=self.ssm_params[region]["s3"],
+                    location=ssm_params[region]["s3"],
                     type="S3",
                     encryption_key=_codepipeline.CfnPipeline.EncryptionKeyProperty(
-                        id=self.ssm_params[region]["kms"],
+                        id=ssm_params[region]["kms"],
                         type="KMS"
                     )
                 ),

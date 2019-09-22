@@ -339,7 +339,7 @@ The Default Deployment account region is the region where the Pipelines you crea
 
 ### Integrating Slack
 
-The ADF allows alternate *NotificationEndpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new parameter in Parameter Store on the Deployment Account with the type of 'SecureString'. Give the Parameter a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Parameter store as `/notification_endpoint/hooks/slack/team-bugs`. Ensure to encrypt the value with the CodePipeline KMS Key in that Deployment Account named: `alias/codepipeline-(account_id)`.
+The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account with the type of 'Other' (eg API Key). Give the Secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Secrets Manager as `/notification_endpoint/hooks/slack/team-bugs`. Ensure to encrypt the value with the CodePipeline KMS Key in that Deployment Account named: `alias/codepipeline-(account_id)`.
 
 Once the value is encrypted in Parameter Store you can use the channel name as a reference in the deployment_map.yml file like:
 
@@ -349,7 +349,7 @@ pipelines:
     type: cc-cloudformation
     params:
       - SourceAccountId: 111112233332
-      - NotificationEndpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
+      - notification_endpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
       - RestartExecutionOnUpdate: True
     targets:
       - path: /banking/testing

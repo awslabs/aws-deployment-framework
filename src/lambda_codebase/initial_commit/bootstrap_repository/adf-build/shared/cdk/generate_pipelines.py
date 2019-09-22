@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the pipeline cloudformation stacks
+   and used to build the pipeline cloudformation stacks via the AWS CDK
 """
 
 import random
@@ -13,26 +13,30 @@ import time
 from thread import PropagatingThread
 import boto3
 
+# CDK Specific
+from aws_cdk import core
+from cdk_stacks.main import PipelineStack
+
 from s3 import S3
 from pipeline import Pipeline
 from repo import Repo
+from rule import Rule
 from target import Target, TargetStructure
 from logger import configure_logger
 from errors import ParameterNotFoundError
 from deployment_map import DeploymentMap
+from cache import Cache
 from cloudformation import CloudFormation
 from organizations import Organizations
 from sts import STS
 from parameter_store import ParameterStore
 
-# CDK Specific
-from aws_cdk import core
-from cdk_stacks.main import PipelineStack
 
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
@@ -65,6 +69,18 @@ def clean(parameter_store, deployment_map):
             stack
         ))
 
+def ensure_event_bus_status(organization_id):
+    _events = boto3.client('events')
+    _events.put_permission(
+        Action='events:PutEvents',
+        Principal='*',
+        StatementId='OrgAccessForEventBus',
+        Condition={
+            'Type': 'StringEquals',
+            'Key': 'aws:PrincipalOrgID',
+            'Value': organization_id
+        }
+    )
 
 def store_regional_parameter_config(pipeline, parameter_store):
     """
@@ -104,19 +120,30 @@ def upload_pipeline(s3, pipeline, file_name):
     LOGGER.debug('Uploaded Pipeline Template %s to S3', s3_object_path)
     return s3_object_path
 
-def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+
+def fetch_required_ssm_params(regions):
+    output = {}
+    for region in regions:
+        parameter_store = ParameterStore(region, boto3)
+        output[region] = {
+            "s3": parameter_store.fetch_parameter('/cross_region/s3_regional_bucket/{0}'.format(region)),
+            "kms": parameter_store.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
+        }
+        if region == DEPLOYMENT_ACCOUNT_REGION:
+            output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
+    return output
+
+def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store, app):
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
     if auto_create_repositories == 'enabled':
-        try:
-            code_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
-            has_custom_repo = p.get('type', {}).get('source', {}).get('repository', {})
-            if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
-                repo = Repo(code_account_id, p.get('name'), p.get('description'))
-                repo.create_update()
-        except StopIteration:
-            LOGGER.debug("No need to create repository as account_id is not found in params")
+        code_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
+        has_custom_repo = p.get('type', {}).get('source', {}).get('repository', {})
+        if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
+            repo = Repo(code_account_id, p.get('name'), p.get('description'))
+            repo.create_update()
 
+    regions = []
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
         for step in target_structure.target:
@@ -125,24 +152,25 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
                     'regions', p.get(
                         'regions', DEPLOYMENT_ACCOUNT_REGION))
                 step_name = step.get('name')
+                target_type = step.get('type', {})
                 change_set = step.get('change_set')
                 params = step.get('params', {})
                 pipeline.stage_regions.append(regions)
                 pipeline_target = Target(
-                    path, regions, target_structure, organizations, step_name, params, change_set)
+                    path, regions, target_structure, organizations, step_name, params, change_set, target_type)
                 pipeline_target.fetch_accounts_for_target()
-
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
-        if DEPLOYMENT_ACCOUNT_REGION not in regions:
-            pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
-
+    if DEPLOYMENT_ACCOUNT_REGION not in regions:
+        pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
     pipeline.generate_input()
+    ssm_params = fetch_required_ssm_params(
+        pipeline.input["regions"]
+    )
     deployment_map.update_deployment_parameters(pipeline)
     store_regional_parameter_config(pipeline, parameter_store)
-    app = core.App()
-    PipelineStack(app, pipeline.input['name'], pipeline.input)
+    PipelineStack(app, pipeline.input, ssm_params)
     app.synth()
     s3_object_path = upload_pipeline(s3, pipeline, pipeline.input['name'])
     cloudformation = CloudFormation(
@@ -185,24 +213,31 @@ def main():
             parameter_store.fetch_parameter('cross_account_access_role')
         ), 'pipeline'
     )
-
     organizations = Organizations(role)
     clean(parameter_store, deployment_map)
-
+    ensure_event_bus_status(ORGANIZATION_ID)
     try:
         auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
     except ParameterNotFoundError:
         auto_create_repositories = 'enabled'
-
     threads = []
+    _cache = Cache()
     for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
+        _source_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
+        if _source_account_id and not _cache.check(_source_account_id):
+            rule = Rule(p['type']['source']['account_id'])
+            rule.create_update()
+            _cache.add(p['type']['source']['account_id'], True)
+            # TODO else statement to remove events stack if exists
+        app = core.App()
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,
             auto_create_repositories,
             s3,
             deployment_map,
-            parameter_store
+            parameter_store,
+            app
         ))
         thread.start()
         threads.append(thread)

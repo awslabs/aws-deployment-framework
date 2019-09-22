@@ -6,7 +6,6 @@ from aws_cdk import (
     aws_lambda as _lambda,
     core
 )
-from cdk_constructs.adf_helpers import Helpers
 from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_codecommit
@@ -21,15 +20,14 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 LOGGER = configure_logger(__name__)
 
 class PipelineStack(core.Stack):
-    def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs) -> None:
-        super().__init__(scope, id, **kwargs)
+    def __init__(self, scope: core.Construct, map_params: dict, ssm_params: dict, **kwargs) -> None:
+        super().__init__(scope, map_params['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', map_params['name'])
         _source_name = map_params["type"]["source"]["name"].lower()
         _build_name = map_params["type"]["build"]["name"].lower()
         _stages = []
-        if map_params.get('params', {}).get('notification_endpoint'):
-            adf_notifications.Notifications(self, 'adf_notifications', map_params)
-        ssm_params = Helpers.fetch_required_ssm_params(self, map_params["regions"])
+        if map_params.get('notification_endpoint'):
+            map_params["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', map_params).topic_arn
         if 'codecommit' in _source_name:
             _stages.append(
                 adf_codecommit.CodeCommit(
@@ -70,20 +68,22 @@ class PipelineStack(core.Stack):
                 if target.get('name') == 'approval':
                     _actions.extend([
                         adf_codepipeline.Action(
-                            name="{0}-{1}".format(target['name'], region),
+                            name="{0}".format(target['name']),
                             provider="Manual",
                             category="Approval",
-                            region=region,
                             target=target,
                             run_order=1,
                             map_params=map_params,
-                            action_name="{0}-{1}".format(target['name'], region)
+                            action_name="{0}".format(target['name'])
                         ).config
                     ])
                     continue
                 regions = map_params.get('regions', target.get('regions'))
                 for region in regions:
-                    target_deployment_override = target.get('type', {}).get('deploy', {}).get('name', {}) or top_level_deployment_type
+                    print(target)
+                    target_deployment_override = target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
+                    print(target_deployment_override)
+                    print('!!!!')
                     if 'cloudformation' in target_deployment_override:
                         target_action_mode = target.get('change_set')
                         if top_level_action and not target_action_mode:
@@ -118,6 +118,31 @@ class PipelineStack(core.Stack):
                         ])
                     elif 's3' in target_deployment_override:
                         pass
+                    elif 'codebuild' in target_deployment_override:
+                        _actions.extend([
+                            adf_codepipeline.Action(
+                                name="{0}-{1}".format(target['name'], region),
+                                provider="CodeDeploy",
+                                category="Deploy",
+                                region=region,
+                                target=target,
+                                action_mode=top_level_action,
+                                run_order=1,
+                                map_params=map_params,
+                                action_name="{0}-{1}".format(target['name'], region)
+                            ).config
+                        ])
+                        ///// ### ????
+                        _actions.extend([
+                            adf_codebuild.CodeBuild(
+                                self,
+                                target['name'],
+                                ssm_params[ADF_DEPLOYMENT_REGION]["modules"],
+                                ssm_params[ADF_DEPLOYMENT_REGION]["kms"],
+                                map_params,
+                                target
+                            ).deploy
+                        ])
                     elif 'service_catalog' in target_deployment_override:
                         _actions.extend([
                             adf_codepipeline.Action(
