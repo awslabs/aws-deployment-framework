@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_events_targets as _targets,
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
+    aws_iam as _iam,
     core
 )
 
@@ -24,12 +25,14 @@ class Events(core.Construct):
                 self,
                 'trigger_{0}'.format(params["name"]),
                 description="Triggers {0} on changes in source CodeCommit repository".format(params["name"]),
-                enabled=True,
                 event_pattern=_events.EventPattern(
                     resources=[
                         "arn:aws:codecommit:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, params['source']['account_id'], params['source']['repo_name'])
                     ],
-                    account=[ADF_DEPLOYMENT_ACCOUNT_ID],
+                    source=["aws.codecommit"],
+                    detail_type=[
+                        'CodeCommit Repository State Change'
+                    ],
                     detail={
                         "event": [
                             "referenceCreated",
@@ -44,8 +47,10 @@ class Events(core.Construct):
                     }
                 )
             )
-            _target_pipeline = _targets.CodePipeline(
-                pipeline=_pipeline
+            _event.add_target(
+                _targets.CodePipeline(
+                    pipeline=_pipeline
+                )
             )
         if params.get('topic_arn'):
             _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])
@@ -56,7 +61,6 @@ class Events(core.Construct):
                     resources=[
                         "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
                     ],
-                    account=[ADF_DEPLOYMENT_ACCOUNT_ID],
                     detail={
                         "state": [
                             "FAILED",
@@ -88,13 +92,12 @@ class Events(core.Construct):
                 _event = _events.Rule(
                     self,
                     'completion_{0}'.format(pipeline),
-                    description="Triggers {0} on completion of {1}".format(params['pipeline'], pipeline),
+                    description="Triggers {0} on completion of {1}".format(pipeline, params['pipeline']),
                     enabled=True,
                     event_pattern=_events.EventPattern(
                         resources=[
                             "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
                         ],
-                        account=[ADF_DEPLOYMENT_ACCOUNT_ID],
                         detail={
                             "state": [
                                 "SUCCEEDED"
@@ -115,10 +118,10 @@ class Events(core.Construct):
         if params.get('schedule'):
             _event = _events.Rule(
                 self,
-                'ScheduleRule',
-                description="Triggers {0} on a Schedule".format(params['name']),
+                'schedule_{0}'.format(params['name']),
+                description="Triggers {0} on a schedule of {1}".format(params['name'], params['schedule']),
                 enabled=True,
-                schedule=params['schedule']
+                schedule=_events.Schedule.expression(params['schedule'])
             )
             _target_pipeline = _targets.CodePipeline(
                 pipeline=_pipeline
@@ -126,3 +129,4 @@ class Events(core.Construct):
             _event.add_target(
                 _target_pipeline
             )
+

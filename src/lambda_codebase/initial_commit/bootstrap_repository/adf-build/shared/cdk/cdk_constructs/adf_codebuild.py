@@ -50,19 +50,15 @@ class CodeBuild(core.Construct):
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role),
                 build_spec=_codebuild.BuildSpec.from_source_filename(_spec)
             )
-            self.deploy = _codepipeline.CfnPipeline.StageDeclarationProperty(
+            self.deploy = Action(
                 name="{0}".format(target['name']),
-                actions=[
-                    Action(
-                        name="{0}".format(target['name']),
-                        provider="CodeBuild",
-                        category="Build",
-                        run_order=1,
-                        map_params=map_params,
-                        action_name="{0}".format(target['name'])
-                    ).config
-                ]
-            )
+                provider="CodeBuild",
+                category="Build",
+                run_order=1,
+                target=target,
+                map_params=map_params,
+                action_name="{0}".format(target['name'])
+            ).config
         else:
             _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
                 ADF_DEPLOYMENT_ACCOUNT_ID,
@@ -113,5 +109,6 @@ class CodeBuild(core.Construct):
         if target:
             _output["TARGET_NAME"] = codebuild.BuildEnvironmentVariable(value=target['name'])
             _output["TARGET_ACCOUNT_ID"] = codebuild.BuildEnvironmentVariable(value=target['id'])
-            _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target.get('params', {}).get('deployment_role'))
+            if target.get('params', {}).get('deployment_role'):
+                _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target['params']['deployment_role'])
         return _output

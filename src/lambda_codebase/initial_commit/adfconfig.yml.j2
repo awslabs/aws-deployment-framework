@@ -11,6 +11,10 @@ config:
   main-notification-endpoint: 
     - type: {{ NotificationEndpointType }} # slack or email
       target: {{ NotificationEndpoint }} # Email/Slack channel who receives notifications for the main bootstrapping pipeline
+  protected:
+    {%- for OU in ProtectedOUs %}
+    - {{ OU }}
+    {%- endfor %}
   moves:
     - name: to-root
       action: safe  # Can be safe or remove-base

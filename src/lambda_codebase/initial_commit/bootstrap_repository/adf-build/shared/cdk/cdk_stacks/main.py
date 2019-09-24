@@ -82,8 +82,6 @@ class PipelineStack(core.Stack):
                 for region in regions:
                     print(target)
                     target_deployment_override = target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
-                    print(target_deployment_override)
-                    print('!!!!')
                     if 'cloudformation' in target_deployment_override:
                         target_action_mode = target.get('change_set')
                         if top_level_action and not target_action_mode:
@@ -120,20 +118,6 @@ class PipelineStack(core.Stack):
                         pass
                     elif 'codebuild' in target_deployment_override:
                         _actions.extend([
-                            adf_codepipeline.Action(
-                                name="{0}-{1}".format(target['name'], region),
-                                provider="CodeDeploy",
-                                category="Deploy",
-                                region=region,
-                                target=target,
-                                action_mode=top_level_action,
-                                run_order=1,
-                                map_params=map_params,
-                                action_name="{0}-{1}".format(target['name'], region)
-                            ).config
-                        ])
-                        ///// ### ????
-                        _actions.extend([
                             adf_codebuild.CodeBuild(
                                 self,
                                 target['name'],
@@ -164,6 +148,9 @@ class PipelineStack(core.Stack):
                     actions=_actions
                 )
             )
+        print('here ya go')
+        print(map_params)
+        print('there ya go')
         _pipeline = adf_codepipeline.Pipeline(self, 'CodePipeline', map_params, ssm_params, _stages)
         if 'github' in _source_name:
             adf_github.GitHub.create_webhook(self, _pipeline.cfn, map_params)

@@ -51,9 +51,9 @@ class Action:
             _config = {
                 "CustomData": self.target.get('params', {}).get('message') or "Approval stage for {0}".format(self.map_params['name']),
             }
-            if self.map_params.get('notification_endpoint') or self.target.get('params', {}).get('topic_arn'):
+            if self.map_params.get('notification_endpoint') or self.target.get('params', {}).get('sns_topic_arn'):
                 # You can pass a topic arn in at the target level, otherwise just use the topic arn from the notification_endpoint property
-                _config["NotificationArn"] = self.target.get('params', {}).get('topic_arn') or self.map_params.get('topic_arn')
+                _config["NotificationArn"] = self.target.get('params', {}).get('sns_topic_arn') or self.map_params.get('sns_topic_arn')
             return _config
         if self.provider == "S3" and self.category == "Source":
             return {
@@ -61,6 +61,7 @@ class Action:
                 "S3ObjectKey": self.target.get('params').get('object_key')
             }
         if self.provider == "S3" and self.category == "Deploy":
+            # TODO Should be deploy top level or target level
             return {
                 "BucketName": self.target.get('params').get('bucket_name'),
                 "Extract": self.target.get('params').get('extract', "false"),
@@ -198,6 +199,9 @@ class Pipeline(core.Construct):
             'pipeline',
             **_pipeline_args
         )
+        print(':/')
+        print(map_params)
+        print(':D')
         adf_events.Events(self, 'events', {
             "pipeline": self.cfn.ref,
             "topic_arn": map_params.get('topic_arn'),
@@ -205,7 +209,7 @@ class Pipeline(core.Construct):
             "completion_trigger": map_params.get('completion_trigger'),
             "schedule": map_params.get('schedule'),
             "source": {
-                "account_id": map_params.get('type', {}).get('source', {}).get('source_account_id'),
+                "account_id": map_params.get('type', {}).get('source', {}).get('account_id'),
                 "repo_name": map_params.get('type', {}).get('source', {}).get('repository') or map_params['name']
             }
         })
