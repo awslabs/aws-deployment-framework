@@ -14,7 +14,7 @@ from aws_cdk import (
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
-
+ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 
 class Events(core.Construct):
     def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
@@ -59,7 +59,7 @@ class Events(core.Construct):
                 description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
                 event_pattern=_events.EventPattern(
                     resources=[
-                        "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
+                        "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
                     ],
                     detail={
                         "state": [
@@ -68,7 +68,7 @@ class Events(core.Construct):
                             "SUCCEEDED"
                         ],
                         "pipeline": [
-                            params["pipeline"]
+                            _pipeline.pipeline_name
                         ]
                     }
                 )
@@ -96,24 +96,29 @@ class Events(core.Construct):
                     enabled=True,
                     event_pattern=_events.EventPattern(
                         resources=[
-                            "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, params["pipeline"])
+                            "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
                         ],
                         detail={
                             "state": [
                                 "SUCCEEDED"
                             ],
                             "pipeline": [
-                                params["pipeline"]
+                                _pipeline.pipeline_name
                             ]
                         }
                     )
                 )
-                _completion_pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline-{0}'.format(index), "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, pipeline))
-                _target_pipeline = _targets.CodePipeline(
-                    pipeline=_completion_pipeline
-                )
+                _completion_pipeline = _codepipeline.Pipeline.from_pipeline_arn(
+                    self,
+                    'pipeline-{0}'.format(index),
+                    "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, "{0}{1}".format(
+                        ADF_PIPELINE_PREFIX,
+                        pipeline
+                    )))
                 _event.add_target(
-                    _target_pipeline
+                    _targets.CodePipeline(
+                        pipeline=_completion_pipeline
+                    )
                 )
         if params.get('schedule'):
             _event = _events.Rule(
@@ -129,4 +134,3 @@ class Events(core.Construct):
             _event.add_target(
                 _target_pipeline
             )
-

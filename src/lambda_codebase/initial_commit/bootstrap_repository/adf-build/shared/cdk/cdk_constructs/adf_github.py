@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: MIT-0
 
 import os
-import random
-import string
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,

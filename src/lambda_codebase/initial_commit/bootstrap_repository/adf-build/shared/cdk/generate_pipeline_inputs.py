@@ -4,18 +4,13 @@
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the pipeline cloudformation stacks via the AWS CDK
+   and used to build the pipeline cloudformation stack inputs
 """
 
-import random
 import os
-import time
+import json
 from thread import PropagatingThread
 import boto3
-
-# CDK Specific
-from aws_cdk import core
-from cdk_stacks.main import PipelineStack
 
 from s3 import S3
 from pipeline import Pipeline
@@ -133,7 +128,7 @@ def fetch_required_ssm_params(regions):
             output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
     return output
 
-def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store, app):
+def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
     if auto_create_repositories == 'enabled':
@@ -170,30 +165,23 @@ def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map
     )
     deployment_map.update_deployment_parameters(pipeline)
     store_regional_parameter_config(pipeline, parameter_store)
-    PipelineStack(app, pipeline.input, ssm_params)
-    app.synth()
-    s3_object_path = upload_pipeline(s3, pipeline, pipeline.input['name'])
-    cloudformation = CloudFormation(
-        region=DEPLOYMENT_ACCOUNT_REGION,
-        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-        role=boto3,
-        template_url=s3_object_path,
-        parameters=[],
-        wait=True,
-        stack_name="{0}{1}".format(
-            ADF_PIPELINE_PREFIX,
-            pipeline.name
-        ),
-        s3=None,
-        s3_key_path=None,
-        account_id=DEPLOYMENT_ACCOUNT_ID
-    )
-    cloudformation.create_stack()
+    with open('cdk_inputs/{0}.json'.format(pipeline.input['name']), 'w') as outfile:
+        data = {}
+        data['input'] = pipeline.input
+        data['ssm_params'] = ssm_params
+        json.dump(data, outfile)
 
+def _create_inputs_folder():
+    try:
+        return os.mkdir('cdk_inputs')
+    except FileExistsError:
+        return None
 
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
+
+    _create_inputs_folder()
     parameter_store = ParameterStore(
         DEPLOYMENT_ACCOUNT_REGION,
         boto3
@@ -222,30 +210,23 @@ def main():
         auto_create_repositories = 'enabled'
     threads = []
     _cache = Cache()
-    for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
+    for p in deployment_map.map_contents.get('pipelines'):
         _source_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
         if _source_account_id and not _cache.check(_source_account_id):
             rule = Rule(p['type']['source']['account_id'])
             rule.create_update()
             _cache.add(p['type']['source']['account_id'], True)
             # TODO else statement to remove events stack if exists
-        app = core.App()
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,
             auto_create_repositories,
             s3,
             deployment_map,
-            parameter_store,
-            app
+            parameter_store
         ))
         thread.start()
         threads.append(thread)
-        _batcher = counter % 10
-        if _batcher == 9: # 9 meaning we have hit a set of 10 threads since n % 10
-            _interval = random.randint(5, 11)
-            LOGGER.debug('Waiting for %s seconds before starting next batch of 10 threads.', _interval)
-            time.sleep(_interval)
 
     for thread in threads:
         thread.join()

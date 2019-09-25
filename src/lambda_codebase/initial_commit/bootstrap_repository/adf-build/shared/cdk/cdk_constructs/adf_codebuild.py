@@ -20,7 +20,7 @@ ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 class CodeBuild(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target={}, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target, **kwargs):
         super().__init__(scope, id, **kwargs)
         ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/adf-codebuild-role'.format(ADF_DEPLOYMENT_ACCOUNT_ID)
         ADF_DEFAULT_BUILD_TIMEOUT = 20
@@ -35,7 +35,7 @@ class CodeBuild(core.Construct):
                 build_image=target.get('params', {}).get('image') or getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
                 compute_type=target.get('params', {}).get('compute_type') or getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params['name'], target),
-                privileged=True
+                privileged=target.get('params', {}).get('privileged', False) or map_params['type']['build'].get('privileged', False)
             )
             # Core difference from CodeBuild as deployment as opposed to build is we allow the buildspec file to be passed in dynamically
             _spec = map_params['type']['deploy'].get('spec') or target.get('type', {}).get('deploy', {}).get('spec') or 'deployspec.yml'
@@ -69,7 +69,7 @@ class CodeBuild(core.Construct):
                 build_image=getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
                 compute_type=getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params['name']),
-                privileged=True
+                privileged=map_params['type']['build'].get('privileged', False)
             )
             if map_params['type']['build'].get('role'):
                 ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['type']['build']['role'])

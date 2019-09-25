@@ -501,8 +501,10 @@ Resources:
             build:
               commands:
                 - cdk --version
-                - chmod 755 adf-build/cdk/generate_pipelines.py
-                - cdk synth --app adf-build/cdk/generate_pipelines.py
+                - chmod 755 adf-build/cdk/execute_pipeline_stacks.py adf-build/cdk/generate_pipeline_inputs.py adf-build/cdk/generate_pipeline_stacks.py
+                - python adf-build/cdk/generate_pipeline_inputs.py
+                - cdk synth
+                - python adf-build/cdk/execute_pipeline_stacks.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
         - Key: "Name"

@@ -57,15 +57,15 @@ class Action:
             return _config
         if self.provider == "S3" and self.category == "Source":
             return {
-                "S3Bucket": self.target.get('params').get('bucket_name'),
-                "S3ObjectKey": self.target.get('params').get('object_key')
+                "S3Bucket": self.map_params.get('type', {}).get('source', {}).get('bucket_name') or self.target.get('params').get('bucket_name'),
+                "S3ObjectKey": self.map_params.get('type', {}).get('source', {}).get('object_key') or self.target.get('params').get('object_key')
             }
         if self.provider == "S3" and self.category == "Deploy":
             # TODO Should be deploy top level or target level
             return {
-                "BucketName": self.target.get('params').get('bucket_name'),
-                "Extract": self.target.get('params').get('extract', "false"),
-                "ObjectKey": self.target.get('params').get('object_key')
+                "BucketName": self.map_params.get('type', {}).get('deploy', {}).get('bucket_name') or self.target.get('params').get('bucket_name'),
+                "Extract": self.map_params.get('type', {}).get('deploy', {}).get('extract') or self.target.get('params').get('extract', "false"),
+                "ObjectKey": self.map_params.get('type', {}).get('deploy', {}).get('object_key') or self.target.get('params').get('object_key')
             }
         if self.provider == "GitHub":
             return {
@@ -199,11 +199,8 @@ class Pipeline(core.Construct):
             'pipeline',
             **_pipeline_args
         )
-        print(':/')
-        print(map_params)
-        print(':D')
         adf_events.Events(self, 'events', {
-            "pipeline": self.cfn.ref,
+            "pipeline": 'arn:aws:codepipeline:{0}:{1}:{2}'.format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, "{0}{1}".format(os.environ.get("ADF_PIPELINE_PREFIX"), map_params['name'])),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
             "completion_trigger": map_params.get('completion_trigger'),

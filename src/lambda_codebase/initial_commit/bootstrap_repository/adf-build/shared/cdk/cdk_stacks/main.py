@@ -10,6 +10,7 @@ from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_codecommit
 from cdk_constructs import adf_github
+from cdk_constructs import adf_s3
 from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
 from logger import configure_logger
@@ -20,20 +21,20 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 LOGGER = configure_logger(__name__)
 
 class PipelineStack(core.Stack):
-    def __init__(self, scope: core.Construct, map_params: dict, ssm_params: dict, **kwargs) -> None:
-        super().__init__(scope, map_params['name'], **kwargs)
-        LOGGER.info('Pipeline creation/update of %s commenced', map_params['name'])
-        _source_name = map_params["type"]["source"]["name"].lower()
-        _build_name = map_params["type"]["build"]["name"].lower()
+    def __init__(self, scope: core.Construct, stack_input: dict, **kwargs) -> None:
+        super().__init__(scope, stack_input['input']['name'], **kwargs)
+        LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
+        _source_name = stack_input['input']["type"]["source"]["name"].lower()
+        _build_name = stack_input['input']["type"]["build"]["name"].lower()
         _stages = []
-        if map_params.get('notification_endpoint'):
-            map_params["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', map_params).topic_arn
+        if stack_input['input'].get('notification_endpoint'):
+            stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
         if 'codecommit' in _source_name:
             _stages.append(
                 adf_codecommit.CodeCommit(
                     self,
                     'source',
-                    map_params
+                    stack_input['input']
                 ).source
             )
         elif 'github' in _source_name:
@@ -41,29 +42,35 @@ class PipelineStack(core.Stack):
                 adf_github.GitHub(
                     self,
                     'source',
-                    map_params
+                    stack_input['input']
                 ).source
             )
         elif 's3' in _source_name:
-            pass
-
+            _stages.append(
+                adf_s3.S3(
+                    self,
+                    'source',
+                    stack_input['input']
+                ).source
+            )
         if 'codebuild' in _build_name:
             _stages.append(
                 adf_codebuild.CodeBuild(
                     self,
                     'build',
-                    ssm_params[ADF_DEPLOYMENT_REGION]["modules"],
-                    ssm_params[ADF_DEPLOYMENT_REGION]["kms"],
-                    map_params
+                    stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
+                    stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
+                    stack_input['input'],
+                    {} # Empty target since this is a build only stage
                 ).build
             )
         elif 'jenkins' in _build_name:
             pass #TODO add in Jenkins
 
-        for index, targets in enumerate(map_params.get('environments', {}).get('targets', [])):
+        for index, targets in enumerate(stack_input['input'].get('environments', {}).get('targets', [])):
             _actions = []
-            top_level_deployment_type = map_params.get('type', {}).get('deploy', {}).get('name', {}) or 'cloudformation'
-            top_level_action = map_params.get('type', {}).get('deploy', {}).get('action', '')
+            top_level_deployment_type = stack_input['input'].get('type', {}).get('deploy', {}).get('name', {}) or 'cloudformation'
+            top_level_action = stack_input['input'].get('type', {}).get('deploy', {}).get('action', '')
             for target in targets:
                 if target.get('name') == 'approval':
                     _actions.extend([
@@ -73,14 +80,13 @@ class PipelineStack(core.Stack):
                             category="Approval",
                             target=target,
                             run_order=1,
-                            map_params=map_params,
+                            map_params=stack_input['input'],
                             action_name="{0}".format(target['name'])
                         ).config
                     ])
                     continue
-                regions = map_params.get('regions', target.get('regions'))
+                regions = stack_input['input'].get('regions', target.get('regions'))
                 for region in regions:
-                    print(target)
                     target_deployment_override = target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
                     if 'cloudformation' in target_deployment_override:
                         target_action_mode = target.get('change_set')
@@ -94,12 +100,12 @@ class PipelineStack(core.Stack):
                                     target=target,
                                     action_mode=top_level_action,
                                     run_order=1,
-                                    map_params=map_params,
+                                    map_params=stack_input['input'],
                                     action_name="{0}-{1}".format(target['name'], region)
                                 ).config
                             ])
                             continue
-                        _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, map_params))
+                        _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, stack_input['input']))
                     elif 'codedeploy' in target_deployment_override:
                         _actions.extend([
                             adf_codepipeline.Action(
@@ -110,7 +116,7 @@ class PipelineStack(core.Stack):
                                 target=target,
                                 action_mode=top_level_action,
                                 run_order=1,
-                                map_params=map_params,
+                                map_params=stack_input['input'],
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
@@ -121,9 +127,9 @@ class PipelineStack(core.Stack):
                             adf_codebuild.CodeBuild(
                                 self,
                                 target['name'],
-                                ssm_params[ADF_DEPLOYMENT_REGION]["modules"],
-                                ssm_params[ADF_DEPLOYMENT_REGION]["kms"],
-                                map_params,
+                                stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
+                                stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
+                                stack_input['input'],
                                 target
                             ).deploy
                         ])
@@ -137,7 +143,7 @@ class PipelineStack(core.Stack):
                                 target=target,
                                 action_mode=top_level_action,
                                 run_order=1,
-                                map_params=map_params,
+                                map_params=stack_input['input'],
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
@@ -148,9 +154,6 @@ class PipelineStack(core.Stack):
                     actions=_actions
                 )
             )
-        print('here ya go')
-        print(map_params)
-        print('there ya go')
-        _pipeline = adf_codepipeline.Pipeline(self, 'CodePipeline', map_params, ssm_params, _stages)
+        _pipeline = adf_codepipeline.Pipeline(self, 'CodePipeline', stack_input['input'], stack_input['ssm_params'], _stages)
         if 'github' in _source_name:
-            adf_github.GitHub.create_webhook(self, _pipeline.cfn, map_params)
+            adf_github.GitHub.create_webhook(self, _pipeline.cfn, stack_input['input'])
