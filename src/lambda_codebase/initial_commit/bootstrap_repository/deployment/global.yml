@@ -528,6 +528,7 @@ Resources:
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: "alias/aws/sns"
       Subscription:
         - Endpoint: !Ref NotificationEndpoint
           Protocol: !Ref NotificationType
