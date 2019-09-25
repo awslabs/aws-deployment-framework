@@ -1,13 +1,13 @@
-# Sample CDK Application to showcase ADF Pipelines
+# Sample CDK Bootstrap pipeline
 
 This pipeline is expecting *(in the example case)* an AWS CodeCommit repository
 on the account `111111111111` in your main deployment region named
-*sample-cdk-application*.
+*sample-cdk-bootstrap*.
 
 ## Deployment Map example
 
 ```yaml
-  - name: sample-cdk-application
+  - name: sample-cdk-bootstrap
     default_providers:
       source:
         provider: codecommit

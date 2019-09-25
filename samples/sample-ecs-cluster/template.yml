@@ -103,8 +103,10 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: [ecs.amazonaws.com]
-            Action: ['sts:AssumeRole']
+              Service:
+                - ecs.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
       Path: /
       Policies:
         - PolicyName: ecs-service
@@ -139,8 +141,10 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: [ecs-tasks.amazonaws.com]
-            Action: ['sts:AssumeRole']
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
       Path: /
       Policies:
         - PolicyName: AmazonECSTaskExecutionRolePolicy
@@ -166,11 +170,11 @@ Outputs:
     Export:
       Name: 'ClusterName'
 
-  ExternalUrl:
+  ECSLoadBalancerExternalUrl:
     Description: The url of the external load balancer
     Value: !Sub http://${PublicLoadBalancer.DNSName}
     Export:
-      Name: 'ExternalUrl'
+      Name: 'ECSLoadBalancerExternalUrl'
 
   ECSRole:
     Description: The ARN of the ECS role

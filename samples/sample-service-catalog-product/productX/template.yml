@@ -9,8 +9,9 @@ Metadata:
 Parameters:
   Environment:
     Type: String
-    Default: testing
+    Default: development
     AllowedValues:
+      - development
       - testing
     Description: The environment to use, IDE are only supported in testing
 

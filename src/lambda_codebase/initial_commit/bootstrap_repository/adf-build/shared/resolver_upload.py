@@ -58,7 +58,7 @@ class ResolverUpload(BaseResolver):
             for item in S3.supported_path_styles()
         ):
             raise ValueError(
-                'When uploading to S3 you need to specify a path style'
+                'When uploading to S3 you need to specify a path style '
                 'to use for the returned value to be used. '
                 f'Supported path styles include: {S3.supported_path_styles()}'
             ) from None

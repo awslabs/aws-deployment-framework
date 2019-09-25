@@ -14,4 +14,7 @@ phases:
       - bash adf-build/helpers/package_transform.sh
 
 artifacts:
-  files: '**/*'
+  files:
+    - 'template*.yml'
+    - 'params/*.json'
+    - 'params/*.yml'
