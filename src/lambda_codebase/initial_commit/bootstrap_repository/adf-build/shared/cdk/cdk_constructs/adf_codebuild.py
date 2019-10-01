@@ -28,14 +28,14 @@ class CodeBuild(core.Construct):
         if target:
             _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
                 ADF_DEPLOYMENT_ACCOUNT_ID,
-                target['params'].get('role')
-            ) if target.get('params', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
-            _timeout = target.get('params', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
+                target.get('type', {}).get('deploy', {}).get('role')
+            ) if target.get('type', {}).get('deploy', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
+            _timeout = target.get('type', {}).get('deploy', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=target.get('params', {}).get('image') or getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
-                compute_type=target.get('params', {}).get('compute_type') or getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
-                environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params['name'], target),
-                privileged=target.get('params', {}).get('privileged', False) or map_params['type']['build'].get('privileged', False)
+                build_image=target.get('type', {}).get('deploy', {}).get('image') or getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
+                compute_type=target.get('type', {}).get('deploy', {}).get('compute_type') or getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
+                environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
+                privileged=target.get('type', {}).get('deploy', {}).get('privileged', False) or map_params['type']['build'].get('privileged', False)
             )
             # Core difference from CodeBuild as deployment as opposed to build is we allow the buildspec file to be passed in dynamically
             _spec = map_params['type']['deploy'].get('spec') or target.get('type', {}).get('deploy', {}).get('spec') or 'deployspec.yml'
@@ -44,20 +44,20 @@ class CodeBuild(core.Construct):
                 'project',
                 environment=_env,
                 encryption_key=_kms.Key.from_key_arn(self, 'default_deployment_account_key', key_arn=deployment_region_kms),
-                description="ADF CodeBuild Project for {0}".format(target['name']),
-                project_name="adf-deploy-{0}".format(target['name']),
+                description="ADF CodeBuild Project for {0}".format(id),
+                project_name="adf-deploy-{0}".format(id),
                 timeout=core.Duration.minutes(_timeout),
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role),
                 build_spec=_codebuild.BuildSpec.from_source_filename(_spec)
             )
             self.deploy = Action(
-                name="{0}".format(target['name']),
+                name="{0}".format(id),
                 provider="CodeBuild",
                 category="Build",
                 run_order=1,
                 target=target,
                 map_params=map_params,
-                action_name="{0}".format(target['name'])
+                action_name="{0}".format(id)
             ).config
         else:
             _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
@@ -68,7 +68,7 @@ class CodeBuild(core.Construct):
             _env = _codebuild.BuildEnvironment(
                 build_image=getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
                 compute_type=getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
-                environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params['name']),
+                environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['type']['build'].get('privileged', False)
             )
             if map_params['type']['build'].get('role'):
@@ -97,18 +97,17 @@ class CodeBuild(core.Construct):
                 ]
             )
 
-
     @staticmethod
-    def generate_build_env_variables(codebuild, shared_modules_bucket, name, target=None):
+    def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):
         _output = {
             "PYTHONPATH": codebuild.BuildEnvironmentVariable(value='./adf-build/python'),
-            "ADF_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=name),
+            "ADF_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=map_params['name']),
             "S3_BUCKET_NAME": codebuild.BuildEnvironmentVariable(value=shared_modules_bucket),
             "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
         }
         if target:
             _output["TARGET_NAME"] = codebuild.BuildEnvironmentVariable(value=target['name'])
             _output["TARGET_ACCOUNT_ID"] = codebuild.BuildEnvironmentVariable(value=target['id'])
-            if target.get('params', {}).get('deployment_role'):
+            if map_params['type']['deploy'].get('deployment_role') or target.get('type', {}).get('deploy', {}).get('deployment_role'):
                 _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target['params']['deployment_role'])
         return _output

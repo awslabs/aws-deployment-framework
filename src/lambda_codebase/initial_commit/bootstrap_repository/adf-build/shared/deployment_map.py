@@ -29,10 +29,15 @@ class DeploymentMap:
         self._validate()
 
     def update_deployment_parameters(self, pipeline):
-        for account in pipeline.template_dictionary['targets']:
-            self.account_ou_names.update(
-                {item['name']: item['path'] for item in account if item['name'] != 'approval'}
-            )
+        print(pipeline.template_dictionary['targets'])
+        for target in pipeline.template_dictionary['targets']:
+            for _t in target:
+                if _t.get('target'): # Allows target to be interchangeable with path
+                    _t['path'] = _t.pop('target')
+                if _t.get('path'):
+                    self.account_ou_names.update(
+                        {item['name']: item['path'] for item in target if item['name'] != 'approval'}
+                    )
 
         self.parameter_store.put_parameter(
             "/deployment/{0}/account_ous".format(
@@ -90,8 +95,8 @@ class DeploymentMap:
             for pipeline in self.map_contents["pipelines"]:
                 for target in pipeline.get("targets", []):
                     if isinstance(target, dict):
-                        # Prescriptive information on the error should be raised
-                        assert target.get("path") or target.get("target")
+                        # TODO we need validation here
+                        pass
         except KeyError:
             raise InvalidDeploymentMapError(
                 "Deployment Map target or regions specification is invalid, target or path is required key."

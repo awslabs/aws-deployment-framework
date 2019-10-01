@@ -8,8 +8,10 @@ require mutation depending on their structure.
 """
 
 import re
+import os
 from errors import InvalidDeploymentMapError, NoAccountsFoundError
 
+ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 class TargetStructure:
     def __init__(self, target):
@@ -26,6 +28,8 @@ class TargetStructure:
         if isinstance(target, (int, str)):
             target = [{"path": [target]}]
         if isinstance(target, dict):
+            if target.get('target'):
+                target["path"] = target.get('target')
             if not isinstance(target.get('path'), list):
                 target["path"] = [target.get('path')]
 
@@ -35,15 +39,14 @@ class TargetStructure:
 
 
 class Target():
-    def __init__(self, path, regions, target_structure, organizations, step_name, params, change_set, target_type):
+    def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
-        self.step_name = step_name or ''
-        self.target_type = target_type
-        self.params = params or {}
+        self.step_name = step.get('name', '')
+        self.target_type = step.get('type', {})
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
-        self.change_set = change_set
+        self.change_set = self.target_type.get('deploy', {}).get('change_set')
 
     @staticmethod
     def _account_is_active(account):
@@ -55,7 +58,6 @@ class Target():
             "id": account_id,
             "path": self.path,
             "regions": self.regions,
-            "params": self.params,
             "type": self.target_type,
             "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name),
             "change_set": self.change_set
@@ -70,9 +72,9 @@ class Target():
         )
 
     def _create_response_object(self, responses):
-        _accounts = 0
+        _entities = 0
         for response in responses:
-            _accounts += 1
+            _entities += 1
             if Target._account_is_active(response):
                 self.target_structure.account_list.append(
                     self._create_target_info(
@@ -80,7 +82,7 @@ class Target():
                         str(response.get('Id'))
                     )
                 )
-        if _accounts == 0:
+        if _entities == 0:
             raise NoAccountsFoundError("No Accounts found in {0}".format(self.path))
 
     def _target_is_account_id(self):
@@ -99,16 +101,20 @@ class Target():
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
 
+    def _target_is_null_path(self):
+        self.path = '/deployment' # TODO we will fetch this from parameter store
+        responses = self.organizations.dir_to_ou(self.path)
+        self._create_response_object(responses)
+
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
-
         if (str(self.path)).startswith('ou-'):
             return self._target_is_ou_id()
-
         if (str(self.path).isnumeric() and len(str(self.path)) == 12):
             return self._target_is_account_id()
-
         if (str(self.path)).startswith('/'):
             return self._target_is_ou_path()
+        if self.path is None:
+            return self._target_is_null_path() # No path/target has been passed
         raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))

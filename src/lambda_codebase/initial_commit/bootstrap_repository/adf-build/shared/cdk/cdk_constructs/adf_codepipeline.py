@@ -32,7 +32,7 @@ class Action:
         self.region = kwargs.get('target', {}).get('region') or ADF_DEPLOYMENT_REGION
         self.account_id = self.map_params["type"]["source"].get("account_id")
         self.role_arn = self._generate_role_arn()
-        self.notification_endpoint = self.target.get("params", {}).get("notification_endpoint") or self.map_params.get("notification_endpoint")
+        self.notification_endpoint = self.map_params.get("notification_endpoint")
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
@@ -48,24 +48,24 @@ class Action:
 
     def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
-            _config = {
-                "CustomData": self.target.get('params', {}).get('message') or "Approval stage for {0}".format(self.map_params['name']),
+            _props = {
+                "CustomData": self.target.get('type', {}).get('approval', {}).get('message') or "Approval stage for {0}".format(self.map_params['name'])
             }
-            if self.map_params.get('notification_endpoint') or self.target.get('params', {}).get('sns_topic_arn'):
-                # You can pass a topic arn in at the target level, otherwise just use the topic arn from the notification_endpoint property
-                _config["NotificationArn"] = self.target.get('params', {}).get('sns_topic_arn') or self.map_params.get('sns_topic_arn')
-            return _config
+            if self.notification_endpoint:
+                _props["NotificationArn"] = self.map_params.get('sns_topic_arn')
+            if self.target.get('type', {}).get('approval', {}).get('sns_topic_arn'):
+                _props["NotificationArn"] = self.target.get('type', {}).get('approval', {}).get('sns_topic_arn')
+            return _props
         if self.provider == "S3" and self.category == "Source":
             return {
                 "S3Bucket": self.map_params.get('type', {}).get('source', {}).get('bucket_name') or self.target.get('params').get('bucket_name'),
                 "S3ObjectKey": self.map_params.get('type', {}).get('source', {}).get('object_key') or self.target.get('params').get('object_key')
             }
         if self.provider == "S3" and self.category == "Deploy":
-            # TODO Should be deploy top level or target level
             return {
-                "BucketName": self.map_params.get('type', {}).get('deploy', {}).get('bucket_name') or self.target.get('params').get('bucket_name'),
-                "Extract": self.map_params.get('type', {}).get('deploy', {}).get('extract') or self.target.get('params').get('extract', "false"),
-                "ObjectKey": self.map_params.get('type', {}).get('deploy', {}).get('object_key') or self.target.get('params').get('object_key')
+                "BucketName": self.map_params.get('type', {}).get('deploy', {}).get('bucket_name') or self.target.get('type', {}).get('deploy', {}).get('bucket_name'),
+                "Extract": self.map_params.get('type', {}).get('deploy', {}).get('extract') or self.target.get('type', {}).get('deploy', {}).get('extract', False),
+                "ObjectKey": self.map_params.get('type', {}).get('deploy', {}).get('object_key') or self.target.get('type', {}).get('deploy', {}).get('object_key')
             }
         if self.provider == "GitHub":
             return {
@@ -78,15 +78,33 @@ class Action:
                 ),
                 "PollForSourceChanges": False
             }
-        if self.provider == "CloudFormation":
+        if self.provider == "Lambda":
             return {
+                "FunctionName": self.map_params.get('type', {}).get('invoke', {}).get('function_name', '') or self.target.get('type', {}).get('invoke', {}).get('function_name', ''),
+                "UserParameters": str(self.map_params.get('type', {}).get('invoke', {}).get('input', '') or self.target.get('type', {}).get('invoke', {}).get('input', ''))
+            }
+        if self.provider == "CloudFormation":
+            _props = {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "StackName": self.target.get('type', {}).get('deploy', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "TemplatePath": "{0}-build::template.yml".format(self.map_params['name']),
                 "TemplateConfiguration": "{0}-build::params/{1}_{2}.json".format(self.map_params['name'], self.target['name'], self.region),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
+            }
+            if self.target.get('type', {}).get('deploy', {}).get('outputs'):
+                _props['OutputFileName'] = '{0}.json'.format(self.target['type']['deploy']['outputs'])
+            if self.target.get('type', {}).get('deploy', {}).get('param_override'):
+                _props['ParameterOverrides'] = str({
+                    "{0}".format(self.target['type']['deploy']['param_override']['param']): {"Fn::GetParam": ["{0}".format(self.target['type']['deploy']['param_override']['output_key']), '{0}.json'.format(self.target['type']['deploy']['param_override']['inputs']), self.target['type']['deploy']['param_override']['inputs']]}
+                })
+            return _props
+        if self.provider == "Jenkins":
+            return {
+                "ProjectName": self.map_params['type']['build'].get('project_name', self.map_params['name']), # Enter the name of the project you created in the Jenkins plugin
+                "ServerURL": self.map_params['type']['build']['server_url'], # Server URL
+                "ProviderName": self.map_params['type']['build']['provider_name'] # Enter the provider name you configured in the Jenkins plugin
             }
         if self.provider == "CodeBuild":
             return {
@@ -99,13 +117,13 @@ class Action:
             }
         if self.provider == "CodeDeploy":
             return {
-                "ApplicationName": self.target.get('params').get('application_name'),
-                "DeploymentGroupName": self.target.get('params').get('deployment_group_name')
+                "ApplicationName": self.map_params.get('type', {}).get('deploy', {}).get('application_name', {}) or self.target.get('type', {}).get('deploy', {}).get('application_name'),
+                "DeploymentGroupName": self.map_params.get('type', {}).get('deploy', {}).get('deployment_group_name', {}) or self.target.get('type', {}).get('deploy', {}).get('deployment_group_name')
             }
         if self.provider == "CodeCommit":
             return {
-                "BranchName": self.map_params.get('branch', 'master'),
-                "RepositoryName": self.map_params.get('type', {}).get('source', {}).get('repository', {}) or self.map_params['name'],
+                "BranchName": self.map_params['type']['source'].get('branch', 'master'),
+                "RepositoryName": self.map_params['type']['source'].get('repository', {}) or self.map_params['name'],
                 "PollForSourceChanges": self.map_params['type']['source'].get('poll_for_changes', False)
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
@@ -135,10 +153,10 @@ class Action:
                 provider=self.provider,
                 category=self.category
             ),
-            "configuration":self.configuration,
+            "configuration": self.configuration,
             "name": self.action_name,
-            "region":self.region or ADF_DEPLOYMENT_REGION,
-            "run_order":self.run_order
+            "region": self.region or ADF_DEPLOYMENT_REGION,
+            "run_order": self.run_order
         }
         if _role:
             action_props["role_arn"] = _role
@@ -167,6 +185,18 @@ class Action:
                     name="{0}-build".format(self.map_params['name'])
                 )
             ]
+            if self.provider == "CloudFormation" and self.target.get('type', {}).get('deploy', {}).get('param_override', {}).get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
+                action_props["input_artifacts"].append(
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
+                        name=self.target['type']['deploy']['param_override'].get('inputs')
+                    )
+                )
+            if self.provider == "CloudFormation" and self.target.get('type', {}).get('deploy', {}).get('outputs') and self.action_mode != 'CHANGE_SET_REPLACE':
+                action_props["output_artifacts"] = [
+                    _codepipeline.CfnPipeline.OutputArtifactProperty(
+                        name=self.target['type']['deploy'].get('outputs')
+                    )
+                ]
         if self.category == 'Source':
             action_props["output_artifacts"] = [
                 _codepipeline.CfnPipeline.OutputArtifactProperty(
@@ -192,7 +222,7 @@ class Pipeline(core.Construct):
             "restart_execution_on_update": map_params.get('restart_execution_on_update', False),
             "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
             "stages": stages,
-            "artifact_stores": self.generate_artifact_stores(map_params, ssm_params)
+            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params)
         }
         self.cfn = _codepipeline.CfnPipeline(
             self,
@@ -211,7 +241,8 @@ class Pipeline(core.Construct):
             }
         })
 
-    def generate_artifact_stores(self, map_params, ssm_params):
+    @staticmethod
+    def generate_artifact_stores(map_params, ssm_params):
         output = []
         for region in map_params["regions"]:
             output.append(_codepipeline.CfnPipeline.ArtifactStoreMapProperty(
@@ -229,7 +260,7 @@ class Pipeline(core.Construct):
 
     @staticmethod
     def import_required_arns():
-        output = []
+        _output = []
         for arn in Pipeline._import_arns:
-            output.append(core.Fn.import_value(arn))
-        return output
+            _output.append(core.Fn.import_value(arn))
+        return _output

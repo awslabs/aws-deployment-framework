@@ -239,7 +239,6 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
                 ))["commitId"]
                 create_pr = True # If the commit above was able to be made, we want to create a PR afterwards
         except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException) as error:
-            print(error)
             pass
     if files_to_delete:
         try:

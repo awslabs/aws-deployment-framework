@@ -22,7 +22,6 @@ class Pipeline:
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.deployment_role = pipeline.get('deployment_role', None)
-        self.pipeline_type = pipeline.get('type', None)
         self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.schedule = self.parameters.get('schedule', {})

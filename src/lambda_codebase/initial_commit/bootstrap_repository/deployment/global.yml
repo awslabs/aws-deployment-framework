@@ -494,7 +494,7 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk@1.9.0 -g -y --quiet --no-progress
+                - npm install cdk@1.10.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q
@@ -503,7 +503,7 @@ Resources:
                 - cdk --version
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py adf-build/cdk/generate_pipeline_inputs.py adf-build/cdk/generate_pipeline_stacks.py
                 - python adf-build/cdk/generate_pipeline_inputs.py
-                - cdk synth
+                - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py
                 - python adf-build/cdk/execute_pipeline_stacks.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:

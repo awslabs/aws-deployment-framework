@@ -8,6 +8,7 @@ from aws_cdk import (
 )
 from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
+from cdk_constructs import adf_jenkins
 from cdk_constructs import adf_codecommit
 from cdk_constructs import adf_github
 from cdk_constructs import adf_s3
@@ -65,14 +66,19 @@ class PipelineStack(core.Stack):
                 ).build
             )
         elif 'jenkins' in _build_name:
-            pass #TODO add in Jenkins
-
+            _stages.append(
+                adf_jenkins.Jenkins(
+                    self,
+                    'build',
+                    stack_input['input']
+                ).build
+            )
         for index, targets in enumerate(stack_input['input'].get('environments', {}).get('targets', [])):
             _actions = []
-            top_level_deployment_type = stack_input['input'].get('type', {}).get('deploy', {}).get('name', {}) or 'cloudformation'
+            top_level_deployment_type = stack_input['input'].get('type', {}).get('deploy', {}).get('name', '') or 'cloudformation'
             top_level_action = stack_input['input'].get('type', {}).get('deploy', {}).get('action', '')
             for target in targets:
-                if target.get('name') == 'approval':
+                if target.get('name') == 'approval' or target.get('type', {}).get('approval'):
                     _actions.extend([
                         adf_codepipeline.Action(
                             name="{0}".format(target['name']),
@@ -87,9 +93,9 @@ class PipelineStack(core.Stack):
                     continue
                 regions = stack_input['input'].get('regions', target.get('regions'))
                 for region in regions:
-                    target_deployment_override = target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
-                    if 'cloudformation' in target_deployment_override:
-                        target_action_mode = target.get('change_set')
+                    target_stage_override = target.get('type', {}).get('invoke', {}).get('name') or target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
+                    if 'cloudformation' in target_stage_override:
+                        target_action_mode = target.get('type', {}).get('deploy', {}).get('change_set')
                         if top_level_action and not target_action_mode:
                             _actions.extend([
                                 adf_codepipeline.Action(
@@ -106,7 +112,7 @@ class PipelineStack(core.Stack):
                             ])
                             continue
                         _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, stack_input['input']))
-                    elif 'codedeploy' in target_deployment_override:
+                    elif 'codedeploy' in target_stage_override:
                         _actions.extend([
                             adf_codepipeline.Action(
                                 name="{0}-{1}".format(target['name'], region),
@@ -120,20 +126,34 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-                    elif 's3' in target_deployment_override:
+                    elif 's3' in target_stage_override:
                         pass
-                    elif 'codebuild' in target_deployment_override:
+                    elif 'lambda' in target_stage_override:
+                        _actions.extend([
+                            adf_codepipeline.Action(
+                                name="{0}-{1}".format(target['name'], region),
+                                provider="Lambda",
+                                category="Invoke",
+                                region=region,
+                                target=target,
+                                action_mode=top_level_action,
+                                run_order=1,
+                                map_params=stack_input['input'],
+                                action_name="{0}-{1}".format(target['name'], region)
+                            ).config
+                        ])
+                    elif 'codebuild' in target_stage_override:
                         _actions.extend([
                             adf_codebuild.CodeBuild(
                                 self,
-                                target['name'],
+                                '{0}-stage-{1}'.format(target['name'], index + 1),
                                 stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
                                 stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
                                 stack_input['input'],
                                 target
                             ).deploy
                         ])
-                    elif 'service_catalog' in target_deployment_override:
+                    elif 'service_catalog' in target_stage_override:
                         _actions.extend([
                             adf_codepipeline.Action(
                                 name="{0}-{1}".format(target['name'], region),
@@ -147,13 +167,13 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _name = 'approval' if targets[0]['name'].startswith('approval') else 'deployment' # 0th Index since approvals won't be parallel
+            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('type', {}).get('approval') else 'deployment' # 0th Index since approvals won't be parallel
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
                     name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target
                     actions=_actions
                 )
             )
-        _pipeline = adf_codepipeline.Pipeline(self, 'CodePipeline', stack_input['input'], stack_input['ssm_params'], _stages)
+        _pipeline = adf_codepipeline.Pipeline(self, 'code_pipeline', stack_input['input'], stack_input['ssm_params'], _stages)
         if 'github' in _source_name:
             adf_github.GitHub.create_webhook(self, _pipeline.cfn, stack_input['input'])

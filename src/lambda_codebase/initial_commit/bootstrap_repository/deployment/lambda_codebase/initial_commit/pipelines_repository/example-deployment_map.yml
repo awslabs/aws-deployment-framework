@@ -14,7 +14,30 @@ pipelines:
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
       - path: /banking/production
-        change_set: approval_needed # override deploy action above and insert a approval in between create + execute change set
+        type:
+          deploy:
+            stack_name: my_cool_iam_stack # Since no deploy type is defined above this target is assumed type of CloudFormation
+            change_set: approval_needed # override deploy action above and insert a approval in between create + execute change set
+      - type: # Lambda functions are required to tell the CodePipeline their compeltion status, read more -> https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html#actions-invoke-lambda-function-create-function
+          invoke:
+            name: lambda # Since we are Deploying CloudFormation (as defined at top level). We need to override this step to be of type lambda
+            input: {"name": "jon_doe"} # This input will be passed to the function as a string
+            function_name: my_lambda_function
+
+  - name: ami-builder  # The name of your pipeline (by default, this will match the name of your repository)
+    type:
+      source:
+        name: codecommit
+        account_id: 558421765047
+      build:
+        name: codebuild
+        role: packer
+        size: medium # Resource allocation for the build stage -> small | medium | large 
+    params:
+      schedule: rate(7 days) # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
+    completion_trigger: # What should happen when this pipeline completes
+      pipelines:
+        - sample-vpc # run this other pipeline
 
   - name: sample-vpc
     type: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
@@ -22,13 +45,32 @@ pipelines:
         name: github
         repository: example-vpc-adf # Optional, above name property will be used if this is not specified
         owner: bundyfx
-        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, by default ADF only has access to /adf/ prefix in Secrets Manager
+        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
         json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
         notification_endpoint: bundyf@amazon.nl
     targets: # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
+
+  - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
+    type:
+      source:
+        name: codecommit
+        account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
+      deploy:
+        name: codebuild
+    targets: # targets looks for the deploy defaults above to determine parameters
+      - type:
+          deploy:
+            spec: custom-spec-one.yml
+      - type:
+          approval:
+            message: plz approve
+            notification_endpoint: flynn.sbundy@gmail.com # Approvals can have their own unique notification endpoint
+      - type:
+          deploy:
+            spec: custom-spec-two.yml
 
   - name: sample-ec2-app-codedeploy
     type:
@@ -42,16 +84,35 @@ pipelines:
     type:
       source: 
         name: codecommit
-        account_id: 228171733466
+        account_id: 558421765047
       build:
         name: codebuild
         image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
         name: codedeploy
     params:
-      notification_endpoint: deployments # Will send notifications to the slack channel named 'deployments' - Implies you have setup the required configuration to send notifications to Slack, see the docs
+        notification_endpoint: deployments
     targets:
-      - path: 130330464033
-        params: # Things such as deployment preference, configurations and such are defined in the stack that has the deployment group and codedeploy application resource, in this case 'sample-ec2-java-app-codedeploy'
-          application_name: sample
-          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+      - target: 130330464033
+        type: # These are stage specific parameters for our deploy action
+          deploy:
+            application_name: sample
+            deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+
+  - name: sample-input-export-pipeline
+    type:
+      source:
+        name: codecommit
+        account_id: 228171733466
+    targets:
+      - target: 130330464033
+        type:
+          deploy:
+            outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
+      - target: 228171733466
+        type:
+          deploy:
+            param_override:
+              inputs: some_param_outputs # Which file do we want to use to pass in overrides from
+              param: s3_bucket # The name of the parameter you wish to override at this stage
+              output_key: logging_bucket # The key from the output 'some_param_outputs' we want to get the value from
