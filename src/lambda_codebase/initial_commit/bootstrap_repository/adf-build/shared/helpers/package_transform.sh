@@ -23,7 +23,7 @@ do
     if grep -q Transform: "$CODEBUILD_SRC_DIR/template.yml"; then
         ssm_bucket_name="/cross_region/s3_regional_bucket/$region"
         bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`
-        sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml
+        sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
     else
         # If package is not needed, just copy the file for each region
         cp $CODEBUILD_SRC_DIR/template.yml $CODEBUILD_SRC_DIR/template_$region.yml

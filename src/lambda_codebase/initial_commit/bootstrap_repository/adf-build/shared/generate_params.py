@@ -65,7 +65,7 @@ class Parameters:
                     Parameters._parse("{0}/params/{1}".format(self.cwd, account)),
                     Parameters._parse("{0}/params/{1}".format(self.cwd, "{0}_{1}".format(account, region)))
                 )
-                if not Parameters._is_account_id:
+                if not Parameters._is_account_id(ou):
                     # Compare account_region final to ou_region
                     compare_params = self._param_updater(
                         Parameters._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
@@ -114,13 +114,8 @@ class Parameters:
         """
         Responsible for updating the parameters within the files themself
         """
-        try:
-            with open("{0}/params/{1}.yml".format(self.cwd, filename), 'r'):
-                with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as json_outfile:
-                    json.dump(new_params, json_outfile)
-        except FileNotFoundError:
-            with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
-                json.dump(new_params, outfile)
+        with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
+            json.dump(new_params, outfile)
 
     def _determine_intrinsic_function(self, resolver, value, key):
         if str(value).startswith('resolve:'):
@@ -131,16 +126,15 @@ class Parameters:
             return resolver.upload(value, key, self.file_name)
         return False
 
-    def _determine_parameter_structure(self, parameters, resolver, update=True): # pylint: disable=inconsistent-return-statements
+    def _determine_parameter_structure(self, parameters, resolver): # pylint: disable=inconsistent-return-statements
         try:
             for key, value in parameters.items():
                 if isinstance(value, dict):
                     LOGGER.debug('Calling _determine_parameter_structure recursively')
-                    return self._determine_parameter_structure(value, resolver, update)
+                    return self._determine_parameter_structure(value, resolver)
                 if self._determine_intrinsic_function(resolver, value, key):
                     continue
-                if update:
-                    resolver.update(key)
+                resolver.update(key)
         except AttributeError:
             LOGGER.debug('Input was not a dict for _determine_parameter_structure, nothing to do.')
             pass
@@ -151,8 +145,7 @@ class Parameters:
         """
         resolver = Resolver(self.parameter_store, stage_parameters, comparison_parameters)
         self._determine_parameter_structure(comparison_parameters, resolver)
-        self._determine_parameter_structure(stage_parameters, resolver, False)
-
+        self._determine_parameter_structure(stage_parameters, resolver)
         return resolver.__dict__.get('stage_parameters')
 
 def main():
