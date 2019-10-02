@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Deploys the Custom Resource for deleting the default VPC in all regions
+Resources:
+  LambdaVPCPolicyRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonVPCFullAccess'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: ec2
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeRegions'
+                Resource: '*'
+  DeleteVPCLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_vpc
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaVPCPolicyRole.Arn
+      Runtime: python3.7
+      Timeout: 600
+      Environment:
+          Variables:
+            region_name: !Ref "AWS::Region"
+  DeleteVPCCustom:
+    Type: Custom::DeleteVPC
+    Properties:
+      ServiceToken: !GetAtt DeleteVPCLambda.Arn
