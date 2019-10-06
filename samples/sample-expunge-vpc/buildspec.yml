@@ -1,0 +1,12 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - pip install -r adf-build/requirements.txt -q
+      - python adf-build/generate_params.py
+  build:
+    commands:
+      - bash adf-build/helpers/package_transform.sh
+artifacts:
+  files: "**/*"
