@@ -13,102 +13,162 @@
 
 ## Deployment Map
 
-The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files are responsible for mapping the specific pipelines to their deployment targets and desired pipeline. When creating pipelines in the deployment account, a python file called *generate_pipelines.py* *(see adf-build folder)* will be executed during CodeBuild via CodePipeline. This small piece of code will parse the deployment_map.yml files and assume a role on the master account in the Organization. It will then resolve the accounts in the organization units specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values in the Jinja2 templating engine along side a template file *(see pipeline_types folder)*. The template of choice is taken from the **type** property in the mapping file.
+The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files are the general pipeline definitions that are responsible for mapping the specific pipelines to their deployment targets along with their respective parameters. The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) will synthesize during the CodeBuild step within the *aws-deployment-framework-pipelines* pipeline. Prior to the CDK creating these pipeline templates, a input generation step will run to parse the deployment_map.yml files, it will then assume a readonly role on the master account in the Organization that will have access to resolve the accounts in the AWS Organizations OU's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values into the input files that will go on to be main CDK applications inputs.
 
-The parameters *(params)* you chose to pass into the Jinja2 template are taken directly from the deployment_map.yml file. This allows you to build sensible defaults in your pipeline definitions and pass in only what is required for that specific pipeline creation.
+The Deployment Map file defines the pipelines along with their inputs, types and parameters. it also defines the targets of the pipeline within a list type structure. Each entry in the *'targets'* key list represents a stage within the pipeline that will be created. The Deployment map files also allow for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
 
-The Deployment map files allow for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
-
-A basic example of a deployment_map.yml would look like the following *(assumes eu-west-1 and eu-central-1 have been bootstrapped in adfconfig.yml)*:
+A basic example of a *deployment_map.yml* would look like the following:
 
 ```yaml
 pipelines:
   - name: iam
-    type: cc-cloudformation
-    deployment_role: infrastructure_role # The role 'infrastructure_role' would need to exist on all target accounts with correct permissions, leaving blank defaults to the adf-cloudformation-deployment-role.
+    type:
+      source:
+        name: codecommit
+        account_id: 123456789101 # The AWS Account where the source code will be in a CodeCommit Repository
     params:
-      - SourceAccountId: 111111222222
-      - NotificationEndpoint: janes_team@doe.com # Optional
+        notification_endpoint: janes_team@doe.com # Optional
     targets:
       - path: /security
         regions: eu-west-1
-      - approval
-      - path: /banking/testing
-        regions: eu-central-1
+      - approval # This is a shorthand example of an approval step within a pipeline
+      - /banking/testing # This is a shorthand example of a step within a pipeline targeting an OU
 
-  # Github source example
-  - name: vpc-example # Pipeline name.
-    type: github-cloudformation
-    action: replace_on_failure
+  - name: vpc
+    type:
+      source:
+        name: github
+        repository: my-github-vpc # Optional, above name property will be used if this is not specified
+        owner: bundyfx # Who owns this Github Repository
+        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
-      - RepositoryName: "myrepositoryname" # Required if repo name differs from pipelinename (vpc-example).
-      - Owner: "githubrepowner" # Repository owner user
-      - OAuthToken: "/tokens/oauth/github" # Name of SSM Param Store object
-      - WebhookSecret: "/tokens/webhooksecret/github"
-      - NotificationEndpoint: channel1 # Slack Channel Example
+        notification_endpoint: joes_team@company.nl
     targets:
-      - path: ou-12341 # AWS Organizations OU ID
-        regions: [ eu-west-1, eu-central-1 ]
-      - 22222222222
+      - path: /banking/testing
+        name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines. The first one will deploy from a repository named **iam** that lives in the account **111111222222**. This Repository will automatically be created for you by default if it does not exist. The pipeline will use the *cc-cloudformation* [type](#pipeline-types) and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be the accounts within the `/banking/testing` OU for `eu-central-1` region. By providing a simple path or ou-id without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt. Also in this first pipeline we have decided we want to override the role that is used for the deployment of our CloudFormation on the target accounts. We don't simply want to use the default *adf-cloudformation-deployment-role* but rather a role named *infrastructure_role*. This role will need to exist on all target accounts with the correct permissions to deploy our IAM stack. As a streamlined way to get this role onto all target accounts, consider adding it to your bootstrap stacks. You can even pass separate roles for each stage of the pipelines using stage parameters if required.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable *'auto-create-repositories'* (which is enabled by default). The pipeline *iam* pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
-The second example is a simple example that deploys to an OU using its OU identifier number `ou-12341`. You can choose between an absolute path *(as in the first example)* in your AWS Organization or by specifying the OU ID. The second stage of this pipeline is simply an AWS Account ID. If you have a small amount of accounts or want to deploy to a specific account you can use an AWS Account Id if required.
+The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with **/adf/**.
 
-In this second example, we have defined a channel named `channel1` as the *NotificationEndpoint*. By doing this we will have events from this pipeline reported into the Slack channel named *channel1*. In order for this functionality to work as expected please see [Integrating Slack](./admin-guide/integrating-slack). We also specify two regions we would like to use for the first stage of the pipeline.
+By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
-By default, the above pipelines will use a method of creating a change set and then executing the change set in two actions. Another top level option is to specify `action: replace_on_failure` on a specific pipeline. This changes the pipeline to no longer create a change set and then execute it but rather if the stack exists and is in a failed state *(reported as ROLLBACK_COMPLETE, ROLLBACK_FAILED, CREATE_FAILED, DELETE_FAILED, or UPDATE_ROLLBACK_FAILED)*, AWS CloudFormation deletes the stack and then creates a new stack. If the stack isn't in a failed state, AWS CloudFormation updates it. Use this action to automatically replace failed stacks without recovering or troubleshooting them. *You would typically choose this mode for testing.* You can use any of the action types such as *create_update* defined [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html).
+### Types
 
-You can also run pipelines on a specific schedule, this is common for pipelines that produce some sort of output on a regular basis. For example, creating a new [AMI each week](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html). To do this specify the [cron](https://en.wikipedia.org/wiki/Cron) expression as the input for the *ScheduleExpression* parameter within the pipeline of your choice. You can choose between a *rate* expression or *cron* expression, [read more](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html).
+The ADF comes with an extensive set of types that can be used as part of a Pipeline. For example, see the below pipeline definition:
 
 ```yaml
-  - name: ami-builder
-    type: cc-buildonly
-    params:
-      - ScheduleExpression: rate(7 days)
-      - SourceAccountId: 111111111111
+pipelines:
+  - name: sample-ec2-java-app-codedeploy
+    type:
+      source:
+        name: codecommit
+        account_id: 123456789101
+      build:
+        name: codebuild
+        image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+      deploy:
+        name: codedeploy
     targets:
-      - path: 9999999999
-        name: some-account
+      - target: 999999999999
+        type: # These are stage specific parameters for our deploy action
+          deploy:
+            application_name: sample
+            deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 ```
 
-If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will need to be deployed. This can be achieved by setting the `contains_transform: true` *(See samples folder)* parameter and updating the *buildspec.yml* for your pipeline to call the `bash adf-build/helpers/package_transform.sh` script. This script will package your lambda to each region and generate a region specific template.yml for the pipeline deploy stages.
+The pipeline *sample-ec2-java-app-codedeploy* has a *type* top level key that defines the high level structure of the pipeline. It explicitly defines the source *(requirement for all pipelines)* and also defines what type of build will occur along with any associated parameters. In this example, we're explicitly saying we want to use AWS CodeBuild *(which is also the default)* and also to use a specific Docker Image for build stage. The deploy type is also defined at the top level of this pipeline, in this case *codedeploy*. This means that any of the targets of the pipeline will use AWS CodeDeploy as their default [Deployment Provider](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#actions-valid-providers).
 
-If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
+In the targets section itself we have the opportunity to override the provider itself or pass in any additional parameters to that provider. In this example we are passing in *application_name* and *deployment_group_name* as parameters to CodeDeploy for this specific stage. Parameters can either be defined at the top level or used in the stage level to override top level values. By default, the build type is AWS CodeBuild and the deploy type is AWS CloudFormation.
 
-#### Syntax
+For detailed information on types, see the [types guide](./types-guide.md).
 
-The Deployment map has a shorthand syntax along with a more detailed version when you need extra configuration for the *targets* key as detailed below:
+### Targets Syntax
+
+The Deployment Map has a shorthand syntax along with a more detailed version when you need extra configuration for the *targets* key as detailed below:
 
 **Shorthand:**
 
 ```yaml
 targets:
-  - 9999999999 # Single Account, Deployment Account region
-  - /my_ou/production  # Group of Accounts, Deployment Account region
+  - 9999999999 # Single Account, Deployment Account Region
+  - /my_ou/production  # Group of Accounts, Deployment Account Region
 ```
 
 **Detailed:**
 
 ```yaml
 targets:
-  - path: 9999999999
+  - target: 9999999999 # Target and Path keys can be used interchangeably
     regions: eu-west-1
     name: my-special-account # Defaults to adf-cloudformation-deployment-role
-    params:
-      Foo: Bar
-  - path: /my_ou/production # This can also be an array
+  - path: /my_ou/production # This can also be an array of OUs or AWS Account IDs
     regions: [eu-central-1, us-west-1]
     name: production_step
-    params:
-      Baz: Waffle
 ```
+
+### Params
+
+Pipelines also have parameters that don't relate to a specific stage but rather the pipeline as a whole. For example, a pipeline might have an single notification endpoint in which it would send a notification when it completes or fails. It also might have things such as a schedule for how often it runs.
+
+The following are the available pipeline parameters:
+
+- **notification_endpoint**
+  > Can either be a valid email address or a string that represents the name of a Slack Channel. In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md) in the admin guide. By Default, Notifications will be sent when pipelines Start, Complete or Fail.
+
+- **schedule**
+  > If the Pipeline should execute on a specific Schedule. Schedules are defined by using a Rate or an Expression. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions) for more information on how to define Rate or an Expression.
+
+- **restart_execution_on_update** *(Boolean)*
+  > If the Pipeline should start a new execution if its structure is updated. Pipelines can often update their structure if targets of the pipeline are Organizational Unit paths. This setting allows pipelines to automatically run once an AWS Account has been moved in or out of a targeted OU.
+
+### Completion Triggers
+
+Pipelines can also trigger other pipelines upon completion. To do this, use the *completion_trigger* key on the pipeline definition. For example:
+
+```yaml
+  - name: ami-builder
+    type:
+      source:
+        name: codecommit
+        account_id: 222222222222
+      build:
+        name: codebuild
+        role: packer
+        size: medium
+    params:
+      schedule: rate(7 days)
+    completion_trigger: # What should happen when this pipeline completes
+      pipelines:
+        - my-web-app-pipeline # Start this pipeline
+
+  - name: my-web-app-pipeline
+    type:
+      source:
+        name: github
+        repository: my-web-app
+        owner: cool_coder
+        oauth_token_path: /adf/github_token
+        json_field: token
+    targets:
+      - path: /banking/testing
+        name: web-app-testing
+```
+
+In the above example, the *ami-builder* pipeline runs every 7 days based on its schedule. When it completes, it executes the *my-web-app-pipeline* pipeline as defined in its *completion_trigger* property.
 
 ### Additional Deployment Maps
 
 You can also create additional deployment map files. These can live in a folder in the pipelines repository called *deployment_maps*. These are entirely optional but can help split up complex environments with many pipelines. For example, you might have a map used for infrastructure type pipelines and one used for deploying applications. Taking it a step further, you can even create a map per service. These additional deployment map files can have any name, as long as they end with *.yml*.
 
+
+<!-- If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will need to be deployed. This can be achieved by setting the `contains_transform: true` *(See samples folder)* parameter and updating the *buildspec.yml* for your pipeline to call the `bash adf-build/helpers/package_transform.sh` script. This script will package your lambda to each region and generate a region specific template.yml for the pipeline deploy stages.
+
+If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process. -->
+
+<!-- 
 ## Deploying via Pipelines
 
 ### Repositories
@@ -232,7 +292,7 @@ Tags:
 This means that all resources that support tags within your CloudFormation stack will be tagged as defined above.
 
 It is important to keep in mind that each Deployment Provider *(Code Deploy, CloudFormation, Service Catalog etc)* have their [own Parameter structure](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html) and configuration files. For example, Service catalog allows you to pass a configuration file as such:
-
+s
 ```json
 {
     "SchemaVersion": "1.1",
@@ -416,4 +476,4 @@ pipelines:
       - /banking/production
 ```
 
-By passing in the Repository name *(RepositoryName)* we are overriding the **name** property which normally is the name of our associated repository. This will tie both of these pipelines to the single *sample-vpc* repository on the *111111111111* AWS Account. When using this format the automatic repository creation will be skipped.
+By passing in the Repository name *(RepositoryName)* we are overriding the **name** property which normally is the name of our associated repository. This will tie both of these pipelines to the single *sample-vpc* repository on the *111111111111* AWS Account. When using this format the automatic repository creation will be skipped. -->

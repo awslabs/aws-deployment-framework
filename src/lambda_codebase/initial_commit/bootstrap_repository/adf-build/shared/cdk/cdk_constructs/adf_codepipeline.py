@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: MIT-0
 
 import os
-# from errors import InvalidProviderError
+import json
+
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
     core
 )
+
+from errors import InvalidConfigError
 from cdk_constructs import adf_events
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -29,22 +32,31 @@ class Action:
         self.index = kwargs.get('index')
         self.action_name = kwargs.get('action_name')
         self.action_mode = kwargs.get('action_mode', '').upper()
-        self.region = kwargs.get('target', {}).get('region') or ADF_DEPLOYMENT_REGION
+        self.region = kwargs.get('region') or ADF_DEPLOYMENT_REGION
         self.account_id = self.map_params["type"]["source"].get("account_id")
         self.role_arn = self._generate_role_arn()
-        self.notification_endpoint = self.map_params.get("notification_endpoint")
+        self.notification_endpoint = self.map_params.get("topic_arn")
         self.configuration = self._generate_configuration()
+        self._validate_configuration()
         self.config = self.generate()
 
     def _generate_role_arn(self):
-        if self.map_params["type"]["build"].get("role"):
+        if self.target.get('type', {}).get('build', {}).get('role') or self.map_params["type"]["build"].get("role"):
             if self.provider == 'CodeBuild' and self.category == 'Build':
                 # CodePipeline would need access to assume this if you pass in a custom role
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["build"].get("role"))
-        if self.map_params["type"]["deploy"].get("role"):
+        if self.target.get('type', {}).get('deploy', {}).get('role') or self.map_params["type"]["deploy"].get("role"):
             if self.category == 'Deploy':
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["deploy"]["role"])
         return None
+
+    def _validate_configuration(self):
+        for _prop in self.configuration.items():
+            try:
+                assert _prop[1] is not None
+                assert 'None' not in str(_prop[1])
+            except AssertionError as _none_prop:
+                raise InvalidConfigError("{0} has an invalid value of {1}".format(_prop[0], _prop[1])) from None
 
     def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
@@ -52,14 +64,14 @@ class Action:
                 "CustomData": self.target.get('type', {}).get('approval', {}).get('message') or "Approval stage for {0}".format(self.map_params['name'])
             }
             if self.notification_endpoint:
-                _props["NotificationArn"] = self.map_params.get('sns_topic_arn')
+                _props["NotificationArn"] = self.notification_endpoint
             if self.target.get('type', {}).get('approval', {}).get('sns_topic_arn'):
                 _props["NotificationArn"] = self.target.get('type', {}).get('approval', {}).get('sns_topic_arn')
             return _props
         if self.provider == "S3" and self.category == "Source":
             return {
-                "S3Bucket": self.map_params.get('type', {}).get('source', {}).get('bucket_name') or self.target.get('params').get('bucket_name'),
-                "S3ObjectKey": self.map_params.get('type', {}).get('source', {}).get('object_key') or self.target.get('params').get('object_key')
+                "S3Bucket": self.map_params.get('type', {}).get('source', {}).get('bucket_name'),
+                "S3ObjectKey": self.map_params.get('type', {}).get('source', {}).get('object_key')
             }
         if self.provider == "S3" and self.category == "Deploy":
             return {
@@ -88,17 +100,18 @@ class Action:
                 "ActionMode": self.action_mode,
                 "StackName": self.target.get('type', {}).get('deploy', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
-                "TemplatePath": "{0}-build::template.yml".format(self.map_params['name']),
+                "TemplatePath": self.target.get('type', {}).get('deploy', {}).get('template_filename') or self.map_params.get('type', {}).get('deploy', {}).get('template_filename') or "{0}-build::template.yml".format(self.map_params['name']),
                 "TemplateConfiguration": "{0}-build::params/{1}_{2}.json".format(self.map_params['name'], self.target['name'], self.region),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
             }
             if self.target.get('type', {}).get('deploy', {}).get('outputs'):
                 _props['OutputFileName'] = '{0}.json'.format(self.target['type']['deploy']['outputs'])
-            if self.target.get('type', {}).get('deploy', {}).get('param_override'):
-                _props['ParameterOverrides'] = str({
-                    "{0}".format(self.target['type']['deploy']['param_override']['param']): {"Fn::GetParam": ["{0}".format(self.target['type']['deploy']['param_override']['output_key']), '{0}.json'.format(self.target['type']['deploy']['param_override']['inputs']), self.target['type']['deploy']['param_override']['inputs']]}
-                })
+            if self.target.get('type', {}).get('deploy', {}).get('param_overrides'):
+                _overrides = {}
+                for override in self.target.get('type', {}).get('deploy', {}).get('param_overrides', []):
+                    _overrides["{0}".format(override['param'])] = {"Fn::GetParam": ["{0}".format(override['inputs']), "{0}.json".format(override['inputs']), "{0}".format(override['key_name'])]}
+                _props['ParameterOverrides'] = json.dumps(_overrides)
             return _props
         if self.provider == "Jenkins":
             return {
@@ -112,8 +125,8 @@ class Action:
             }
         if self.provider == "ServiceCatalog":
             return {
-                "ConfigurationFilePath": "params/{0}_{1}.json".format(self.target['name'], self.region),
-                "ProductId": self.map_params['type']['deploy'].get('product_id') # product_id is required for Service Catalog, meaning the product must already exist.
+                "ConfigurationFilePath": self.target.get('type', {}).get('deploy', {}).get('configuration_file_path') or "params/{0}_{1}.json".format(self.target['name'], self.region),
+                "ProductId": self.target.get('type', {}).get('deploy', {}).get('product_id') or self.map_params['type']['deploy'].get('product_id') # product_id is required for Service Catalog, meaning the product must already exist.
             }
         if self.provider == "CodeDeploy":
             return {
@@ -133,6 +146,12 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['type']['source']['account_id'])
         if self.provider == "CodeBuild":
             return None
+        if self.provider == "S3" and self.category == "Source":
+            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['type']['source']['account_id'])
+        if self.provider == "S3" and self.category == "Deploy":
+            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.map_params['type']['source']['account_id'])
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
@@ -185,18 +204,25 @@ class Action:
                     name="{0}-build".format(self.map_params['name'])
                 )
             ]
-            if self.provider == "CloudFormation" and self.target.get('type', {}).get('deploy', {}).get('param_override', {}).get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
-                action_props["input_artifacts"].append(
-                    _codepipeline.CfnPipeline.InputArtifactProperty(
-                        name=self.target['type']['deploy']['param_override'].get('inputs')
-                    )
-                )
             if self.provider == "CloudFormation" and self.target.get('type', {}).get('deploy', {}).get('outputs') and self.action_mode != 'CHANGE_SET_REPLACE':
                 action_props["output_artifacts"] = [
                     _codepipeline.CfnPipeline.OutputArtifactProperty(
-                        name=self.target['type']['deploy'].get('outputs')
+                        name=self.target.get('type', {}).get('deploy', {}).get('outputs')
                     )
                 ]
+            if not self.map_params.get('type', {}).get('build', {}).get('enabled', True):
+                action_props["input_artifacts"] = [
+                    _codepipeline.CfnPipeline.OutputArtifactProperty(
+                        name="output-source"
+                    )
+                ]
+            for override in self.target.get('type', {}).get('deploy', {}).get('param_overrides', []):
+                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
+                    action_props["input_artifacts"].append(
+                        _codepipeline.CfnPipeline.InputArtifactProperty(
+                            name=override.get('inputs')
+                        )
+                    )
         if self.category == 'Source':
             action_props["output_artifacts"] = [
                 _codepipeline.CfnPipeline.OutputArtifactProperty(

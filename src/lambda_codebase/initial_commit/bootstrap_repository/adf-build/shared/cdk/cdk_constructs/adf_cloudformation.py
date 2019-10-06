@@ -25,7 +25,7 @@ class CloudFormation(core.Construct):
         super().__init__(scope, id, **kwargs)
 
     @staticmethod
-    def generate_actions(targets, region, map_params):
+    def generate_actions(targets, region, map_params, target_approval_mode):
         _actions = []
         if not isinstance(targets, list):
             targets = [targets]
@@ -43,7 +43,7 @@ class CloudFormation(core.Construct):
                     action_name="{0}-{1}-create".format(target['name'], region)
                 ).config,
             )
-            if target.get('type', {}).get('deploy', {}).get('change_set'):
+            if target_approval_mode:
                 _actions.append(
                     adf_codepipeline.Action(
                         name="{0}-{1}".format(target['name'], region),
@@ -63,7 +63,7 @@ class CloudFormation(core.Construct):
                     category="Deploy",
                     region=region,
                     target=target,
-                    run_order=3 if target.get('type', {}).get('deploy', {}).get('change_set') else 2,
+                    run_order=3 if target.get('type', {}).get('deploy', {}).get('change_set_approval') else 2,
                     action_mode="CHANGE_SET_EXECUTE",
                     map_params=map_params,
                     action_name="{0}-{1}-execute".format(target['name'], region)

@@ -54,7 +54,7 @@ class PipelineStack(core.Stack):
                     stack_input['input']
                 ).source
             )
-        if 'codebuild' in _build_name:
+        if 'codebuild' in _build_name and stack_input["input"]["type"]["build"].get('enabled', True):
             _stages.append(
                 adf_codebuild.CodeBuild(
                     self,
@@ -91,12 +91,14 @@ class PipelineStack(core.Stack):
                         ).config
                     ])
                     continue
-                regions = stack_input['input'].get('regions', target.get('regions'))
+                regions = target.get('regions', [])
                 for region in regions:
                     target_stage_override = target.get('type', {}).get('invoke', {}).get('name') or target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
                     if 'cloudformation' in target_stage_override:
-                        target_action_mode = target.get('type', {}).get('deploy', {}).get('change_set')
-                        if top_level_action and not target_action_mode:
+                        target_approval_mode = target.get('type', {}).get('deploy', {}).get('change_set_approval', False)
+                        _target_action_mode = target.get('type', {}).get('deploy', {}).get('action')
+                        action_mode = _target_action_mode or top_level_action
+                        if action_mode:
                             _actions.extend([
                                 adf_codepipeline.Action(
                                     name="{0}-{1}".format(target['name'], region),
@@ -104,14 +106,14 @@ class PipelineStack(core.Stack):
                                     category="Deploy",
                                     region=region,
                                     target=target,
-                                    action_mode=top_level_action,
+                                    action_mode=action_mode,
                                     run_order=1,
                                     map_params=stack_input['input'],
                                     action_name="{0}-{1}".format(target['name'], region)
                                 ).config
                             ])
                             continue
-                        _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, stack_input['input']))
+                        _actions.extend(adf_cloudformation.CloudFormation.generate_actions(target, region, stack_input['input'], target_approval_mode))
                     elif 'codedeploy' in target_stage_override:
                         _actions.extend([
                             adf_codepipeline.Action(
@@ -127,7 +129,19 @@ class PipelineStack(core.Stack):
                             ).config
                         ])
                     elif 's3' in target_stage_override:
-                        pass
+                        _actions.extend([
+                            adf_codepipeline.Action(
+                                name="{0}-{1}".format(target['name'], region),
+                                provider="S3",
+                                category="Deploy",
+                                region=region,
+                                target=target,
+                                action_mode=top_level_action,
+                                run_order=1,
+                                map_params=stack_input['input'],
+                                action_name="{0}-{1}".format(target['name'], region)
+                            ).config
+                        ])
                     elif 'lambda' in target_stage_override:
                         _actions.extend([
                             adf_codepipeline.Action(

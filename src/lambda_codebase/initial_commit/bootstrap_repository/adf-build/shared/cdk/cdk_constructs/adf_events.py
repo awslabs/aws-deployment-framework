@@ -58,9 +58,9 @@ class Events(core.Construct):
                 id='pipeline_state_change_event',
                 description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
                 event_pattern=_events.EventPattern(
-                    resources=[
-                        "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
-                    ],
+                    # resources=[
+                    #     "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
+                    # ],
                     detail={
                         "state": [
                             "FAILED",

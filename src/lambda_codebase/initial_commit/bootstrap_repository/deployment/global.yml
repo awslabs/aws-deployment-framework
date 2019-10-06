@@ -347,6 +347,10 @@ Resources:
               - sts:AssumeRole
       Path: /
   CloudFormationDeploymentPolicy:
+    # This is the role that will be used to deploy CloudFormation resources from
+    # within the account that it is deployed to. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a default IAM policy and these should be changed to suit your needs.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -494,7 +498,7 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk@1.10.0 -g -y --quiet --no-progress
+                - npm install cdk@1.11.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q

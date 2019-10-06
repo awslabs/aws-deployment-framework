@@ -35,34 +35,6 @@ class GitHub(core.Construct):
             ]
         )
 
-        # self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
-            
-        #     actions=[
-        #         Action(
-        #             name="source",
-        #             provider="Github",
-        #             category="Source",
-        #             run_order=1,
-        #             map_params=map_params,
-        #             action_name="source"
-        #         ).config
-        #     ]
-        # )
-
-        # self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
-        #     name="Source-Github",
-        #     actions=[
-        #         Action(
-        #             name="source",
-        #             provider="Github",
-        #             category="Source",
-        #             run_order=1,
-        #             map_params=map_params,
-        #             action_name="source"
-        #         ).config
-        #     ]
-        # )
-
     @staticmethod
     def create_webhook(scope, pipeline, map_params):
         _version = pipeline.get_att('Version')

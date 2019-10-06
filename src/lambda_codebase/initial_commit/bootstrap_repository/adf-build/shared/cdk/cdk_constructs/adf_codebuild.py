@@ -106,8 +106,11 @@ class CodeBuild(core.Construct):
             "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
         }
         if target:
+            _env_vars = target.get('type', {}).get('deploy', {}).get('environment_variables') or map_params.get('type', {}).get('build', {}).get('environment_variables')
+            if _env_vars:
+                _output = {**_output, **_env_vars}
             _output["TARGET_NAME"] = codebuild.BuildEnvironmentVariable(value=target['name'])
             _output["TARGET_ACCOUNT_ID"] = codebuild.BuildEnvironmentVariable(value=target['id'])
-            if map_params['type']['deploy'].get('deployment_role') or target.get('type', {}).get('deploy', {}).get('deployment_role'):
-                _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target['params']['deployment_role'])
+            if map_params['type']['deploy'].get('role') or target.get('type', {}).get('deploy', {}).get('role'):
+                _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target['params']['role'])
         return _output

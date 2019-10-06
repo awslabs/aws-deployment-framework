@@ -13,9 +13,6 @@ except Exception as err: # pylint: disable=broad-except
     from urllib.request import Request, urlopen
     import json
 
-    if os.environ["AWS_REGION"] != 'us-east-1':
-        raise Exception("ADF must be installed in US-EAST-1 region to function as expected.")
-
     def lambda_handler(event, _context, prior_error=err):
         response = dict(
             LogicalResourceId=event["LogicalResourceId"],

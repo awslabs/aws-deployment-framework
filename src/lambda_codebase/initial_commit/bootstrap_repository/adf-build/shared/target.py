@@ -46,7 +46,7 @@ class Target():
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
-        self.change_set = self.target_type.get('deploy', {}).get('change_set')
+        self.change_set = self.target_type.get('deploy', {}).get('change_set_approval')
 
     @staticmethod
     def _account_is_active(account):

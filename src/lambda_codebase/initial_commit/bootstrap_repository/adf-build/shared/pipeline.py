@@ -7,9 +7,8 @@ properties associated with a pipeline.
 """
 
 import os
-# from jinja2 import Environment, FileSystemLoader
 
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 
 class Pipeline:
     def __init__(self, pipeline):
@@ -21,8 +20,8 @@ class Pipeline:
         self.notification_endpoint = self.parameters.get('notification_endpoint', None)
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
-        self.deployment_role = pipeline.get('deployment_role', None)
-        self.action = pipeline.get('action', '').upper()
+        # self.deployment_role = pipeline.get('deployment_role', None)
+        # self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.schedule = self.parameters.get('schedule', {})
         self.contains_transform = pipeline.get('contains_transform', '')
@@ -63,6 +62,8 @@ class Pipeline:
         if not params.get('type', {}).get('build', {}):
             params['type']['build'] = {}
             params['type']['build']['name'] = 'codebuild'
+        if not params.get('type', {}).get('build', {}).get('enabled'):
+            params['type']['build']['name'] = 'codebuild'
         if not params.get('type', {}).get('deploy', {}):
             params['type']['deploy'] = {}
             params['type']['deploy']['name'] = 'cloudformation'
@@ -77,8 +78,6 @@ class Pipeline:
             "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
             "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),
             "deployment_account_region": DEPLOYMENT_ACCOUNT_REGION,
-            "deployment_role": self.deployment_role,
-            "action": self.action,
             "contains_transform": self.contains_transform,
             "completion_trigger": self.completion_trigger,
             "schedule": self.schedule

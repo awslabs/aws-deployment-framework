@@ -29,7 +29,6 @@ class DeploymentMap:
         self._validate()
 
     def update_deployment_parameters(self, pipeline):
-        print(pipeline.template_dictionary['targets'])
         for target in pipeline.template_dictionary['targets']:
             for _t in target:
                 if _t.get('target'): # Allows target to be interchangeable with path

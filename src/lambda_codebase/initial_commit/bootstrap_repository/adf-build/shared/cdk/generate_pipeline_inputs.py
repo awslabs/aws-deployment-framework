@@ -205,7 +205,7 @@ def main():
         auto_create_repositories = 'enabled'
     threads = []
     _cache = Cache()
-    for p in deployment_map.map_contents.get('pipelines'):
+    for p in deployment_map.map_contents.get('pipelines', []):
         _source_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
         if _source_account_id and not _cache.check(_source_account_id):
             rule = Rule(p['type']['source']['account_id'])
