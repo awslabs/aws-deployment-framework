@@ -8,6 +8,5 @@ phases:
     commands:
       - bash build/generate_parameters.sh
       - bash adf-build/helpers/package_transform.sh
-
 artifacts:
   files: '**/*'

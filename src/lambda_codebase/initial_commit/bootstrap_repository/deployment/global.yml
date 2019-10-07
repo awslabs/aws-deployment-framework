@@ -794,7 +794,7 @@ Resources:
       RoleName: "adf-lambda-role"
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Effect: "Allow"
             Principal: 
               Service: 
@@ -1000,6 +1000,12 @@ Resources:
       FunctionName: PipelinesCreateInitialCommitFunction
       Runtime: python3.7
       Timeout: 300
+  DeploymentAccountId:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "deployment_account_id"
+      Type: "String"
+      Value: !Ref AWS::AccountId
 Outputs:
   ADFVersionNumber:
     Value: !Ref ADFVersion

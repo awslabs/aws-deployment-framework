@@ -20,7 +20,9 @@ class Events(core.Construct):
     def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
-        if params.get('source').get('account_id'):
+        _source_account = params.get('source', {}).get('account_id')
+        _type = params.get('source', {}).get('type')
+        if _source_account and _type == 'codecommit':
             _event = _events.Rule(
                 self,
                 'trigger_{0}'.format(params["name"]),

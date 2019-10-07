@@ -60,6 +60,8 @@ type:
     > If you wish to define a custom timeout for the Build stage. Defaults to 20 minutes.
   - privileged *(Boolean)*
     > If you plan to use this build project to build Docker images and the specified build environment is not provided by CodeBuild with Docker support, set Privileged to True. Otherwise, all associated builds that attempt to interact with the Docker daemon fail. Defaults to False.
+  - inline_spec *(String)*
+    > If you wish to pass in a custom inline Buildspec as a string for the CodeBuild Project which would override any buildspec.yml file. Read more [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example). Defaults to None.
 
 - **jenkins** ([Jenkins Plugin](https://wiki.jenkins.io/display/JENKINS/AWS+CodePipeline+Plugin))
   - project_name *(String)* **(required)**

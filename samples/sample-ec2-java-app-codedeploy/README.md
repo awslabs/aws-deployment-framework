@@ -1,8 +1,6 @@
 ## Sample SpringBoot application (Java) Running on EC2 deployed via CodePipeline
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-ec2-java-app-codedeploy*.
-
-This example is coupled with the `sample-ec2-with-codedeploy` repository and is aimed at showcasing how to deploy a basic Springboot application with [AWS CodeDeploy](https://docs.aws.amazon.com/codedeploy/latest/userguide/welcome.html) via ADF.
+This example is coupled with the `sample-ec2-with-codedeploy` repository and is aimed at showcasing how to deploy a basic Java Springboot application with [AWS CodeDeploy](https://docs.aws.amazon.com/codedeploy/latest/userguide/welcome.html) via ADF.
 
 ### Deployment Map example
 
@@ -19,8 +17,8 @@ This example is coupled with the `sample-ec2-with-codedeploy` repository and is 
         name: codedeploy # We will deploy out application with AWS CodeDeploy.
     targets:
       - path: 9999999999 # In this example we only want to deploy to a single AWS Account, so we include its account ID here.
-        params: # These are Parameters for this specific stage in the pipeline, CodeDeploy needs to know which application and deployment group it should use to deploy. These resources would typically be deployed in a different stack as they are more part of the infrastructure to support the application as opposed to the application itself.
-          application_name: sample
-          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
-
+        type:
+          deploy: # These are Parameters for this specific stage in the pipeline, CodeDeploy needs to know which application and deployment group it should use to deploy. These resources would typically be deployed in a different stack as they are more part of the infrastructure to support the application as opposed to the application itself.
+            application_name: sample
+            deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 ```

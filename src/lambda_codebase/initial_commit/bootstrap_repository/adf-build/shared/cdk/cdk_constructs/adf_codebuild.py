@@ -81,6 +81,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(map_params['name']),
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
+                build_spec=None if not map_params['type']['build'].get('inline_spec') else _codebuild.BuildSpec.from_object(map_params['type']['build'].get('inline_spec')),
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -105,10 +106,13 @@ class CodeBuild(core.Construct):
             "S3_BUCKET_NAME": codebuild.BuildEnvironmentVariable(value=shared_modules_bucket),
             "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
         }
+        _build_env_vars = map_params.get('type', {}).get('build', {}).get('environment_variables', {})
+        for _env_var in _build_env_vars.items():
+            _output[_env_var[0]] = codebuild.BuildEnvironmentVariable(value=str(_env_var[1]))
         if target:
-            _env_vars = target.get('type', {}).get('deploy', {}).get('environment_variables') or map_params.get('type', {}).get('build', {}).get('environment_variables')
-            if _env_vars:
-                _output = {**_output, **_env_vars}
+            _target_env_vars = target.get('type', {}).get('build', {}).get('environment_variables', {})
+            for _target_env_var in _target_env_vars.items():
+                _output[_target_env_var[0]] = codebuild.BuildEnvironmentVariable(value=_target_env_var[1])
             _output["TARGET_NAME"] = codebuild.BuildEnvironmentVariable(value=target['name'])
             _output["TARGET_ACCOUNT_ID"] = codebuild.BuildEnvironmentVariable(value=target['id'])
             if map_params['type']['deploy'].get('role') or target.get('type', {}).get('deploy', {}).get('role'):

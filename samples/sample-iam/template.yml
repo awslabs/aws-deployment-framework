@@ -9,21 +9,13 @@ Resources:
   DevelopersIAMGroup:
     Type: AWS::IAM::Group
     Properties: 
-      GroupName: sample-developers
+      GroupName: adf-sample-developers-group
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AWSServiceCatalogEndUserFullAccess'
         - 'arn:aws:iam::aws:policy/AWSCloud9User'
         - 'arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess'
         - 'arn:aws:iam::aws:policy/AWSCodeCommitFullAccess'
         - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
-  SampleDeveloper:
-    Type: AWS::IAM::User
-    Properties:
-      Groups: 
-        - !Ref DevelopersIAMGroup
-      LoginProfile:
-        Password: 'sample-password' # Use Secrets Manager -> https://aws.amazon.com/blogs/security/how-to-create-and-retrieve-secrets-managed-in-aws-secrets-manager-using-aws-cloudformation-template/
-      UserName: sample-developer
   GlobalInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:

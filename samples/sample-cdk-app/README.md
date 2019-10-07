@@ -6,10 +6,13 @@ This pipeline is expecting *(in the example case)* a AWS CodeCommit repository o
 
 ```yaml
   - name: sample-cdk-application
-    type: cc-cloudformation
-    params:
-      - SourceAccountId: 111111111111
-      - Image: "aws/codebuild/standard:2.0"
+    type:
+      source:
+        name: codecommit
+        account_id: 111111111111
+      build:
+        name: codebuild
+        image: "STANDARD_2_0"
     targets:
       - /banking/testing
       - /banking/production

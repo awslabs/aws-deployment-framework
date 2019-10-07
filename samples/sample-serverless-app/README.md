@@ -1,16 +1,17 @@
 ## Sample Serverless Python based Application
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-serverless-app*.
-
 ### Deployment Map example
 
 ```yaml
   - name: sample-serverless-app
-    type: cc-cloudformation
-    contains_transform: true # Required for templates that contain transforms. (eg SAM Templates)
-    params:
-      - SourceAccountId: 111111111111 # Some Source Account that contains this Repository
-      - Image: "aws/codebuild/standard:2.0"
+    type:
+      source:
+        name: codecommit
+        account_id: 111111111111
+      build:
+        image: STANDARD_2_0
+        environment_variables:
+          CONTAINS_TRANSFORM: true
     targets:
       - 222222222222
       - path: 333333333333

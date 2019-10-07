@@ -44,7 +44,7 @@ class Action:
         if self.target.get('type', {}).get('build', {}).get('role') or self.map_params["type"]["build"].get("role"):
             if self.provider == 'CodeBuild' and self.category == 'Build':
                 # CodePipeline would need access to assume this if you pass in a custom role
-                return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["build"].get("role"))
+                return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["build"]["role"])
         if self.target.get('type', {}).get('deploy', {}).get('role') or self.map_params["type"]["deploy"].get("role"):
             if self.category == 'Deploy':
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["type"]["deploy"]["role"])
@@ -100,11 +100,14 @@ class Action:
                 "ActionMode": self.action_mode,
                 "StackName": self.target.get('type', {}).get('deploy', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
-                "TemplatePath": self.target.get('type', {}).get('deploy', {}).get('template_filename') or self.map_params.get('type', {}).get('deploy', {}).get('template_filename') or "{0}-build::template.yml".format(self.map_params['name']),
                 "TemplateConfiguration": "{0}-build::params/{1}_{2}.json".format(self.map_params['name'], self.target['name'], self.region),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
             }
+            if self.map_params.get('type', {}).get('build', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
+                _props["TemplatePath"] = "{0}-build::template_{1}.yml".format(self.map_params['name'], self.region)
+            else:
+                _props["TemplatePath"] = self.target.get('type', {}).get('deploy', {}).get('template_filename') or self.map_params.get('type', {}).get('deploy', {}).get('template_filename') or "{0}-build::template.yml".format(self.map_params['name'])
             if self.target.get('type', {}).get('deploy', {}).get('outputs'):
                 _props['OutputFileName'] = '{0}.json'.format(self.target['type']['deploy']['outputs'])
             if self.target.get('type', {}).get('deploy', {}).get('param_overrides'):
@@ -158,6 +161,9 @@ class Action:
         if self.provider == "CodeDeploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+        if self.provider == "Lambda":
+            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            return None
         if self.provider == "CloudFormation":
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "Manual":
@@ -262,6 +268,7 @@ class Pipeline(core.Construct):
             "completion_trigger": map_params.get('completion_trigger'),
             "schedule": map_params.get('schedule'),
             "source": {
+                "type": map_params.get('type', {}).get('source', {}).get('name'),
                 "account_id": map_params.get('type', {}).get('source', {}).get('account_id'),
                 "repo_name": map_params.get('type', {}).get('source', {}).get('repository') or map_params['name']
             }

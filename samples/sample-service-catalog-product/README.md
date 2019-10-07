@@ -1,16 +1,15 @@
 ## Sample Service Catalog Product
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-service-catalog-product*.
-
 This stack imports values from `sample-vpc` and `sample-iam`.
 
 ### Deployment Map example
 ```yaml
   - name: sample-service-catalog-product
-    type: cc-cloudformation
-    params:
-      - SourceAccountId: 111111111111 # Some Source Account that contains the service-catalog-product content
-    targets: # Example Targets OU's
+    type:
+      source:
+        name: codecommit
+        account_id: 111111111111
+    targets:
       - /banking/testing
       - path: /banking/production
         regions: eu-west-1
