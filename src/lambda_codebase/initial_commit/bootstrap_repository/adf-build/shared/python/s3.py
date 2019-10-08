@@ -48,10 +48,18 @@ class S3:
         raise Exception("Unknown upload style syntax, path or virtual-hosted must be specified.")
 
 
-    def put_object(self, key, file_path, style="path"):
+    def put_object(self, key, file_path, style="path", pre_check=False):
         """
         Put the object into S3 and return the S3 URL of the object
         """
+        if pre_check:
+            try:
+                self.client.get_object(Bucket=self.bucket, Key=key)
+            except self.client.exceptions.NoSuchKey:
+                LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", file_path, key, self.bucket, self.region)
+                self.resource.Object(self.bucket, key).put(Body=open(file_path, 'rb'))
+            finally:
+                return self.build_pathing_style(style, key)
         self.resource.Object(self.bucket, key).put(Body=open(file_path, 'rb'))
         return self.build_pathing_style(style, key)
 

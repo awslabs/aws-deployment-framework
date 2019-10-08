@@ -50,5 +50,5 @@ Resources:
     Type: "AWS::ServiceCatalog::PortfolioPrincipalAssociation"
     Properties:
       PortfolioId: !Ref Portfolio
-      PrincipalARN: !ImportValue DevelopersIAMGroupARN
+      PrincipalARN: !ImportValue SampleDevelopersIAMGroupArn
       PrincipalType: "IAM"

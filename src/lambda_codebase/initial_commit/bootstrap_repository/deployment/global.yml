@@ -498,7 +498,7 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk@1.11.0 -g -y --quiet --no-progress
+                - npm install cdk@1.12.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
                 - pip install -r adf-build/requirements.txt --upgrade -q

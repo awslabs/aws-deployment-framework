@@ -1,15 +1,22 @@
 # User Guide
 
 - [Deployment Map](#deployment-map)
-- [Deploying via Pipelines](#deploying-via-pipelines)
+  - [Types](#types)
+  - [Targets Syntax](#targets-syntax)
+  - [Params](#params)
   - [Repositories](#repositories)
+  - [Completion Triggers](#completion-triggers)
+  - [Additional Deployment Maps](#additional-deployment-maps)
+  - [Removing Pipelines](#serverless-transforms)
+- [Deploying via Pipelines](#deploying-via-pipelines)
   - [BuildSpec](#buildspec)
-  - [Parameters](#cloudformation-parameters-and-tagging)
+  - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
+  - [Serverless Transforms](#serverless-transforms)
   - [Parameter Injection](#parameter-injection)
   - [Nested Stacks](#nested-stacks)
   - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
   - [Using Anchors and Alias](#using-anchors-and-alias)
-  - [One to many relationships](#one-to-many-relationships)
+  - [One to many Relationships](#one-to-many-relationships)
 
 ## Deployment Map
 
@@ -163,11 +170,15 @@ In the above example, the *ami-builder* pipeline runs every 7 days based on its 
 
 You can also create additional deployment map files. These can live in a folder in the pipelines repository called *deployment_maps*. These are entirely optional but can help split up complex environments with many pipelines. For example, you might have a map used for infrastructure type pipelines and one used for deploying applications. Taking it a step further, you can even create a map per service. These additional deployment map files can have any name, as long as they end with *.yml*.
 
-## Deploying via Pipelines
-
 ### Repositories
 
 Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon S3 Buckets or GitHub Repositories. Repositories are attached to pipelines in a 1:1 relationship, however, you can choose to clone or bring other repositories into your code during the build phase of your pipeline. You should define a suitable [buildspec](#buildspec) that matches your desired outcome and is applicable to the type of resource you are deploying.
+
+### Removing Pipelines
+
+If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
+
+## Deploying via Pipelines
 
 ### BuildSpec
 
@@ -301,11 +312,6 @@ For more examples of parameters and their usage see the `samples` folder in the 
 ### Serverless Transforms
 
 If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will be deployed. This can be achieved by setting the `CONTAINS_TRANSFORM` environment variable to *True* in your pipeline definition with a deployment map file. Once the environment variable has been set, within your *buildspec.yml* file you will need to use the *package_transform.sh* helper script (`bash adf-build/helpers/package_transform.sh`). This script will package your template to each region and transparently generate a region specific template for the pipeline deploy stages.
-
-### Removing Pipelines
-
-If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
-
 
 ### Parameter Injection
 

@@ -81,10 +81,10 @@ Outputs:
   DevelopersIAMGroupARN:
     Description: The ARN of the Developers IAM Group to be exported.
     Export:
-      Name: DevelopersIAMGroupARN
+      Name: SampleDevelopersIAMGroupArn
     Value: !GetAtt DevelopersIAMGroup.Arn
   CodeDeployRoleARN:
-    Description: The ARN of the Developers IAM Group to be exported.
+    Description: The ARN of the CodeDeploy Service Role Arn to be exported.
     Export:
       Name: CodeDeployRoleARN
     Value: !GetAtt CodeDeployServiceRole.Arn

@@ -9,6 +9,7 @@ Upon stack deletion the default VPCs will be recreated.
 - name: expunge-vpc
   type:
     source:
+      name: codecommit
       account_id: 111111111111
     build:
       name: codebuild
@@ -17,6 +18,6 @@ Upon stack deletion the default VPCs will be recreated.
   params:
     - restart_execution_on_update: true
   targets:
-    - path: [/test]
+    - path: /test
       name: test-deployments
 ```

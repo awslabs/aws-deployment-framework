@@ -2,9 +2,13 @@
 
 - [Src Folder](#src-folder)
 - [adfconfig](#adfconfig)
-- [Accounts](#accounts)
+  - [Roles](#roles)
+  - [Regions](#regions)
+  - [Config](#config)
+- [Accounts](#Accounts)
   - [Master](#master-account)
   - [Deployment](#deployment-account)
+    - [Default Deployment Account Region](#default-deployment-account-region)
   - [Bootstrapping](#bootstrapping-accounts)
     - [Bootstrapping Overview](#bootstrapping-overview)
     - [Bootstrapping Inheritance](#bootstrapping-inheritance)
@@ -14,22 +18,18 @@
 - [Service Control Policies](#service-control-policies)
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
-  - [Pipeline Types](#pipeline-types)
   - [Chaining Pipelines](#chaining-pipelines)
-- [Default Deployment Account Region](#default-deployment-account-region)
 - [Integrating Slack](#integrating-slack)
 - [Updating Between Versions](#updating-between-versions)
 - [Removing ADF](#removing-adf)
 
-
 ## Src Folder
 
-The `src` folder contains a nesting of folders that go on to make two different git repositories. One of the repositories *(bootstrap)* lives on your AWS Master Account and is responsible for holding bootstrap AWS CloudFormation templates for your Organization that are used for bootstrapping AWS Accounts, these templates are automatically applied to accounts within specific AWS Organizations Organizational Units. The other repository *(pipelines)* lives on your *deployment* account and holds the various definitions and configuration that are used to facilitate deploying your applications and resources across many AWS Account and Regions. These two repositories will be automatically committed to AWS CodeCommit with the initial starting content as part of the initial deployment of ADF. From there, you can clone the repositories and work on alter the configuration in them as desired.
-
+The `src` folder contains a nesting of folders that go on to make two different git repositories. One of the repositories *(bootstrap)* lives on your AWS Master Account and is responsible for holding bootstrap AWS CloudFormation templates for your Organization that are used for setting up AWS Accounts with a foundation of resources to suit your needs. These templates are automatically applied to AWS accounts within specific AWS Organizations Organizational Units. The other repository *(pipelines)* lives on your *deployment* account and holds the various definitions that are used to facilitate deploying your applications and resources across many AWS Account and Regions. These two repositories will be automatically committed to AWS CodeCommit with the initial starting content as part of the initial deployment of ADF. From there, you can clone the repositories and extend the example definitions in them as desired.
 
 ## adfconfig
 
-The `adfconfig.yml` file resides on the [Master Account](#master-account) and defines the general high level configuration for the AWS Deployment Framework. These values from the value are synced into AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents. When you install ADF via the Serverless Application Repository, some of the information entered in the parameters will be passed into the *adfconfig.yml* that is committed to the bootstrap repository as a starting point, you can always edit it and push it back into the bootstrap repository to update any values.
+The `adfconfig.yml` file resides on the [Master Account](#master-account) CodeCommit Repository *(in us-east-1)* and defines the general high level configuration for the AWS Deployment Framework. These values from the value are synced into AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents. When you install ADF via the Serverless Application Repository, some of the information entered in the parameters will be passed into the *adfconfig.yml* that is committed to the bootstrap repository as a starting point, you can always edit it and push it back into the bootstrap repository to update any values.
 
 ```yaml
 roles:
@@ -84,6 +84,10 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 ### Deployment Account
 
 The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map. The Deployment account holds the [deployment_map.yml](#deployment_map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment_map.yml` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
+
+#### Default Deployment Account Region
+
+The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline_types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the region that you would consider your default region of choice when deploying resources in AWS.
 
 ### Bootstrapping Accounts
 
@@ -310,11 +314,7 @@ Service control policies *(SCPs)* are one type of policy that you can use to man
 SCPs are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the SCPs.
 
 
-### Default Deployment Account Region
-
-The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline_types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the region that you would consider your default region of choice when deploying resources in AWS.
-
-### Integrating Slack
+## Integrating Slack
 
 The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account with the type of 'Other' *(eg API Key)*. Give the Secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Secrets Manager as `/adf/slack/team-bugs`.
 
@@ -337,13 +337,13 @@ pipelines:
         name: omg_production
 ```
 
-### Updating Between Versions
+## Updating Between Versions
 
 To update ADF between releases, open the Serverless Application Repository *(SAR)* on the master account in **us-east-1**. From here, search for *adf* and click deploy. During an update of ADF there is no need to pass in any parameters other than the defaults *(granted you used the defaults to deploy initially)*.
 
 This will cause your *serverlessrepo-aws-deployment-framework* stack to update with any new changes that were included in that release of ADF. However, there might be changes to some of the foundational aspects of ADF and how it works *(eg CDK Constructs)*, because of this, there might be changes to the files that live within the *bootstrap* repository in your AWS account. To do this, AWS CloudFormation will run the *InitialCommit* Custom CloudFormation resource when updating via the SAR, this resource will open a pull request against the current *master* branch on the *bootstrap* repository with a set of changes that you can optionally choose to merge. If those changes are merged into master, the bootstrap pipeline will run to finalize the update to the latest version.
 
-### Removing ADF
+## Removing ADF
 
 If you wish to remove ADF you can delete the CloudFormation stack named *serverlessrepo-aws-deployment-framework* within on the master account in the us-east-1 region. This will move into a DELETE_FAILED at some stage because there is an S3 Bucket that is created via a custom resource *(cross region)*. After it moves into DELETE_FAILED, you can right-click on the stack and hit delete again while selecting to skip the Bucket the stack will successfully delete, you can then manually delete the bucket and its contents. After the main stack has been removed you can remove the base stack in the deployment account *adf-global-base-deployment* and any associated regional deployment account base stacks. After you have deleted these stacks, you can manually remove any base stacks from accounts that were bootstrapped. Alternatively prior to removing the initial *serverlessrepo-aws-deployment-framework* stack, you can set the *moves* section of the *adfconfig.yml* file to *remove-base* which would automatically clean up the base stack when the account is moved to the Root of the AWS Organization.
 
