@@ -20,8 +20,6 @@ class Pipeline:
         self.notification_endpoint = self.parameters.get('notification_endpoint', None)
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
-        # self.deployment_role = pipeline.get('deployment_role', None)
-        # self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.schedule = self.parameters.get('schedule', {})
         self.contains_transform = pipeline.get('contains_transform', '')
@@ -51,7 +49,7 @@ class Pipeline:
         with open(output_path, 'w') as file_handler:
             file_handler.write(output_template)
 
-    def _input_type_validation(self, params):
+    def _input_type_validation(self, params): #pylint: disable=R0201
         if not params.get('type', {}):
             params['type'] = {}
         if params.get('type', {}).get('source', {}).get('name') == 'codecommit':

@@ -1,16 +1,11 @@
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Construct related to CloudFormation Input
+"""
+
 import os
 from aws_cdk import (
-    aws_codepipeline as _codepipeline,
-    aws_codepipeline_actions as _codepipeline_actions,
-    aws_codecommit as _codecommit,
-    aws_codebuild as _codebuild,
-    aws_s3 as _s3,
-    aws_iam as _iam,
-    aws_kms as _kms,
-    aws_ssm as _ssm,
     core
 )
 
@@ -21,7 +16,7 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
 class CloudFormation(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, **kwargs): #pylint: disable=W0622, W0235
         super().__init__(scope, id, **kwargs)
 
     @staticmethod

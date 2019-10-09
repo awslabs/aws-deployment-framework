@@ -5,8 +5,6 @@
 The Account handler that is called when ADF is installed to initially create the deployment account if required
 """
 
-import os
-
 try:
     from main import lambda_handler # pylint: disable=unused-import
 except Exception as err: # pylint: disable=broad-except

@@ -1,6 +1,9 @@
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Construct related to CodePipeline Action Input
+"""
+
 import os
 import json
 
@@ -58,7 +61,7 @@ class Action:
             except AssertionError as _none_prop:
                 raise InvalidConfigError("{0} has an invalid value of {1}".format(_prop[0], _prop[1])) from None
 
-    def _generate_configuration(self):
+    def _generate_configuration(self): #pylint: disable=R0912, R0911
         if self.provider == "Manual" and self.category == "Approval":
             _props = {
                 "CustomData": self.target.get('type', {}).get('approval', {}).get('message') or "Approval stage for {0}".format(self.map_params['name'])
@@ -107,13 +110,24 @@ class Action:
             if self.map_params.get('type', {}).get('build', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
                 _props["TemplatePath"] = "{0}-build::template_{1}.yml".format(self.map_params['name'], self.region)
             else:
-                _props["TemplatePath"] = self.target.get('type', {}).get('deploy', {}).get('template_filename') or self.map_params.get('type', {}).get('deploy', {}).get('template_filename') or "{0}-build::template.yml".format(self.map_params['name'])
+                _props["TemplatePath"] = self.target.get(
+                    'type', {}).get(
+                        'deploy', {}).get(
+                            'template_filename') or self.map_params.get(
+                                'type', {}).get(
+                                    'deploy', {}).get(
+                                        'template_filename') or "{0}-build::template.yml".format(
+                                            self.map_params['name'])
             if self.target.get('type', {}).get('deploy', {}).get('outputs'):
                 _props['OutputFileName'] = '{0}.json'.format(self.target['type']['deploy']['outputs'])
             if self.target.get('type', {}).get('deploy', {}).get('param_overrides'):
                 _overrides = {}
                 for override in self.target.get('type', {}).get('deploy', {}).get('param_overrides', []):
-                    _overrides["{0}".format(override['param'])] = {"Fn::GetParam": ["{0}".format(override['inputs']), "{0}.json".format(override['inputs']), "{0}".format(override['key_name'])]}
+                    _overrides["{0}".format(
+                        override['param'])] = {"Fn::GetParam": ["{0}".format(
+                            override['inputs']), "{0}.json".format(
+                                override['inputs']), "{0}".format(
+                                    override['key_name'])]}
                 _props['ParameterOverrides'] = json.dumps(_overrides)
             return _props
         if self.provider == "Jenkins":
@@ -129,12 +143,22 @@ class Action:
         if self.provider == "ServiceCatalog":
             return {
                 "ConfigurationFilePath": self.target.get('type', {}).get('deploy', {}).get('configuration_file_path') or "params/{0}_{1}.json".format(self.target['name'], self.region),
-                "ProductId": self.target.get('type', {}).get('deploy', {}).get('product_id') or self.map_params['type']['deploy'].get('product_id') # product_id is required for Service Catalog, meaning the product must already exist.
+                "ProductId": self.target.get(
+                    'type', {}).get(
+                        'deploy', {}).get(
+                            'product_id') or self.map_params['type']['deploy'].get(
+                                'product_id') # product_id is required for Service Catalog, meaning the product must already exist.
             }
         if self.provider == "CodeDeploy":
             return {
                 "ApplicationName": self.map_params.get('type', {}).get('deploy', {}).get('application_name', {}) or self.target.get('type', {}).get('deploy', {}).get('application_name'),
-                "DeploymentGroupName": self.map_params.get('type', {}).get('deploy', {}).get('deployment_group_name', {}) or self.target.get('type', {}).get('deploy', {}).get('deployment_group_name')
+                "DeploymentGroupName": self.map_params.get(
+                    'type', {}).get(
+                        'deploy', {}).get(
+                            'deployment_group_name', {}) or self.target.get(
+                                'type', {}).get(
+                                    'deploy', {}).get(
+                                        'deployment_group_name')
             }
         if self.provider == "CodeCommit":
             return {
@@ -144,7 +168,7 @@ class Action:
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
-    def _generate_codepipeline_access_role(self):
+    def _generate_codepipeline_access_role(self): #pylint: disable=R0911
         if self.provider == "CodeCommit":
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['type']['source']['account_id'])
         if self.provider == "CodeBuild":
@@ -168,6 +192,7 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "Manual":
             return None
+        raise Exception('Invalid Provider {0}'.format(self.provider))
 
     def generate(self):
         _role = self._generate_codepipeline_access_role()
@@ -246,9 +271,9 @@ class Pipeline(core.Construct):
         'SendSlackNotificationLambdaArn'
     ]
 
-    def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
-        [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns()
+        [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns() #pylint: disable=W0632
         _pipeline_args = {
             "role_arn": _codepipeline_role_arn,
             "restart_execution_on_update": map_params.get('restart_execution_on_update', False),
@@ -262,7 +287,13 @@ class Pipeline(core.Construct):
             **_pipeline_args
         )
         adf_events.Events(self, 'events', {
-            "pipeline": 'arn:aws:codepipeline:{0}:{1}:{2}'.format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, "{0}{1}".format(os.environ.get("ADF_PIPELINE_PREFIX"), map_params['name'])),
+            "pipeline": 'arn:aws:codepipeline:{0}:{1}:{2}'.format(
+                ADF_DEPLOYMENT_REGION,
+                ADF_DEPLOYMENT_ACCOUNT_ID,
+                "{0}{1}".format(
+                    os.environ.get(
+                        "ADF_PIPELINE_PREFIX"),
+                    map_params['name'])),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
             "completion_trigger": map_params.get('completion_trigger'),

@@ -11,36 +11,36 @@ target_is_approval = {
     'name': 'approval',
     'id': 'approval',
     'path': '/thing/path',
+    'change_set': None,
     'regions': ['region1', 'region2'],
-    'step_name': '',
-    'params': {}
+    'step': {}
 }
 
 create_target_info_default = {
     'name': 'account_name',
     'id': 12345678910,
     'path': '/thing/path',
+    'change_set': None,
     'regions': ['region1', 'region2'],
-    'step_name': '',
-    'params': {}
+    'step': {}
 }
 
 create_target_info_regex_applied = {
     'name': 'accountname',
     'id': 12345678910,
     'path': '/thing/path',
+    'change_set': None,
     'regions': ['region1', 'region2'],
-    'step_name': '',
-    'params': {}
+    'step': {}
 }
 
 target_output = {
     'name': 'string',
     'id': 'fake',
     'path': '/thing/path',
+    'change_set': None,
     'regions': ['region1', 'region2'],
-    'step_name': '',
-    'params': {}
+    'step': {}
 }
 
 organizations_describe_account = {

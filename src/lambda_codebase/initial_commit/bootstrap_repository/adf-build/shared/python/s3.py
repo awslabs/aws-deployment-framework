@@ -59,7 +59,7 @@ class S3:
                 LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", file_path, key, self.bucket, self.region)
                 self.resource.Object(self.bucket, key).put(Body=open(file_path, 'rb'))
             finally:
-                return self.build_pathing_style(style, key)
+                return self.build_pathing_style(style, key) #pylint: disable=W0150
         self.resource.Object(self.bucket, key).put(Body=open(file_path, 'rb'))
         return self.build_pathing_style(style, key)
 

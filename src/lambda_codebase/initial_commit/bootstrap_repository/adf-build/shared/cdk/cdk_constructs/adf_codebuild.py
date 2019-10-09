@@ -1,16 +1,15 @@
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Construct related to CodeBuild Input
+"""
+
 import os
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
-    aws_codepipeline_actions as _codepipeline_actions,
-    aws_codecommit as _codecommit,
     aws_codebuild as _codebuild,
-    aws_s3 as _s3,
     aws_iam as _iam,
     aws_kms as _kms,
-    aws_ssm as _ssm,
     core
 )
 
@@ -20,7 +19,7 @@ ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 class CodeBuild(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/adf-codebuild-role'.format(ADF_DEPLOYMENT_ACCOUNT_ID)
         ADF_DEFAULT_BUILD_TIMEOUT = 20
@@ -32,7 +31,13 @@ class CodeBuild(core.Construct):
             ) if target.get('type', {}).get('deploy', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('type', {}).get('deploy', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=target.get('type', {}).get('deploy', {}).get('image') or getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
+                build_image=target.get(
+                    'type', {}).get(
+                        'deploy', {}).get(
+                            'image') or getattr(
+                                _codebuild.LinuxBuildImage,
+                                map_params['type']['build'].get(
+                                    'image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
                 compute_type=target.get('type', {}).get('deploy', {}).get('compute_type') or getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
                 privileged=target.get('type', {}).get('deploy', {}).get('privileged', False) or map_params['type']['build'].get('privileged', False)

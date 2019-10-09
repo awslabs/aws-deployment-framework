@@ -1,8 +1,10 @@
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Construct related to Notifications Codepipeline Input
+"""
+
 import os
-from logger import configure_logger
 from aws_cdk import (
     aws_lambda as _lambda,
     aws_sns as _sns,
@@ -10,6 +12,7 @@ from aws_cdk import (
     aws_lambda_event_sources as _event_sources,
     core
 )
+from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
@@ -17,7 +20,7 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 LOGGER = configure_logger(__name__)
 
 class Notifications(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         LOGGER.debug('Notification configuration required for %s', map_params['name'])
         _slack_func = _lambda.Function.from_function_arn(

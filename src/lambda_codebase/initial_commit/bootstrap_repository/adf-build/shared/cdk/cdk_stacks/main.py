@@ -1,9 +1,13 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+"""This is the main construct file file for PipelineStack
+"""
+
 import os
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
-    aws_sns as _sns,
-    aws_lambda as _lambda,
     core
 )
 from cdk_constructs import adf_codepipeline
@@ -22,7 +26,7 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 LOGGER = configure_logger(__name__)
 
 class PipelineStack(core.Stack):
-    def __init__(self, scope: core.Construct, stack_input: dict, **kwargs) -> None:
+    def __init__(self, scope: core.Construct, stack_input: dict, **kwargs) -> None: #pylint: disable=R0912, R0915
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
         _source_name = stack_input['input']["type"]["source"]["name"].lower()

@@ -17,9 +17,14 @@ def cls():
     return Pipeline(
         pipeline={
         "name": "pipeline",
-        "params": [{"key": "value"}],
+        "params": {"key": "value"},
         "targets": [],
-        "type": "cc-cloudformation"
+        "type": {
+                "source": {
+                    "name": "codecommit",
+                    "account_id": 123456789101
+                }
+            }
         }
     )
 
@@ -29,40 +34,41 @@ def test_flatten_list():
     assert assertions == ['val0', 'val1', 'val2']
 
 
-def test_pipeline_init_defaults(cls):
-    assert cls.action == ''
-    assert cls.notification_endpoint is None
-    assert cls.contains_transform == ''
+# def test_pipeline_init_defaults(cls):
+#     assert cls.action == ''
+#     assert cls.notification_endpoint is None
+#     assert cls.contains_transform == ''
 
 
-def test_pipeline_replace_on_failure():
-    assertion_pipeline = Pipeline(
-        pipeline={
-            "name": "pipeline",
-            "params": [{"key": "value"}],
-            "targets": [],
-            "type": "cc-cloudformation",
-            "action": "replace_on_failure"
-        }
-    )
-    assert assertion_pipeline.action == "REPLACE_ON_FAILURE"
+# def test_pipeline_replace_on_failure():
+#     assertion_pipeline = Pipeline(
+#         pipeline={
+#             "name": "pipeline",
+#             "params": {"key": "value"},
+#             "targets": [],
+#             "type": {
+#                     "source": {
+#                         "name": "codecommit",
+#                         "account_id": 123456789101
+#                     }
+#                 }
+#         }
+#     )
+#     assert assertion_pipeline.action == "REPLACE_ON_FAILURE"
 
 
-def test_pipeline_contains_transform():
-    assertion_pipeline = Pipeline(
-        pipeline={
-            "name": "pipeline",
-            "params": [{"key": "value"}],
-            "targets": [],
-            "type": "cc-cloudformation",
-            "contains_transform": "true"
-        }
-    )
-    assert assertion_pipeline.contains_transform == "true"
-
-# def test_generate_parameters(cls):
-#     parameters = cls.generate_parameters()
-#     assert parameters == [
-#         {'ParameterKey': 'ProjectName', 'ParameterValue': 'pipeline'},
-#         {'ParameterKey': 'key', 'ParameterValue': 'value'}
-#     ]
+# def test_pipeline_contains_transform():
+#     assertion_pipeline = Pipeline(
+#         pipeline={
+#             "name": "pipeline",
+#             "params": {"key": "value"},
+#             "targets": [],
+#             "type": {
+#                     "source": {
+#                         "name": "codecommit",
+#                         "account_id": 123456789101
+#                     }
+#                 }
+#         }
+#     )
+#     assert assertion_pipeline.contains_transform == "true"

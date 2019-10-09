@@ -1,13 +1,16 @@
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Construct related to Events Input
+"""
+
+
 import os
 from aws_cdk import (
     aws_events as _events,
     aws_events_targets as _targets,
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
-    aws_iam as _iam,
     core
 )
 
@@ -17,7 +20,7 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 
 class Events(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):
+    def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')

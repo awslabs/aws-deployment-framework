@@ -31,19 +31,14 @@ def test_validate_invalid_no_content(cls):
     with raises(InvalidDeploymentMapError):
         cls._validate()
 
-def test_validate_deployment_leading_zero(cls):
-    cls._validate()
-    target_pipeline = [i for i in cls.map_contents['pipelines'] if i.get('name') == 'some-thing'][0]['targets']
-    assert '013456789101' in target_pipeline
-
 def test_validate_path_only(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something"}]}]}
     assert cls._validate() == None
 
-def test_validate_invalid_paths(cls):
-    cls.map_contents = {"pipelines": [{"targets": [{"paths": "/something", "regions": 'eu-west-1'}]}]}
-    with raises(InvalidDeploymentMapError):
-        cls._validate()
+# def test_validate_invalid_paths(cls):
+#     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "regions": 'eu-west-1'}]}]}
+#     with raises(InvalidDeploymentMapError):
+#         cls._validate()
 
 def test_update_deployment_parameters(cls):
     cls.parameter_store = Mock()
@@ -51,9 +46,14 @@ def test_update_deployment_parameters(cls):
 
     pipeline = Pipeline({
         "name": "pipeline",
-        "params": [{"key": "value"}],
+        "params": {"key": "value"},
         "targets": [],
-        "pipeline_type": "some_type"
+        "type": {
+                "source": {
+                    "name": "codecommit",
+                    "account_id": 123456789101
+                }
+            }
     })
     pipeline.template_dictionary = {
         "targets": [[{"name": "some_pipeline", "path": "/fake/path"}]]

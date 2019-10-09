@@ -12,7 +12,6 @@ import json
 from thread import PropagatingThread
 import boto3
 
-from s3 import S3
 from pipeline import Pipeline
 from repo import Repo
 from rule import Rule
@@ -32,7 +31,6 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
-S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
@@ -99,21 +97,21 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
-def upload_pipeline(s3, pipeline, file_name):
-    """
-    Responsible for uploading the object (global.yml) to S3
-    and returning the URL that can be referenced in the CloudFormation
-    create_stack call.
-    """
-    s3_object_path = s3.put_object(
-        "pipelines/{0}/global.yml".format(
-            pipeline.name), "{0}/{1}.template.json".format(
-                'cdk.out',
-                file_name
-            )
-        )
-    LOGGER.debug('Uploaded Pipeline Template %s to S3', s3_object_path)
-    return s3_object_path
+# def upload_pipeline(s3, pipeline, file_name):
+#     """
+#     Responsible for uploading the object (global.yml) to S3
+#     and returning the URL that can be referenced in the CloudFormation
+#     create_stack call.
+#     """
+#     s3_object_path = s3.put_object(
+#         "pipelines/{0}/global.yml".format(
+#             pipeline.name), "{0}/{1}.template.json".format(
+#                 'cdk.out',
+#                 file_name
+#             )
+#         )
+#     LOGGER.debug('Uploaded Pipeline Template %s to S3', s3_object_path)
+#     return s3_object_path
 
 
 def fetch_required_ssm_params(regions):
@@ -128,7 +126,7 @@ def fetch_required_ssm_params(regions):
             output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
     return output
 
-def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+def worker_thread(p, organizations, auto_create_repositories, deployment_map, parameter_store):
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
     if auto_create_repositories == 'enabled':
@@ -185,10 +183,10 @@ def main():
         parameter_store,
         ADF_PIPELINE_PREFIX
     )
-    s3 = S3(
-        DEPLOYMENT_ACCOUNT_REGION,
-        S3_BUCKET_NAME
-    )
+    # s3 = S3(
+    #     DEPLOYMENT_ACCOUNT_REGION,
+    #     S3_BUCKET_NAME
+    # )
     sts = STS()
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}-readonly'.format(
@@ -216,7 +214,6 @@ def main():
             p,
             organizations,
             auto_create_repositories,
-            s3,
             deployment_map,
             parameter_store
         ))
