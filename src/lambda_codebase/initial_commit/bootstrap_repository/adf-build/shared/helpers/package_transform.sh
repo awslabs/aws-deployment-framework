@@ -20,12 +20,14 @@ regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | s
 for region in $regions
 do
     # Check if the package command actually needs to be run, only needed if there is a Transform
-    if grep -q Transform: "$CODEBUILD_SRC_DIR/template.yml"; then
+    if [ "${CONTAINS_TRANSFORM}" == "true" ]; then
+        echo "Packaging templates for region $region"
         ssm_bucket_name="/cross_region/s3_regional_bucket/$region"
         bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`
         sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
     else
         # If package is not needed, just copy the file for each region
+        echo "Copying template for region $region"
         cp $CODEBUILD_SRC_DIR/template.yml $CODEBUILD_SRC_DIR/template_$region.yml
     fi
 done
