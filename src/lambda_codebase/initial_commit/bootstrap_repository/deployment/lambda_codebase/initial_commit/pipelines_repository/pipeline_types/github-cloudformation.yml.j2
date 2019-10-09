@@ -227,6 +227,7 @@ Resources:
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: "alias/aws/sns"
       Subscription:
 {% if "@" in notification_endpoint %}
         - Endpoint: !Ref NotificationEndpoint
