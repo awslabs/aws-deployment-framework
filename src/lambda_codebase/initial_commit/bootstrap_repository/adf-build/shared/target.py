@@ -109,4 +109,4 @@ class Target():
         if (str(self.path)).startswith('/'):
             return self._target_is_ou_path()
 
-        raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))
+        raise InvalidDeploymentMapError("Unknown definition for target: {0}".format(self.path))
