@@ -116,5 +116,5 @@ class Target():
         if (str(self.path)).startswith('/'):
             return self._target_is_ou_path()
         if self.path is None:
-            return self._target_is_null_path() # No path/target has been passed
+            return self._target_is_null_path() # No path/target has been passed, path will default to /deployment
         raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))
