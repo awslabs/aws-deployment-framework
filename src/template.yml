@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: ../docs/serverless-application-repo.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 6.0.15
+    SemanticVersion: 6.0.16
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Parameters:
   CrossAccountAccessRoleName:
@@ -176,7 +176,7 @@ Resources:
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -197,7 +197,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -218,7 +218,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
@@ -237,7 +237,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -256,7 +256,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -275,7 +275,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: !Ref TerminationProtection
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 6.0.15
+          ADF_VERSION: 6.0.16
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -414,7 +414,7 @@ Resources:
         Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 6.0.15
+            Value: 6.0.16
           - Name: TERMINATION_PROTECTION
             Value: !Ref TerminationProtection
           - Name: PYTHONPATH
@@ -652,7 +652,7 @@ Resources:
     Type: Custom::InitialCommit
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 6.0.15
+      Version: 6.0.16
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
@@ -825,7 +825,7 @@ Resources:
       Timeout: 300
 Outputs:
   ADFVersionNumber:
-    Value: 6.0.15
+    Value: 6.0.16
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

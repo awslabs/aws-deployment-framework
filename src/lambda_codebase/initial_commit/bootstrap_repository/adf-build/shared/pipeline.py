@@ -22,7 +22,6 @@ class Pipeline:
         self.top_level_regions = pipeline.get('regions', [])
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.schedule = self.parameters.get('schedule', {})
-        self.contains_transform = pipeline.get('contains_transform', '')
         if not isinstance(self.completion_trigger.get('pipelines', []), list):
             self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
         if not isinstance(self.top_level_regions, list):
@@ -76,7 +75,6 @@ class Pipeline:
             "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
             "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),
             "deployment_account_region": DEPLOYMENT_ACCOUNT_REGION,
-            "contains_transform": self.contains_transform,
             "completion_trigger": self.completion_trigger,
             "schedule": self.schedule
         })
