@@ -58,7 +58,7 @@ class CloudFormation(core.Construct):
                     category="Deploy",
                     region=region,
                     target=target,
-                    run_order=3 if target.get('type', {}).get('deploy', {}).get('change_set_approval') else 2,
+                    run_order=3 if target.get('properties', {}).get('change_set_approval') else 2,
                     action_mode="CHANGE_SET_EXECUTE",
                     map_params=map_params,
                     action_name="{0}-{1}-execute".format(target['name'], region)

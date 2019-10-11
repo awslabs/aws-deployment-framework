@@ -35,11 +35,6 @@ def test_validate_path_only(cls):
     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something"}]}]}
     assert cls._validate() == None
 
-# def test_validate_invalid_paths(cls):
-#     cls.map_contents = {"pipelines": [{"targets": [{"path": "/something", "regions": 'eu-west-1'}]}]}
-#     with raises(InvalidDeploymentMapError):
-#         cls._validate()
-
 def test_update_deployment_parameters(cls):
     cls.parameter_store = Mock()
     cls.parameter_store.put_parameter.return_value = None
@@ -48,12 +43,14 @@ def test_update_deployment_parameters(cls):
         "name": "pipeline",
         "params": {"key": "value"},
         "targets": [],
-        "type": {
-                "source": {
-                    "name": "codecommit",
+        "default_providers": {
+            "source": {
+                "name": "codecommit",
+                "properties" : {
                     "account_id": 123456789101
                 }
             }
+        }
     })
     pipeline.template_dictionary = {
         "targets": [[{"name": "some_pipeline", "path": "/fake/path"}]]

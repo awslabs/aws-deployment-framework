@@ -27,23 +27,28 @@ class CodeBuild(core.Construct):
         if target:
             _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
                 ADF_DEPLOYMENT_ACCOUNT_ID,
-                target.get('type', {}).get('deploy', {}).get('role')
-            ) if target.get('type', {}).get('deploy', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
-            _timeout = target.get('type', {}).get('deploy', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
+                target.get('properties', {}).get('role')
+            ) if target.get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
+            _timeout = target.get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
                 build_image=target.get(
-                    'type', {}).get(
-                        'deploy', {}).get(
-                            'image') or getattr(
-                                _codebuild.LinuxBuildImage,
-                                map_params['type']['build'].get(
+                    'properties', {}).get(
+                        'image') or getattr(
+                            _codebuild.LinuxBuildImage,
+                            map_params['default_providers']['build'].get(
+                                'properties', {}).get(
                                     'image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
-                compute_type=target.get('type', {}).get('deploy', {}).get('compute_type') or getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
+                compute_type=target.get(
+                    'properties', {}).get(
+                        'size') or getattr(
+                            _codebuild.ComputeType, map_params['default_providers']['build'].get(
+                                'properties', {}).get(
+                                    'size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
-                privileged=target.get('type', {}).get('deploy', {}).get('privileged', False) or map_params['type']['build'].get('privileged', False)
+                privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
             # Core difference from CodeBuild as deployment as opposed to build is we allow the buildspec file to be passed in dynamically
-            _spec = map_params['type']['deploy'].get('spec') or target.get('type', {}).get('deploy', {}).get('spec') or 'deployspec.yml'
+            _spec = map_params['default_providers']['deploy'].get('properties', {}).get('spec_filename') or target.get('properties', {}).get('spec_filename') or 'deployspec.yml'
             _codebuild.PipelineProject(
                 self,
                 'project',
@@ -67,16 +72,16 @@ class CodeBuild(core.Construct):
         else:
             _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
                 ADF_DEPLOYMENT_ACCOUNT_ID,
-                map_params['type']['build'].get('role')
-            ) if map_params['type']['build'].get('role') else ADF_DEFAULT_BUILD_ROLE
-            _timeout = map_params['type']['build'].get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
+                map_params['default_providers']['build'].get('properties', {}).get('role')
+            ) if map_params['default_providers']['build'].get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
+            _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=getattr(_codebuild.LinuxBuildImage, map_params['type']['build'].get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
-                compute_type=getattr(_codebuild.ComputeType, map_params['type']['build'].get('size', "SMALL").upper()),
+                build_image=getattr(_codebuild.LinuxBuildImage, map_params['default_providers']['build'].get('properties', {}).get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
+                compute_type=getattr(_codebuild.ComputeType, map_params['default_providers']['build'].get('properties', {}).get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
-                privileged=map_params['type']['build'].get('privileged', False)
+                privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
-            if map_params['type']['build'].get('role'):
+            if map_params['default_providers']['build'].get('properties', {}).get('role'):
                 ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['type']['build']['role'])
             _codebuild.PipelineProject(
                 self,
@@ -86,7 +91,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(map_params['name']),
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
-                build_spec=None if not map_params['type']['build'].get('inline_spec') else _codebuild.BuildSpec.from_object(map_params['type']['build'].get('inline_spec')),
+                build_spec=None if not map_params['default_providers']['build'].get('properties', {}).get('inline_spec') else _codebuild.BuildSpec.from_object(map_params['default_providers']['build'].get('properties', {}).get('inline_spec')),
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -111,15 +116,16 @@ class CodeBuild(core.Construct):
             "S3_BUCKET_NAME": codebuild.BuildEnvironmentVariable(value=shared_modules_bucket),
             "ACCOUNT_ID": codebuild.BuildEnvironmentVariable(value=core.Aws.ACCOUNT_ID)
         }
-        _build_env_vars = map_params.get('type', {}).get('build', {}).get('environment_variables', {})
+        _build_env_vars = map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {})
         for _env_var in _build_env_vars.items():
             _output[_env_var[0]] = codebuild.BuildEnvironmentVariable(value=str(_env_var[1]))
         if target:
-            _target_env_vars = target.get('type', {}).get('build', {}).get('environment_variables', {})
+            _target_env_vars = target.get('properties', {}).get('properties', {}).get('environment_variables', {})
             for _target_env_var in _target_env_vars.items():
                 _output[_target_env_var[0]] = codebuild.BuildEnvironmentVariable(value=_target_env_var[1])
             _output["TARGET_NAME"] = codebuild.BuildEnvironmentVariable(value=target['name'])
             _output["TARGET_ACCOUNT_ID"] = codebuild.BuildEnvironmentVariable(value=target['id'])
-            if map_params['type']['deploy'].get('role') or target.get('type', {}).get('deploy', {}).get('role'):
-                _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=target['params']['role'])
+            _role = map_params['default_providers']['deploy'].get('properties', {}).get('role') or target.get('properties', {}).get('role')
+            if _role:
+                _output["DEPLOYMENT_ROLE"] = codebuild.BuildEnvironmentVariable(value=_role)
         return _output

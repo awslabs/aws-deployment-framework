@@ -21,7 +21,7 @@ class CodeCommit(core.Construct):
     def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
-            name="Source-{0}".format(map_params.get("type", {}).get("source", {}).get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)),
+            name="Source-{0}".format(map_params.get("default_providers", {}).get("source", {}).get("properties", {}).get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)),
             actions=[
                 Action(
                     name="source",

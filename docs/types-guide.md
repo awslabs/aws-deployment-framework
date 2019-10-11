@@ -7,7 +7,7 @@ Types can be defined at the top level or at a stage level of a pipeline to struc
 ```yaml
 type:
   source:
-    name: codecommit|github|s3|ecr
+    name: codecommit|github|s3
 ```
 
 - **codecommit**
@@ -50,7 +50,7 @@ type:
 - **codebuild**
   - image *(String)*
     > The Image that the AWS CodeBuild will use. Images can be found [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html). Defaults to UBUNTU_14_04_PYTHON_3_7_1.
-  - compute_type *(String)* **(small|medium|large)**
+  - size *(String)* **(small|medium|large)**
     > The Compute type to use for the build, types can be found [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html). Defaults to *small*.
   - environment_variables *(Object)*
     > Any Environment Variables you wish to be available within the build stage for this pipeline. These are to be passed in as Key/Value pairs.
@@ -82,6 +82,8 @@ type:
 - **approval**
   - message *(String)*
       > The Message you would like to include as part of the Approval stage.
+  - notification_endpoint *(String)*
+      > An email or slack channel *(see docs)* that you would like to send the notification to.
   - sns_topic_arn *(String)*
       > Any SNS Topic ARN you would like to receive a notification as part of the Approval stage stage.
 
@@ -90,7 +92,7 @@ type:
 ```yaml
 type:
   deploy:
-    name: cloudformation|codedeploy|s3|codebuild
+    name: cloudformation|codedeploy|s3|service_catalog
 ```
 
 - **cloudformation**
@@ -106,7 +108,7 @@ type:
       > The outputs from the CloudFormation Stack creation. Required if you are using Parameter Overrides as part of the pipeline.
   - change_set_approval - *(Boolean)* **(Stage Level Only)**
       > If the stage should insert a manual approval stage between the creation of the change set and the execution of it.
-  - parameter_overrides - *(List of Objects)* **(Stage Level Only)**
+  - param_overrides - *(List of Objects)* **(Stage Level Only)**
     - inputs *(String)*
       > The input you want to pass into this stage to take a parameter override from.
     - param *(String)*
@@ -130,6 +132,12 @@ type:
     > The Specific Object within the bucket that will trigger the pipeline execution.
   - extract - *(Boolean)*
     > If CodePipeline should extract the contents of the Object when it deploys it.
+
+- **service_catalog**
+  - product_id - *(String)* **(required)**
+    > What is the Product ID of the Service Catalog Product to Deploy.
+  - configuration_file_path - *(String)*
+    > If you wish to pass a custom path to the configuration file path.
 
 ## Invoke
 

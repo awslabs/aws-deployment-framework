@@ -1,38 +1,39 @@
 pipelines:
   - name: sample-iam  # The name of your pipeline (by default, this will match the name of your repository)
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 228171733466
+        provider: codecommit
+        properties:
+          account_id: 228171733466
       build:
-        name: codebuild
+        provider: codebuild
       deploy:
-        name: cloudformation
+        provider: cloudformation
     params:
         notification_endpoint: bundyf@amazon.nl # The Notification (user/team/slack) responsible for this pipeline
         restart_execution_on_update: True
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
       - path: /banking/production
-        type:
-          deploy:
-            stack_name: my-cool-iam-stack # Since no deploy type is defined above this target is assumed type of CloudFormation
-            change_set_approval: True # override deploy action above and insert a approval in between create + execute change set
-      - type:
-          invoke: # https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
-            name: lambda # Since we are Deploying CloudFormation (as defined at top level). We need to override this step to be of type lambda
-            input: {"name": "jon_doe"} # This input will be passed to the function as a string
-            function_name: my_lambda_function
+        properties: 
+          stack_name: my-cool-iam-stack # Since no deploy type is defined above this target is assumed type of CloudFormation
+          change_set_approval: True # override deploy action above and insert a approval in between create + execute change set
+      - provider: lambda
+        properties: # https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
+          input: {"name": "jon_doe"} # This input will be passed to the function as a string
+          function_name: my_lambda_function
 
   - name: ami-builder  # The name of your pipeline (by default, this will match the name of your repository)
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 558421765047
+        provider: codecommit
+        properties:
+          account_id: 558421765047
       build:
-        name: codebuild
-        role: packer
-        size: medium # Resource allocation for the build stage -> small | medium | large 
+        provider: codebuild
+        properties:
+          role: packer
+          size: medium # Resource allocation for the build stage -> small | medium | large 
     params:
       schedule: rate(7 days) # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
     completion_trigger: # What should happen when this pipeline completes
@@ -40,15 +41,18 @@ pipelines:
         - sample-vpc # run this other pipeline
 
   - name: sample-vpc
-    type: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
+    default_providers: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
       source:
-        name: github
-        repository: example-vpc-adf # Optional, above name property will be used if this is not specified
-        owner: bundyfx
-        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+        provider: github
+        properties:
+          repository: example-vpc-adf # Optional, above name property will be used if this is not specified
+          owner: bundyfx
+          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
       deploy:
-        action: replace_on_failure
+        provider: cloudformation
+        properties:
+          action: replace_on_failure
     params:
         notification_endpoint: bundyf@amazon.nl
     targets: # Long hand syntax including regions and names for stages
@@ -57,83 +61,83 @@ pipelines:
 
 
   - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
+        provider: codecommit
+        properties:
+          account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
       deploy:
-        name: codebuild
+        provider: codebuild
     targets: # targets looks for the deploy defaults above to determine parameters
-      - type:
-          deploy:
-            spec: custom-spec-one.yml
-      - type:
-          approval:
-            message: plz approve
-            notification_endpoint: flynn.sbundy@gmail.com # Approvals can have their own unique notification endpoint
-      - type:
-          deploy:
-            spec: custom-spec-two.yml
+      - properties:
+          spec_filename: custom-spec-one.yml
+      - provider: approval
+        properties:
+          message: plz approve
+          notification_endpoint: flynn.sbundy@gmail.com # Approvals can have their own unique notification endpoint
+      - properties:
+          spec_filename: custom-spec-two.yml
 
   - name: sample-ec2-app-codedeploy
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
+        provider: codecommit
+        properties:
+          account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
     targets:
       - 130330464033
 
   - name: sample-ec2-java-app-codedeploy
-    type:
+    default_providers:
       source: 
-        name: codecommit
-        account_id: 558421765047
+        provider: codecommit
+        properties:
+          account_id: 558421765047
       build:
-        name: codebuild
-        image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+        provider: codebuild
+        properties:
+          image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
-        name: codedeploy
+        provider: codedeploy
     params:
         notification_endpoint: deployments
     targets:
       - target: 130330464033
-        type: # These are stage specific parameters for our deploy action
-          deploy:
-            application_name: sample
-            deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+        properties: # These are stage specific properties for our deploy action
+          application_name: sample
+          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 
   - name: sample-input-export-pipeline
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 228171733466
+        provider: codecommit
+        properties:
+          account_id: 228171733466
     targets:
       - target: 130330464033
-        type:
-          deploy:
-            outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
+        properties:
+          outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
       - target: 228171733466
-        type:
-          deploy:
-            param_overrides:
-              - inputs: some_param_outputs # Which file do we want to use to pass in overrides from
-                param: s3_bucket # The name of the parameter you wish to override at this stage
-                output_key: logging_bucket # The key from the output 'some_param_outputs' we want to get the value from
+        properties:
+          param_overrides:
+            - inputs: some_param_outputs # Which file do we want to use to pass in overrides from
+              param: s3_bucket # The name of the parameter you wish to override at this stage
+              key_name: logging_bucket # The key from the output 'some_param_outputs' we want to get the value from
 
   - name: sample-s3-pipeline
-    type:
+    default_providers:
       source:
-        name: s3
-        bucket_name: packer-bundyf
-        object_key: input.zip
-        account_id: 361473679486
+        provider: s3
+        properties:
+          bucket_name: packer-bundyf
+          object_key: input.zip
+          account_id: 361473679486
       build:
         enabled: False # if you wish to disable the build phase in a pipeline
       deploy:
-        name: s3
+        provider: s3
     targets:
       - target: 130330464033
-        type:
-          deploy:
-            bucket_name: test-adf-bucket-eu
-            object_key: output.zip
+        properties:
+          bucket_name: test-adf-bucket-eu
+          object_key: output.zip

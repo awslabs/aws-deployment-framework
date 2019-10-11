@@ -97,23 +97,6 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
-# def upload_pipeline(s3, pipeline, file_name):
-#     """
-#     Responsible for uploading the object (global.yml) to S3
-#     and returning the URL that can be referenced in the CloudFormation
-#     create_stack call.
-#     """
-#     s3_object_path = s3.put_object(
-#         "pipelines/{0}/global.yml".format(
-#             pipeline.name), "{0}/{1}.template.json".format(
-#                 'cdk.out',
-#                 file_name
-#             )
-#         )
-#     LOGGER.debug('Uploaded Pipeline Template %s to S3', s3_object_path)
-#     return s3_object_path
-
-
 def fetch_required_ssm_params(regions):
     output = {}
     for region in regions:
@@ -130,8 +113,8 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
     if auto_create_repositories == 'enabled':
-        code_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
-        has_custom_repo = p.get('type', {}).get('source', {}).get('repository', {})
+        code_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
+        has_custom_repo = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {})
         if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
             repo = Repo(code_account_id, p.get('name'), p.get('description'))
             repo.create_update()
@@ -183,10 +166,6 @@ def main():
         parameter_store,
         ADF_PIPELINE_PREFIX
     )
-    # s3 = S3(
-    #     DEPLOYMENT_ACCOUNT_REGION,
-    #     S3_BUCKET_NAME
-    # )
     sts = STS()
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}-readonly'.format(
@@ -206,9 +185,9 @@ def main():
     for p in deployment_map.map_contents.get('pipelines', []):
         _source_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
         if _source_account_id and int(_source_account_id) != int(DEPLOYMENT_ACCOUNT_ID) and not _cache.check(_source_account_id):
-            rule = Rule(p['type']['source']['account_id'])
+            rule = Rule(p['default_providers']['source']['properties']['account_id'])
             rule.create_update()
-            _cache.add(p['type']['source']['account_id'], True)
+            _cache.add(p['default_providers']['source']['properties']['account_id'], True)
             # TODO else statement to remove events stack if exists
         thread = PropagatingThread(target=worker_thread, args=(
             p,

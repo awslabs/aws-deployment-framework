@@ -13,7 +13,7 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
-        self.type = pipeline.get('type', {})
+        self.default_providers = pipeline.get('default_providers', {})
         self.parameters = pipeline.get('params', {})
         self.input = {}
         self.template_dictionary = {"targets": []}
@@ -49,28 +49,21 @@ class Pipeline:
             file_handler.write(output_template)
 
     def _input_type_validation(self, params): #pylint: disable=R0201
-        if not params.get('type', {}):
-            params['type'] = {}
-        if params.get('type', {}).get('source', {}).get('name') == 'codecommit':
-            if not params.get('type', {}).get('source', {}).get('account_id'):
-                raise Exception('Invalid source configuration, you must specify a source name and account_id property')
-        if not params.get('type', {}).get('source', {}):
-            params['type']['source']['name'] = 'codecommit'
-        if not params.get('type', {}).get('build', {}):
-            params['type']['build'] = {}
-            params['type']['build']['name'] = 'codebuild'
-        if not params.get('type', {}).get('build', {}).get('enabled'):
-            params['type']['build']['name'] = 'codebuild'
-        if not params.get('type', {}).get('deploy', {}):
-            params['type']['deploy'] = {}
-            params['type']['deploy']['name'] = 'cloudformation'
+        if not params.get('default_providers', {}).get('build', {}):
+            params['default_providers']['build'] = {}
+            params['default_providers']['build']['provider'] = 'codebuild'
+        if not params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled'):
+            params['default_providers']['build']['provider'] = 'codebuild'
+        if not params.get('default_providers', {}).get('deploy', {}):
+            params['default_providers']['deploy'] = {}
+            params['default_providers']['deploy']['provider'] = 'cloudformation'
         return params
 
     def generate_input(self):
         self.input = self._input_type_validation({
             "environments": self.template_dictionary,
             "name": self.name,
-            "type": self.type,
+            "default_providers": self.default_providers,
             "notification_endpoint": self.notification_endpoint,
             "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
             "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),

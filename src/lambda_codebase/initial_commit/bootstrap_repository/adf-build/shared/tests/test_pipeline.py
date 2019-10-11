@@ -19,14 +19,15 @@ def cls():
         "name": "pipeline",
         "params": {"key": "value"},
         "targets": [],
-        "type": {
-                "source": {
-                    "name": "codecommit",
+        "default_providers": {
+            "source": {
+                "name": "codecommit",
+                "properties" : {
                     "account_id": 123456789101
                 }
             }
         }
-    )
+    })
 
 
 def test_flatten_list():

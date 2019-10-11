@@ -29,8 +29,8 @@ class PipelineStack(core.Stack):
     def __init__(self, scope: core.Construct, stack_input: dict, **kwargs) -> None: #pylint: disable=R0912, R0915
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
-        _source_name = stack_input['input']["type"]["source"]["name"].lower()
-        _build_name = stack_input['input']["type"]["build"]["name"].lower()
+        _source_name = stack_input['input']["default_providers"]["source"]["provider"].lower()
+        _build_name = stack_input['input']["default_providers"]["build"]["provider"].lower()
         _stages = []
         if stack_input['input'].get('notification_endpoint'):
             stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
@@ -58,7 +58,7 @@ class PipelineStack(core.Stack):
                     stack_input['input']
                 ).source
             )
-        if 'codebuild' in _build_name and stack_input["input"]["type"]["build"].get('enabled', True):
+        if 'codebuild' in _build_name and stack_input["input"]["default_providers"]["build"].get("properties", {}).get('enabled', True):
             _stages.append(
                 adf_codebuild.CodeBuild(
                     self,

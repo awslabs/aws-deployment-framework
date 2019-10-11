@@ -50,7 +50,7 @@ class GitHub(core.Construct):
             filters=[
                 _codepipeline.CfnWebhook.WebhookFilterRuleProperty(
                     json_path="$.ref",
-                    match_equals="refs/heads/{0}".format(map_params.get('type', {}).get('source', {}).get('branch', {}) or 'master')
+                    match_equals="refs/heads/{0}".format(map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master')
                 )
             ],
             target_action="source",

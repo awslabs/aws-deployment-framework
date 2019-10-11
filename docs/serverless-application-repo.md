@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/awslabs/aws-deployment-framework.svg?branch=master)](https://travis-ci.org/awslabs/aws-deployment-framework)
 
-The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framework) *(ADF)* is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions within an AWS Organization. This application should be deployed via the SAR in the master AWS account of your AWS Organization within the **us-east-1** region. For more information on setting up ADF please see the [installation guide](https://github.com/awslabs/aws-deployment-framework/tree/master/docs/installation-guide.md).
+The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framework) *(ADF)* is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions within an AWS Organization. This application should be deployed via the SAR in the **master AWS account** of your AWS Organization within the **us-east-1** region. For more information on setting up ADF please see the [installation guide](https://github.com/awslabs/aws-deployment-framework/tree/master/docs/installation-guide.md).
 
 
 #### Application Name
@@ -13,12 +13,6 @@ The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framewo
 
 #### DeploymentAccountMainRegion
 > The AWS region that will centrally hold all AWS CodePipeline Pipelines. Pipeline deployments can still span multiple regions however they are still stored and viewed from a single region perspective. This would be considered your default ADF AWS Region. *This is not required when performing an update between versions of adf*
-
-#### LogLevel
-> General Logging level output for ADF that will be shown in AWS Lambda and AWS CodeBuild Logs output. *This is not required when performing an update between versions of adf*
-
-#### TerminationProtection
-> Termination Protection can be passed in to enable Protection for all ADF base stacks. *This is not required when performing an update between versions of adf*
 
 ## DeploymentAccount
 > These Parameters are for the initial setup of the Deployment AWS Account. The Deployment account is a centralized AWS account that holds AWS CodePipeline Pipelines that will deploy resources such as Applications or CloudFormation templates into various other AWS Accounts throughout your Organization. The Deployment Account is responsible for all acts of Deployment throughout the organization and acts as a broker between AWS Accounts that might be used for development or storing specific source code and those AWS accounts that exist to run line of business workloads such as Test, Acceptance and Production accounts.
@@ -43,3 +37,10 @@ The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framewo
 
 #### ProtectedOUs
 > An optional comma separated list of OU ids that you may want to protect against having bootstrap stacks applied **(eg ou-123,ou-234)**. *This is not required when performing an update between versions of adf*
+
+
+### What Happens Next?
+
+After hitting **Deploy** the base AWS Deployment Framework CloudFormation stack will be created. This Stack contains a few notable resources such as an AWS CodeCommit Repository along with an associated AWS CodeBuild Project and an AWS CodePipeline Pipeline.
+
+The CodeCommit Repository will have its first commit made to it automatically by the ADF Deployment process. This content is a starting point for using ADF and helps define the bootstrap process for your AWS Ecosystem. Once the initial commit has been made, CodePipeline will run which kicks off AWS CodeBuild to sync the content of the repository with Amazon S3. Once the content is synced, you are then ready to bootstrap your Deployment account by moving it into the deployment OU within AWS Organizations.
