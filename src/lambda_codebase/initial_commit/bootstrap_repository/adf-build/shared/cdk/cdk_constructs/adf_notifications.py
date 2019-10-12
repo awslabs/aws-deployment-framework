@@ -57,7 +57,7 @@ class Notifications(core.Construct):
             source_arn=_topic.topic_arn,
             function_name='SendSlackNotification'
         )
-        _endpoint = map_params.get('notification_endpoint', '')
+        _endpoint = map_params.get('params', {}).get('notification_endpoint', '')
         _sub = _sns.Subscription(
             self,
             'sns_subscription',

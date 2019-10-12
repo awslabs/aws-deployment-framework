@@ -16,10 +16,11 @@ PARAM_SCHEMA = {
     Optional("schedule"): str,
     Optional("restart_execution_on_update"): bool,
 }
+
 # CodeCommit Source
 CODECOMMIT_SOURCE_PROPS = {
-    "account_id": And(Use(int), lambda n: len(str(n)) == 12, error='lol'),
-    Optional("repository"): And(Use(str)),
+    "account_id": Schema(And(Use(int), lambda n: len(str(n)) == 12)),
+    Optional("repository"): str,
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
     Optional("owner"): str,
@@ -29,6 +30,7 @@ CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
     "properties": CODECOMMIT_SOURCE_PROPS
 }
+
 # GitHub Source
 GITHUB_SOURCE_PROPS = {
     Optional("repository"): str,
@@ -41,6 +43,7 @@ GITHUB_SOURCE = {
     "provider": 'github',
     "properties": GITHUB_SOURCE_PROPS
 }
+
 # S3 Source
 S3_SOURCE_PROPS = {
     "account_id": And(Use(int), lambda n: len(str(n)) == 12),
@@ -51,6 +54,7 @@ S3_SOURCE = {
     "provider": 's3',
     "properties": S3_SOURCE_PROPS
 }
+
 # CodeBuild
 CODEBUILD_PROPS = {
     Optional("image"): str,
@@ -71,6 +75,7 @@ STAGE_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',
     Optional("properties"): CODEBUILD_PROPS
 }
+
 # Jenkins
 JENKINS_PROPS = {
     Optional("project_name"): str,
@@ -82,6 +87,7 @@ JENKINS_BUILD = {
     Optional("enabled"): bool,
     Optional("properties"): JENKINS_PROPS
 }
+
 # CloudFormation
 PARAM_OVERRIDE_SCHEMA = {
     "inputs": str,
@@ -100,6 +106,7 @@ CLOUDFORMATION_ACTIONS = Or(
         'delete_only',
         'replace_on_failure'
     )
+
 CLOUDFORMATION_PROPS = {
     Optional("stack_name"): str,
     Optional("template_filename"): str,
@@ -114,6 +121,7 @@ DEFAULT_CLOUDFORMATION_DEPLOY = {
     "provider": 'cloudformation',
     Optional("properties"): CLOUDFORMATION_PROPS
 }
+
 # CodeDeploy
 CODEDEPLOY_PROPS = {
     "application_name": str,
@@ -128,6 +136,7 @@ DEFAULT_CODEDEPLOY_DEPLOY = {
     "provider": 'codedeploy',
     Optional("properties"): CODEDEPLOY_PROPS
 }
+
 # S3
 S3_DEPLOY_PROPS = {
     "bucket_name": str,
@@ -143,6 +152,7 @@ DEFAULT_S3_DEPLOY = {
     "provider": 's3',
     Optional("properties"): S3_DEPLOY_PROPS
 }
+
 # Service Catalog 
 SERVICECATALOG_PROPS = {
     "product_id": str,
@@ -156,6 +166,7 @@ DEFAULT_SERVICECATALOG_DEPLOY = {
     "provider": 'service_catalog',
     Optional("properties"): SERVICECATALOG_PROPS
 }
+
 # Lambda
 LAMBDA_PROPS = {
     "function_name": str,
@@ -170,6 +181,7 @@ DEFAULT_LAMBDA_INVOKE = {
     "provider": 'lambda',
     Optional("properties"): LAMBDA_PROPS
 }
+
 # Approval
 APPROVAL_PROPS = {
     Optional("message"): str,
@@ -180,6 +192,7 @@ DEFAULT_APPROVAL = {
     "provider": 'approval',
     "properties": APPROVAL_PROPS
 }
+
 # Core Schema
 PROVIDER_SCHEMA = {
         'source': Or(CODECOMMIT_SOURCE, GITHUB_SOURCE, S3_SOURCE),
@@ -212,6 +225,11 @@ PIPELINE_SCHEMA = {
 TOP_LEVEL_SCHEMA = {
     "pipelines": [PIPELINE_SCHEMA]
 }
+
 class SchemaValidation:
     def __init__(self, map_input: dict):
         self.validated = Schema(TOP_LEVEL_SCHEMA).validate(map_input)
+
+    @staticmethod
+    def extract_key_from_schema_error(e: SchemaError) -> str:
+        return str(e).split(" ")[1].strip("'")

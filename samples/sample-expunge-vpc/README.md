@@ -7,14 +7,16 @@ Upon stack deletion the default VPCs will be recreated.
 ### Deployment Map Example
 ```yaml
 - name: expunge-vpc
-  type:
+  default_providers:
     source:
-      name: codecommit
-      account_id: 111111111111
+      provider: codecommit
+      properties:
+        account_id: 111111111111
     build:
-      name: codebuild
-      environment_variables:
-        CONTAINS_TRANSFORM: true # Required for templates that contain transforms. (eg SAM Templates)
+      provider: codebuild
+      properties:
+        environment_variables:
+          CONTAINS_TRANSFORM: true # Required for templates that contain transforms. (eg SAM Templates)
   params:
     - restart_execution_on_update: true
   targets:

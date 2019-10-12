@@ -4,10 +4,11 @@
 
 ```yaml
   - name: sample-vpc
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     params:
       restart_execution_on_update: True
     targets:

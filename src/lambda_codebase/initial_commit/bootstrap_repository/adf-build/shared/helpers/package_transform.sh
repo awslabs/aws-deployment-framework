@@ -19,7 +19,7 @@ app_regions=`aws ssm get-parameters --names /deployment/$ADF_PROJECT_NAME/region
 regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g"`"
 for region in $regions
 do
-    if [ "${CONTAINS_TRANSFORM}" == "true" ] || "${CONTAINS_TRANSFORM}" == [ "True" ]; then
+    if [ $CONTAINS_TRANSFORM ]; then
         echo "Packaging templates for region $region"
         ssm_bucket_name="/cross_region/s3_regional_bucket/$region"
         bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`

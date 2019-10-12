@@ -32,7 +32,7 @@ class PipelineStack(core.Stack):
         _source_name = stack_input['input']["default_providers"]["source"]["provider"].lower()
         _build_name = stack_input['input']["default_providers"]["build"]["provider"].lower()
         _stages = []
-        if stack_input['input'].get('notification_endpoint'):
+        if stack_input['input'].get('params', {}).get('notification_endpoint'):
             stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
         if 'codecommit' in _source_name:
             _stages.append(
@@ -79,10 +79,10 @@ class PipelineStack(core.Stack):
             )
         for index, targets in enumerate(stack_input['input'].get('environments', {}).get('targets', [])):
             _actions = []
-            top_level_deployment_type = stack_input['input'].get('deployment_providers', {}).get('deploy', {}).get('provider', '') or 'cloudformation'
-            top_level_action = stack_input['input'].get('deployment_providers', {}).get('deploy', {}).get('properties', {}).get('action', '')
+            top_level_deployment_type = stack_input['input'].get('default_providers', {}).get('deploy', {}).get('provider', '') or 'cloudformation'
+            top_level_action = stack_input['input'].get('default_providers', {}).get('deploy', {}).get('properties', {}).get('action', '')
             for target in targets:
-                if target.get('name') == 'approval' or target.get('properties', {}).get('provider', '') == 'approval':
+                if target.get('name') == 'approval' or target.get('provider', '') == 'approval':
                     _actions.extend([
                         adf_codepipeline.Action(
                             name="{0}".format(target['name']),
@@ -97,7 +97,8 @@ class PipelineStack(core.Stack):
                     continue
                 regions = target.get('regions', [])
                 for region in regions:
-                    target_stage_override = target.get('properties', {}).get('provider') or top_level_deployment_type
+                    print(target)
+                    target_stage_override = target.get('provider') or top_level_deployment_type
                     if 'cloudformation' in target_stage_override:
                         target_approval_mode = target.get('properties', {}).get('change_set_approval', False)
                         _target_action_mode = target.get('properties', {}).get('action')

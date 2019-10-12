@@ -188,7 +188,6 @@ def main():
             rule = Rule(p['default_providers']['source']['properties']['account_id'])
             rule.create_update()
             _cache.add(p['default_providers']['source']['properties']['account_id'], True)
-            # TODO else statement to remove events stack if exists
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,

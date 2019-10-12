@@ -49,10 +49,11 @@ Open your `deployment_map.yml` file *(or create a new one)* and add in the follo
 ```yaml
 pipelines:
   - name: sample-vpc
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     params:
       restart_execution_on_update: True
     targets:
@@ -111,10 +112,11 @@ We can extend our `deployment_map.yml` file to include the new pipeline:
 
 ```yml
   - name: sample-ecr-repository
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     targets:
       - 99999999999 # The Account ID of your Deployment Account
 ```
@@ -139,10 +141,11 @@ Let's add in our ECS Cluster pipeline to our Deployment Map.
 
 ```yml
   - name: sample-ecs-cluster
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     targets:
       - path: /banking/testing
         regions: eu-west-1
@@ -163,16 +166,19 @@ Let's add the pipeline we need into the map once more.
 
 ```yml
   - name: sample-fargate-node-app
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
       build:
-        name: codebuild
-        image: standard_2_0
+        provider: codebuild
+        properties:
+          image: standard_2_0
       deploy:
-        name: cloudformation
-        action: replace_on_failure
+        provider: cloudformation
+        properties:
+          action: replace_on_failure
     targets:
       - path: /banking/testing
         regions: eu-west-1

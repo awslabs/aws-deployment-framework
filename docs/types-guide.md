@@ -132,6 +132,8 @@ type:
     > The Specific Object within the bucket that will trigger the pipeline execution.
   - extract - *(Boolean)*
     > If CodePipeline should extract the contents of the Object when it deploys it.
+  - role - *(String)*
+      > The role you would like to use for this action.
 
 - **service_catalog**
   - product_id - *(String)* **(required)**

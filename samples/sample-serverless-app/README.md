@@ -4,14 +4,16 @@
 
 ```yaml
   - name: sample-serverless-app
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
       build:
-        image: STANDARD_2_0
-        environment_variables:
-          CONTAINS_TRANSFORM: true
+        provider: STANDARD_2_0
+        properties:
+          environment_variables:
+            CONTAINS_TRANSFORM: True
     targets:
       - 222222222222
       - path: 333333333333

@@ -6,10 +6,11 @@ This pipeline is expecting *(in the example case)* a AWS CodeCommit repository o
 
 ```yaml
   - name: sample-iam
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     params:
       restart_execution_on_update: True
     targets:

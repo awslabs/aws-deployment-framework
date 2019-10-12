@@ -63,8 +63,8 @@ class Pipeline:
         self.input = self._input_type_validation({
             "environments": self.template_dictionary,
             "name": self.name,
+            "params": self.parameters,
             "default_providers": self.default_providers,
-            "notification_endpoint": self.notification_endpoint,
             "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
             "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),
             "deployment_account_region": DEPLOYMENT_ACCOUNT_REGION,

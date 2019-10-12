@@ -14,10 +14,11 @@ This stack also requires `sample-vpc` and `sample-iam` to be in deployed as it i
 
 ```yaml
   - name: sample-ec2-app-codedeploy
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     targets:
       - /banking/testing
       - /banking/production

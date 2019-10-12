@@ -118,9 +118,7 @@ class Action:
                         'deploy', {}).get(
                             'properties', {}).get('input', '') or self.target.get(
                                 'properties', {}).get(
-                                    'deploy', {}).get(
-                                        'properties', {}).get(
-                                            'input', ''))
+                                    'input', ''))
             }
         if self.provider == "CloudFormation":
             _props = {
@@ -139,8 +137,9 @@ class Action:
                         'template_filename') or self.map_params.get(
                             'default_providers', {}).get(
                                 'deploy', {}).get(
-                                    'template_filename') or "{0}-build::template.yml".format(
-                                        self.map_params['name'])
+                                    'properties', {}).get(
+                                        'template_filename') or "{0}-build::template.yml".format(
+                                            self.map_params['name'])
             if self.target.get('properties', {}).get('outputs'):
                 _props['OutputFileName'] = '{0}.json'.format(self.target['properties']['outputs'])
             if self.target.get('properties', {}).get('param_overrides'):

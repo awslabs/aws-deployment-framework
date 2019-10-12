@@ -32,7 +32,6 @@ class TargetStructure:
                 target["path"] = target.get('target')
             if not isinstance(target.get('path'), list):
                 target["path"] = [target.get('path')]
-
         if not isinstance(target, list):
             target = [target]
         return target
@@ -42,11 +41,12 @@ class Target():
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
         self.step_name = step.get('name', '')
-        # self.target_type = step.get('type', {})
+        self.provider = step.get('provider', {})
+        self.properties = step.get('properties', {})
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
-        # self.change_set = self.target_type.get('deploy', {}).get('change_set_approval')
+        self.change_set = self.properties.get('deploy', {}).get('change_set_approval')
 
     @staticmethod
     def _account_is_active(account):
@@ -54,13 +54,14 @@ class Target():
 
     def _create_target_info(self, name, account_id):
         return {
-            "name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', name),
+            "change_set": self.change_set,
             "id": account_id,
+            "name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', name),
             "path": self.path,
+            "properties": self.properties,
+            "provider": self.provider,
             "regions": self.regions,
-            # "type": self.target_type,
-            "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name),
-            # "change_set": self.change_set
+            "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name)
         }
 
     def _target_is_approval(self):
