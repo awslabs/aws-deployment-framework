@@ -79,10 +79,10 @@ class PipelineStack(core.Stack):
             )
         for index, targets in enumerate(stack_input['input'].get('environments', {}).get('targets', [])):
             _actions = []
-            top_level_deployment_type = stack_input['input'].get('type', {}).get('deploy', {}).get('name', '') or 'cloudformation'
-            top_level_action = stack_input['input'].get('type', {}).get('deploy', {}).get('action', '')
+            top_level_deployment_type = stack_input['input'].get('deployment_providers', {}).get('deploy', {}).get('provider', '') or 'cloudformation'
+            top_level_action = stack_input['input'].get('deployment_providers', {}).get('deploy', {}).get('properties', {}).get('action', '')
             for target in targets:
-                if target.get('name') == 'approval' or target.get('type', {}).get('approval'):
+                if target.get('name') == 'approval' or target.get('properties', {}).get('provider', '') == 'approval':
                     _actions.extend([
                         adf_codepipeline.Action(
                             name="{0}".format(target['name']),
@@ -97,10 +97,10 @@ class PipelineStack(core.Stack):
                     continue
                 regions = target.get('regions', [])
                 for region in regions:
-                    target_stage_override = target.get('type', {}).get('invoke', {}).get('name') or target.get('type', {}).get('deploy', {}).get('name') or top_level_deployment_type
+                    target_stage_override = target.get('properties', {}).get('provider') or top_level_deployment_type
                     if 'cloudformation' in target_stage_override:
-                        target_approval_mode = target.get('type', {}).get('deploy', {}).get('change_set_approval', False)
-                        _target_action_mode = target.get('type', {}).get('deploy', {}).get('action')
+                        target_approval_mode = target.get('properties', {}).get('change_set_approval', False)
+                        _target_action_mode = target.get('properties', {}).get('action')
                         action_mode = _target_action_mode or top_level_action
                         if action_mode:
                             _actions.extend([
@@ -185,7 +185,7 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('type', {}).get('approval') else 'deployment' # 0th Index since approvals won't be parallel
+            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('provider', '') == 'approval' else 'deployment' # 0th Index since approvals won't be parallel
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
                     name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target

@@ -42,11 +42,11 @@ class Target():
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
         self.step_name = step.get('name', '')
-        self.target_type = step.get('type', {})
+        # self.target_type = step.get('type', {})
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
-        self.change_set = self.target_type.get('deploy', {}).get('change_set_approval')
+        # self.change_set = self.target_type.get('deploy', {}).get('change_set_approval')
 
     @staticmethod
     def _account_is_active(account):
@@ -58,9 +58,9 @@ class Target():
             "id": account_id,
             "path": self.path,
             "regions": self.regions,
-            "type": self.target_type,
+            # "type": self.target_type,
             "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name),
-            "change_set": self.change_set
+            # "change_set": self.change_set
         }
 
     def _target_is_approval(self):

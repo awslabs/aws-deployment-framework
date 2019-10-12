@@ -183,7 +183,7 @@ def main():
     threads = []
     _cache = Cache()
     for p in deployment_map.map_contents.get('pipelines', []):
-        _source_account_id = p.get('type', {}).get('source', {}).get('account_id', {})
+        _source_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
         if _source_account_id and int(_source_account_id) != int(DEPLOYMENT_ACCOUNT_ID) and not _cache.check(_source_account_id):
             rule = Rule(p['default_providers']['source']['properties']['account_id'])
             rule.create_update()

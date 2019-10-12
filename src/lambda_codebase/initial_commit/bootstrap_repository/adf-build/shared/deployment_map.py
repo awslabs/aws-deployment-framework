@@ -6,6 +6,7 @@ Module used for working with the Deployment Map (yml) file.
 """
 
 import os
+import sys
 import yaml
 
 from schema_validation import SchemaValidation
@@ -65,9 +66,8 @@ class DeploymentMap:
             LOGGER.info('No default map file found at %s, continuing', file_path)
             return {}
         except SchemaError as err:
-            for e in err.autos:
-                LOGGER.error(e)
-            raise err from None
+            LOGGER.error(err.code)
+            sys.exit(1)
 
     def determine_extend_map(self, deployment_map):
         if deployment_map.get('pipelines'):

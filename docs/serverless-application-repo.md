@@ -41,6 +41,10 @@ The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framewo
 
 ### What Happens Next?
 
-After hitting **Deploy** the base AWS Deployment Framework CloudFormation stack will be created. This Stack contains a few notable resources such as an AWS CodeCommit Repository along with an associated AWS CodeBuild Project and an AWS CodePipeline Pipeline.
+After hitting **Deploy** the base AWS Deployment Framework [CloudFormation stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks) will be created. This Stack contains a few notable resources such as an [AWS CodeCommit Repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/browse?region=us-east-1) along with an associated AWS [CodeBuild Project](https://console.aws.amazon.com/codesuite/codebuild/projects/aws-deployment-framework-base-templates/history?region=us-east-1) and an [AWS CodePipeline Pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
 
 The CodeCommit Repository will have its first commit made to it automatically by the ADF Deployment process. This content is a starting point for using ADF and helps define the bootstrap process for your AWS Ecosystem. Once the initial commit has been made, CodePipeline will run which kicks off AWS CodeBuild to sync the content of the repository with Amazon S3. Once the content is synced, you are then ready to bootstrap your Deployment account by moving it into the deployment OU within AWS Organizations.
+
+### Upgrading between versions?
+
+Ensure the *CrossAccountAccessRole* and *Application Name* are the same value you used for your initial deployment. hit **Deploy**.

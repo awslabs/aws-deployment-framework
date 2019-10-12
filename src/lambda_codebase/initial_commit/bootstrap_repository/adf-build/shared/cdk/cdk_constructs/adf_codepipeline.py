@@ -104,8 +104,23 @@ class Action:
             }
         if self.provider == "Lambda":
             return {
-                "FunctionName": self.map_params.get('default_providers', {}).get('deploy', {}).get('properties', {}).get('function_name', '') or self.target.get('properties', {}).get('deploy', {}).get('properties', {}).get('function_name', ''),
-                "UserParameters": str(self.map_params.get('default_providers', {}).get('deploy', {}).get('properties', {}).get('input', '') or self.target.get('properties', {}).get('deploy', {}).get('properties', {}).get('input', ''))
+                "FunctionName": self.map_params.get(
+                    'default_providers', {}).get(
+                        'deploy', {}).get(
+                            'properties', {}).get(
+                                'function_name', '') or self.target.get(
+                                    'properties', {}).get(
+                                        'deploy', {}).get(
+                                            'properties', {}).get(
+                                                'function_name', ''),
+                "UserParameters": str(self.map_params.get(
+                    'default_providers', {}).get(
+                        'deploy', {}).get(
+                            'properties', {}).get('input', '') or self.target.get(
+                                'properties', {}).get(
+                                    'deploy', {}).get(
+                                        'properties', {}).get(
+                                            'input', ''))
             }
         if self.provider == "CloudFormation":
             _props = {
@@ -116,7 +131,7 @@ class Action:
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
             }
-            if self.map_params.get('type', {}).get('build', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
+            if self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
                 _props["TemplatePath"] = "{0}-build::template_{1}.yml".format(self.map_params['name'], self.region)
             else:
                 _props["TemplatePath"] = self.target.get(
@@ -187,6 +202,8 @@ class Action:
     def _generate_codepipeline_access_role(self): #pylint: disable=R0911
         if self.provider == "CodeCommit":
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+        if self.provider == "GitHub":
+            return None
         if self.provider == "CodeBuild":
             return None
         if self.provider == "S3" and self.category == "Source":
@@ -254,7 +271,7 @@ class Action:
             if self.provider == "CloudFormation" and self.target.get('properties', {}).get('outputs') and self.action_mode != 'CHANGE_SET_REPLACE':
                 action_props["output_artifacts"] = [
                     _codepipeline.CfnPipeline.OutputArtifactProperty(
-                        name=self.target.get('type', {}).get('deploy', {}).get('outputs')
+                        name=self.target.get('properties', {}).get('outputs')
                     )
                 ]
             if not self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled', True):
@@ -263,7 +280,7 @@ class Action:
                         name="output-source"
                     )
                 ]
-            for override in self.target.get('properties', {}).get('deploy', {}).get('properties', {}).get('param_overrides', []):
+            for override in self.target.get('properties', {}).get('param_overrides', []):
                 if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
                     action_props["input_artifacts"].append(
                         _codepipeline.CfnPipeline.InputArtifactProperty(
@@ -315,7 +332,7 @@ class Pipeline(core.Construct):
             "completion_trigger": map_params.get('completion_trigger'),
             "schedule": map_params.get('schedule'),
             "source": {
-                "type": map_params.get('default_providers', {}).get('source', {}).get('name'),
+                "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
                 "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name']
             }

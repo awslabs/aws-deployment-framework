@@ -82,7 +82,7 @@ class CodeBuild(core.Construct):
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
             if map_params['default_providers']['build'].get('properties', {}).get('role'):
-                ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['type']['build']['role'])
+                ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['default_providers']['build'].get('properties', {}).get('role'))
             _codebuild.PipelineProject(
                 self,
                 'project',

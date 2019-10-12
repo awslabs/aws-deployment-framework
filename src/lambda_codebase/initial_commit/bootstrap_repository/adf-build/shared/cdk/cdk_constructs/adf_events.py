@@ -24,8 +24,8 @@ class Events(core.Construct):
         super().__init__(scope, id, **kwargs)
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')
-        _type = params.get('source', {}).get('type')
-        if _source_account and _type == 'codecommit':
+        _provider = params.get('source', {}).get('provider')
+        if _source_account and _provider == 'codecommit':
             _event = _events.Rule(
                 self,
                 'trigger_{0}'.format(params["name"]),
@@ -63,9 +63,6 @@ class Events(core.Construct):
                 id='pipeline_state_change_event',
                 description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
                 event_pattern=_events.EventPattern(
-                    # resources=[
-                    #     "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
-                    # ],
                     detail={
                         "state": [
                             "FAILED",
