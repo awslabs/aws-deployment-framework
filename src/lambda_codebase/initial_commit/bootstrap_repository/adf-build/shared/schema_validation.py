@@ -64,7 +64,7 @@ CODEBUILD_PROPS = {
     Optional("role"): str,
     Optional("timeout"): int,
     Optional("privileged"): bool,
-    Optional("inline_spec"): str
+    Optional("spec_inline"): str
 }
 DEFAULT_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',
@@ -153,7 +153,7 @@ DEFAULT_S3_DEPLOY = {
     Optional("properties"): S3_DEPLOY_PROPS
 }
 
-# Service Catalog 
+# Service Catalog
 SERVICECATALOG_PROPS = {
     "product_id": str,
     Optional("configuration_file_path"): str

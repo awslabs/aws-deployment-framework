@@ -93,10 +93,10 @@ class CodeBuild(core.Construct):
                 timeout=core.Duration.minutes(_timeout),
                 build_spec=None if not map_params['default_providers']['build'].get(
                     'properties', {}).get(
-                        'inline_spec') else _codebuild.BuildSpec.from_object(
+                        'spec_inline') else _codebuild.BuildSpec.from_object(
                             map_params['default_providers']['build'].get(
                                 'properties', {}).get(
-                                    'inline_spec')),
+                                    'spec_inline')),
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(

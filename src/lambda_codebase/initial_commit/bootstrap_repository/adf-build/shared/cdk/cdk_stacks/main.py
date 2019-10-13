@@ -97,7 +97,6 @@ class PipelineStack(core.Stack):
                     continue
                 regions = target.get('regions', [])
                 for region in regions:
-                    print(target)
                     target_stage_override = target.get('provider') or top_level_deployment_type
                     if 'cloudformation' in target_stage_override:
                         target_approval_mode = target.get('properties', {}).get('change_set_approval', False)

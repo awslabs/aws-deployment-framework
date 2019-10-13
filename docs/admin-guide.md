@@ -203,10 +203,11 @@ When you enter the *source_account_id* in the *deployment_map.yml**, you are say
 ```yaml
 pipelines:
   - name: vpc # <-- The CodeCommit repository on the source account would need to have this name
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111111111111 # <-- This teams account is the only one able to push into this pipeline
+        provider: codecommit
+        properties:
+          account_id: 11111111111111 # <-- This teams AWS account is the only one able to push into this pipeline
     targets:
       - /security # Shorthand target example
 ```
@@ -217,14 +218,15 @@ Here is an example of passing in a parameter to a pipeline to override the defau
 ```yaml
 pipelines:
   - name: vpc # The Github repo would have this name
-    type:
+    default_providers:
       source:
-        name: github
-        branch: dev/feature
-        repository: example-vpc # Optional, above name property will be used if this is not specified
-        owner: bundyfx
-        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+        provider: github
+        properties:
+          branch: dev/feature
+          repository: example-vpc # Optional, above name property will be used if this is not specified
+          owner: bundyfx
+          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     targets:
       - /security # Shorthand example
 ```
@@ -235,12 +237,13 @@ Along with Pipeline Parameters there can potentially be stage parameters if requ
 
 ```yaml
   - name: sample-etl
-    type:
+    default_providers:
       source:
-        name: s3
-        source_account_id: 111111111111
-        bucket_name: banking-etl-bucket-source
-        object_key: input.zip
+        provider: s3
+        properties:
+          source_account_id: 111111111111
+          bucket_name: banking-etl-bucket-source
+          object_key: input.zip
     targets:
       - path: 222222222222
         regions: eu-west-1
@@ -266,13 +269,14 @@ Once the values are stored, you can create the Repository in Github as per norma
 ```yaml
 pipelines:
   - name: vpc
-    type:
+    default_providers:
       source:
-        name: github
-        repository: example-vpc-adf # Optional, above name property will be used if this is not specified
-        owner: bundyfx # Who owns this repository
-        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token. example: if we stored {"token": "123secret"} - 'token' would be the json_field value.
+        provider: github
+        properties:
+          repository: example-vpc-adf # Optional, above name property will be used if this is not specified
+          owner: bundyfx # Who owns this repository
+          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token. example: if we stored {"token": "123secret"} - 'token' would be the json_field value.
     targets:
       - /security
 ```
@@ -284,10 +288,11 @@ Sometimes its a requirement to chain pipelines together, when one finishes you m
 ```yaml
 pipelines:
   - name: sample-vpc
-    type:
+    default_providers:
       source: &generic_source
-        name: codecommit
-        account_id: 111111111111
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     completion_trigger: # <--- When this pipeline finishes it will automatically start sample-iam and sample-ecs-cluster at the same time
         pipelines:
           - sample-iam
@@ -298,12 +303,12 @@ pipelines:
       - /banking/production
 
   - name: sample-iam
-    type:
+    default_providers:
       source: *generic_source # using YAML Alias
     targets: *generic_targets # using YAML Alias
 
   - name: sample-ecs-cluster
-    type:
+    default_providers:
       source: *generic_source # using YAML Alias
     targets: *generic_targets # using YAML Alias
 ```
@@ -323,10 +328,11 @@ Once the value is stored as a secret, it can be used like so:
 ```yaml
 pipelines:
   - name: sample-vpc
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 111112233332
+        provider: codecommit
+        properties:
+          account_id: 111112233332
     params:
       notification_endpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
       restart_execution_on_update: True

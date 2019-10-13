@@ -29,10 +29,11 @@ A basic example of a *deployment_map.yml* would look like the following:
 ```yaml
 pipelines:
   - name: iam
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 123456789101 # The AWS Account where the source code will be in a CodeCommit Repository
+        provider: codecommit
+        properties:
+          account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
     params:
         notification_endpoint: janes_team@doe.com # Optional
     targets:
@@ -42,13 +43,14 @@ pipelines:
       - /banking/testing # This is a shorthand example of a step within a pipeline targeting an OU
 
   - name: vpc
-    type:
+    default_providers:
       source:
-        name: github
-        repository: my-github-vpc # Optional, above name property will be used if this is not specified
-        owner: bundyfx # Who owns this Github Repository
-        oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-        json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+        provider: github
+        properties:
+          repository: my-github-vpc # Optional, above name property will be used if this is not specified
+          owner: bundyfx # Who owns this Github Repository
+          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
         notification_endpoint: joes_team@company.nl
     targets:
@@ -64,31 +66,31 @@ By default, the above pipelines will be created to deploy CloudFormation using a
 
 ### Types
 
-The ADF comes with an extensive set of types that can be used as part of a Pipeline. For example, see the below pipeline definition:
+The ADF comes with an extensive set of abstractions over CodePipeline providers that can be used to define pipelines. For example, see the below pipeline definition:
 
 ```yaml
 pipelines:
   - name: sample-ec2-java-app-codedeploy
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 123456789101
+        provider: codecommit
+        properties:
+          account_id: 111112233332
       build:
-        name: codebuild
+        provider: codebuild
         image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
-        name: codedeploy
+        provider: codedeploy
     targets:
       - target: 999999999999
-        type: # These are stage specific parameters for our deploy action
-          deploy:
-            application_name: sample
-            deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+        properties:
+          application_name: sample
+          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 ```
 
-The pipeline *sample-ec2-java-app-codedeploy* has a *type* top level key that defines the high level structure of the pipeline. It explicitly defines the source *(requirement for all pipelines)* and also defines what type of build will occur along with any associated parameters. In this example, we're explicitly saying we want to use AWS CodeBuild *(which is also the default)* and also to use a specific Docker Image for build stage. The deploy type is also defined at the top level of this pipeline, in this case *codedeploy*. This means that any of the targets of the pipeline will use AWS CodeDeploy as their default [Deployment Provider](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#actions-valid-providers).
+The pipeline *sample-ec2-java-app-codedeploy* has a *default_providers* top level key that defines the high level structure of the pipeline. It explicitly defines the source *(requirement for all pipelines)* and also defines what type of build will occur along with any associated parameters. In this example, we're explicitly saying we want to use AWS CodeBuild *(which is also the default)* and also to use a specific Docker Image for build stage. The deploy type is also defined at the top level of this pipeline, in this case *codedeploy*. This means that any of the targets of the pipeline will use AWS CodeDeploy as their default [Deployment Provider](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#actions-valid-providers).
 
-In the targets section itself we have the opportunity to override the provider itself or pass in any additional parameters to that provider. In this example we are passing in *application_name* and *deployment_group_name* as parameters to CodeDeploy for this specific stage. Parameters can either be defined at the top level or used in the stage level to override top level values. By default, the build type is AWS CodeBuild and the deploy type is AWS CloudFormation.
+In the targets section itself we have the opportunity to override the provider itself or pass in any additional properties to that provider. In this example we are passing in *application_name* and *deployment_group_name* as properties to CodeDeploy for this specific stage. properties can either be defined at the top level or used in the stage level to override top level values. By default, the build type is AWS CodeBuild and the deploy type is AWS CloudFormation.
 
 For detailed information on types, see the [types guide](./types-guide.md).
 
@@ -111,9 +113,14 @@ targets:
   - target: 9999999999 # Target and Path keys can be used interchangeably
     regions: eu-west-1
     name: my-special-account # Defaults to adf-cloudformation-deployment-role
+    provider: some_provider # If you intend to override the provider for this stage (see types guide for available providers)
+    properties:
+      my_prop: my_value # If you intend to pass properties to this specific stage
   - path: /my_ou/production # This can also be an array of OUs or AWS Account IDs
     regions: [eu-central-1, us-west-1]
     name: production_step
+    provider: ...
+    properties: ...
 ```
 
 ### Params
@@ -137,12 +144,13 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
 
 ```yaml
   - name: ami-builder
-    type:
+    default_providers:
       source:
-        name: codecommit
-        account_id: 222222222222
+        provider: codecommit
+        properties:
+          account_id: 222222222222
       build:
-        name: codebuild
+        provider: codebuild
         role: packer
         size: medium
     params:
@@ -152,13 +160,14 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
-    type:
+    default_providers:
       source:
-        name: github
-        repository: my-web-app
-        owner: cool_coder
-        oauth_token_path: /adf/github_token
-        json_field: token
+        provider: github
+        properties:
+          repository: my-web-app
+          owner: cool_coder
+          oauth_token_path: /adf/github_token
+          json_field: token
     targets:
       - path: /banking/testing
         name: web-app-testing
@@ -421,10 +430,11 @@ You can take advantage of YAML Anchors and Alias' in the deployment map files. A
 ```yaml
 pipelines:
   - name: sample-vpc
-    type: cc-cloudformation
-    deployment_role: infra-deployment-role
-    params: &generic_params
-      - SourceAccountId: 111111111111
+    default_providers:
+      source: &generic_provider
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     targets: &generic_targets
       - /banking/testing
       - approval
@@ -432,9 +442,8 @@ pipelines:
         regions: eu-west-1
 
   - name: some-other-pipeline
-    type: cc-cloudformation
-    deployment_role: infra-deployment-role
-    params: *generic_params
+    default_providers:
+      source: *generic_provider
     targets: *generic_targets
 ```
 

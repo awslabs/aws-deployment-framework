@@ -7,40 +7,45 @@
 Stubs used for testing target.py
 """
 
+
 target_is_approval = {
     'name': 'approval',
     'id': 'approval',
     'path': '/thing/path',
-    'change_set': None,
+    "properties": {},
+    "provider": 'approval',
     'regions': ['region1', 'region2'],
-    'step': {}
+    'step_name': {}
 }
 
 create_target_info_default = {
     'name': 'account_name',
     'id': 12345678910,
     'path': '/thing/path',
-    'change_set': None,
+    "properties": {},
+    "provider": 'cloudformation',
     'regions': ['region1', 'region2'],
-    'step': {}
+    'step_name': {}
 }
 
 create_target_info_regex_applied = {
     'name': 'accountname',
     'id': 12345678910,
     'path': '/thing/path',
-    'change_set': None,
+    "properties": {},
+    "provider": 'cloudformation',
     'regions': ['region1', 'region2'],
-    'step': {}
+    'step_name': {}
 }
 
 target_output = {
     'name': 'string',
     'id': 'fake',
     'path': '/thing/path',
-    'change_set': None,
+    "properties": {},
+    "provider": 'cloudformation',
     'regions': ['region1', 'region2'],
-    'step': {}
+    'step_name': {}
 }
 
 organizations_describe_account = {

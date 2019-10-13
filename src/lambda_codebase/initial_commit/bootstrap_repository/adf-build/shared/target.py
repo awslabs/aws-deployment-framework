@@ -46,7 +46,6 @@ class Target():
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
-        self.change_set = self.properties.get('deploy', {}).get('change_set_approval')
 
     @staticmethod
     def _account_is_active(account):
@@ -54,7 +53,6 @@ class Target():
 
     def _create_target_info(self, name, account_id):
         return {
-            "change_set": self.change_set,
             "id": account_id,
             "name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', name),
             "path": self.path,

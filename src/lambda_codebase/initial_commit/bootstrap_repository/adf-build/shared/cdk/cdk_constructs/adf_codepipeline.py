@@ -12,7 +12,6 @@ from aws_cdk import (
     core
 )
 
-from errors import InvalidConfigError
 from cdk_constructs import adf_events
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -110,9 +109,7 @@ class Action:
                             'properties', {}).get(
                                 'function_name', '') or self.target.get(
                                     'properties', {}).get(
-                                        'deploy', {}).get(
-                                            'properties', {}).get(
-                                                'function_name', ''),
+                                        'function_name', ''),
                 "UserParameters": str(self.map_params.get(
                     'default_providers', {}).get(
                         'deploy', {}).get(

@@ -5,10 +5,13 @@ Types can be defined at the top level or at a stage level of a pipeline to struc
 ## Source
 
 ```yaml
-type:
+default_providers:
   source:
-    name: codecommit|github|s3
+    provider: codecommit|github|s3
+    properties: ...
 ```
+
+#### Properties
 
 - **codecommit**
   - account_id - *(String)* **(required)**
@@ -41,11 +44,14 @@ type:
 ## Build
 
 ```yaml
-type:
+default_providers:
   build:
-    name: codebuild|jenkins
+    provider: codebuild|jenkins
     enabled: False # If you wish to disable the build stage within a pipeline, defaults to True.
+    properties: ...
 ```
+
+#### Properties
 
 - **codebuild**
   - image *(String)*
@@ -60,8 +66,10 @@ type:
     > If you wish to define a custom timeout for the Build stage. Defaults to 20 minutes.
   - privileged *(Boolean)*
     > If you plan to use this build project to build Docker images and the specified build environment is not provided by CodeBuild with Docker support, set Privileged to True. Otherwise, all associated builds that attempt to interact with the Docker daemon fail. Defaults to False.
-  - inline_spec *(String)*
+  - spec_inline *(String)*
     > If you wish to pass in a custom inline Buildspec as a string for the CodeBuild Project which would override any buildspec.yml file. Read more [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example). Defaults to None.
+  - spec_filename *(String)*
+    > If you wish to pass in a custom Buildspec file that is within the repository. This is useful for custom deploy type actions where CodeBuild will perform the execution of the commands. Defaults to the buildspec.yml within the repository.
 
 - **jenkins** ([Jenkins Plugin](https://wiki.jenkins.io/display/JENKINS/AWS+CodePipeline+Plugin))
   - project_name *(String)* **(required)**
@@ -74,10 +82,11 @@ type:
 ## Approval
 
 ```yaml
-type:
-  approval:
-    name: approval
+provider: approval
+properties: ...
 ```
+
+#### Properties
 
 - **approval**
   - message *(String)*
@@ -90,10 +99,13 @@ type:
 ## Deploy
 
 ```yaml
-type:
+default_providers:
   deploy:
-    name: cloudformation|codedeploy|s3|service_catalog
+    provider: cloudformation|codedeploy|s3|service_catalog|codebuild|lambda
+    properties: ...
 ```
+
+#### Properties
 
 - **cloudformation**
   - stack_name - *(String)*
@@ -118,12 +130,12 @@ type:
 
 
 - **codedeploy**
-  - role - *(String)*
-      > The role you would like to use on the target AWS account to execute the CodeDeploy action.
   - application_name *(String)* **(required)**
     > The name of the CodeDeploy Application you want to use for this deployment.
   - deployment_group_name *(String)* **(required)**
     > The name of the Deployment Group you want to use for this deployment.
+  - role - *(String)*
+      > The role you would like to use on the target AWS account to execute the CodeDeploy action.
 
 - **s3**
   - bucket_name - *(String)* **(required)**
@@ -139,15 +151,7 @@ type:
   - product_id - *(String)* **(required)**
     > What is the Product ID of the Service Catalog Product to Deploy.
   - configuration_file_path - *(String)*
-    > If you wish to pass a custom path to the configuration file path.
-
-## Invoke
-
-```yaml
-type:
-  invoke:
-    name: lambda
-```
+    > If you wish to pass a custom path to the configuration file path. Defaults to the account-name_region.json pattern used for CloudFormation Parameter files. 
 
 - **lambda**
   - function_name *(String)* **(required)**

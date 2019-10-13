@@ -9,8 +9,8 @@ import os
 import sys
 import yaml
 
-from schema_validation import SchemaValidation
 from schema import SchemaError
+from schema_validation import SchemaValidation
 from errors import InvalidDeploymentMapError
 from logger import configure_logger
 

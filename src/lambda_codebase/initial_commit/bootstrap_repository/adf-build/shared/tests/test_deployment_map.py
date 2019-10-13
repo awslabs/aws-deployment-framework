@@ -23,18 +23,6 @@ def cls():
         )
     )
 
-def test_validate(cls):
-    assert cls._validate() == None
-
-def test_validate_invalid_no_content(cls):
-    cls.map_contents = {}
-    with raises(InvalidDeploymentMapError):
-        cls._validate()
-
-def test_validate_path_only(cls):
-    cls.map_contents = {"pipelines": [{"targets": [{"path": "/something"}]}]}
-    assert cls._validate() == None
-
 def test_update_deployment_parameters(cls):
     cls.parameter_store = Mock()
     cls.parameter_store.put_parameter.return_value = None
