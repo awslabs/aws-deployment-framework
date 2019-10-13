@@ -55,7 +55,7 @@ pipelines:
         properties:
           action: replace_on_failure
     params:
-        notification_endpoint: bundyf@amazon.nl
+        notification_endpoint: jon@smith.com
     targets: # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
@@ -130,7 +130,7 @@ pipelines:
       source:
         provider: s3
         properties:
-          bucket_name: packer-bundyf
+          bucket_name: packer-stub
           object_key: input.zip
           account_id: 111111111111
       build:

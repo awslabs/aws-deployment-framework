@@ -4,13 +4,13 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 228171733466
+          account_id: 1111111111111
       build:
         provider: codebuild
       deploy:
         provider: cloudformation
     params:
-        notification_endpoint: bundyf@amazon.nl # The Notification (user/team/slack) responsible for this pipeline
+        notification_endpoint: jon@smith.com # The Notification (user/team/slack) responsible for this pipeline
         restart_execution_on_update: True
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
@@ -28,7 +28,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 558421765047
+          account_id: 333333333333
       build:
         provider: codebuild
         properties:
@@ -54,7 +54,7 @@ pipelines:
         properties:
           action: replace_on_failure
     params:
-        notification_endpoint: bundyf@amazon.nl
+        notification_endpoint: jon@smith.com
     targets: # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
@@ -65,7 +65,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
+          account_id: 333333333333 # A different AccountId as this pipeline is owned by a different team
       deploy:
         provider: codebuild
     targets: # targets looks for the deploy defaults above to determine parameters
@@ -74,7 +74,7 @@ pipelines:
       - provider: approval
         properties:
           message: plz approve
-          notification_endpoint: flynn.sbundy@gmail.com # Approvals can have their own unique notification endpoint
+          notification_endpoint: jon@smith.com # Approvals can have their own unique notification endpoint
       - properties:
           spec_filename: custom-spec-two.yml
 
@@ -83,16 +83,16 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 558421765047 # A different AccountId as this pipeline is owned by a different team
+          account_id: 333333333333 # A different AccountId as this pipeline is owned by a different team
     targets:
-      - 130330464033
+      - 222222222222
 
   - name: sample-ec2-java-app-codedeploy
     default_providers:
       source: 
         provider: codecommit
         properties:
-          account_id: 558421765047
+          account_id: 333333333333
       build:
         provider: codebuild
         properties:
@@ -102,7 +102,7 @@ pipelines:
     params:
         notification_endpoint: deployments
     targets:
-      - target: 130330464033
+      - target: 222222222222
         properties: # These are stage specific properties for our deploy action
           application_name: sample
           deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
@@ -112,12 +112,12 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 228171733466
+          account_id: 1111111111111
     targets:
-      - target: 130330464033
+      - target: 222222222222
         properties:
           outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
-      - target: 228171733466
+      - target: 1111111111111
         properties:
           param_overrides:
             - inputs: some_param_outputs # Which file do we want to use to pass in overrides from
@@ -129,15 +129,15 @@ pipelines:
       source:
         provider: s3
         properties:
-          bucket_name: packer-bundyf
+          bucket_name: packer-bucket-test
           object_key: input.zip
-          account_id: 361473679486
+          account_id: 44444444444444
       build:
         enabled: False # if you wish to disable the build phase in a pipeline
       deploy:
         provider: s3
     targets:
-      - target: 130330464033
+      - target: 222222222222
         properties:
           bucket_name: test-adf-bucket-eu
           object_key: output.zip

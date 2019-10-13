@@ -214,7 +214,7 @@ In the example we have three steps to our install phase in our build, the remain
 
 Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
-If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline type. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types. For an example of this, see the pipeline type for *s3-s3.yml.j2*.
+If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline  by using the *inline_spec* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
 
 ### CloudFormation Parameters and Tagging
 
@@ -321,6 +321,23 @@ For more examples of parameters and their usage see the `samples` folder in the 
 ### Serverless Transforms
 
 If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will be deployed. This can be achieved by setting the `CONTAINS_TRANSFORM` environment variable to *True* in your pipeline definition with a deployment map file. Once the environment variable has been set, within your *buildspec.yml* file you will need to use the *package_transform.sh* helper script (`bash adf-build/helpers/package_transform.sh`). This script will package your template to each region and transparently generate a region specific template for the pipeline deploy stages.
+
+```yaml
+pipelines:
+  - name: example-contains-transform
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 22222222222
+      build:
+        provider: codebuild
+        properties:
+          environment_variables:
+            CONTAINS_TRANSFORM: True # If you define this environment variable its expected that you are using the contains_transform helper in your build stage.
+    targets:
+      - /banking/testing
+```
 
 ### Parameter Injection
 
@@ -456,11 +473,12 @@ If required, it is possible to create multiple Pipelines that are tied to the sa
 ```yaml
 pipelines:
   - name: sample-vpc-eu-west-1
-    type: &generic_source
+    default_providers: &generic_source
       source:
-        name: codecommit
-        account_id: 111111111111
-        repository: sample-vpc
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+          repository: sample-vpc
     regions: eu-west-1
     targets: &generic_targets
       - /banking/testing
@@ -468,7 +486,7 @@ pipelines:
       - /banking/production
 
   - name: sample-vpc-us-east-1
-    type: *generic_source
+    default_providers: *generic_source
     regions: us-east-1
     targets: *generic_targets
 ```

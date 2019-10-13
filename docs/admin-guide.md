@@ -191,9 +191,7 @@ We recommend to keep the bootstrapping templates for your accounts as light as p
 
 #### Pipeline Parameters
 
-Each Pipeline you create may require some parameters that you pass in during its creation. The pipeline itself is created in AWS CloudFormation from one of the pipeline types in the [pipeline_types](#pipeline-types) folder in your *aws-deployment-framework-pipelines* repository on the Deployment account. As a minimum *(if you are using CodeCommit)*, you will need to pass in a source account in which this pipeline will be linked to as an entry point.
-
-The name you specify in the *deployment_map.yml* will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes *(via slack or email)*. The *source_account_id* plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the AWS CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
+The name you specify in the *deployment_map.yml* *(or other map files)* will be automatically linked to a repository of the same name *(in the source account you chose)* so be sure to name your pipeline in the map correctly. The Notification endpoint is simply an endpoint that you will receive updates on when this pipeline has state changes *(via slack or email)*. The *source_account_id* plays an important role by linking this specific pipeline to a specific account in which it can receive resources. For example, let's say we are in a team that deploys the AWS CloudFormation template that contains the base networking and security to the Organization. In this case, this team may have their own AWS account which is completely isolated from the team that develops applications for the banking sector of the company.
 
 The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the AWS Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **source_account_id** value.
 
@@ -244,21 +242,21 @@ Along with Pipeline Parameters there can potentially be stage parameters if requ
           source_account_id: 111111111111
           bucket_name: banking-etl-bucket-source
           object_key: input.zip
+      deploy:
+        provider: s3
     targets:
       - path: 222222222222
         regions: eu-west-1
-        type:
-          deploy:
-            bucket_name: account-blah-bucket-etl
-            object_key: some_path/output.zip
+        properties:
+          bucket_name: account-blah-bucket-etl
+          object_key: some_path/output.zip
       - path: 333333333333
-        type:
-          deploy:
-            bucket_name: business_unit_bucket-etl
-            object_key: another/path/output.zip
+        properties:
+          bucket_name: business_unit_bucket-etl
+          object_key: another/path/output.zip
 ```
 
-In this example, we want to take our `input.zip` file from the Amazon S3 Bucket `banking-etl-bucket-source` that lives in the account `111111111111`. When the data lands in the bucket we want to run our pipeline which will run some ETL scripts *(see samples folder)* against the data and output `output.zip`. We then want to deploy this artifact into other Amazon S3 Buckets that live in other AWS Accounts and potentially other AWS Regions. Since Bucket Names are globally unique we need some way to define which bucket we want to deploy our `output.zip` into at a stage level. The way we accomplish this is we can pass in `params` in the form of *key/value* into the stage itself. This key/value pairs go directly into the pipeline type definition and can be referenced as required.
+In this example, we want to take our `input.zip` file from the Amazon S3 Bucket `banking-etl-bucket-source` that lives in the account `111111111111`. When the data lands in the bucket we want to run our pipeline which will run some ETL scripts *(see samples folder)* against the data and output `output.zip`. We then want to deploy this artifact into other Amazon S3 Buckets that live in other AWS Accounts and potentially other AWS Regions. Since Bucket Names are globally unique we need some way to define which bucket we want to deploy our `output.zip` into at a stage level. The way we accomplish this is we can pass in `properties` in the form of *key/value* into the stage itself.
 
 #### Using Github
 
