@@ -7,53 +7,25 @@ properties associated with a pipeline.
 """
 
 import os
-from jinja2 import Environment, FileSystemLoader
 
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 
 class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
-        self.parameters = pipeline.get('params', [])
+        self.default_providers = pipeline.get('default_providers', {})
+        self.parameters = pipeline.get('params', {})
+        self.input = {}
         self.template_dictionary = {"targets": []}
-        self.notification_endpoint = self._extract_notification_endpoint()
+        self.notification_endpoint = self.parameters.get('notification_endpoint', None)
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
-        self.deployment_role = pipeline.get('deployment_role', None)
-        self.pipeline_type = pipeline.get('type', None)
-        self.action = pipeline.get('action', '').upper()
         self.completion_trigger = pipeline.get('completion_trigger', {})
-        self.contains_transform = pipeline.get('contains_transform', '')
+        self.schedule = self.parameters.get('schedule', {})
         if not isinstance(self.completion_trigger.get('pipelines', []), list):
             self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
-
-
-    def _extract_notification_endpoint(self):
-        for parameter in self.parameters:
-            endpoint = parameter.get('NotificationEndpoint')
-            if endpoint:
-                return endpoint
-        return None
-
-
-    def generate_parameters(self):
-        params = []
-        # ProjectName should be a hidden param and passed in directly from the
-        # name of the "pipeline"
-        params.append({
-            'ParameterKey': str('ProjectName'),
-            'ParameterValue': self.name,
-        })
-        for param in self.parameters:
-            for key, value in param.items():
-                params.append({
-                    'ParameterKey': str(key),
-                    'ParameterValue': str(value),
-                })
-        return params
-
 
     @staticmethod
     def flatten_list(input_list):
@@ -76,20 +48,26 @@ class Pipeline:
         with open(output_path, 'w') as file_handler:
             file_handler.write(output_template)
 
-    def generate(self):
-        env = Environment(loader=FileSystemLoader('pipeline_types'))
-        template = env.get_template('./{0}.yml.j2'.format(self.pipeline_type))
-        output_template = template.render(
-            environments=self.template_dictionary,
-            name=self.name,
-            notification_endpoint=self.notification_endpoint,
-            top_level_regions=sorted(self.flatten_list(list(set(self.top_level_regions)))),
-            regions=sorted(list(set(self.flatten_list(self.stage_regions)))),
-            deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-            deployment_role=self.deployment_role,
-            action=self.action,
-            contains_transform=self.contains_transform,
-            completion_trigger=self.completion_trigger
-        )
-        self._create_pipelines_folder()
-        self._write_output(output_template)
+    def _input_type_validation(self, params): #pylint: disable=R0201
+        if not params.get('default_providers', {}).get('build', {}):
+            params['default_providers']['build'] = {}
+            params['default_providers']['build']['provider'] = 'codebuild'
+        if not params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled'):
+            params['default_providers']['build']['provider'] = 'codebuild'
+        if not params.get('default_providers', {}).get('deploy', {}):
+            params['default_providers']['deploy'] = {}
+            params['default_providers']['deploy']['provider'] = 'cloudformation'
+        return params
+
+    def generate_input(self):
+        self.input = self._input_type_validation({
+            "environments": self.template_dictionary,
+            "name": self.name,
+            "params": self.parameters,
+            "default_providers": self.default_providers,
+            "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
+            "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),
+            "deployment_account_region": DEPLOYMENT_ACCOUNT_REGION,
+            "completion_trigger": self.completion_trigger,
+            "schedule": self.schedule
+        })

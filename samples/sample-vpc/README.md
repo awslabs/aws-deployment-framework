@@ -1,15 +1,16 @@
 ## Sample VPC to showcase ADF Pipelines
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-vpc*.
-
 ### Deployment Map example
 
 ```yaml
   - name: sample-vpc
-    type: cc-cloudformation
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     params:
-      - SourceAccountId: 111111111111 # Some Source Account that contains this Repository
-      - RestartExecutionOnUpdate: True # Since this is a base type stack we would most likely want to retrigger this pipeline if a new account gets added to the below OU's
+      restart_execution_on_update: True
     targets:
       - /banking/testing
       - path: /banking/production

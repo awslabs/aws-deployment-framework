@@ -22,14 +22,17 @@ def extract_pipeline(message):
     try:
         name = message.get('approval', {}).get('pipelineName', None) or message.get("detail", {}).get("pipeline", None)
         return {
-            "name": name.split("{0}-".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
+            "name": name.split("{0}".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
             "state": message.get("detail", {}).get("state"),
             "time": message.get("time"),
             "account_id": message.get("account")
         }
     except AttributeError:
         return {
-            "name": 'main'
+            "name": message.split("{0}".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1].split(' from account')[0],
+            "state": message.split('has ')[-1].split(' at')[0],
+            "time": message.split('at ')[-1],
+            "account_id": message.split('account ')[-1].split(' has')[0]
         }
 
 def is_approval(message):
@@ -95,7 +98,7 @@ def create_pipeline_message_text(channel, pipeline):
     """
     Creates a dict that will be sent to send_message for pipeline success or failures
     """
-    emote = ":white_check_mark:" if pipeline["state"] == "SUCCEEDED" else ":red_circle:"
+    emote = ":red_circle:" if pipeline.get("state") == "FAILED" else ":white_check_mark:"
     return {
         "channel": channel,
         "text": "{0} Pipeline {1} on {2} has {3}".format(
@@ -136,22 +139,18 @@ def lambda_handler(event, _):
     message = extract_message(event)
     pipeline = extract_pipeline(message)
     parameter_store = ParameterStore(os.environ["AWS_REGION"], boto3)
+    secrets_manager = boto3.client('secretsmanager', region_name=os.environ["AWS_REGION"])
     channel = parameter_store.fetch_parameter(
         name='/notification_endpoint/{0}'.format(pipeline["name"]),
         with_decryption=False
     )
-    url = parameter_store.fetch_parameter(
-        name='/notification_endpoint/hooks/slack/{0}'.format(channel),
-        with_decryption=True
-    )
-
+    # All slack url's must be stored in /adf/slack/channel_name since ADF only has access to the /adf/ prefix by default
+    url = json.loads(secrets_manager.get_secret_value(SecretId='/adf/slack/{0}'.format(channel))['SecretString'])
     if is_approval(message):
-        send_message(url, create_approval(channel, message))
+        send_message(url[channel], create_approval(channel, message))
         return
-
     if is_bootstrap(event):
-        send_message(url, create_bootstrap_message_text(channel, message))
+        send_message(url[channel], create_bootstrap_message_text(channel, message))
         return
-
-    send_message(url, create_pipeline_message_text(channel, pipeline))
+    send_message(url[channel], create_pipeline_message_text(channel, pipeline))
     return

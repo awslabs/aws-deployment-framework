@@ -1,3 +1,3 @@
 ## Pipelines Repository
 
-This repository is where you define pipeline type definitions *(in the pipeline_types)* folder and also where you manage your `deployment_map.yml` file from.
+This repository is where you create pipeline definitions with Deployment Map files. For examples on this process please see the *example-deployment_map.yml* or read the ADF user guide.

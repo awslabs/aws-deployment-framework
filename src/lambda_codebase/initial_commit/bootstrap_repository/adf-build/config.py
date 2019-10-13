@@ -60,7 +60,7 @@ class Config:
             raise InvalidConfigError(
                 'adfconfig.yml is missing required properties. '
                 'Please see the documentation.'
-            )
+            ) from None
 
         try:
             if self.config.get('scp'):
@@ -68,14 +68,14 @@ class Config:
         except AssertionError:
             raise InvalidConfigError(
                 'Configuration settings for organizations should be either enabled or disabled'
-            )
+            ) from None
 
         if isinstance(self.deployment_account_region, list):
             if len(self.deployment_account_region) > 1:
                 raise InvalidConfigError(
                     'ADF currently only supports a single '
                     'Deployment Account region'
-                )
+                ) from None
             [self.deployment_account_region] = self.deployment_account_region
 
         if not isinstance(self.target_regions, list):

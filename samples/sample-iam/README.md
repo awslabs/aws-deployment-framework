@@ -6,11 +6,14 @@ This pipeline is expecting *(in the example case)* a AWS CodeCommit repository o
 
 ```yaml
   - name: sample-iam
-    type: cc-cloudformation
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     params:
-      - SourceAccountId: 111111111111 # Some Source Account that contains the IAM CloudFormation template
-      - RestartExecutionOnUpdate: True # Since this is a base type stack we would most likely want to retrigger this pipeline if a new account gets added to the below OU's
-    targets: # Example Targets OU's
+      restart_execution_on_update: True
+    targets:
       - /banking/testing
       - /banking/production
 ```

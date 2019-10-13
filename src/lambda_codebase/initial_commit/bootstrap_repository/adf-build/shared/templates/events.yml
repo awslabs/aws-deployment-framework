@@ -1,0 +1,50 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+Parameters:
+  DeploymentAccountId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Account ID
+    Default: deployment_account_id
+Resources:
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: !Sub events-to-${DeploymentAccountId}
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: '*'
+  EventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: !Sub adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - master
+      Targets:
+        - Arn: !Sub arn:aws:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default
+          RoleArn: !GetAtt EventRole.Arn
+          Id: codecommit-push-event

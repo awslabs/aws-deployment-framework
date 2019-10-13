@@ -15,8 +15,7 @@ from logger import configure_logger
 LOGGER = configure_logger(__name__)
 TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
-CODE_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 sts = STS()
 s3 = S3(
@@ -39,7 +38,7 @@ class Repo:
 
     def repo_exists(self):
         try:
-            codecommit = self.session.client('codecommit', CODE_ACCOUNT_REGION)
+            codecommit = self.session.client('codecommit', DEPLOYMENT_ACCOUNT_REGION)
             repository = codecommit.get_repository(repositoryName=self.name)
             if repository['repositoryMetadata']['Arn']:
                 return True
@@ -58,12 +57,12 @@ class Repo:
 
     def create_update(self):
         s3_object_path = s3.put_object(
-            "adf-build/repo_templates/codecommit.yml",
-            "{0}/adf-build/repo_templates/codecommit.yml".format(TARGET_DIR)
+            "adf-build/templates/codecommit.yml",
+            "{0}/adf-build/templates/codecommit.yml".format(TARGET_DIR)
         )
         cloudformation = CloudFormation(
-            region=CODE_ACCOUNT_REGION,
-            deployment_account_region=CODE_ACCOUNT_REGION,
+            region=DEPLOYMENT_ACCOUNT_REGION,
+            deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
             role=self.session,
             template_url=s3_object_path,
             parameters=self.define_repo_parameters(),
@@ -77,5 +76,5 @@ class Repo:
         # Update the stack if the repo and the adf contolled stack exist
         update_stack = (self.repo_exists() and cloudformation.get_stack_status())
         if not self.repo_exists() or update_stack:
-            LOGGER.info('Creating Stack for Codecommit Repository %s on Account %s', self.name, self.account_id)
+            LOGGER.info('Ensuring State for Codecommit Repository Stack %s on Account %s', self.name, self.account_id)
             cloudformation.create_stack()

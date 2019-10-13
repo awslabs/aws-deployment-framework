@@ -26,11 +26,11 @@ Parameters:
   Image:
     Description: The Image you wish to use for CodeBuild.
     Type: String
-    Default: "aws/codebuild/python:3.7.1"
+    Default: "aws/codebuild/standard:2.0"
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    Default: "BUILD_GENERAL1_SMALL"
+    Default: "BUILD_GENERAL1_LARGE" # For threading with large amounts of pipelines this is the most effective default
     AllowedValues:
       - "BUILD_GENERAL1_SMALL"  #3 GB memory, 2 vCPU
       - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
@@ -42,9 +42,13 @@ Parameters:
     Type : "AWS::SSM::Parameter::Value<String>"
     Default: notification_type
   PipelinePrefix:
-    Description: The Prefix that will be attached to all cloudformation stacks for ADF pipelines (joined by - to the name)
+    Description: The Prefix that will be attached to pipeline stacks and names for ADF.
     Type: String
-    Default: "adf-pipeline"
+    Default: "adf-pipeline-"
+  StackPrefix:
+    Description: The Prefix that will be attached to stacks deployed via ADF.
+    Type: String
+    Default: "adf-"
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -222,6 +226,10 @@ Resources:
             Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
           - Effect: Allow
             Action:
+              - "secretsmanager:Get*"
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
+          - Effect: Allow
+            Action:
               - "sts:AssumeRole"
             Resource: !Sub "arn:aws:iam::*:role/adf-cloudformation-deployment-role"
             Condition:
@@ -239,6 +247,7 @@ Resources:
               - "events:PutRule"
               - "events:PutTargets"
               - "events:RemoveTargets"
+              - "events:PutPermission"
               - "iam:CreatePolicy"
               - "iam:CreatePolicy"
               - "iam:CreateRole"
@@ -247,6 +256,7 @@ Resources:
               - "iam:GetRole"
               - "iam:PassRole"
               - "iam:PutRolePolicy"
+              - "lambda:CreateEventSourceMapping"
               - "lambda:AddPermission"
               - "lambda:CreateFunction"
               - "lambda:DeleteFunction"
@@ -337,6 +347,10 @@ Resources:
               - sts:AssumeRole
       Path: /
   CloudFormationDeploymentPolicy:
+    # This is the role that will be used to deploy CloudFormation resources from
+    # within the account that it is deployed to. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a default IAM policy and these should be changed to suit your needs.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -452,7 +466,7 @@ Resources:
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
-            Value: "./adf-build/python"
+            Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: MASTER_ACCOUNT_ID
@@ -463,10 +477,14 @@ Resources:
             Value: !Ref SharedModulesBucket
           - Name: ADF_PIPELINE_PREFIX
             Value: !Ref PipelinePrefix
+          - Name: ADF_STACK_PREFIX
+            Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
             Value: !Ref ADFLogLevel
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
+          - Name: ORGANIZATION_ID
+            Value: !Ref OrganizationId
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base"
       Source:
@@ -475,13 +493,22 @@ Resources:
           version: 0.2
           phases:
             install:
+              runtime-versions:
+                python: 3.7
+                nodejs: 10
+            pre_build:
               commands:
+                - npm install cdk@1.12.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install --upgrade pip -q
-                - pip install -r adf-build/requirements.txt --upgrade -q
+                - pip install -r adf-build/requirements.txt --upgrade -q -t ./adf-build
             build:
               commands:
-                - python ./adf-build/generate_pipelines.py
+                - cdk --version
+                - chmod 755 adf-build/cdk/execute_pipeline_stacks.py adf-build/cdk/generate_pipeline_inputs.py adf-build/cdk/generate_pipeline_stacks.py
+                - python adf-build/cdk/generate_pipeline_inputs.py
+                - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py
+                - python adf-build/cdk/execute_pipeline_stacks.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
         - Key: "Name"
@@ -768,7 +795,7 @@ Resources:
       RoleName: "adf-lambda-role"
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Effect: "Allow"
             Principal: 
               Service: 
@@ -787,12 +814,13 @@ Resources:
                 Action: "sts:AssumeRole"
                 Resource: "*"
               - Effect: "Allow"
-                Action: 
+                Action:
                   - "codepipeline:GetPipelineState"
                   - "codepipeline:ListPipelines"
                   - "codepipeline:PutJobFailureResult"
                   - "codepipeline:PutJobSuccessResult"
                   - "codepipeline:StartPipelineExecution"
+                  - "events:PutPermission"
                   - "iam:GetRolePolicy"
                   - "iam:PutRolePolicy"
                   - "kms:Decrypt"
@@ -810,6 +838,10 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:GetParameters"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:Get*"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow Lambda access to get secrets that start with /adf/*
               - Effect: "Allow"
                 Action: 
                   - "s3:Get*"
@@ -969,6 +1001,12 @@ Resources:
       FunctionName: PipelinesCreateInitialCommitFunction
       Runtime: python3.7
       Timeout: 300
+  DeploymentAccountId:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "deployment_account_id"
+      Type: "String"
+      Value: !Ref AWS::AccountId
 Outputs:
   ADFVersionNumber:
     Value: !Ref ADFVersion

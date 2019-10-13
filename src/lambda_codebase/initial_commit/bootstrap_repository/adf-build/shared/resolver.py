@@ -89,7 +89,7 @@ class Resolver:
                 'When uploading to S3 you need to specify a '
                 'pathing style for the response either path or virtual-hosted, '
                 'read more: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html'
-            )
+            ) from None
         if str(value).count(':') > 2:
             [_, region, style, value] = value.split(':')
         else:
@@ -99,7 +99,6 @@ class Resolver:
             '/cross_region/s3_regional_bucket/{0}'.format(region)
         )
         client = S3(region, bucket_name)
-        LOGGER.info("Uploading %s as %s to S3 Bucket %s in %s", value, file_name, bucket_name, region)
         try:
             parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
         except IndexError:
@@ -107,13 +106,15 @@ class Resolver:
                 self.stage_parameters[key] = client.put_object(
                     "adf-upload/{0}/{1}".format(value, file_name),
                     "{0}".format(value),
-                    style
+                    style,
+                    True #pre-check
                 )
             return True
         self.stage_parameters[parent_key][key] = client.put_object(
             "adf-upload/{0}/{1}".format(value, file_name),
             "{0}".format(value),
-            style
+            style,
+            True #pre-check
         )
         return True
 

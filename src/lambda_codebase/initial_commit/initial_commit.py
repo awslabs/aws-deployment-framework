@@ -42,6 +42,7 @@ class CustomResourceProperties:
     TargetRegions: Optional[List[str]] = None
     NotificationEndpoint: Optional[str] = None
     NotificationEndpointType: Optional[str] = None
+    ProtectedOUs: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.NotificationEndpoint:

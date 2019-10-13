@@ -140,9 +140,9 @@ Resources:
       Path: /
   CloudFormationDeploymentPolicy:
     # This is the role that will be used to deploy CloudFormation resources from
-    # within the account that it is deployed to. You should scope this policy depending
+    # within the account that it is applied to. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a default IAM policy and these should be changed to suit your needs.
+    # NOTE: below is a sample IAM policy. These policies should be changed to suit your needs.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -197,6 +197,7 @@ Resources:
               - "servicecatalog:AssociatePrincipalWithPortfolio"
               - "servicecatalog:AssociateTagOptionWithResource"
               - "servicecatalog:Create*"
+              - "servicecatalog:List*"
               - "servicecatalog:Delete*"
               - "servicecatalog:Describe*"
               - "servicecatalog:ListProvisioningArtifacts"

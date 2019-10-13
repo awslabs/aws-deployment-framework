@@ -53,7 +53,7 @@ def configure_generic_account(sts, event, region, role):
             'Account {0} cannot yet be bootstrapped '
             'as the Deployment Account has not yet been bootstrapped. '
             'Have you moved your Deployment account into the deployment OU?'.format(event['account_id'])
-        )
+        ) from None
     parameter_store_target_account.put_parameter('kms_arn', kms_arn)
     parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
 

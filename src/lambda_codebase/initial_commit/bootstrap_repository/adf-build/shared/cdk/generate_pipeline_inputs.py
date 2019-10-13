@@ -1,33 +1,36 @@
+#!/usr/bin/env python3
+
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the pipeline cloudformation stacks
+   and used to build the pipeline cloudformation stack inputs
 """
 
-import random
 import os
-import time
+import json
 from thread import PropagatingThread
 import boto3
 
-from s3 import S3
 from pipeline import Pipeline
 from repo import Repo
+from rule import Rule
 from target import Target, TargetStructure
 from logger import configure_logger
 from errors import ParameterNotFoundError
 from deployment_map import DeploymentMap
+from cache import Cache
 from cloudformation import CloudFormation
 from organizations import Organizations
 from sts import STS
 from parameter_store import ParameterStore
 
+
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ.get("AWS_REGION", 'us-east-1')
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
-S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
@@ -54,11 +57,23 @@ def clean(parameter_store, deployment_map):
             stacks_to_remove.append(name)
 
     for stack in list(set(stacks_to_remove)):
-        cloudformation.delete_stack("{0}-{1}".format(
+        cloudformation.delete_stack("{0}{1}".format(
             ADF_PIPELINE_PREFIX,
             stack
         ))
 
+def ensure_event_bus_status(organization_id):
+    _events = boto3.client('events')
+    _events.put_permission(
+        Action='events:PutEvents',
+        Principal='*',
+        StatementId='OrgAccessForEventBus',
+        Condition={
+            'Type': 'StringEquals',
+            'Key': 'aws:PrincipalOrgID',
+            'Value': organization_id
+        }
+    )
 
 def store_regional_parameter_config(pipeline, parameter_store):
     """
@@ -82,81 +97,67 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
-def upload_pipeline(s3, pipeline):
-    """
-    Responsible for uploading the object (global.yml) to S3
-    and returning the URL that can be referenced in the CloudFormation
-    create_stack call.
-    """
-    s3_object_path = s3.put_object(
-        "pipelines/{0}/global.yml".format(
-            pipeline.name), "{0}/{1}/global.yml".format(
-                'pipelines',
-                pipeline.name
-            )
-        )
-    return s3_object_path
+def fetch_required_ssm_params(regions):
+    output = {}
+    for region in regions:
+        parameter_store = ParameterStore(region, boto3)
+        output[region] = {
+            "s3": parameter_store.fetch_parameter('/cross_region/s3_regional_bucket/{0}'.format(region)),
+            "kms": parameter_store.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
+        }
+        if region == DEPLOYMENT_ACCOUNT_REGION:
+            output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
+    return output
 
-def worker_thread(p, organizations, auto_create_repositories, s3, deployment_map, parameter_store):
+def worker_thread(p, organizations, auto_create_repositories, deployment_map, parameter_store):
+    LOGGER.debug("Worker Thread started for %s", p.get('name'))
     pipeline = Pipeline(p)
-
     if auto_create_repositories == 'enabled':
-        try:
-            code_account_id = next(param['SourceAccountId'] for param in p['params'] if 'SourceAccountId' in param)
-            has_custom_repo = bool([item for item in p['params'] if 'RepositoryName' in item])
-            if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
-                repo = Repo(code_account_id, p.get('name'), p.get('description'))
-                repo.create_update()
-        except StopIteration:
-            LOGGER.debug("No need to create repository as SourceAccountId is not found in params")
+        code_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
+        has_custom_repo = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {})
+        if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
+            repo = Repo(code_account_id, p.get('name'), p.get('description'))
+            repo.create_update()
 
+    regions = []
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
         for step in target_structure.target:
-            for path in step.get('path'):
+            for path in step.get('path', []):
                 regions = step.get(
                     'regions', p.get(
                         'regions', DEPLOYMENT_ACCOUNT_REGION))
-                step_name = step.get('name')
-                params = step.get('params', {})
                 pipeline.stage_regions.append(regions)
-                pipeline_target = Target(
-                    path, regions, target_structure, organizations, step_name, params)
+                pipeline_target = Target(path, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
-
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
-        if DEPLOYMENT_ACCOUNT_REGION not in regions:
-            pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
-
-    parameters = pipeline.generate_parameters()
-    pipeline.generate()
-    deployment_map.update_deployment_parameters(pipeline)
-    s3_object_path = upload_pipeline(s3, pipeline)
-
-    store_regional_parameter_config(pipeline, parameter_store)
-    cloudformation = CloudFormation(
-        region=DEPLOYMENT_ACCOUNT_REGION,
-        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-        role=boto3,
-        template_url=s3_object_path,
-        parameters=parameters,
-        wait=True,
-        stack_name="{0}-{1}".format(
-            ADF_PIPELINE_PREFIX,
-            pipeline.name
-        ),
-        s3=None,
-        s3_key_path=None,
-        account_id=DEPLOYMENT_ACCOUNT_ID
+    if DEPLOYMENT_ACCOUNT_REGION not in regions:
+        pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
+    pipeline.generate_input()
+    ssm_params = fetch_required_ssm_params(
+        pipeline.input["regions"]
     )
-    cloudformation.create_stack()
+    deployment_map.update_deployment_parameters(pipeline)
+    store_regional_parameter_config(pipeline, parameter_store)
+    with open('cdk_inputs/{0}.json'.format(pipeline.input['name']), 'w') as outfile:
+        data = {}
+        data['input'] = pipeline.input
+        data['ssm_params'] = ssm_params
+        json.dump(data, outfile)
+
+def _create_inputs_folder():
+    try:
+        return os.mkdir('cdk_inputs')
+    except FileExistsError:
+        return None
 
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
+    _create_inputs_folder()
     parameter_store = ParameterStore(
         DEPLOYMENT_ACCOUNT_REGION,
         boto3
@@ -165,10 +166,6 @@ def main():
         parameter_store,
         ADF_PIPELINE_PREFIX
     )
-    s3 = S3(
-        DEPLOYMENT_ACCOUNT_REGION,
-        S3_BUCKET_NAME
-    )
     sts = STS()
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}-readonly'.format(
@@ -176,36 +173,33 @@ def main():
             parameter_store.fetch_parameter('cross_account_access_role')
         ), 'pipeline'
     )
-
     organizations = Organizations(role)
     clean(parameter_store, deployment_map)
-
+    ensure_event_bus_status(ORGANIZATION_ID)
     try:
         auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
     except ParameterNotFoundError:
         auto_create_repositories = 'enabled'
-
     threads = []
-    for counter, p in enumerate(deployment_map.map_contents.get('pipelines')):
+    _cache = Cache()
+    for p in deployment_map.map_contents.get('pipelines', []):
+        _source_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
+        if _source_account_id and int(_source_account_id) != int(DEPLOYMENT_ACCOUNT_ID) and not _cache.check(_source_account_id):
+            rule = Rule(p['default_providers']['source']['properties']['account_id'])
+            rule.create_update()
+            _cache.add(p['default_providers']['source']['properties']['account_id'], True)
         thread = PropagatingThread(target=worker_thread, args=(
             p,
             organizations,
             auto_create_repositories,
-            s3,
             deployment_map,
             parameter_store
         ))
         thread.start()
         threads.append(thread)
-        _batcher = counter % 10
-        if _batcher == 9: # 9 meaning we have hit a set of 10 threads since n % 10
-            _interval = random.randint(5, 11)
-            LOGGER.debug('Waiting for %s seconds before starting next batch of 10 threads.', _interval)
-            time.sleep(_interval)
 
     for thread in threads:
         thread.join()
-
 
 if __name__ == '__main__':
     main()

@@ -1,35 +1,206 @@
 pipelines:
-  - name: sample-vpc
-    type: cc-cloudformation
+  - name: sample-iam  # The name of your pipeline (by default, this will match the name of your repository)
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+      build:
+        provider: codebuild
+      deploy:
+        provider: cloudformation
     params:
-      - SourceAccountId: 11111233321
-      - NotificationEndpoint: my_email@email.com
-    targets:
-      - path: /banking/testing
-        regions: eu-west-1
+        notification_endpoint: bundyf@amazon.nl # The Notification (user/team/slack) responsible for this pipeline
+        restart_execution_on_update: True
+    targets:  # Deployment stages
+      - /banking/testing # will use action from type defined above,
       - approval
       - path: /banking/production
-        regions: us-west-2
+        properties: 
+          stack_name: my-cool-iam-stack # Since no deploy type is defined above this target is assumed type of CloudFormation
+          change_set_approval: True # override deploy action above and insert a approval in between create + execute change set
+      - provider: lambda
+        properties: # https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
+          input: {"name": "jon_doe"} # This input will be passed to the function as a string
+          function_name: my_lambda_function
 
-  - name: example-sc
-    type: cc-service-catalog
-    targets:
+  - name: ami-builder  # The name of your pipeline (by default, this will match the name of your repository)
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          role: packer
+          size: medium # Resource allocation for the build stage -> small | medium | large 
+    params:
+      schedule: rate(7 days) # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
+    completion_trigger: # What should happen when this pipeline completes
+      pipelines:
+        - sample-vpc # run this other pipeline
+
+  - name: sample-vpc
+    default_providers: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
+      source:
+        provider: github
+        properties:
+          repository: example-vpc-adf # Optional, above name property will be used if this is not specified
+          owner: bundyfx
+          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+      deploy:
+        provider: cloudformation
+        properties:
+          action: replace_on_failure
+    params:
+        notification_endpoint: jon@smith.com
+    targets: # Long hand syntax including regions and names for stages
       - path: /banking/testing
-        regions: eu-west-1
-      - path: /banking/production
-        regions: us-west-2
+        name: fancy-name
 
-  - name: some-thing
-    type: cc-service-catalog
-    params:
-      - SourceAccountId: 11111233321
-      - ProductId: prod-some_id
-      - NotificationEndpoint: my_email@email.com
+
+  - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111 # A different AccountId as this pipeline is owned by a different team
+      deploy:
+        provider: codebuild
+    targets: # targets looks for the deploy defaults above to determine parameters
+      - properties:
+          spec_filename: custom-spec-one.yml
+      - provider: approval
+        properties:
+          message: plz approve
+          notification_endpoint: jon.smith@email.com # Approvals can have their own unique notification endpoint
+      - properties:
+          spec_filename: custom-spec-two.yml
+
+  - name: sample-ec2-app-codedeploy
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111 # A different AccountId as this pipeline is owned by a different team
     targets:
-      - 123456789
-      - 013456789101
+      - 162738475618
 
-  - name: my-build
-    type: cc-buildonly
+  - name: sample-ec2-java-app-codedeploy
+    default_providers:
+      source: 
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_2_0" # Use a specific docker image (defaults to Python 3.7) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+      deploy:
+        provider: codedeploy
     params:
-      - SourceAccountId: 123456789101
+        notification_endpoint: deployments
+    targets:
+      - target: 162738475618
+        properties: # These are stage specific properties for our deploy action
+          application_name: sample
+          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+
+  - name: sample-input-export-pipeline
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 554771589607
+    targets:
+      - target: 162738475618
+        properties:
+          outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
+      - target: 144313290359
+        properties:
+          param_overrides:
+            - inputs: some_param_outputs # Which file do we want to use to pass in overrides from
+              param: s3_bucket # The name of the parameter you wish to override at this stage
+              key_name: logging_bucket # The key from the output 'some_param_outputs' we want to get the value from
+
+  - name: sample-s3-pipeline
+    default_providers:
+      source:
+        provider: s3
+        properties:
+          bucket_name: packer-stub
+          object_key: input.zip
+          account_id: 111111111111
+      build:
+        enabled: False # if you wish to disable the build phase in a pipeline
+      deploy:
+        provider: s3
+    targets:
+      - target: 162738475618
+        properties:
+          bucket_name: test-adf-bucket-eu
+          object_key: output.zip
+
+  - name: example-contains-transform
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        properties:
+          environment_variables:
+            CONTAINS_TRANSFORM: True # If you define this environment variable its expected that you are using the contains_transform helper in your build stage.
+    targets:
+      - /banking/testing
+
+  - name: sample-ecs-cluster
+    default_providers:
+      source: &example_anchor_source
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+    targets: &example_anchor_targets
+      - /banking/testing
+      - path: /banking/production
+        regions: eu-west-1
+        name: production
+
+  - name: sample-cdk-application
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_2_0"
+    regions: eu-west-1
+    targets:
+      - /banking/testing
+      - /banking/production
+
+  - name: sample-ecr-repository
+    default_providers:
+      source: *example_anchor_source
+    targets:
+      - /deployment
+
+  - name: sample-service-catalog-product
+    default_providers:
+      source: *example_anchor_source
+    targets: *example_anchor_targets
+
+  - name: sample-node-app
+    default_providers:
+      source: *example_anchor_source
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_2_0"
+          privileged: true
+    targets: *example_anchor_targets

@@ -1,7 +1,5 @@
 ## Sample EC2 Application Stack with CodeDeploy Components
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-ec2-app-codedeploy*.
-
 This example is coupled with the `sample-ec2-java-app-codedeploy` repository and is aimed at showcasing how to deploy a basic Springboot application with [AWS CodeDeploy](https://docs.aws.amazon.com/codedeploy/latest/userguide/welcome.html) via ADF.
 
 This stack assumes a Amazon EC2 [Key Pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) has been created in the target accounts.
@@ -16,10 +14,12 @@ This stack also requires `sample-vpc` and `sample-iam` to be in deployed as it i
 
 ```yaml
   - name: sample-ec2-app-codedeploy
-    type: cc-cloudformation
-    params:
-      - SourceAccountId: 111111111111
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
     targets:
-      - 222222222222
-      - 333333333333
+      - /banking/testing
+      - /banking/production
 ```
