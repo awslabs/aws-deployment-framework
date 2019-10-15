@@ -5,7 +5,7 @@
 Schema Validation for Deployment map files
 """
 
-from schema import Schema, And, Use, Or, Optional, SchemaError
+from schema import Schema, And, Use, Or, Optional
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
@@ -203,9 +203,15 @@ REGION_SCHEMA = Or(
     str,
     list
 )
+
+TARGET_LIST_SCHEMA = [Or(
+    str,
+    int
+)]
+
 TARGET_SCHEMA = {
-    Optional("path"): Or(str, int),
-    Optional("target"): Or(str, int),
+    Optional("path"): Or(str, int, TARGET_LIST_SCHEMA),
+    Optional("target"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("name"): str,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
@@ -218,7 +224,7 @@ PIPELINE_SCHEMA = {
     "name": And(str, len),
     "default_providers": PROVIDER_SCHEMA,
     Optional("params"): PARAM_SCHEMA,
-    Optional("targets"): [Or(str, int, TARGET_SCHEMA)],
+    Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
     Optional("regions"): REGION_SCHEMA,
     Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
 }
@@ -229,7 +235,3 @@ TOP_LEVEL_SCHEMA = {
 class SchemaValidation:
     def __init__(self, map_input: dict):
         self.validated = Schema(TOP_LEVEL_SCHEMA).validate(map_input)
-
-    @staticmethod
-    def extract_key_from_schema_error(e: SchemaError) -> str:
-        return str(e).split(" ")[1].strip("'")

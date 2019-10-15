@@ -5,4 +5,6 @@ pytest~=3.0.7
 mock~=2.0.0
 pyyaml~=5.1
 astroid~=2.1.0
+six~=1.11.0
 aws-sam-cli==0.22.0
+pip==19.1.1
