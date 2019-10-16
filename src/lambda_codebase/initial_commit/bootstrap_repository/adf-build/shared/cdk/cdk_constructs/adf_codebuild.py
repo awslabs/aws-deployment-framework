@@ -47,7 +47,6 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
                 privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
-            # Core difference from CodeBuild as deployment as opposed to build is we allow the buildspec file to be passed in dynamically
             _spec = map_params['default_providers']['deploy'].get('properties', {}).get('spec_filename') or target.get('properties', {}).get('spec_filename') or 'deployspec.yml'
             _codebuild.PipelineProject(
                 self,
@@ -83,6 +82,12 @@ class CodeBuild(core.Construct):
             )
             if map_params['default_providers']['build'].get('properties', {}).get('role'):
                 ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['default_providers']['build'].get('properties', {}).get('role'))
+            _build_stage_spec = map_params['default_providers']['build'].get('properties', {}).get('spec_filename')
+            _build_inline_spec = map_params['default_providers']['build'].get(
+                'properties', {}).get(
+                    'spec_inline', None) or map_params['default_providers']['build'].get(
+                        'properties', {}).get(
+                            'spec_inline', None)
             _codebuild.PipelineProject(
                 self,
                 'project',
@@ -91,12 +96,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(map_params['name']),
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
-                build_spec=None if not map_params['default_providers']['build'].get(
-                    'properties', {}).get(
-                        'spec_inline') else _codebuild.BuildSpec.from_object(
-                            map_params['default_providers']['build'].get(
-                                'properties', {}).get(
-                                    'spec_inline')),
+                build_spec=_codebuild.BuildSpec.from_source_filename(_build_stage_spec) if _build_stage_spec else _codebuild.BuildSpec.from_object(_build_inline_spec) or None,
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
