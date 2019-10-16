@@ -21,6 +21,7 @@ CFN_CONFIG = Config(
         max_attempts=10
     )
 )
+CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9:/._+]")
 
 class StackProperties:
     clean_stack_status = [
@@ -85,10 +86,11 @@ class StackProperties:
             return []
 
     def _get_stack_name(self):
-        return 'adf-{0}-base-{1}'.format(
+        raw_stack_name = 'adf-{0}-base-{1}'.format(
             self._get_geo_prefix(),
             self.ou_name
         )
+        return CFN_UNACCEPTED_CHARS.sub("-", raw_stack_name)
 
 
 class CloudFormation(StackProperties):
