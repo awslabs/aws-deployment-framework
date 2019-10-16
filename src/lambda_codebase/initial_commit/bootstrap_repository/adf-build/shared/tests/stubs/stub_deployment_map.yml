@@ -29,7 +29,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111111111111
+          account_id: '011111111111'
       build:
         provider: codebuild
         properties:
@@ -66,7 +66,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111111111111 # A different AccountId as this pipeline is owned by a different team
+          account_id: '012345678901' # A different AccountId as this pipeline is owned by a different team
       deploy:
         provider: codebuild
     targets: # targets looks for the deploy defaults above to determine parameters
@@ -87,6 +87,8 @@ pipelines:
           account_id: 111111111111 # A different AccountId as this pipeline is owned by a different team
     targets:
       - 162738475618
+      - '062738475618'
+      - '012733475612'
 
   - name: sample-ec2-java-app-codedeploy
     default_providers:

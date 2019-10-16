@@ -5,7 +5,7 @@
 Schema Validation for Deployment map files
 """
 
-from schema import Schema, And, Use, Or, Optional
+from schema import Schema, And, Use, Or, Optional, Regex
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
@@ -17,9 +17,33 @@ PARAM_SCHEMA = {
     Optional("restart_execution_on_update"): bool,
 }
 
+AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
+AWS_ACCOUNT_ID_SCHEMA = Schema(
+    And(
+        Or(int, str),
+        Use(str),
+        Regex(
+            AWS_ACCOUNT_ID_REGEX_STR,
+            error=(
+                "The specified account id is incorrect. "
+                "This typically happens when you specify the account id as a "
+                "number, while the account id starts with a zero. If this is "
+                "the case, please wrap the account id in quotes to make it a "
+                "string. An AWS Account Id is a number of 12 digits, which "
+                "should start with a zero if the Account Id has a zero at "
+                "the start too. "
+                "The number shown to not match the regular expression could "
+                "be interpreted as an octal number due to the leading zero. "
+                "Therefore, it might not match the account id as specified "
+                "in the deployment map."
+            )
+        )
+    )
+)
+
 # CodeCommit Source
 CODECOMMIT_SOURCE_PROPS = {
-    "account_id": Schema(And(Use(int), lambda n: len(str(n)) == 12)),
+    "account_id": AWS_ACCOUNT_ID_SCHEMA,
     Optional("repository"): str,
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
@@ -46,7 +70,7 @@ GITHUB_SOURCE = {
 
 # S3 Source
 S3_SOURCE_PROPS = {
-    "account_id": And(Use(int), lambda n: len(str(n)) == 12),
+    "account_id": AWS_ACCOUNT_ID_SCHEMA,
     "bucket_name": str,
     "object_key": str
 }
@@ -194,10 +218,50 @@ DEFAULT_APPROVAL = {
 }
 
 # Core Schema
+PROVIDER_SOURCE_SCHEMAS = {
+    'codecommit': Schema(CODECOMMIT_SOURCE),
+    'github': Schema(GITHUB_SOURCE),
+    's3': Schema(S3_SOURCE),
+}
+PROVIDER_BUILD_SCHEMAS = {
+    'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
+    'jenkins': Schema(JENKINS_BUILD),
+}
+PROVIDER_DEPLOY_SCHEMAS = {
+    'cloudformation': Schema(DEFAULT_CLOUDFORMATION_DEPLOY),
+    's3': Schema(DEFAULT_S3_DEPLOY),
+    'codedeploy': Schema(DEFAULT_CODEDEPLOY_DEPLOY),
+    'lambda': Schema(DEFAULT_LAMBDA_INVOKE),
+    'service_catalog': Schema(DEFAULT_SERVICECATALOG_DEPLOY),
+    'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
+}
 PROVIDER_SCHEMA = {
-        'source': Or(CODECOMMIT_SOURCE, GITHUB_SOURCE, S3_SOURCE),
-        Optional('build'): Or(DEFAULT_CODEBUILD_BUILD, JENKINS_BUILD),
-        Optional('deploy'): Or(DEFAULT_CLOUDFORMATION_DEPLOY, DEFAULT_S3_DEPLOY, DEFAULT_CODEDEPLOY_DEPLOY, DEFAULT_LAMBDA_INVOKE, DEFAULT_SERVICECATALOG_DEPLOY, DEFAULT_CODEBUILD_BUILD)
+    'source': And(
+        {
+            'provider': Or('codecommit', 'github', 's3'),
+            'properties': dict,
+        },
+        lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
+    ),
+    Optional('build'): And(
+        {
+            Optional('provider'): Or('codebuild', 'jenkins'),
+            Optional('enabled'): bool,
+            Optional('properties'): dict,
+        },
+        lambda x: PROVIDER_BUILD_SCHEMAS[x.get('provider', 'codebuild')].validate(x),  #pylint: disable=W0108
+    ),
+    Optional('deploy'): And(
+        {
+            'provider': Or(
+                'cloudformation', 's3', 'codedeploy', 'lambda',
+                'service_catalog', 'codebuild'
+            ),
+            Optional('enabled'): bool,
+            Optional('properties'): dict,
+        },
+        lambda x: PROVIDER_DEPLOY_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
+    ),
 }
 REGION_SCHEMA = Or(
     str,
