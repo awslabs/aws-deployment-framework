@@ -54,6 +54,8 @@ pipelines:
         provider: cloudformation
         properties:
           action: replace_on_failure
+          root_dir: infra
+          template_filename: my_template.yml
     params:
         notification_endpoint: jon@smith.com
     targets: # Long hand syntax including regions and names for stages
