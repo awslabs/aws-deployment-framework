@@ -64,6 +64,22 @@ The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. Yo
 
 By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
+### Important Notes
+
+#### Zero-prefixed AWS Account Ids
+
+In most cases, you can target accounts directly by passing the AWS Account Id
+as an integer, as shown in the example above. However, in case the AWS Account
+Id starts with a zero, for example `011112233332`, you will need to pass the
+AWS Account Id as a string instead.
+
+Due to the way the YAML file is read, it will automatically transform
+zero-leading numbers by removing the zero. Additionally, if the AWS Account Id
+starts with a zero and happens to include numbers between 0 and 7 only, for
+example `012345671234`, it will treat it as a octal number instead.
+Since this cannot be detected without making risky assumptions, the deployment
+will error to be on the safe side instead.
+
 ### Types
 
 The ADF comes with an extensive set of abstractions over CodePipeline providers that can be used to define pipelines. For example, see the below pipeline definition:
