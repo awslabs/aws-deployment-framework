@@ -65,6 +65,7 @@ CODEBUILD_PROPS = {
     Optional("timeout"): int,
     Optional("privileged"): bool,
     Optional("spec_inline"): str
+
 }
 DEFAULT_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',
