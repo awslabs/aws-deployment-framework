@@ -4,6 +4,7 @@ mock==2.0.0
 boto3==1.9.89
 pyyaml>=5.1
 schema==0.7.1
+docopt~=0.6.2
 jsii~=0.20.3
 aws_cdk.aws_codepipeline==1.16.2
 aws_cdk.aws_lambda_event_sources==1.16.2
