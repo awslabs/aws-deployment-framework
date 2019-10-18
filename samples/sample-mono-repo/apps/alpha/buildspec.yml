@@ -1,0 +1,22 @@
+version: 0.2
+
+env:
+  variables:
+    INFRASTRUCTURE_ROOT_DIR: 'apps/alpha'
+
+phases:
+  install:
+    commands:
+      - cd $INFRASTRUCTURE_ROOT_DIR
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - pip install -r adf-build/requirements.txt -q
+
+  build:
+    commands:
+      - python adf-build/generate_params.py
+
+artifacts:
+  files:
+    - '$INFRASTRUCTURE_ROOT_DIR/template.yml'
+    - '$INFRASTRUCTURE_ROOT_DIR/params/*.json'
+    - '$INFRASTRUCTURE_ROOT_DIR/params/*.yml"'
