@@ -204,3 +204,22 @@ pipelines:
           image: "STANDARD_2_0"
           privileged: true
     targets: *example_anchor_targets
+
+  - name: sample-cdk-application
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_2_0"
+    regions: eu-west-1
+    targets:
+      - tags:
+          environment: sandbox
+        region: eu-west-1
+      - tags:
+          environment: prod
+          solution: connected-vehicle

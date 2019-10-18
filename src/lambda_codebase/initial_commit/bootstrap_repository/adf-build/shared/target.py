@@ -90,6 +90,10 @@ class Target():
         ).get('Account')
         self._create_response_object([responses])
 
+    def _target_is_tags(self):
+        responses = self.organizations.get_account_ids_for_tags(self.path)
+        self._create_response_object(responses)
+
     def _target_is_ou_id(self):
         responses = self.organizations.get_accounts_for_parent(
             str(self.path)
@@ -108,6 +112,8 @@ class Target():
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
+        if (type(self.path) is dict):
+            return self._target_is_tags()
         if (str(self.path)).startswith('ou-'):
             return self._target_is_ou_id()
         if (str(self.path).isnumeric() and len(str(self.path)) == 12):

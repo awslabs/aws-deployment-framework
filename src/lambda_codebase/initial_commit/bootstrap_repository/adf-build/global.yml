@@ -42,6 +42,7 @@ Resources:
               - organizations:DescribeAccount
               - organizations:ListOrganizationalUnitsForParent
               - organizations:ListRoots
+              - tag:GetResources
             Resource: "*"
       Roles:
         - !Ref OrganizationsReadOnlyRole

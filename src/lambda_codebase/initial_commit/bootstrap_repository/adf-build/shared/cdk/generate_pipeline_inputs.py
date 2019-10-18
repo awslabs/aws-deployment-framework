@@ -123,13 +123,19 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
         for step in target_structure.target:
+            regions = step.get(
+                'regions', p.get(
+                    'regions', DEPLOYMENT_ACCOUNT_REGION))
+            paths_tags = []
             for path in step.get('path', []):
-                regions = step.get(
-                    'regions', p.get(
-                        'regions', DEPLOYMENT_ACCOUNT_REGION))
+                paths_tags.append(path)
+            for tags in step.get('tags', {}):
+                paths_tags.append(tags)
+            for path_or_tag in paths_tags:
                 pipeline.stage_regions.append(regions)
-                pipeline_target = Target(path, target_structure, organizations, step, regions)
+                pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
+
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
