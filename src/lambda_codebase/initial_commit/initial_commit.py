@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import os
+import re
 import boto3
 import jinja2
 from cfn_custom_resource import ( # pylint: disable=unused-import
@@ -22,6 +23,7 @@ Data = Mapping[str, str]
 HERE = Path(__file__).parent
 NOT_YET_CREATED = "NOT_YET_CREATED"
 CC_CLIENT = boto3.client("codecommit")
+CONFIG_FILE_REGEX = re.compile(r"\A.*[.](yaml|yml|json)\Z", re.I)
 
 PR_DESCRIPTION = """ADF Version {0} from https://github.com/awslabs/aws-deployment-framework
 
@@ -219,6 +221,7 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
     files_to_delete = get_files_to_delete(repo_name)
     files_to_commit = get_files_to_commit(update_event.ResourceProperties.DirectoryName)
+
     commit_id = CC_CLIENT.get_branch(
         repositoryName=repo_name,
         branchName="master",
@@ -244,7 +247,11 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
         try:
             for index, deletes in enumerate(chunks([f.as_dict() for f in files_to_delete], 99)):
                 commit_id = CC_CLIENT.create_commit(**generate_commit_input(
-                    repo_name, index, parent_commit_id=commit_id, branch=update_event.ResourceProperties.Version, deletes=deletes
+                    repo_name,
+                    index,
+                    parent_commit_id=commit_id,
+                    branch=update_event.ResourceProperties.Version,
+                    deletes=deletes
                 ))["commitId"]
         except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
             pass
@@ -269,16 +276,11 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         afterCommitSpecifier='HEAD'
     )['differences']
 
-    # We never want to delete scp.json, global.yml, regional.yml or deployment_map.yml
+    # We never want to delete JSON or YAML files
     file_paths = [
         Path(file['afterBlob']['path'])
         for file in differences
-        if 'adfconfig.yml' not in file['afterBlob']['path']
-        and 'scp.json' not in file['afterBlob']['path']
-        and 'global.yml' not in file['afterBlob']['path']
-        and 'regional.yml' not in file['afterBlob']['path']
-        and file['afterBlob']['path'] != 'deployment_map.yml'
-        and not file['afterBlob']['path'].startswith('deployment_maps')
+        if not CONFIG_FILE_REGEX.match(file['afterBlob']['path'])
     ]
 
     # 31: trimming off /var/task/bootstrap_repository so we can compare correctly
@@ -296,6 +298,7 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
 
 def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName
+
     return [
         FileToCommit(
             str(get_relative_name(entry, directoryName)),
