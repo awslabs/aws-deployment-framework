@@ -85,9 +85,15 @@ class CodeBuild(core.Construct):
             _build_stage_spec = map_params['default_providers']['build'].get('properties', {}).get('spec_filename')
             _build_inline_spec = map_params['default_providers']['build'].get(
                 'properties', {}).get(
-                    'spec_inline', None) or map_params['default_providers']['build'].get(
+                    'spec_inline', '') or map_params['default_providers']['build'].get(
                         'properties', {}).get(
-                            'spec_inline', None)
+                            'spec_inline', '')
+            if _build_stage_spec:
+                _spec = _codebuild.BuildSpec.from_source_filename(_build_stage_spec)
+            elif _build_inline_spec:
+                _spec = _codebuild.BuildSpec.from_object(_build_inline_spec)
+            else:
+                _spec = None
             _codebuild.PipelineProject(
                 self,
                 'project',
@@ -96,7 +102,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(map_params['name']),
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
-                build_spec=_codebuild.BuildSpec.from_source_filename(_build_stage_spec) if _build_stage_spec else _codebuild.BuildSpec.from_object(_build_inline_spec) or None,
+                build_spec=_spec,
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(

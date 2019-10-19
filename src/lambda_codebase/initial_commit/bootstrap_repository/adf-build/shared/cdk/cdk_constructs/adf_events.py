@@ -72,7 +72,11 @@ class Events(core.Construct):
                         "pipeline": [
                             _pipeline.pipeline_name
                         ]
-                    }
+                    },
+                    detail_type=[
+                        "CodePipeline Pipeline Execution State Change"
+                    ],
+                    source=["aws.codepipeline"]
                 )
             )
             _on_state_change.add_target(
@@ -97,9 +101,6 @@ class Events(core.Construct):
                     description="Triggers {0} on completion of {1}".format(pipeline, params['pipeline']),
                     enabled=True,
                     event_pattern=_events.EventPattern(
-                        resources=[
-                            "arn:aws:codepipeline:{0}:{1}:{2}".format(ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID, _pipeline.pipeline_name)
-                        ],
                         detail={
                             "state": [
                                 "SUCCEEDED"
@@ -107,7 +108,11 @@ class Events(core.Construct):
                             "pipeline": [
                                 _pipeline.pipeline_name
                             ]
-                        }
+                        },
+                        detail_type=[
+                            "CodePipeline Pipeline Execution State Change"
+                        ],
+                        source=["aws.codepipeline"]
                     )
                 )
                 _completion_pipeline = _codepipeline.Pipeline.from_pipeline_arn(
