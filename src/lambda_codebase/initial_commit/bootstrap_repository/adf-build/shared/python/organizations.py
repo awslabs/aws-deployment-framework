@@ -5,7 +5,6 @@
 """
 
 import json
-import re
 
 from botocore.config import Config
 from botocore.exceptions import ClientError
