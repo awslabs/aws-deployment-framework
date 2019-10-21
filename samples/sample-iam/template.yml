@@ -78,18 +78,18 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
       RoleName: "codedeploy-service-role"
 Outputs:
-  DevelopersIAMGroupARN:
+  DevelopersIAMGroup:
     Description: The ARN of the Developers IAM Group to be exported.
     Export:
       Name: SampleDevelopersIAMGroupArn
     Value: !GetAtt DevelopersIAMGroup.Arn
-  CodeDeployRoleARN:
+  CodeDeployRole:
     Description: The ARN of the CodeDeploy Service Role Arn to be exported.
     Export:
-      Name: CodeDeployRoleARN
+      Name: CodeDeployRoleArn
     Value: !GetAtt CodeDeployServiceRole.Arn
-  DefaultInstanceManagedPolicyArn:
-    Description: "The ARN of the Default EC2 Instance Managed Policy to be imported into application stacks"
-    Value: !Ref "DefaultInstanceManagedPolicy"
+  GlobalInstanceProfile:
+    Description: "The ARN of the Default EC2 Instance Role to be imported into application stacks"
+    Value: !Ref GlobalInstanceProfile
     Export:
-      Name: "DefaultInstanceManagedPolicyArn"
+      Name: GlobalInstanceProfileName
