@@ -223,7 +223,7 @@ pipelines:
     targets:
       - tags:
           environment: sandbox
-        region: eu-west-1
+        regions: eu-west-1
       - tags:
           environment: prod
           solution: connected-vehicle
