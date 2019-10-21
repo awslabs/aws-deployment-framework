@@ -23,11 +23,13 @@ class Organizations: # pylint: disable=R0904
     _config = Config(retries=dict(max_attempts=30))
 
     def __init__(self, role, account_id=None):
+        self.role = role
         self.client = role.client(
             'organizations',
             config=Organizations._config)
         self.tags_client = role.client(
             'resourcegroupstaggingapi',
+            region_name='us-east-1',
             config=Organizations._config)
         self.account_id = account_id
         self.account_ids = []
@@ -135,19 +137,21 @@ class Organizations: # pylint: disable=R0904
 
     def get_account_ids_for_tags(self, tags):
         tag_filter = []
+
         for key, value in tags.items():
-            tag_filter.append({'Key': key, 'Value': value})
+            if type(value) is list:
+                values = value
+            else:
+                values = [value]
+            tag_filter.append({'Key': key, 'Values': values})
 
-        for resource in paginator(self.tags_client.get_resources(TagFilters=tag_filter)):
-            if resource.get('ResourceTagMappingList') is not None:
-                for resource_tag_mapping in resource.get('ResourceTagMappingList'):
-                    arn = resource_tag_mapping['ResourceARN']
-                    m = re.search('arn:aws:organizations::\d*:account\/\S*\/\d*', arn)
-                    if bool(m):
-                        account_id = arn.split('/')[::-1][0]
-                        self.account_ids.append(account_id)
+        account_ids = []
+        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
+            arn = resource['ResourceARN']
+            account_id = arn.split('/')[::-1][0]
+            account_ids.append(account_id)
 
-        return self.account_ids
+        return account_ids
 
     def get_organization_info(self):
         response = self.client.describe_organization()

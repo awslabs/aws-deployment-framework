@@ -122,6 +122,7 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     regions = []
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
+
         for step in target_structure.target:
             regions = step.get(
                 'regions', p.get(
@@ -129,8 +130,8 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
             paths_tags = []
             for path in step.get('path', []):
                 paths_tags.append(path)
-            for tags in step.get('tags', {}):
-                paths_tags.append(tags)
+            if step.get('tags') is not None:
+                paths_tags.append(step.get('tags', {}))
             for path_or_tag in paths_tags:
                 pipeline.stage_regions.append(regions)
                 pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)

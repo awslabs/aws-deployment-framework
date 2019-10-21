@@ -30,7 +30,7 @@ class TargetStructure:
         if isinstance(target, dict):
             if target.get('target'):
                 target["path"] = target.get('target')
-            if not isinstance(target.get('path'), list):
+            if not isinstance(target.get('path', []), list):
                 target["path"] = [target.get('path')]
         if not isinstance(target, list):
             target = [target]
@@ -92,7 +92,11 @@ class Target():
 
     def _target_is_tags(self):
         responses = self.organizations.get_account_ids_for_tags(self.path)
-        self._create_response_object(responses)
+        accounts = []
+        for response in responses:
+            account = self.organizations.client.describe_account(AccountId=response).get('Account')
+            accounts.append(account)
+        self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
         responses = self.organizations.get_accounts_for_parent(
