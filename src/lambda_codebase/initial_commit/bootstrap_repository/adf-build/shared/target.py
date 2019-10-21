@@ -10,8 +10,13 @@ require mutation depending on their structure.
 import re
 import os
 from errors import InvalidDeploymentMapError, NoAccountsFoundError
+from logger import configure_logger
+from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
+
+LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 
 class TargetStructure:
     def __init__(self, target):
@@ -120,10 +125,31 @@ class Target():
             return self._target_is_tags()
         if str(self.path).startswith('ou-'):
             return self._target_is_ou_id()
-        if (str(self.path).isnumeric() and len(str(self.path)) == 12):
+        if AWS_ACCOUNT_ID_REGEX.match(str(self.path)):
             return self._target_is_account_id()
-        if (str(self.path)).startswith('/'):
+        if str(self.path).isnumeric():
+            LOGGER.warning(
+                "The specified path is numeric, but is not 12 chars long. "
+                "This typically happens when you specify the account id as a "
+                "number, while the account id starts with a zero. If this is "
+                "the case, please wrap the account id in quotes to make it a "
+                "string. The current path is interpreted as '%s'. "
+                "It could be interpreted as an octal number due to the zero, "
+                "so it might not match the account id as specified in the "
+                "deployment map. Interpreted as an octal it would be '%s'. "
+                "This error is thrown to be on the safe side such that it "
+                "is not targeting the wrong account by accident.",
+                str(self.path),
+                # Optimistically convert the path from 10-base to octal 8-base
+                # Then remove the use of the 'o' char, as it will output
+                # in the correct way, starting with: 0o.
+                str(oct(int(self.path))).replace('o', ''),
+            )
+        if str(self.path).startswith('/'):
             return self._target_is_ou_path()
         if self.path is None:
-            return self._target_is_null_path() # No path/target has been passed, path will default to /deployment
-        raise InvalidDeploymentMapError("Unknown defintion for target: {0}".format(self.path))
+            # No path/target has been passed, path will default to /deployment
+            return self._target_is_null_path()
+        raise InvalidDeploymentMapError(
+            "Unknown definition for target: {0}".format(self.path)
+        )

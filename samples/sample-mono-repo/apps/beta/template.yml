@@ -1,0 +1,10 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Sample Template (Mono Repo/App B)
+Metadata:
+  License: Apache-2.0
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket

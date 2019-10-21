@@ -12,6 +12,6 @@ ADF allows for clearly defined deployment and approval stages which are stored i
 
 Launch ADF via the [Serverless Application Repository](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework) within the AWS Console.
 
-- Refer to the [Admin Guide](/docs/admin-guide.md) for Installation steps and Administration.
+- Refer to the [Installation Guide](/docs/installation-guide.md) for Installation steps.
 - Refer to the [User Guide](/docs/user-guide.md) for using ADF once it is setup.
 - Refer to the [Samples Guide](/docs/samples-guide.md) for a detailed walk through of the provided samples.
