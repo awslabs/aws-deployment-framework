@@ -121,7 +121,7 @@ class Target():
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
-        if type(self.path) is dict:
+        if isinstance(self.path, dict):
             return self._target_is_tags()
         if str(self.path).startswith('ou-'):
             return self._target_is_ou_id()

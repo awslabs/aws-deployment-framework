@@ -138,7 +138,7 @@ class Organizations: # pylint: disable=R0904
         tag_filter = []
 
         for key, value in tags.items():
-            if type(value) is list:
+            if isinstance(value, list):
                 values = value
             else:
                 values = [value]
