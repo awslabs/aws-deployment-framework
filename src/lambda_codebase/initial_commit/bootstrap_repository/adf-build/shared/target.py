@@ -18,6 +18,7 @@ LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 
+
 class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
@@ -42,7 +43,7 @@ class TargetStructure:
         return target
 
 
-class Target():
+class Target:
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
         self.step_name = step.get('name', '')

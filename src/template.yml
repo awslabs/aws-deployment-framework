@@ -287,6 +287,22 @@ Resources:
         - Arn: !Ref StateMachine
           RoleArn: !GetAtt StatesExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
+  CloudWatchEventsRuleTagOU:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: Triggers Master Pipe when Tagging OU
+      EventPattern:
+        source:
+          - aws.organizations
+        detail:
+          eventSource:
+            - organizations.amazonaws.com
+          eventName:
+            - TagResource
+      Targets:
+        - Arn: !Ref CodePipeline
+          RoleArn: !GetAtt EventBridgeCodePipelineRole.Arn
+          Id: TriggerMasterCodePipeline
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
@@ -515,6 +531,32 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
+  EventBridgeCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-eventbridge-codepipeline"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  EventBridgeCodePipelinePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-eventbridge-codepipeline-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codepipeline:StartPipelineExecution"
+            Resource: !Ref CodePipeline
+      Roles:
+        - !Ref EventBridgeCodePipelineRole
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:

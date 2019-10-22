@@ -584,6 +584,21 @@ Resources:
               state: "$.detail.state"
               at: "$.time"
               account: "$.account"
+  TagOrgPipelineEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Trigger pipeline generation on Organizations TagResource
+      EventPattern:
+        source:
+        - aws.organizations
+        detail-type:
+        - AWS API Call via CloudTrail
+        detail:
+          eventName: TagResource
+      State: ENABLED
+      Targets:
+      - Arn: !Ref CodePipeline
+        Id:  !Sub ${AWS::StackName}-tag-org-trigger
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
