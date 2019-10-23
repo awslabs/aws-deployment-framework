@@ -164,7 +164,10 @@ class PipelineStack(core.Stack):
                         _actions.extend([
                             adf_codebuild.CodeBuild(
                                 self,
-                                '{0}-stage-{1}'.format(target['name'], index + 1),
+                                # Use the name of the pipeline for CodeBuild
+                                # instead of the target name as it will always
+                                # operate from the deployment account.
+                                '{0}-stage-{1}'.format(stack_input['input']['name'], index + 1),
                                 stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
                                 stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
                                 stack_input['input'],
@@ -185,11 +188,22 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('provider', '') == 'approval' else 'deployment' # 0th Index since approvals won't be parallel
+            _is_approval = targets[0]['name'].startswith('approval') or \
+                    targets[0].get('provider', '') == 'approval'
+            _action_type_name = 'approval' if _is_approval else 'deployment'
+            _stage_name = (
+                # 0th Index since step names are for entire stages not
+                # per target.
+                targets[0].get('step_name') or
+                '{action_type_name}-stage-{index}'.format(
+                    action_type_name=_action_type_name,
+                    index=index + 1,
+                )
+            )
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
-                    name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target
-                    actions=_actions
+                    name=_stage_name,
+                    actions=_actions,
                 )
             )
         _pipeline = adf_codepipeline.Pipeline(self, 'code_pipeline', stack_input['input'], stack_input['ssm_params'], _stages)
