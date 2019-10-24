@@ -13,7 +13,7 @@
   - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
   - [Serverless Transforms](#serverless-transforms)
   - [Parameter Injection](#parameter-injection)
-  - [Nested Stacks](#nested-stacks)
+  - [Nested Stacks](#nested-cloudformation-stacks)
   - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
   - [Using Anchors and Alias](#using-anchors-and-alias)
   - [One to many Relationships](#one-to-many-relationships)
