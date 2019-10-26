@@ -112,6 +112,8 @@ default_providers:
       > The name of the CloudFormation Stack.
   - template_filename - *(String)*
       > The name of the CloudFormation Template to execute. Defaults to template.yml.
+  - root_dir - *(String)*
+      > The root directory in which the CloudFormation template and params directory reside. Example, when the CloudFormation template is stored in 'infra/custom_template.yml' and parameter files in the 'infra/params' directory, set template_filename to 'custom_template.yml' and root_dir to 'infra'. Defaults to '' (empty string), root of source repository or input artifact.
   - role - *(String)*
       > The role you would like to use on the target AWS account to execute the CloudFormtion action.
   - action - *(String)*
@@ -126,7 +128,7 @@ default_providers:
     - param *(String)*
       > The name of the Parameter you want to override in the specific stage.
     - key_name *(String)*
-      > The Key name from the stack output you wish to use as input in this stage.s
+      > The Key name from the stack output you wish to use as input in this stage.
 
 
 - **codedeploy**
