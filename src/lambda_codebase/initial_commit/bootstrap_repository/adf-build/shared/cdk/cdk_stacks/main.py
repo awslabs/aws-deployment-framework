@@ -186,11 +186,22 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('provider', '') == 'approval' else 'deployment' # 0th Index since approvals won't be parallel
+            _is_approval = targets[0]['name'].startswith('approval') or \
+                    targets[0].get('provider', '') == 'approval'
+            _action_type_name = 'approval' if _is_approval else 'deployment'
+            _stage_name = (
+                # 0th Index since step names are for entire stages not
+                # per target.
+                targets[0].get('step_name') or
+                '{action_type_name}-stage-{index}'.format(
+                    action_type_name=_action_type_name,
+                    index=index + 1,
+                )
+            )
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
-                    name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target
-                    actions=_actions
+                    name=_stage_name,
+                    actions=_actions,
                 )
             )
         _pipeline = adf_codepipeline.Pipeline(self, 'code_pipeline', stack_input['input'], stack_input['ssm_params'], _stages)
