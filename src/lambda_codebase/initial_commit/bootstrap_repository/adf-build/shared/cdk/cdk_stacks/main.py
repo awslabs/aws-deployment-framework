@@ -100,7 +100,13 @@ class PipelineStack(core.Stack):
                     _actions.extend([
                         adf_codebuild.CodeBuild(
                             self,
-                            '{0}-stage-{1}'.format(target['name'], index + 1),
+                            # Use the name of the pipeline for CodeBuild
+                            # instead of the target name as it will always
+                            # operate from the deployment account.
+                            "{pipeline_name}-stage-{index}".format(
+                                pipeline_name=stack_input['input']['name'],
+                                index=index + 1,
+                            ),
                             stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
                             stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
                             stack_input['input'],
