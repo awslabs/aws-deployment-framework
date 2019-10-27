@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import os
+import re
 import boto3
 import jinja2
 from cfn_custom_resource import ( # pylint: disable=unused-import
@@ -22,6 +23,7 @@ Data = Mapping[str, str]
 HERE = Path(__file__).parent
 NOT_YET_CREATED = "NOT_YET_CREATED"
 CC_CLIENT = boto3.client("codecommit")
+CONFIG_FILE_REGEX = re.compile(r"\A.*[.](yaml|yml|json)\Z", re.I)
 
 PR_DESCRIPTION = """ADF Version {0} from https://github.com/awslabs/aws-deployment-framework
 
@@ -236,7 +238,8 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
                     index,
                     parent_commit_id=commit_id,
                     branch=update_event.ResourceProperties.Version,
-                    puts=files))["commitId"]
+                    puts=files
+                ))["commitId"]
                 create_pr = True # If the commit above was able to be made, we want to create a PR afterwards
         except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
             pass
@@ -273,17 +276,16 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         afterCommitSpecifier='HEAD'
     )['differences']
 
+    # We never want to delete JSON or YAML files
     file_paths = [
         Path(file['afterBlob']['path'])
         for file in differences
-        if 'adfconfig.yml' not in file['afterBlob']['path']
-        and 'scp.json' not in file['afterBlob']['path']
-        and 'global.yml' not in file['afterBlob']['path']
-        and 'regional.yml' not in file['afterBlob']['path']
-        and file['afterBlob']['path'] != 'deployment_map.yml'
+        if not CONFIG_FILE_REGEX.match(file['afterBlob']['path'])
     ]
+
     # 31: trimming off /var/task/pipelines_repository so we can compare correctly
     blobs = [str(filename)[31:] for filename in Path('/var/task/pipelines_repository/').rglob('*')]
+
     return [
         FileToDelete(
             str(entry)
@@ -292,6 +294,7 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         if str(entry) not in blobs
         and not entry.is_dir()
     ]
+
 
 def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName

@@ -6,7 +6,6 @@
 import os
 import boto3
 from pytest import fixture
-from unittest.mock import patch
 from stubs import stub_cloudformation
 from mock import Mock
 

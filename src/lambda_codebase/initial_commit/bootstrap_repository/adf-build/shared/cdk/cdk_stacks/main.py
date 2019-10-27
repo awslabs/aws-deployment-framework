@@ -82,6 +82,7 @@ class PipelineStack(core.Stack):
             top_level_deployment_type = stack_input['input'].get('default_providers', {}).get('deploy', {}).get('provider', '') or 'cloudformation'
             top_level_action = stack_input['input'].get('default_providers', {}).get('deploy', {}).get('properties', {}).get('action', '')
             for target in targets:
+                target_stage_override = target.get('provider') or top_level_deployment_type
                 if target.get('name') == 'approval' or target.get('provider', '') == 'approval':
                     _actions.extend([
                         adf_codepipeline.Action(
@@ -95,9 +96,26 @@ class PipelineStack(core.Stack):
                         ).config
                     ])
                     continue
+                elif 'codebuild' in target_stage_override:
+                    _actions.extend([
+                        adf_codebuild.CodeBuild(
+                            self,
+                            # Use the name of the pipeline for CodeBuild
+                            # instead of the target name as it will always
+                            # operate from the deployment account.
+                            "{pipeline_name}-stage-{index}".format(
+                                pipeline_name=stack_input['input']['name'],
+                                index=index + 1,
+                            ),
+                            stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
+                            stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
+                            stack_input['input'],
+                            target
+                        ).deploy
+                    ])
+                    continue
                 regions = target.get('regions', [])
                 for region in regions:
-                    target_stage_override = target.get('provider') or top_level_deployment_type
                     if 'cloudformation' in target_stage_override:
                         target_approval_mode = target.get('properties', {}).get('change_set_approval', False)
                         _target_action_mode = target.get('properties', {}).get('action')
@@ -160,17 +178,6 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-                    elif 'codebuild' in target_stage_override:
-                        _actions.extend([
-                            adf_codebuild.CodeBuild(
-                                self,
-                                '{0}-stage-{1}'.format(target['name'], index + 1),
-                                stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["modules"],
-                                stack_input['ssm_params'][ADF_DEPLOYMENT_REGION]["kms"],
-                                stack_input['input'],
-                                target
-                            ).deploy
-                        ])
                     elif 'service_catalog' in target_stage_override:
                         _actions.extend([
                             adf_codepipeline.Action(
@@ -185,11 +192,22 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _name = 'approval' if targets[0]['name'].startswith('approval') or targets[0].get('provider', '') == 'approval' else 'deployment' # 0th Index since approvals won't be parallel
+            _is_approval = targets[0]['name'].startswith('approval') or \
+                    targets[0].get('provider', '') == 'approval'
+            _action_type_name = 'approval' if _is_approval else 'deployment'
+            _stage_name = (
+                # 0th Index since step names are for entire stages not
+                # per target.
+                targets[0].get('step_name') or
+                '{action_type_name}-stage-{index}'.format(
+                    action_type_name=_action_type_name,
+                    index=index + 1,
+                )
+            )
             _stages.append(
                 _codepipeline.CfnPipeline.StageDeclarationProperty(
-                    name=targets[0].get('step_name') or '{0}-stage-{1}'.format(_name, index + 1), # 0th Index since step names are for entire stages not per target
-                    actions=_actions
+                    name=_stage_name,
+                    actions=_actions,
                 )
             )
         _pipeline = adf_codepipeline.Pipeline(self, 'code_pipeline', stack_input['input'], stack_input['ssm_params'], _stages)
