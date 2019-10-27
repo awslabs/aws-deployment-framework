@@ -192,7 +192,7 @@ class PipelineStack(core.Stack):
                                 action_name="{0}-{1}".format(target['name'], region)
                             ).config
                         ])
-            _is_approval = targets[0]['name'].startswith('approval') or \
+            _is_approval = targets[0].get('name', '').startswith('approval') or \
                     targets[0].get('provider', '') == 'approval'
             _action_type_name = 'approval' if _is_approval else 'deployment'
             _stage_name = (

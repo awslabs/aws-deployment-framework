@@ -506,7 +506,7 @@ Resources:
                 - cdk --version
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py adf-build/cdk/generate_pipeline_inputs.py adf-build/cdk/generate_pipeline_stacks.py
                 - python adf-build/cdk/generate_pipeline_inputs.py
-                - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py
+                - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py 1> /dev/null
                 - python adf-build/cdk/execute_pipeline_stacks.py
       ServiceRole: !GetAtt CodeBuildRole.Arn        
       Tags:
@@ -584,21 +584,6 @@ Resources:
               state: "$.detail.state"
               at: "$.time"
               account: "$.account"
-  TagOrgPipelineEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: Trigger pipeline generation on Organizations TagResource
-      EventPattern:
-        source:
-        - aws.organizations
-        detail-type:
-        - AWS API Call via CloudTrail
-        detail:
-          eventName: TagResource
-      State: ENABLED
-      Targets:
-      - Arn: !Ref CodePipeline
-        Id:  !Sub ${AWS::StackName}-tag-org-trigger
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:

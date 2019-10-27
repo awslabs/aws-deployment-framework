@@ -36,6 +36,9 @@ class TargetStructure:
         if isinstance(target, dict):
             if target.get('target'):
                 target["path"] = target.get('target')
+            if not target.get('path') and not target.get('tags'):
+                target["path"] = '/deployment'
+                LOGGER.debug('No path/target detected, defaulting to /deployment')
             if not isinstance(target.get('path', []), list):
                 target["path"] = [target.get('path')]
         if not isinstance(target, list):
