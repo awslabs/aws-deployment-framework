@@ -48,6 +48,17 @@ target_output = {
     'step_name': {}
 }
 
+target_tags = {
+    'name': 'string',
+    'id': 'fake',
+    'tags': {'solution': 'connected', 'environment': 'prod'},
+    "properties": {},
+    "provider": 'cloudformation',
+    'regions': ['region1', 'region2'],
+    'step_name': {}
+}
+
+
 organizations_describe_account = {
     'Account': {
         'Id': 'fake',

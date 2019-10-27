@@ -35,6 +35,7 @@ ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
+
 def clean(parameter_store, deployment_map):
     """
     Function used to remove stale entries in Parameter Store and
@@ -62,6 +63,7 @@ def clean(parameter_store, deployment_map):
             stack
         ))
 
+
 def ensure_event_bus_status(organization_id):
     _events = boto3.client('events')
     _events.put_permission(
@@ -74,6 +76,7 @@ def ensure_event_bus_status(organization_id):
             'Value': organization_id
         }
     )
+
 
 def store_regional_parameter_config(pipeline, parameter_store):
     """
@@ -97,6 +100,7 @@ def store_regional_parameter_config(pipeline, parameter_store):
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
     )
 
+
 def fetch_required_ssm_params(regions):
     output = {}
     for region in regions:
@@ -108,6 +112,7 @@ def fetch_required_ssm_params(regions):
         if region == DEPLOYMENT_ACCOUNT_REGION:
             output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
     return output
+
 
 def worker_thread(p, organizations, auto_create_repositories, deployment_map, parameter_store):
     LOGGER.debug("Worker Thread started for %s", p.get('name'))
@@ -122,14 +127,21 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     regions = []
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
+
         for step in target_structure.target:
+            regions = step.get(
+                'regions', p.get(
+                    'regions', DEPLOYMENT_ACCOUNT_REGION))
+            paths_tags = []
             for path in step.get('path', []):
-                regions = step.get(
-                    'regions', p.get(
-                        'regions', DEPLOYMENT_ACCOUNT_REGION))
+                paths_tags.append(path)
+            if step.get('tags') is not None:
+                paths_tags.append(step.get('tags', {}))
+            for path_or_tag in paths_tags:
                 pipeline.stage_regions.append(regions)
-                pipeline_target = Target(path, target_structure, organizations, step, regions)
+                pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
+
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
@@ -147,11 +159,13 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
         data['ssm_params'] = ssm_params
         json.dump(data, outfile)
 
+
 def _create_inputs_folder():
     try:
         return os.mkdir('cdk_inputs')
     except FileExistsError:
         return None
+
 
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
@@ -200,6 +214,7 @@ def main():
 
     for thread in threads:
         thread.join()
+
 
 if __name__ == '__main__':
     main()

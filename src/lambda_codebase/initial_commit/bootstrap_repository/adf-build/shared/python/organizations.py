@@ -22,8 +22,13 @@ class Organizations: # pylint: disable=R0904
     _config = Config(retries=dict(max_attempts=30))
 
     def __init__(self, role, account_id=None):
+        self.role = role
         self.client = role.client(
             'organizations',
+            config=Organizations._config)
+        self.tags_client = role.client(
+            'resourcegroupstaggingapi',
+            region_name='us-east-1',
             config=Organizations._config)
         self.account_id = account_id
         self.account_ids = []
@@ -128,6 +133,24 @@ class Organizations: # pylint: disable=R0904
                 continue
             self.account_ids.append(account['Id'])
         return self.account_ids
+
+    def get_account_ids_for_tags(self, tags):
+        tag_filter = []
+
+        for key, value in tags.items():
+            if isinstance(value, list):
+                values = value
+            else:
+                values = [value]
+            tag_filter.append({'Key': key, 'Values': values})
+
+        account_ids = []
+        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
+            arn = resource['ResourceARN']
+            account_id = arn.split('/')[::-1][0]
+            account_ids.append(account_id)
+
+        return account_ids
 
     def get_organization_info(self):
         response = self.client.describe_organization()

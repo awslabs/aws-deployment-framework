@@ -12,3 +12,4 @@ test:
 lint:
 	# Linter performs static analysis to catch latent bugs
 	find src/ -iname "*.py" | xargs pylint --rcfile .pylintrc
+  

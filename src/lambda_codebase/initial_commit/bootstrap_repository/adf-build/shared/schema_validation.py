@@ -275,8 +275,11 @@ TARGET_LIST_SCHEMA = [Or(
     int
 )]
 
+# Pipeline Params
+
 TARGET_SCHEMA = {
     Optional("path"): Or(str, int, TARGET_LIST_SCHEMA),
+    Optional("tags"): {And(str, Regex(r"\A.{1,128}\Z")): And(str, Regex(r"\A.{0,256}\Z"))},
     Optional("target"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("name"): str,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),

@@ -18,6 +18,7 @@ LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 
+
 class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
@@ -35,14 +36,14 @@ class TargetStructure:
         if isinstance(target, dict):
             if target.get('target'):
                 target["path"] = target.get('target')
-            if not isinstance(target.get('path'), list):
+            if not isinstance(target.get('path', []), list):
                 target["path"] = [target.get('path')]
         if not isinstance(target, list):
             target = [target]
         return target
 
 
-class Target():
+class Target:
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
         self.step_name = step.get('name', '')
@@ -95,6 +96,14 @@ class Target():
         ).get('Account')
         self._create_response_object([responses])
 
+    def _target_is_tags(self):
+        responses = self.organizations.get_account_ids_for_tags(self.path)
+        accounts = []
+        for response in responses:
+            account = self.organizations.client.describe_account(AccountId=response).get('Account')
+            accounts.append(account)
+        self._create_response_object(accounts)
+
     def _target_is_ou_id(self):
         responses = self.organizations.get_accounts_for_parent(
             str(self.path)
@@ -113,6 +122,8 @@ class Target():
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
+        if isinstance(self.path, dict):
+            return self._target_is_tags()
         if str(self.path).startswith('ou-'):
             return self._target_is_ou_id()
         if AWS_ACCOUNT_ID_REGEX.match(str(self.path)):
