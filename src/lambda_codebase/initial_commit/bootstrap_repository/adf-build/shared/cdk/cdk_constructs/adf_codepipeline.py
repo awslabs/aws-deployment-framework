@@ -29,6 +29,7 @@ class Action:
         self.provider = kwargs.get('provider')
         self.category = kwargs.get('category')
         self.map_params = kwargs.get('map_params')
+        self.project_name = kwargs.get('project_name')
         self.owner = kwargs.get('owner') or 'AWS'
         self.run_order = kwargs.get('run_order')
         self.index = kwargs.get('index')
@@ -186,8 +187,10 @@ class Action:
                 "ProviderName": self.map_params['default_providers']['build'].get('properties', {}).get('provider_name') # Enter the provider name you configured in the Jenkins plugin
             }
         if self.provider == "CodeBuild":
+            if self.project_name is None:
+                self.project_name = "adf-build-{0}".format(self.map_params['name'])
             return {
-                "ProjectName": "adf-build-{0}".format(self.map_params['name'])
+                "ProjectName": self.project_name
             }
         if self.provider == "ServiceCatalog":
             return {

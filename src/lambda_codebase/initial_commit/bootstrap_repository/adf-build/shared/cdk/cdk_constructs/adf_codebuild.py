@@ -63,6 +63,7 @@ class CodeBuild(core.Construct):
                 name="{0}".format(id),
                 provider="CodeBuild",
                 category="Build",
+                project_name="adf-deploy-{0}".format(id),
                 run_order=1,
                 target=target,
                 map_params=map_params,
