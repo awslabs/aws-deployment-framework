@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: ../docs/serverless-application-repo.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 2.0.4
+    SemanticVersion: 2.1.0
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Parameters:
   CrossAccountAccessRoleName:
@@ -166,7 +166,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -187,7 +187,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -208,7 +208,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
@@ -227,7 +227,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -246,7 +246,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -265,7 +265,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 2.0.4
+          ADF_VERSION: 2.1.0
           ADF_LOG_LEVEL: INFO
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -287,10 +287,10 @@ Resources:
         - Arn: !Ref StateMachine
           RoleArn: !GetAtt StatesExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
-  CloudWatchEventsRuleTagOU:
+  CloudWatchEventsRuleTagResource:
     Type: "AWS::Events::Rule"
     Properties:
-      Description: Triggers Master Pipe when Tagging OU
+      Description: Triggers Master Pipeline when Tagging Resources in Organizations
       EventPattern:
         source:
           - aws.organizations
@@ -300,8 +300,8 @@ Resources:
           eventName:
             - TagResource
       Targets:
-        - Arn: !Ref CodePipeline
-          RoleArn: !GetAtt EventBridgeCodePipelineRole.Arn
+        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+          RoleArn: !GetAtt OrgEventCodePipelineRole.Arn
           Id: TriggerMasterCodePipeline
   CodeCommitRole:
     Type: AWS::IAM::Role
@@ -420,7 +420,7 @@ Resources:
         Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 2.0.4
+            Value: 2.1.0
           - Name: TERMINATION_PROTECTION
             Value: false
           - Name: PYTHONPATH
@@ -531,10 +531,10 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
-  EventBridgeCodePipelineRole:
+  OrgEventCodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-eventbridge-codepipeline"
+      RoleName: "adf-org-event-codepipeline"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -544,19 +544,19 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
-  EventBridgeCodePipelinePolicy:
+  OrgEventCodePipelinePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-eventbridge-codepipeline-policy"
+      PolicyName: "adf-org-event-codepipeline-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
               - "codepipeline:StartPipelineExecution"
-            Resource: !Ref CodePipeline
+            Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
       Roles:
-        - !Ref EventBridgeCodePipelineRole
+        - !Ref OrgEventCodePipelineRole
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -683,7 +683,7 @@ Resources:
     Type: Custom::InitialCommit
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 2.0.4
+      Version: 2.1.0
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
@@ -856,7 +856,7 @@ Resources:
       Timeout: 300
 Outputs:
   ADFVersionNumber:
-    Value: 2.0.4
+    Value: 2.1.0
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

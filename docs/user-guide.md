@@ -64,6 +64,24 @@ The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. Yo
 
 By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
+#### Targeting via Tags
+
+Tags on AWS Accounts can also be used to define stages within a pipeline. For example, we might want to create a pipeline that targets all AWS Accounts with the tag **cost-center** and value of **foo-team**. *path/target* and *tags* should not be used in combination.
+
+We do that with the following syntax:
+
+```yaml
+  - name: vpc-for-foo-team
+    default_providers:
+      ...
+    targets:
+      - tags: # Using tags to define the stage rather than a path or account id
+          cost-center: foo-team
+        name: foo-team # You can optionally use the name key to give this stage some meaningful name
+```
+
+Adding or Removing Tags to an AWS Account in AWS Organizations will automatically trigger a run of the bootstrap pipeline which will in turn execute the pipeline generation pipeline in the deployment account.
+
 ### Important Notes
 
 #### Zero-prefixed AWS Account Ids

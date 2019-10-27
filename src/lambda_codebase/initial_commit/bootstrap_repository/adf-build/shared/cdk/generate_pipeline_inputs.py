@@ -127,7 +127,6 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     regions = []
     for target in p.get('targets', []):
         target_structure = TargetStructure(target)
-
         for step in target_structure.target:
             regions = step.get(
                 'regions', p.get(
@@ -141,7 +140,6 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
                 pipeline.stage_regions.append(regions)
                 pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
-
         pipeline.template_dictionary["targets"].append(
             target_structure.account_list)
 
@@ -149,7 +147,7 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
         pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
     pipeline.generate_input()
     ssm_params = fetch_required_ssm_params(
-        pipeline.input["regions"]
+        pipeline.input["regions"] or [DEPLOYMENT_ACCOUNT_REGION]
     )
     deployment_map.update_deployment_parameters(pipeline)
     store_regional_parameter_config(pipeline, parameter_store)

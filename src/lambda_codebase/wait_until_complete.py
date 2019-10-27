@@ -22,7 +22,6 @@ S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 LOGGER = configure_logger(__name__)
 
-
 def update_deployment_account_output_parameters(
         deployment_account_region,
         region,
@@ -50,7 +49,6 @@ def update_deployment_account_output_parameters(
             "/cross_region/{0}/{1}".format(key, region),
             value
         )
-
 
 def lambda_handler(event, _):
     """Main Lambda Entry point
