@@ -47,7 +47,11 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
                 privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
-            _spec = map_params['default_providers']['deploy'].get('properties', {}).get('spec_filename') or target.get('properties', {}).get('spec_filename') or 'deployspec.yml'
+            _spec_filename = (
+                target.get('properties', {}).get('spec_filename') or
+                map_params['default_providers']['deploy'].get('properties', {}).get('spec_filename') or
+                'deployspec.yml'
+            )
             _codebuild.PipelineProject(
                 self,
                 'project',
@@ -57,7 +61,7 @@ class CodeBuild(core.Construct):
                 project_name="adf-deploy-{0}".format(id),
                 timeout=core.Duration.minutes(_timeout),
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role),
-                build_spec=_codebuild.BuildSpec.from_source_filename(_spec)
+                build_spec=_codebuild.BuildSpec.from_source_filename(_spec_filename)
             )
             self.deploy = Action(
                 name="{0}".format(id),
