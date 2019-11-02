@@ -12,6 +12,10 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
     Default: deployment_account_id
+  DeploymentAccountBucketName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Bucket Name
+    Default: bucket_name
 Resources:
   CodeCommitRole:
     # This role is used to connect the Pipeline in the deployment account to CodeCommit in
@@ -25,7 +29,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Ref DeploymentAccountId
+              AWS: !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
           - Effect: Allow
@@ -52,10 +56,15 @@ Resources:
               - "codecommit:UploadArchive"
               - "codepipeline:StartPipelineExecution"
               - "events:PutEvents"
+            Resource: "*"
+          - Effect: Allow
+            Action:
               - "s3:Get*"
               - "s3:List*"
               - "s3:Put*"
-            Resource: "*"
+            Resource:
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
           - Effect: Allow
             Action:
               - "kms:Decrypt"
@@ -82,15 +91,21 @@ Resources:
               - cloudformation:*
               - codedeploy:*
               - iam:PassRole
-              - s3:Get*
-              - s3:List*
-              - s3:Put*
               - servicecatalog:CreateProvisioningArtifact
               - servicecatalog:DeleteProvisioningArtifact
               - servicecatalog:DescribeProvisioningArtifact
               - servicecatalog:ListProvisioningArtifacts
               - servicecatalog:UpdateProduct
             Resource: "*"
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
+            Resource:
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -112,7 +127,7 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Ref DeploymentAccountId # Deployment Account Number
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -134,15 +149,100 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Ref DeploymentAccountId # Deployment Account Number
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
       Path: /
+  CfnAutomationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-automation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CfnAutomationRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cfn-automation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource:
+              - !Sub "arn:aws:s3:::${DeploymentAccountBucketName}/adf-build/templates/*"
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "cloudformation:CreateStack"
+              - "cloudformation:DescribeChangeSet"
+              - "cloudformation:DeleteStack"
+              - "cloudformation:UpdateStack"
+              - "cloudformation:CancelUpdateStack"
+              - "cloudformation:ContinueUpdateRollback"
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:DeleteChangeSet"
+              - "cloudformation:ExecuteChangeSet"
+              - "cloudformation:SetStackPolicy"
+              - "cloudformation:SignalResource"
+            Resource:
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
+          - Effect: Allow
+            Sid: "CodeCommit"
+            Action:
+              - "codecommit:CreateRepository"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "Events"
+            Action:
+              - "events:DescribeRule"
+              - "events:EnableRule"
+              - "events:ListRules"
+              - "events:PutEvents"
+              - "events:PutRule"
+              - "events:PutTargets"
+            Resource:
+              - "*"
+      Roles:
+        - !Ref CfnAutomationRole
+  ReadOnlyAutomationRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-readonly-automation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:ValidateTemplate"
+            Resource:
+              - "*"
+      Roles:
+        - !Ref CfnAutomationRole
+
+
   CloudFormationDeploymentPolicy:
-    # This is the role that will be used to deploy CloudFormation resources from
-    # within the account that it is applied to. You should scope this policy depending
+    # This is the policy that will be used to deploy CloudFormation resources from
+    # within the target account. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a sample IAM policy. These policies should be changed to suit your needs.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used in for purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -211,6 +311,7 @@ Resources:
               - "xray:*"
             Resource:
               - "*"
+          # Required for CodePipeline Cross Account actions
           - Effect: Allow
             Sid: "KMS"
             Action:

@@ -9,13 +9,14 @@ config.bak
 policy.json
 pipeline.yml
 packaged.yaml
-template-sam.yaml
+template-sam.yml
 template-deploy.yml
+template-sam-out.yml
 master-deploy.yml
 .pytest_cache
 shared_layer.zip
 .aws-sam
-CD.sh
+deploy.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__

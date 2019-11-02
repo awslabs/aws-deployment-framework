@@ -48,6 +48,7 @@ def configure_generic_account(sts, event, region, role):
             role
         )
         kms_arn = parameter_store_deployment_account.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
+        bucket_name = parameter_store_deployment_account.fetch_parameter('/cross_region/regional_bucket/{0}'.format(region))
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             'Account {0} cannot yet be bootstrapped '
@@ -55,6 +56,7 @@ def configure_generic_account(sts, event, region, role):
             'Have you moved your Deployment account into the deployment OU?'.format(event['account_id'])
         ) from None
     parameter_store_target_account.put_parameter('kms_arn', kms_arn)
+    parameter_store_target_account.put_parameter('bucket_name', bucket_name)
     parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
 
 def configure_master_account_parameters(event):

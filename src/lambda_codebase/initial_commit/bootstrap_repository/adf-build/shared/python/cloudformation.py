@@ -201,7 +201,6 @@ class CloudFormation(StackProperties):
                     ],
                     ChangeSetName=self.stack_name,
                     ChangeSetType=self._get_change_set_type())
-
                 self._wait_change_set()
                 return True
             return False
@@ -242,7 +241,8 @@ class CloudFormation(StackProperties):
                 ChangeSetName=self.stack_name,
                 StackName=self.stack_name
             )
-        except ClientError:
+        except ClientError as e:
+            print(e)
             LOGGER.info(
                 '%s - Attempted to Delete Stack: %s, it did not exist.',
                 self.account_id, self.stack_name)

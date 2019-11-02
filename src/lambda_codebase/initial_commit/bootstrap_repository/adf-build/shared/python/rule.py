@@ -28,9 +28,9 @@ class Rule:
     def __init__(self, source_account_id):
         self.source_account_id = source_account_id
         self.stack_name = 'adf-event-rule-{0}-{1}'.format(source_account_id, DEPLOYMENT_ACCOUNT_ID)
-        # Requirement on adf-cloudformation-deployment-role to exist
+        # Requirement adf-automation-role to exist on target
         self.role = sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(source_account_id),
+            'arn:aws:iam::{0}:role/adf-automation-role'.format(source_account_id),
             'create_rule_{0}'.format(source_account_id)
         )
 

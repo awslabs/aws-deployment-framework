@@ -32,7 +32,7 @@ class Repo:
         self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
         self.account_id = account_id
         self.session = sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/adf-cloudformation-deployment-role'.format(account_id),
+            'arn:aws:iam::{0}:role/adf-automation-role'.format(account_id),
             'create_repo_{0}'.format(account_id)
         )
 

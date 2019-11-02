@@ -43,7 +43,7 @@ Resources:
           referenceType:
             - branch
           referenceName:
-            - master
+            - master #TODO Allow other branches
       Targets:
         - Arn: !Sub arn:aws:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default
           RoleArn: !GetAtt EventRole.Arn

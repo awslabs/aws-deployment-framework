@@ -209,8 +209,64 @@ Resources:
               - s3:List*
               - s3:PutObject
             Resource:
-              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket, "/*"]]
-              - !Join ["",["arn:aws:s3:::",!Ref PipelineBucket]]
+              - !Sub arn:aws:s3:::${PipelineBucket}
+              - !Sub arn:aws:s3:::${PipelineBucket}/*
+              - !Sub arn:aws:s3:::${SharedModulesBucket}
+              - !Sub arn:aws:s3:::${SharedModulesBucket}/*
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Resource: !GetAtt KMSKey.Arn
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
+          - Effect: Allow
+            Action:
+              - "secretsmanager:Get*"
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+      Roles:
+        - !Ref CodeBuildRole
+  PipelineProvisionerCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-pipeline-provisioner-codebuild-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+  PipelineProvisionerCodeBuildRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-pipeline-provisioner-codebuild-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:GetBucketPolicy
+              - s3:List*
+              - s3:PutObject
+            Resource:
+              - !Sub arn:aws:s3:::${PipelineBucket}
+              - !Sub arn:aws:s3:::${PipelineBucket}/*
+              - !Sub arn:aws:s3:::${SharedModulesBucket}
+              - !Sub arn:aws:s3:::${SharedModulesBucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -231,31 +287,43 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:aws:iam::*:role/adf-cloudformation-deployment-role"
+            Resource:
+              - !Sub arn:aws:iam::*:role/adf-automation-role
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
-              - "cloudformation:*"
-              - "codebuild:*"
-              - "codedeploy:*"
-              - "codepipeline:*"
-              - "ecr:*"
-              - "events:DeleteRule"
-              - "events:DescribeRule"
-              - "events:PutRule"
-              - "events:PutTargets"
-              - "events:RemoveTargets"
               - "events:PutPermission"
-              - "iam:CreatePolicy"
-              - "iam:CreatePolicy"
-              - "iam:CreateRole"
-              - "iam:DeleteRole"
-              - "iam:DeleteRolePolicy"
-              - "iam:GetRole"
-              - "iam:PassRole"
-              - "iam:PutRolePolicy"
+              - "events:RemoveTargets"
+            Resource:
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+          - Effect: Allow
+            Action:
+              - "events:PutPermission"
+              - "events:RemoveTargets"
+            Resource:
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${PipelinePrefix}*
+          - Effect: Allow
+            Action:
+              - "cloudformation:CancelUpdateStack"
+              - "cloudformation:ContinueUpdateRollback"
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:CreateStack"
+              - "cloudformation:CreateUploadBucket"
+              - "cloudformation:DeleteStack"
+              - "cloudformation:DeleteChangeSet"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:DescribeChangeSet"
+              - "cloudformation:ExecuteChangeSet"
+              - "cloudformation:SetStackPolicy"
+              - "cloudformation:SignalResource"
+              - "cloudformation:UpdateStack"
+            Resource:
+                - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${PipelinePrefix}*/*"
+          - Effect: Allow
+            Action:
+              - "cloudformation:ValidateTemplate"
               - "lambda:CreateEventSourceMapping"
               - "lambda:AddPermission"
               - "lambda:CreateFunction"
@@ -268,18 +336,46 @@ Resources:
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-              - "s3:Get*"
-              - "s3:List*"
-              - "s3:Put*"
-              - "sns:*"
               - "ssm:DeleteParameter"
               - "ssm:GetParameter"
               - "ssm:GetParameters"
               - "ssm:GetParametersByPath"
               - "ssm:PutParameter"
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - "sns:DeleteTopic"
+              - "sns:CreateTopic"
+              - "sns:Unsubscribe"
+              - "sns:Subscribe"
+              - "sns:SetTopicAttributes"
+              - "sns:GetTopicAttributes"
+            Resource:
+              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
+          - Effect: Allow
+            Action:
+              - "codebuild:DeleteProject"
+              - "codebuild:CreateProject"
+            Resource:
+              - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-*
+          - Effect: Allow
+            Action:
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:CreateRole"
+              - "iam:CreateRolePolicy"
+              - "iam:PassRole" # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
+            Resource:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codebuild-role
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/${PipelinePrefix}*
+          - Effect: Allow
+            Action:
+              - "codepipeline:DeletePipeline"
+              - "codepipeline:CreatePipeline"
+            Resource:
+              - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
       Roles:
-        - !Ref CodeBuildRole
+        - !Ref PipelineProvisionerCodeBuildRole
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -359,7 +455,7 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action:
+            Action: #Edit the below actions to what the deployment account should be able to deploy unto itself.
               - "apigateway:*"
               - "application-autoscaling:*"
               - "autoscaling:*"
@@ -508,7 +604,7 @@ Resources:
                 - python adf-build/cdk/generate_pipeline_inputs.py
                 - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py 1> /dev/null
                 - python adf-build/cdk/execute_pipeline_stacks.py
-      ServiceRole: !GetAtt CodeBuildRole.Arn        
+      ServiceRole: !GetAtt PipelineProvisionerCodeBuildRole.Arn
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base"
@@ -812,6 +908,9 @@ Resources:
               - Effect: "Allow"
                 Action: "sts:AssumeRole"
                 Resource: "*"
+                Condition:
+                  StringEquals:
+                    aws:PrincipalOrgID: !Ref OrganizationId
               - Effect: "Allow"
                 Action:
                   - "codepipeline:GetPipelineState"
@@ -846,17 +945,12 @@ Resources:
                   - "s3:Get*"
                   - "s3:Put*"
                   - "s3:List*"
-                Resource: !GetAtt PipelineBucket.Arn
-              - Effect: "Allow"
-                Action: 
-                  - "s3:Get*"
-                  - "s3:Put*"
-                  - "s3:List*"
-                Resource:
-                  !Join
-                    - ""
-                    - - !GetAtt PipelineBucket.Arn
-                      - "/*"
+                Resource: 
+                  - !GetAtt PipelineBucket.Arn
+                  - !Join
+                      - ""
+                      - - !GetAtt PipelineBucket.Arn
+                        - "/*"
               - Effect: "Allow"
                 Action: "logs:*"
                 Resource: "arn:aws:logs:*:*:*"

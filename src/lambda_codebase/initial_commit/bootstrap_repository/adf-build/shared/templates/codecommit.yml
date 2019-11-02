@@ -10,6 +10,7 @@ Parameters:
 Resources:
   Repo:
     Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
     Properties:
       RepositoryName: !Ref RepoName
       RepositoryDescription: !Ref Description

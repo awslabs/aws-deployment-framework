@@ -66,7 +66,7 @@ def ensure_generic_account_can_be_setup(sts, config, account_id):
 def update_deployment_account_output_parameters(
         deployment_account_region,
         region,
-        kms_dict,
+        kms_and_bucket_dict,
         deployment_account_role,
         cloudformation):
     """
@@ -81,7 +81,9 @@ def update_deployment_account_output_parameters(
         region, deployment_account_role
     )
     outputs = cloudformation.get_stack_regional_outputs()
-    kms_dict[region] = outputs['kms_arn']
+    kms_and_bucket_dict[region] = {}
+    kms_and_bucket_dict[region]['kms'] = outputs['kms_arn']
+    kms_and_bucket_dict[region]['s3_regional_bucket'] = outputs['s3_regional_bucket']
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
             "/cross_region/{0}/{1}".format(key, region),
@@ -92,7 +94,7 @@ def update_deployment_account_output_parameters(
             value
         )
 
-    return kms_dict
+    return kms_and_bucket_dict
 
 
 def prepare_deployment_account(sts, deployment_account_id, config):
@@ -160,7 +162,7 @@ def worker_thread(
         config,
         s3,
         cache,
-        kms_dict):
+        updated_kms_bucket_dict):
     """
     The Worker thread function that is created for each account
     in which CloudFormation create_stack is called
@@ -192,10 +194,10 @@ def worker_thread(
 
         # Regional base stacks can be updated after global
         for region in list(set([config.deployment_account_region] + config.target_regions)):
-            # Ensuring the kms_arn on the target account is up-to-date
+            # Ensuring the kms_arn and bucket_name on the target account is up-to-date
             parameter_store = ParameterStore(region, role)
-            parameter_store.put_parameter('kms_arn', kms_dict[region])
-
+            parameter_store.put_parameter('kms_arn', updated_kms_bucket_dict[region]['kms'])
+            parameter_store.put_parameter('bucket_name', updated_kms_bucket_dict[region]['s3_regional_bucket'])
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -239,7 +241,6 @@ def main(): #pylint: disable=R0915
             account_id=deployment_account_id
         )
         scp.apply(organizations, parameter_store, config.config)
-
         sts = STS()
         deployment_account_role = prepare_deployment_account(
             sts=sts,
@@ -271,7 +272,7 @@ def main(): #pylint: disable=R0915
             account_id=ACCOUNT_ID
         )
         cloudformation.create_stack()
-        kms_dict = {}
+        kms_and_bucket_dict = {}
         # First Setup/Update the Deployment Account in all regions (KMS Key and S3 Bucket + Parameter Store values)
         for region in list(set([config.deployment_account_region] + config.target_regions)):
             cloudformation = CloudFormation(
@@ -286,10 +287,10 @@ def main(): #pylint: disable=R0915
             )
             cloudformation.create_stack()
 
-            update_deployment_account_output_parameters(
+            updated_kms_bucket_dict = update_deployment_account_output_parameters(
                 deployment_account_region=config.deployment_account_region,
                 region=region,
-                kms_dict=kms_dict,
+                kms_and_bucket_dict=kms_and_bucket_dict,
                 deployment_account_role=deployment_account_role,
                 cloudformation=cloudformation
             )
@@ -303,7 +304,7 @@ def main(): #pylint: disable=R0915
                 config,
                 s3,
                 cache,
-                kms_dict
+                updated_kms_bucket_dict
             ))
             thread.start()
             threads.append(thread)
