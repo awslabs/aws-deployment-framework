@@ -30,7 +30,7 @@ class SCP:
 
     @staticmethod
     def _trim_scp_file_name(scp):
-        return scp[1:][:-8] if scp[1:][:-8] == '/' else scp[2:][:-9]
+        return scp[15:][:-8] if scp[15:][:-8] == '/' else scp[16:][:-9]
 
     def apply(self, organizations, parameter_store, config): #pylint: disable=R0912, R0915
         status = organizations.get_organization_info()
@@ -42,7 +42,7 @@ class SCP:
         organizations.enable_scp()
         scps = SCP._find_all()
 
-        LOGGER.info('Determining if SCP changes are required')
+        LOGGER.info('Determining if SCP changes are required.')
         organization_mapping = organizations.get_organization_map({'/': organizations.get_ou_root_id()})
         scp_keep_full_access = config.get('scp')
         try:

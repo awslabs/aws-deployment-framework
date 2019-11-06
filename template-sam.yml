@@ -9,7 +9,6 @@ Resources:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:112893979820:applications/beta-aws-deployment-framework
         SemanticVersion: 12.1.33
       Parameters:
-        ApplicationName: aws-deployment-framework
         # CrossAccountAccessRoleName: 'OrganizationAccountAccessRole' # Uncomment to override default value
         # DeploymentAccountEmailAddress: '' # Uncomment to override default value
         # example -> 123456789101

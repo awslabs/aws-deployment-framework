@@ -1,0 +1,47 @@
+# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+# This file contains the IAM policy that will be attached to the adf-cloudformation-deployment-role
+# and should be configured to suit the OU it is aligned with.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
+Parameters:
+  KMSArn:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: ARN of the KMS CMK created in the Deployment account
+    Default: kms_arn
+Resources:
+  CloudFormationDeploymentPolicy:
+    # This is the policy that will be used to deploy CloudFormation resources from
+    # within the target account. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action: # These are examples..
+              - "apigateway:*"
+              - "ecr:*"
+              - "ecs:*"
+              - "iam:*"
+              - "logs:*"
+              - "s3:*"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "KMS"
+            Action: # These are required for cross account deployments via codepipeline.
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:ReEncrypt*"
+            Resource: !Ref "KMSArn"
+      Roles:
+        - adf-cloudformation-deployment-role

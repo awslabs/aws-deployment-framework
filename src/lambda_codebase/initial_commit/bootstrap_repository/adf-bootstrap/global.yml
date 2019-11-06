@@ -118,6 +118,7 @@ Resources:
       Roles:
         - !Ref CloudFormationRole
   CloudFormationRole:
+    # This role is used
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-cloudformation-role"
@@ -128,6 +129,7 @@ Resources:
             Principal:
               AWS:
                 - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-cloudformation-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -152,8 +154,14 @@ Resources:
                 - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
+            Condition:
+                ArnEquals:
+                    'aws:SourceArn': !Sub 'arn:aws:codepipeline:${AWS::Region}:${DeploymentAccountId}:*'
       Path: /
-  CfnAutomationRole:
+
+  AdfAutomationRole:
+    # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
+    # This role is not assumed by CodeBuild in any other pipeline other than 'aws-deployment-framework-pipelines'
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-automation-role"
@@ -168,10 +176,10 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
-  CfnAutomationRolePolicy:
+  AdfAutomationRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-cfn-automation-role-policy"
+      PolicyName: "adf-automation-role-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -185,17 +193,18 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              - "cloudformation:CreateStack"
-              - "cloudformation:DescribeChangeSet"
-              - "cloudformation:DeleteStack"
-              - "cloudformation:UpdateStack"
               - "cloudformation:CancelUpdateStack"
               - "cloudformation:ContinueUpdateRollback"
               - "cloudformation:CreateChangeSet"
+              - "cloudformation:CreateStack"
               - "cloudformation:DeleteChangeSet"
+              - "cloudformation:DeleteStack"
+              - "cloudformation:DescribeChangeSet"
+              - "cloudformation:DescribeStacks"
               - "cloudformation:ExecuteChangeSet"
               - "cloudformation:SetStackPolicy"
               - "cloudformation:SignalResource"
+              - "cloudformation:UpdateStack"
             Resource:
               - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
               - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
@@ -214,10 +223,41 @@ Resources:
               - "events:PutEvents"
               - "events:PutRule"
               - "events:PutTargets"
+              - "cloudformation:ValidateTemplate"
             Resource:
               - "*"
+          - Effect: Allow
+            Sid: "SSM"
+            Action:
+              - "ssm:GetParameters"
+              - "ssm:GetParameter"
+            Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/bucket_name"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kms_arn"
       Roles:
-        - !Ref CfnAutomationRole
+        - !Ref AdfAutomationRole
+  ReadOnlyAutomationRole:
+    # This role is used by CodeBuild on the Deployment Account for each of the deployment pipelines
+    # to gather information from other accounts accounts. For example, certain intrinsic functions (resolve/import) allow fetching/reading data from other accounts CloudFormation stacks and Parameter Store values.
+    # This is the role that will be assumed in order to facilitate this scenario.
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-readonly-automation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+            Action:
+              - sts:AssumeRole
+            Condition:
+                ArnEquals:
+                    'aws:SourceArn': !Sub 'arn:aws:codebuild:${AWS::Region}:${DeploymentAccountId}:project/*'
+      Path: /
   ReadOnlyAutomationRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -235,91 +275,38 @@ Resources:
             Resource:
               - "*"
       Roles:
-        - !Ref CfnAutomationRole
-
-
-  CloudFormationDeploymentPolicy:
-    # This is the policy that will be used to deploy CloudFormation resources from
-    # within the target account. You should scope this policy depending
-    # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a sample IAM policy. This policies should NOT be used in for purposes other than testing.
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-cloudformation-deployment-role-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Sid: "CloudFormation"
-            Action:
-              - "apigateway:*"
-              - "application-autoscaling:*"
-              - "autoscaling:*"
-              - "cloudformation:*"
-              - "cloudtrail:*"
-              - "cloudwatch:*"
-              - "codebuild:*"
-              - "codecommit:*"
-              - "codedeploy:*"
-              - "codepipeline:*"
-              - "cognito-identity:*"
-              - "cognito-idp:*"
-              - "config:*"
-              - "dax:*"
-              - "dynamodb:*"
-              - "ec2:*"
-              - "ecr:*"
-              - "ecs:*"
-              - "elasticbeanstalk:*"
-              - "elasticloadbalancing:*"
-              - "es:*"
-              - "events:*"
-              - "guardduty:*"
-              - "iam:*"
-              - "kinesis:*"
-              - "kms:Create*"
-              - "kms:Decrypt"
-              - "kms:Describe*"
-              - "kms:DescribeKey"
-              - "kms:Encrypt"
-              - "kms:GenerateDataKey*"
-              - "kms:Get*"
-              - "kms:List*"
-              - "kms:Put*"
-              - "kms:ReEncrypt*"
-              - "lambda:*"
-              - "logs:*"
-              - "opsworks:*"
-              - "route53:*"
-              - "s3:*"
-              - "servicecatalog:AcceptPortfolioShare"
-              - "servicecatalog:AssociateProductWithPortfolio"
-              - "servicecatalog:AssociatePrincipalWithPortfolio"
-              - "servicecatalog:AssociateTagOptionWithResource"
-              - "servicecatalog:Create*"
-              - "servicecatalog:List*"
-              - "servicecatalog:Delete*"
-              - "servicecatalog:Describe*"
-              - "servicecatalog:ListProvisioningArtifacts"
-              - "servicecatalog:UpdateProduct"
-              - "sns:*"
-              - "sqs:*"
-              - "ssm:GetParameter"
-              - "ssm:GetParameters"
-              - "states:*"
-              - "tag:*"
-              - "xray:*"
-            Resource:
-              - "*"
-          # Required for CodePipeline Cross Account actions
-          - Effect: Allow
-            Sid: "KMS"
-            Action:
-              - "kms:Decrypt"
-              - "kms:DescribeKey"
-              - "kms:Encrypt"
-              - "kms:GenerateDataKey*"
-              - "kms:ReEncrypt*"
-            Resource: !Ref KMSArn
-      Roles:
-        - !Ref CloudFormationDeploymentRole
+        - !Ref ReadOnlyAutomationRole
+  # MyExampleCustomRole:
+  #   # Am example custom role that you would need to create in order to deploy custom resources in other AWS Accounts within the organization.
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     RoleName: "adf-custom-deploy-role"
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Sid: "AssumeRole"
+  #           Principal:
+  #             AWS:
+  #               # This would all all codebuild projects to be able to assume this role
+  #               # - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+  #               - !Sub arn:aws:iam::${DeploymentAccountId}:role/my-custom-codebuild-role
+  #               # The above role would be created on the deployment account for the purpose deploying this custom resource via codebuild
+  #           Action:
+  #             - sts:AssumeRole
+  #     Path: /
+  # MyExampleCustomRolePolicy:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: "adf-custom-deploy-role-policy"
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - "ec2:*"
+  #             - "s3:*"
+  #           Resource:
+  #             - "*"
+  #     Roles:
+  #       - !Ref MyExampleCustomRole

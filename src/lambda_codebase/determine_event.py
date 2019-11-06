@@ -36,8 +36,8 @@ def lambda_handler(event, _):
     )
 
     if parsed_event.moved_to_root or parsed_event.moved_to_protected:
-        return parsed_event.create_output_object(account_path)
+        return parsed_event.create_output_object("adf-bootstrap/" + account_path)
 
     parsed_event.set_destination_ou_name()
 
-    return parsed_event.create_output_object(account_path)
+    return parsed_event.create_output_object("adf-bootstrap/" + account_path)

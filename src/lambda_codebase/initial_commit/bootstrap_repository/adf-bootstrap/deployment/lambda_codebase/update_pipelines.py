@@ -42,7 +42,7 @@ def lambda_handler(event, _):
         'aws-deployment-framework-pipelines'
     )
 
-    if pipeline_status in ('Failed', 'InProgress'):
+    if pipeline_status in ('InProgress'):
         LOGGER.info(
             'aws-deployment-framework-pipelines is in %s. Exiting.',
             pipeline_status

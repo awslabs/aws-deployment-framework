@@ -1,0 +1,9 @@
+accounts:
+  - account_full_name: bundyf-deployment
+    organizational_unit_path: /deployment
+    email: bundyf+3@amazon.nl
+    allow_billing: True
+    delete_default_vpc: True
+    alias: deployment
+    tags:
+      - created_by: adf

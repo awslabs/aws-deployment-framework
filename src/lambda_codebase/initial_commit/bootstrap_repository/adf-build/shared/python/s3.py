@@ -70,7 +70,6 @@ class S3:
     def fetch_s3_url(self, key):
         """Recursively search for an object in S3 and return its URL
         """
-
         try:
             s3_object = self.resource.Object(self.bucket, key)
             s3_object.get()
@@ -88,7 +87,6 @@ class S3:
         except self.client.exceptions.NoSuchKey:
             # Split the path to remove the last key entry from the string
             key_level_up = key.split('/')
-
             # Return None here if nothing could be found from recursive
             # searching
             if len(key_level_up) == 1:

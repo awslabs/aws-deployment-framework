@@ -33,6 +33,9 @@ class Event:
         self.is_deployment_account = 0
         self.deployment_account_id = None
         self.destination_ou_name = None
+        self.source_ou_id = event.get(
+            'detail').get(
+                'requestParameters').get('sourceParentId')
         self.main_notification_endpoint = self.config.get(
             'main-notification-endpoint').pop().get('target')
         self.notification_type = 'lambda' if '@' not in self.main_notification_endpoint else 'email'
@@ -101,6 +104,7 @@ class Event:
             'ou_name': self.destination_ou_name,
             'full_path': "ROOT" if self.moved_to_root else account_path,
             'destination_ou_id': self.destination_ou_id,
+            'source_ou_id': self.source_ou_id,
             'deployment_account_parameters' : {
                 'organization_id': organization_information.get(
                     "organization_id"
@@ -116,3 +120,5 @@ class Event:
                 'adf_log_level': ADF_LOG_LEVEL
             }
         }
+
+

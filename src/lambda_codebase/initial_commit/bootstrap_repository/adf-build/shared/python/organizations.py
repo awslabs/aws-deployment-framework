@@ -5,7 +5,8 @@
 """
 
 import json
-
+import boto3
+from time import sleep
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from errors import RootOUIDError
@@ -14,7 +15,6 @@ from paginator import paginator
 
 LOGGER = configure_logger(__name__)
 
-
 class Organizations: # pylint: disable=R0904
     """Class used for modeling Organizations
     """
@@ -22,7 +22,6 @@ class Organizations: # pylint: disable=R0904
     _config = Config(retries=dict(max_attempts=30))
 
     def __init__(self, role, account_id=None):
-        self.role = role
         self.client = role.client(
             'organizations',
             config=Organizations._config)
@@ -126,31 +125,14 @@ class Organizations: # pylint: disable=R0904
             PolicyId=policy_id
         )
 
-    def get_account_ids(self):
+
+    def get_accounts(self):
         for account in paginator(self.client.list_accounts):
             if not account.get('Status') == 'ACTIVE':
                 LOGGER.warning('Account %s is not an Active AWS Account', account['Id'])
                 continue
-            self.account_ids.append(account['Id'])
+            self.account_ids.append(account)
         return self.account_ids
-
-    def get_account_ids_for_tags(self, tags):
-        tag_filter = []
-
-        for key, value in tags.items():
-            if isinstance(value, list):
-                values = value
-            else:
-                values = [value]
-            tag_filter.append({'Key': key, 'Values': values})
-
-        account_ids = []
-        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
-            arn = resource['ResourceARN']
-            account_id = arn.split('/')[::-1][0]
-            account_ids.append(account_id)
-
-        return account_ids
 
     def get_organization_info(self):
         response = self.client.describe_organization()
@@ -240,3 +222,163 @@ class Organizations: # pylint: disable=R0904
                 self.get_parent_info().get("ou_parent_id")
             )
         )
+
+    def get_account_ids_for_tags(self, tags):
+        tag_filter = []
+        for key, value in tags.items():
+            if isinstance(value, list):
+                values = value
+            else:
+                values = [value]
+            tag_filter.append({'Key': key, 'Values': values})
+        account_ids = []
+        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
+            arn = resource['ResourceARN']
+            account_id = arn.split('/')[::-1][0]
+            account_ids.append(account_id)
+        return account_ids
+
+    def list_organizational_units_for_parent(self, parent_ou):
+        """Returns a list of OUs for the given parent"""
+        organizational_units = [
+            ou
+            for org_units in self.client.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
+            for ou in org_units['OrganizationalUnits']
+        ]
+        return organizational_units
+
+    def get_account_id(self, account_name):
+        """Retrieves the account ID
+
+        :param account_name: The name of the account
+        :return: Id of account, None if account does not exist
+        """
+        for account in self.list_accounts():
+            if account["Name"].strip() == account_name.strip():
+                return account['Id']
+
+        return None
+
+    def list_accounts(self):
+        """Retrieves all accounts in organization."""
+        existing_accounts = [
+            account
+            for accounts in self.client.get_paginator("list_accounts").paginate()
+            for account in accounts['Accounts']
+        ]
+        return existing_accounts
+
+    def get_ou_id(self, ou_path, parent_ou_id=None):
+        """Retrieve an organisational unit id
+
+        :param ou_path: the name of the organisational unit. For nested ou's use / notation, eg. eu/eudev
+        :param parent_ou_id: The parent from where to start parsing the ou_path, defaults to root
+        :return: (ou_id, parent_id)
+        """
+        # Return root OU if '/' is provided
+        if ou_path.strip() == '/':
+            return self.root_id
+
+        # Set initial OU to start looking for given ou_path
+        if parent_ou_id is None:
+            parent_ou_id = self.root_id
+
+        # Parse ou_path and find the ID
+        ou_hierarchy = ou_path.strip('/').split('/')
+        hierarchy_index = 0
+
+        while hierarchy_index < len(ou_hierarchy):
+            org_units = self.list_organizational_units_for_parent(parent_ou_id)
+            for ou in org_units:
+                if ou['Name'] == ou_hierarchy[hierarchy_index]:
+                    parent_ou_id = ou['Id']
+                    hierarchy_index += 1
+                    break
+            else:
+                raise ValueError(f'Could not find ou with name {ou_hierarchy} in OU list {org_units}.')
+
+        return parent_ou_id
+
+    def move_account(self, account_id, ou_path):
+        """Move the account to an organisation unit.
+
+        Note that we are not allowing an account to move from non-root to another ou. This
+        is to avoid issues with the AWS Deployment Framework that requires you to first move
+        an account to root before moving to another OU.
+
+        :param account_id: ID of the account to move
+        :param ou_path: The full path to the ou in slash notation (e.g. /europe/test )
+        :param allow_direct_move: Set this to True to allow moving accounts directly between OUs
+                                  without first moving to the root OU.
+        """
+        self.root_id = self.get_ou_root_id()
+        ou_id = self.get_ou_id(ou_path)
+        response = self.client.list_parents(ChildId=account_id)
+        source_parent_id = response['Parents'][0]['Id']
+
+        if source_parent_id == ou_id:
+            # Account is already resided in ou_path
+            return
+
+        response = self.client.move_account(
+            AccountId=account_id,
+            SourceParentId=source_parent_id,
+            DestinationParentId=ou_id
+        )
+
+    def create_account_tags(self, account_id, tags):
+        """Adds tags to given account.
+
+        :param account_id: ID of the AWS account
+        :param tags: Dict of tags to apply to account
+        """
+        # TODO: Make the tag definition fully declarative
+        # meaning that any tag not referenced will be removed
+        # from the account. use org_client.untag_resource()
+        formatted_tags = [
+            {'Key': key, 'Value': value}
+            for tag in tags
+            for key, value in tag.items()
+        ]
+        self.client.tag_resource(
+            ResourceId=account_id,
+            Tags=formatted_tags
+        )
+
+    @staticmethod
+    def create_account_alias(account_alias, role):
+        """Creates or updates the account alias for given account_id"""
+
+        iam_client = role.client('iam')
+        try:
+            iam_client.create_account_alias(AccountAlias=account_alias)
+        except iam_client.exceptions.EntityAlreadyExistsException:
+            pass  # Alias already exists
+
+    def create_account(self, account, adf_role_name):
+        """Creates a new the account if it doesn't exist.
+        :param account: Class instance of Account
+        :return: account_id
+        """
+        allow_billing = "ALLOW" if account.allow_billing else "DENY"
+        response = self.client.create_account(
+            Email=account.email,
+            AccountName=account.full_name,
+            RoleName=adf_role_name,  # defaults to OrganizationAccountAccessRole
+            IamUserAccessToBilling=allow_billing,
+        )["CreateAccountStatus"]
+        while response["State"] == "IN_PROGRESS":
+            response = self.client.describe_create_account_status(
+                CreateAccountRequestId=response["Id"]
+            )["CreateAccountStatus"]
+
+            if response.get("FailureReason"):
+                raise IOError(
+                    f"Failed to create account {account.full_name}: {response['FailureReason']}"
+                )
+            sleep(5)  # waiting for 5 sec before checking account status again
+        account_id = response["AccountId"]
+        # TODO: Instead of sleeping, query for the role.
+        sleep(10)  # Wait until OrganizationalRole is created in new account
+
+        return account_id

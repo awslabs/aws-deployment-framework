@@ -1,0 +1,18 @@
+accounts:
+  - account_full_name: my_new_account
+    organizational_unit_path: /banking/testing
+    email: bundyf+new@amazon.com
+    delete_default_vpc: True
+    alias: my-new-account-alias
+    allow_billing: True
+    tags:
+      - env: testing
+
+  - account_full_name: banking-testing
+    organizational_unit_path: /banking/testing
+    email: bundyf+52@amazon.com
+    delete_default_vpc: True
+    allow_billing: False
+    alias: banking-testing
+    tags:
+      - env: testing

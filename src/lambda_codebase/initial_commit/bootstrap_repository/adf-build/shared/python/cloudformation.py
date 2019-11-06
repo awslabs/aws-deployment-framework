@@ -59,10 +59,10 @@ class StackProperties:
     def _get_geo_prefix(self):
         return 'global' if self.region == self.deployment_account_region else 'regional'
 
-    def _create_template_path(self, path):
+    def _create_template_path(self, path, filename_override=None):
         return '{0}/{1}.yml'.format(
             path,
-            self._get_geo_prefix()
+            filename_override or self._get_geo_prefix() 
         )
 
     def _create_parameter_path(self, path):
@@ -129,7 +129,6 @@ class CloudFormation(StackProperties):
 
     def _wait_stack(self, waiter_type):
         waiter = self.client.get_waiter(waiter_type)
-
         LOGGER.info(
             '%s - Waiting for CloudFormation stack: %s in %s to reach %s',
             self.account_id,
@@ -137,7 +136,6 @@ class CloudFormation(StackProperties):
             self.region,
             waiter_type
         )
-
         waiter.wait(
             StackName=self.stack_name,
             WaiterConfig={
@@ -229,10 +227,10 @@ class CloudFormation(StackProperties):
                 EnableTerminationProtection=STACK_TERMINATION_PROTECTION == "True",
                 StackName=self.stack_name
             )
-        except ClientError:
-            LOGGER.info(
-                '%s - Attempted to Update Stack Termination Protection: %s, It is not required.',
-                self.account_id, self.stack_name, )
+        except ClientError as e:
+            LOGGER.error(
+                '%s | %s, Error: %s',
+                self.account_id, self.stack_name, e)
             pass
 
     def _delete_change_set(self):
@@ -242,10 +240,9 @@ class CloudFormation(StackProperties):
                 StackName=self.stack_name
             )
         except ClientError as e:
-            print(e)
             LOGGER.info(
-                '%s - Attempted to Delete Stack: %s, it did not exist.',
-                self.account_id, self.stack_name)
+                '%s | %s, Error: %s',
+                self.account_id, self.stack_name, e)
             pass
 
     def _execute_change_set(self, waiter):
@@ -260,6 +257,20 @@ class CloudFormation(StackProperties):
         )
         if self.wait:
             self._wait_stack(waiter)
+
+    def create_iam_stack(self):
+        self.template_url = self.s3.fetch_s3_url(
+            self._create_template_path(self.s3_key_path, 'global-iam')
+        )
+        self.stack_name = 'adf-{0}-base-{1}'.format(
+            'global',
+            'iam'
+        )
+        waiter = self._get_waiter_type()
+        create_change_set = self._create_change_set()
+        if create_change_set:
+            self._execute_change_set(waiter)
+            self._update_stack_termination_protection()
 
     def create_stack(self):
         waiter = self._get_waiter_type()
@@ -305,17 +316,17 @@ class CloudFormation(StackProperties):
                 StackName=self.stack_name
             )
             return stack['Stacks'][0]['StackStatus']
-        except BaseException:
-            LOGGER.debug("%s - Attempted to get stack status from %s but it failed.", self.account_id, self.stack_name)
+        except BaseException as e:
+            LOGGER.debug("%s - Attempted to get stack status from %s but it failed with: %s", self.account_id, self.stack_name, e)
             return None  # Return None if the stack does not exist
 
-    def delete_stack(self, stack_name):
+    def delete_stack(self, stack_name, wait_override=False):
         self.stack_name = stack_name
         self.client.delete_stack(
             StackName=self.stack_name
         )
         LOGGER.debug('Attempted Delete of stack: %s', stack_name)
-        if self.wait:
+        if self.wait or wait_override:
             self._wait_stack('stack_delete_complete')
 
     @staticmethod

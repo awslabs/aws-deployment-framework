@@ -48,7 +48,7 @@ def configure_generic_account(sts, event, region, role):
             role
         )
         kms_arn = parameter_store_deployment_account.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
-        bucket_name = parameter_store_deployment_account.fetch_parameter('/cross_region/regional_bucket/{0}'.format(region))
+        bucket_name = parameter_store_deployment_account.fetch_parameter('/cross_region/s3_regional_bucket/{0}'.format(region))
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             'Account {0} cannot yet be bootstrapped '
@@ -84,6 +84,9 @@ def configure_deployment_account_parameters(event, role):
                 value
             )
 
+def is_inter_ou_account_move(event):
+    return not event["source_ou_id"].startswith('r-') and not event["destination_ou_id"].startswith('r-')
+
 def lambda_handler(event, _):
     sts = STS()
     role = sts.assume_cross_account_role(
@@ -115,6 +118,9 @@ def lambda_handler(event, _):
             s3_key_path=event["full_path"],
             account_id=event["account_id"]
         )
+        if is_inter_ou_account_move(event):
+            cloudformation.delete_all_base_stacks(True) #override Wait
         cloudformation.create_stack()
+        cloudformation.create_iam_stack()
 
     return event

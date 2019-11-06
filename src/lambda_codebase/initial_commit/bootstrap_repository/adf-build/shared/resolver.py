@@ -48,7 +48,7 @@ class Resolver:
             role = self.sts.assume_cross_account_role(
                 'arn:aws:iam::{0}:role/{1}'.format(
                     account_id,
-                    'adf-automation-role'),
+                    'adf-readonly-automation-role'),
                 'importer'
             )
             cloudformation = CloudFormation(

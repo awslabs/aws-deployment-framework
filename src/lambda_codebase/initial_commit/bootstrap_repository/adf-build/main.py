@@ -205,11 +205,13 @@ def worker_thread(
                 wait=True,
                 stack_name=None,
                 s3=s3,
-                s3_key_path=account_path,
+                s3_key_path="adf-bootstrap/" + account_path,
                 account_id=account_id
             )
             try:
                 cloudformation.create_stack()
+                if region == config.deployment_account_region:
+                    cloudformation.create_iam_stack()
             except GenericAccountConfigureError as error:
                 if 'Unable to fetch parameters' in str(error):
                     LOGGER.error(
@@ -282,11 +284,10 @@ def main(): #pylint: disable=R0915
                 wait=True,
                 stack_name=None,
                 s3=s3,
-                s3_key_path=account_path,
+                s3_key_path="adf-bootstrap/" + account_path,
                 account_id=deployment_account_id
             )
             cloudformation.create_stack()
-
             updated_kms_bucket_dict = update_deployment_account_output_parameters(
                 deployment_account_region=config.deployment_account_region,
                 region=region,
@@ -294,9 +295,11 @@ def main(): #pylint: disable=R0915
                 deployment_account_role=deployment_account_role,
                 cloudformation=cloudformation
             )
+            if region == config.deployment_account_region:
+                cloudformation.create_iam_stack()
 
         threads = []
-        account_ids = organizations.get_account_ids()
+        account_ids = [account_id["Id"] for account_id in organizations.get_accounts()]
         for account_id in [account for account in account_ids if account != deployment_account_id]:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
@@ -304,7 +307,7 @@ def main(): #pylint: disable=R0915
                 config,
                 s3,
                 cache,
-                updated_kms_bucket_dict
+                kms_and_bucket_dict
             ))
             thread.start()
             threads.append(thread)
