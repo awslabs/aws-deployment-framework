@@ -1,1 +1,0 @@
-cfn_custom_resource~=1.0.1

@@ -23,11 +23,6 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action: # These are examples..
-              - "apigateway:*"
-              - "ecr:*"
-              - "ecs:*"
-              - "iam:*"
-              - "logs:*"
               - "s3:*"
             Resource:
               - "*"

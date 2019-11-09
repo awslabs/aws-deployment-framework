@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - export PATH=$PATH:$(pwd)
+      - bash scripts/terraform/install_terraform.sh
+artifacts:
+  files: '**/*'

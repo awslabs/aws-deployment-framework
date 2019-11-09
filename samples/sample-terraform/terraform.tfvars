@@ -1,0 +1,1 @@
+my_bucket_name = "some-random-bucket-name-432424"

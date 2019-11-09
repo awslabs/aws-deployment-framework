@@ -226,8 +226,12 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
+            Resource: 
+              - "*"
           - Effect: Allow
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
             Action:
               - "secretsmanager:Get*"
             Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
@@ -239,14 +243,12 @@ Resources:
               - "ssm:GetParameter"
             Resource: 
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment/*
-          - Effect: Allow
+          - Effect: Deny
             Action:
               - "sts:AssumeRole"
             Resource:
-              - !Sub arn:aws:iam::*:role/adf-readonly-automation-role
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
+              - !GetAtt CloudFormationDeploymentRole.Arn
+              - !Sub arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -375,8 +377,9 @@ Resources:
               - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
           - Effect: Allow
             Action:
-              - "codebuild:DeleteProject"
               - "codebuild:CreateProject"
+              - "codebuild:DeleteProject"
+              - "codebuild:UpdateProject"
             Resource:
               - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-*
           - Effect: Allow
@@ -390,16 +393,15 @@ Resources:
               - "iam:PassRole"
               - "iam:PutRolePolicy"
             Resource:
-              - !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codebuild-role
-              - !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codepipeline-role
-              - !Sub arn:aws:iam::${AWS::AccountId}:role/${PipelinePrefix}*
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/*
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
               - "iam:PassRole" # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
             Resource:
-              - arn:aws:iam::*:role/adf-codecommit-role
-              - arn:aws:iam::*:role/adf-cloudformation-role
-              - arn:aws:iam::*:role/adf-cloudformation-deployment-role
+              - arn:aws:iam::*:role/* # This role can pass to any other role in the organization.
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
@@ -412,7 +414,11 @@ Resources:
               - "codepipeline:StartPipelineExecution"
               - "codepipeline:TagResource"
               - "codepipeline:UpdatePipeline"
+              - "codepipeline:PutWebhook"
+              - "codepipeline:DeregisterWebhookWithThirdParty"
+              - "codepipeline:RegisterWebhookWithThirdParty"
             Resource:
+              - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
       Roles:
         - !Ref PipelineProvisionerCodeBuildRole
@@ -518,7 +524,7 @@ Resources:
           - Name: ADF_STACK_PREFIX
             Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
-            Value: DEBUG
+            Value: INFO
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
           - Name: ORGANIZATION_ID

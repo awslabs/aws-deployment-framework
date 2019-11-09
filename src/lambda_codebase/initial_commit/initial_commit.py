@@ -41,6 +41,8 @@ class CustomResourceProperties:
     Version: str
     CrossAccountAccessRole: Optional[str] = None
     DeploymentAccountRegion: Optional[str] = None
+    DeploymentAccountFullName: Optional[str] = None
+    DeploymentAccountEmailAddress: Optional[str] = None
     TargetRegions: Optional[List[str]] = None
     NotificationEndpoint: Optional[str] = None
     NotificationEndpointType: Optional[str] = None
@@ -200,8 +202,10 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
     except CC_CLIENT.exceptions.BranchDoesNotExistException:
         files_to_commit = get_files_to_commit(directory)
         if directory == "bootstrap_repository":
-            adf_config = create_adf_config_file(create_event.ResourceProperties)
+            adf_config = create_adf_config_file(create_event.ResourceProperties, "adfconfig.yml.j2", "adfconfig.yml")
+            adf_deployment_account_yml = create_adf_config_file(create_event.ResourceProperties, "adf.yml.j2", "adf.yml")
             files_to_commit.append(adf_config)
+            files_to_commit.append(adf_deployment_account_yml)
 
         for index, files in enumerate(chunks([f.as_dict() for f in files_to_commit], 99)):
             if index == 0:
@@ -321,14 +325,14 @@ def get_relative_name(path: Path, directoryName: str) -> Path:
     return Path(*path.parts[-index:])
 
 
-def create_adf_config_file(props: CustomResourceProperties) -> FileToCommit:
-    template = HERE / "adfconfig.yml.j2"
+def create_adf_config_file(props: CustomResourceProperties, input_file_name: str, output_file_name: str) -> FileToCommit:
+    template = HERE / input_file_name
     adf_config = (
         jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined)
         .render(vars(props))
         .encode()
     )
 
-    with open("/tmp/adfconfig.yml", "wb") as f:
+    with open("/tmp/{0}".format(output_file_name), "wb") as f:
         f.write(adf_config)
-    return FileToCommit("adfconfig.yml", FileMode.NORMAL, adf_config)
+    return FileToCommit("{0}".format(output_file_name), FileMode.NORMAL, adf_config)
