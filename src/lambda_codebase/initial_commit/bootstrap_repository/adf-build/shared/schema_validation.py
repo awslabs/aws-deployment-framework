@@ -15,6 +15,7 @@ PARAM_SCHEMA = {
     Optional("notification_endpoint"): str,
     Optional("schedule"): str,
     Optional("restart_execution_on_update"): bool,
+    Optional("pipeline_type"): str
 }
 
 AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
