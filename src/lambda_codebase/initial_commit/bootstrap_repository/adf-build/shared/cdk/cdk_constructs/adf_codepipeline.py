@@ -361,7 +361,8 @@ class Pipeline(core.Construct):
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
-                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name']
+                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
             }
         })
 

@@ -47,7 +47,7 @@ class Events(core.Construct):
                             "branch"
                         ],
                         "referenceName": [
-                            "master"
+                            params['source']['branch']
                         ]
                     }
                 )
