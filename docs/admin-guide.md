@@ -1,27 +1,30 @@
 # Administrator Guide
 
-- [Src Folder](#src-folder)
-- [adfconfig](#adfconfig)
-  - [Roles](#roles)
-  - [Regions](#regions)
-  - [Config](#config)
-- [Accounts](#Accounts)
-  - [Master](#master-account)
-  - [Deployment](#deployment-account)
-    - [Default Deployment Account Region](#default-deployment-account-region)
-  - [Bootstrapping](#bootstrapping-accounts)
-    - [Bootstrapping Overview](#bootstrapping-overview)
-    - [Bootstrapping Inheritance](#bootstrapping-inheritance)
-    - [Regional Bootstrapping](#regional-bootstrapping)
-    - [Global Bootstrapping](#global-bootstrapping)
-    - [Bootstrapping Regions](#region-bootstrapping)
-- [Service Control Policies](#service-control-policies)
-- [Pipelines](#pipelines)
-  - [Pipeline Parameters](#pipeline-parameters)
-  - [Chaining Pipelines](#chaining-pipelines)
-- [Integrating Slack](#integrating-slack)
-- [Updating Between Versions](#updating-between-versions)
-- [Removing ADF](#removing-adf)
+- [Administrator Guide](#administrator-guide)
+  - [Src Folder](#src-folder)
+  - [adfconfig](#adfconfig)
+      - [Roles](#roles)
+      - [Regions](#regions)
+      - [Config](#config)
+  - [Accounts](#accounts)
+    - [Master Account](#master-account)
+    - [Deployment Account](#deployment-account)
+      - [Default Deployment Account Region](#default-deployment-account-region)
+    - [Bootstrapping Accounts](#bootstrapping-accounts)
+      - [Bootstrapping Overview](#bootstrapping-overview)
+      - [Bootstrapping Inheritance](#bootstrapping-inheritance)
+      - [Regional Bootstrapping](#regional-bootstrapping)
+      - [Global Bootstrapping](#global-bootstrapping)
+      - [Bootstrapping Regions](#bootstrapping-regions)
+      - [Bootstrapping Recommendations](#bootstrapping-recommendations)
+    - [Pipelines](#pipelines)
+      - [Pipeline Parameters](#pipeline-parameters)
+      - [Using Github](#using-github)
+      - [Chaining Pipelines](#chaining-pipelines)
+  - [Service Control Policies](#service-control-policies)
+  - [Integrating Slack](#integrating-slack)
+  - [Updating Between Versions](#updating-between-versions)
+  - [Removing ADF](#removing-adf)
 
 ## Src Folder
 
@@ -319,7 +322,15 @@ SCPs are available only in an organization that has [all features enabled](https
 
 ## Integrating Slack
 
-The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account with the type of 'Other' *(eg API Key)*. Give the Secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Secrets Manager as `/adf/slack/team-bugs`.
+The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg team-bugs)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account:
+
+1. In AWS Console, click _Store a new secret_ and select type 'Other type of secrets' *(eg API Key)*.
+2. In _Secret key/value_ tab, enter the channel name *(eg team-bugs)* in the first field and the webhook URL in the second field. 
+3. In _Select the encryption key_ section, choose *aws/secretsmanager* as the encryption key. Click _Next_.
+4. In _Secret Name_, give the secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for a channel called `team-bugs` this would be stored in Secrets Manager as `/adf/slack/team-bugs`.
+5. Optionally, enter a description for the key
+6. Click _Next_. Ensure *Disable automatic rotation* is selected. Click _Next_ again.
+7. Review the data and then click _Store_.
 
 Once the value is stored as a secret, it can be used like so:
 
