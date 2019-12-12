@@ -313,6 +313,27 @@ pipelines:
     targets: *generic_targets # using YAML Alias
 ```
 
+#### Deploying to an OU target
+
+If you want to target all the AWS accounts belonging to an Organization Unit, you can pass the OU ID in the target path attribute, like in the below example. 
+
+This piece of functionality, coupled with a CloudFormation deployment target is equivalent to a CloudFormation StackSet deployed to all the accounts of the OU, with the benefit that it automatically handles new accounts added to the OU, which isn't currently supported by CloudFormation StackSets.
+
+```yaml
+  - name: example
+    default_providers:
+     source:
+        provider: codecommit
+        properties:
+          account_id: 11111111111111 # <-- This AWS account that hosts the source of the CloudFormation payload deployed by this pipeline.
+    targets:
+      deploy:
+        provider: cloudformation
+    targets:
+      - path: ou-d34d-b33f # <-- This is the OU ID you can get from the Organizations section of the AWS console
+        regions: eu-west-1
+     [...]
+
 ## Service Control Policies
 Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
 
