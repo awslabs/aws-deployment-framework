@@ -20,6 +20,7 @@
     - [Pipeline Parameters](#pipeline-parameters)
     - [Using Github](#using-github)
     - [Chaining Pipelines](#chaining-pipelines)
+    - [Deploying to an OU Target](#deploying-to-an-ou-target)
 - [Service Control Policies](#service-control-policies)
 - [Integrating Slack](#integrating-slack)
 - [Updating Between Versions](#updating-between-versions)
@@ -333,6 +334,7 @@ This piece of functionality, coupled with a CloudFormation deployment target is 
       - path: ou-d34d-b33f # <-- This is the OU ID you can get from the Organizations section of the AWS console
         regions: eu-west-1
      [...]
+```
 
 ## Service Control Policies
 Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
