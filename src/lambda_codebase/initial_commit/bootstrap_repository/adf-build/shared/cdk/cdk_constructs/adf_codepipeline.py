@@ -133,7 +133,11 @@ class Action:
             )
             _props = {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get('properties', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "StackName": self.target.get(
+                    'properties', {}).get('stack_name') or self.map_params.get(
+                        'default_providers', {}).get(
+                            'deploy', {}).get(
+                                'properties', {}).get('stack_name')or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "TemplateConfiguration": "{input_artifact}::{path_prefix}params/{target_name}_{region}.json".format(
                     input_artifact=_input_artifact,
