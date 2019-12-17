@@ -238,7 +238,7 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
