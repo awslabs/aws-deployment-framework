@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This is the main construct file file for PipelineStack
@@ -58,7 +58,7 @@ class PipelineStack(core.Stack):
                     stack_input['input']
                 ).source
             )
-        if 'codebuild' in _build_name and stack_input["input"]["default_providers"]["build"].get("properties", {}).get('enabled', True):
+        if 'codebuild' in _build_name and stack_input["input"]["default_providers"]["build"].get('enabled', True):
             _stages.append(
                 adf_codebuild.CodeBuild(
                     self,

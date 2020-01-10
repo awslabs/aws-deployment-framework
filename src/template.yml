@@ -1,4 +1,4 @@
-# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: '2010-09-09'
@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: ../docs/serverless-application-repo.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 13.1.29
+    SemanticVersion: 42.1.58
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Parameters:
   CrossAccountAccessRoleName:
@@ -23,27 +23,33 @@ Parameters:
   MainNotificationEndpoint:
     Type: String
     Default: ""
-    Description: "example -> jon@smith.com"
+    Description: "Example -> jon@smith.com"
   DeploymentAccountName:
     Type: String
     Default: ""
+    Description: "The name of the new or existing deployment account"
   DeploymentAccountEmailAddress:
     Type: String
     Default: ""
+    Description: "The email address for the new or existing deployment account"
+  DeploymentAccountAlias:
+    Type: String
+    Default: ""
+    Description: "(Optional) Example -> companyname-deployment (must be globally unique)"
   DeploymentAccountId:
     Type: String
     Default: ""
-    Description: "example -> 123456789101"
+    Description: "Example -> 123456789101 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)"
   DeploymentAccountMainRegion:
     Type: String
     Default: ""
-    Description: "example -> eu-west-1"
+    Description: "Example -> eu-west-1"
   DeploymentAccountTargetRegions:
-    Description: "example -> us-west-1,eu-west-1"
     Type: CommaDelimitedList
     Default: ""
+    Description: "(Optional) Example -> us-west-1,eu-west-3"
   ProtectedOUs:
-    Description: "example -> ou-123,ou-234"
+    Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
 Resources:
@@ -90,8 +96,8 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleRuntimes: 
-        - python3.6
         - python3.7
+        - python3.8
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
   LambdaLayerVersionPermission:
@@ -166,7 +172,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 13.1.29
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -187,7 +193,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 13.1.29
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -208,12 +214,12 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 13.1.29
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Timeout: 300
+      Timeout: 600
   RoleStackDeploymentFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -227,7 +233,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 12.1.8
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -246,7 +252,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 13.1.29
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -265,7 +271,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 13.1.29
+          ADF_VERSION: 42.1.58
           ADF_LOG_LEVEL: INFO
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -425,6 +431,7 @@ Resources:
               - "iam:UpdateAssumeRolePolicy"
             Resource:
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -442,7 +449,7 @@ Resources:
         Image: "aws/codebuild/standard:2.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 13.1.29
+            Value: 42.1.58
           - Name: TERMINATION_PROTECTION
             Value: false
           - Name: PYTHONPATH
@@ -643,7 +650,7 @@ Resources:
                             "Next": "ExecuteDeploymentAccountStateMachine",
                             "ResultPath": "$.error"
                         }],
-                        "TimeoutSeconds": 300
+                        "TimeoutSeconds": 600
                     },
                     "MovedToRootAction": {
                         "Type": "Task",
@@ -707,12 +714,14 @@ Resources:
     Type: Custom::InitialCommit
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 13.1.29
+      Version: 42.1.58
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
+      ExistingAccountId: !Ref DeploymentAccountId
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
-      DeploymentAccountRegion: !Ref DeploymentAccountEmailAddress
-      DeploymentAccountRegion: !Ref DeploymentAccountFullName
+      DeploymentAccountFullName: !Ref DeploymentAccountName
+      DeploymentAccountEmailAddress: !Ref DeploymentAccountEmailAddress
+      DeploymentAccountAlias: !Ref DeploymentAccountAlias
       CrossAccountAccessRole: !Ref CrossAccountAccessRoleName
       TargetRegions: !Ref DeploymentAccountTargetRegions
       ProtectedOUs: !Ref ProtectedOUs
@@ -926,7 +935,7 @@ Resources:
           Id: adf-codepipeline-trigger-bootstrap
 Outputs:
   ADFVersionNumber:
-    Value: 13.1.29
+    Value: 42.1.58
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

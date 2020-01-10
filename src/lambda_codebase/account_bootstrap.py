@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -66,7 +66,6 @@ def configure_master_account_parameters(event):
     """
     parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
     parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
-
     parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
     parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
 
@@ -112,7 +111,7 @@ def lambda_handler(event, _):
             region=region,
             deployment_account_region=event["deployment_account_region"],
             role=role,
-            wait=False,
+            wait=True,
             stack_name=None, # Stack name will be automatically defined based on event
             s3=s3,
             s3_key_path=event["full_path"],
@@ -121,6 +120,7 @@ def lambda_handler(event, _):
         if is_inter_ou_account_move(event):
             cloudformation.delete_all_base_stacks(True) #override Wait
         cloudformation.create_stack()
-        cloudformation.create_iam_stack()
+        if region == event["deployment_account_region"]:
+            cloudformation.create_iam_stack()
 
     return event

@@ -2,8 +2,8 @@ accounts:
   - account_full_name: {{ DeploymentAccountFullName }}
     organizational_unit_path: /deployment
     email: {{ DeploymentAccountEmailAddress }}
-    allow_billing: True
+    allow_billing: False
     delete_default_vpc: False
-    alias: deployment
+    alias: {{ DeploymentAccountAlias }}
     tags:
       - created_by: adf

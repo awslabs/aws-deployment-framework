@@ -1,3 +1,6 @@
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 #!/usr/bin/env python3
 
 import yaml
@@ -48,7 +51,7 @@ def create_or_update_account(org_session, account, adf_role_name, account_id=Non
         ), 'delete_default_vpc'
     )
 
-    LOGGER.info(f'Ensuring account {account_id} is in OU {account.ou_path}')
+    LOGGER.info(f'Ensuring account {account_id} (alias {account.alias}) is in OU {account.ou_path}')
     org_session.move_account(account_id, account.ou_path)
     if account.delete_default_vpc:
         ec2_client = role.client('ec2')
@@ -64,11 +67,11 @@ def create_or_update_account(org_session, account, adf_role_name, account_id=Non
             for _ in executor.map(lambda f: schedule_delete_default_vpc(*f), args):
                 pass
 
-    LOGGER.info(f'Creating/Updating account {account_id} alias {account.alias}')
+    LOGGER.info(f'Ensuring account alias for {account_id} of {account.alias}')
     org_session.create_account_alias(account.alias, role)
 
     if account.tags:
-        LOGGER.info(f'Adding/Updating tags for account {account_id}: {account.tags}')
+        LOGGER.info(f'Ensuring tags exist for account {account_id}: {account.tags}')
         org_session.create_account_tags(account_id, account.tags)
 
 

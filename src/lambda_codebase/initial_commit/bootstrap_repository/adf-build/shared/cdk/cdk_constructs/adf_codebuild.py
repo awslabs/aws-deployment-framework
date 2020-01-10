@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodeBuild Input
@@ -10,6 +10,7 @@ from aws_cdk import (
     aws_codebuild as _codebuild,
     aws_iam as _iam,
     aws_kms as _kms,
+    aws_ecr as _ecr,
     core
 )
 
@@ -31,13 +32,7 @@ class CodeBuild(core.Construct):
             ) if target.get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=target.get(
-                    'properties', {}).get(
-                        'image') or getattr(
-                            _codebuild.LinuxBuildImage,
-                            map_params['default_providers']['build'].get(
-                                'properties', {}).get(
-                                    'image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
+                build_image=CodeBuild.determine_build_image(scope, target, map_params),
                 compute_type=target.get(
                     'properties', {}).get(
                         'size') or getattr(
@@ -80,7 +75,7 @@ class CodeBuild(core.Construct):
             ) if map_params['default_providers']['build'].get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
             _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=getattr(_codebuild.LinuxBuildImage, map_params['default_providers']['build'].get('properties', {}).get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
+                build_image=CodeBuild.determine_build_image(scope, target, map_params),
                 compute_type=getattr(_codebuild.ComputeType, map_params['default_providers']['build'].get('properties', {}).get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
@@ -123,6 +118,33 @@ class CodeBuild(core.Construct):
                     ).config
                 ]
             )
+
+    @staticmethod
+    def determine_build_image(scope, target, map_params):
+        if isinstance(map_params['default_providers']['build'].get('properties', {}).get('image', False), dict):
+            _image_repo_arn = target.get(
+                'properties', {}).get(
+                    'image', {}).get(
+                        'repository_arn', {}) or map_params['default_providers']['build'].get(
+                            'properties', {}).get(
+                                'image', {}).get(
+                                    'repository_arn', {})
+            _tag = target.get(
+                'properties', {}).get(
+                    'image', {}).get(
+                        'tag', '') or map_params['default_providers']['build'].get(
+                            'properties', {}).get(
+                                'image', {}).get(
+                                    'tag', 'latest')
+            _repo_arn = _ecr.Repository.from_repository_arn(scope, 'custom_repo', _image_repo_arn)
+            return _codebuild.LinuxBuildImage.from_ecr_repository(_repo_arn, _tag)
+        return target.get(
+            'properties', {}).get(
+                'image') or getattr(
+                    _codebuild.LinuxBuildImage,
+                    map_params['default_providers']['build'].get(
+                        'properties', {}).get(
+                            'image', "UBUNTU_14_04_PYTHON_3_7_1").upper())
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):

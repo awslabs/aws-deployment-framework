@@ -1,6 +1,7 @@
-"""
-# vpc.py
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 
+"""
 Remove default VPC and related resources
 """
 from time import sleep
@@ -10,10 +11,6 @@ from logger import configure_logger
 LOGGER = configure_logger(__name__)
 
 def vpc_cleanup(vpcid, role, region):
-    """Remove VPC from AWS
-    Set your region/access-key/secret-key from env variables or boto config.
-    :param vpcid: id of vpc to delete
-    """
     if not vpcid:
         return
     ec2 = role.resource('ec2', region_name=region)
@@ -39,18 +36,10 @@ def vpc_cleanup(vpcid, role, region):
         subnet.delete()
     # Delete vpc
     ec2client.delete_vpc(VpcId=vpcid)
+    LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
 
 def delete_default_vpc(client, account_id, region, role):
-    """Delete the default VPC in the given account id
-
-        :param client: EC2 boto3 client instance
-        :param account_id: AWS account id
-        """
-    # Check and remove default VPC
     default_vpc_id = None
-
-    # Retrying the describe_vpcs call. Sometimes the VPC service is not ready when
-    # you have just created a new account.
     max_retry_seconds = 360
     while True:
         try:
@@ -67,7 +56,6 @@ def delete_default_vpc(client, account_id, region, role):
             if max_retry_seconds <= 0:
                 raise Exception("Could not describe VPCs within retry limit.")
 
-
     for vpc in vpc_response["Vpcs"]:
         if vpc["IsDefault"] is True:
             default_vpc_id = vpc["VpcId"]
@@ -79,42 +67,3 @@ def delete_default_vpc(client, account_id, region, role):
 
     LOGGER.info(f"Found default VPC Id {default_vpc_id} in the {region} region")
     vpc_cleanup(default_vpc_id, role, region)
-    # subnet_response = client.describe_subnets()
-    # default_subnets = [
-    #     subnet
-    #     for subnet in subnet_response["Subnets"]
-    #     if subnet["VpcId"] == default_vpc_id
-    # ]
-
-    # LOGGER.info(f"Deleting default {len(default_subnets )} subnets")
-    # for subnet in default_subnets:
-    #     client.delete_subnet(SubnetId=subnet["SubnetId"], DryRun=dry_run)
-
-    # igw_response = client.describe_internet_gateways()
-    # try:
-    #     default_igw = [
-    #         igw["InternetGatewayId"]
-    #         for igw in igw_response["InternetGateways"]
-    #         for attachment in igw["Attachments"]
-    #         if attachment["VpcId"] == default_vpc_id
-    #     ][0]
-    # except IndexError:
-    #     default_igw = None
-
-    # if default_igw:
-    #     LOGGER.info(f"Detaching Internet Gateway {default_igw}")
-    #     client.detach_internet_gateway(
-    #         InternetGatewayId=default_igw, VpcId=default_vpc_id, DryRun=dry_run
-    #     )
-
-    #     LOGGER.info(f"Deleting Internet Gateway {default_igw}")
-    #     client.delete_internet_gateway(
-    #         InternetGatewayId=default_igw
-    #     )
-
-    # sleep(10)  # It takes a bit of time for the dependencies to clear
-    # LOGGER.debug(f"Deleting Default VPC {default_vpc_id} for the {region} region")
-    
-    # delete_vpc_response = client.delete_vpc(VpcId=default_vpc_id, DryRun=dry_run)
-
-    # return delete_vpc_response

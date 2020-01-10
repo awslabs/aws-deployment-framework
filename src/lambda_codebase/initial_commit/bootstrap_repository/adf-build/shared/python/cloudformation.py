@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """CloudFormation module used throughout the ADF
@@ -62,7 +62,7 @@ class StackProperties:
     def _create_template_path(self, path, filename_override=None):
         return '{0}/{1}.yml'.format(
             path,
-            filename_override or self._get_geo_prefix() 
+            filename_override or self._get_geo_prefix()
         )
 
     def _create_parameter_path(self, path):
@@ -127,17 +127,17 @@ class CloudFormation(StackProperties):
         except ClientError as error:
             raise InvalidTemplateError("{0}: {1}".format(self.template_url, error)) from None
 
-    def _wait_stack(self, waiter_type):
+    def _wait_stack(self, waiter_type, stack_name):
         waiter = self.client.get_waiter(waiter_type)
         LOGGER.info(
             '%s - Waiting for CloudFormation stack: %s in %s to reach %s',
             self.account_id,
-            self.stack_name,
+            stack_name,
             self.region,
             waiter_type
         )
         waiter.wait(
-            StackName=self.stack_name,
+            StackName=stack_name,
             WaiterConfig={
                 'Delay': CloudFormation._random_delay(),
                 'MaxAttempts': 45
@@ -256,7 +256,7 @@ class CloudFormation(StackProperties):
             StackName=self.stack_name
         )
         if self.wait:
-            self._wait_stack(waiter)
+            self._wait_stack(waiter, self.stack_name)
 
     def create_iam_stack(self):
         self.template_url = self.s3.fetch_s3_url(
@@ -285,7 +285,7 @@ class CloudFormation(StackProperties):
             "s3_regional_bucket": self.get_stack_output("DeploymentFrameworkRegionalS3Bucket")
         }
 
-    def delete_all_base_stacks(self):
+    def delete_all_base_stacks(self, wait_override=False):
         for stack in paginator(self.client.list_stacks):
             if bool(
                     re.search(
@@ -296,7 +296,7 @@ class CloudFormation(StackProperties):
                     LOGGER.warning(
                         'Removing Stack: %s',
                         stack.get('StackName'))
-                    self.delete_stack(stack.get('StackName'))
+                    self.delete_stack(stack.get('StackName'), wait_override)
 
     def get_stack_output(self, value):
         try:
@@ -321,13 +321,12 @@ class CloudFormation(StackProperties):
             return None  # Return None if the stack does not exist
 
     def delete_stack(self, stack_name, wait_override=False):
-        self.stack_name = stack_name
         self.client.delete_stack(
-            StackName=self.stack_name
+            StackName=stack_name
         )
         LOGGER.debug('Attempted Delete of stack: %s', stack_name)
         if self.wait or wait_override:
-            self._wait_stack('stack_delete_complete')
+            self._wait_stack('stack_delete_complete', stack_name)
 
     @staticmethod
     def _random_delay():

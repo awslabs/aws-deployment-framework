@@ -1,13 +1,8 @@
-# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
-Parameters:
-  KMSArn:
-    Type: "AWS::SSM::Parameter::Value<String>"
-    Description: ARN of the KMS CMK created in the Deployment account
-    Default: kms_arn
 Resources:
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
@@ -24,16 +19,8 @@ Resources:
             Sid: "CloudFormation"
             Action: # These are examples..
               - "s3:*"
+              - "ecr:*"
             Resource:
               - "*"
-          - Effect: Allow
-            Sid: "KMS"
-            Action: # These are required for cross account deployments via codepipeline.
-              - "kms:Decrypt"
-              - "kms:DescribeKey"
-              - "kms:Encrypt"
-              - "kms:GenerateDataKey*"
-              - "kms:ReEncrypt*"
-            Resource: !Ref "KMSArn"
       Roles:
         - adf-cloudformation-deployment-role

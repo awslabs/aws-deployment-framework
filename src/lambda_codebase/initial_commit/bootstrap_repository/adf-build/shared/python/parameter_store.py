@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Parameter Store module used throughout the ADF
@@ -24,7 +24,7 @@ class ParameterStore:
     def __init__(self, region, role):
         self.client = role.client('ssm', region_name=region, config=SSM_CONFIG)
 
-    def put_parameter(self, name, value):
+    def put_parameter(self, name, value, tier='Standard'):
         """Puts a Parameter into Parameter Store
         """
         try:
@@ -38,7 +38,8 @@ class ParameterStore:
                 Description=PARAMETER_DESCRIPTION,
                 Value=value,
                 Type='String',
-                Overwrite=True
+                Overwrite=True,
+                Tier=tier
             )
 
     def delete_parameter(self, name):

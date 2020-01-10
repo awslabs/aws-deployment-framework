@@ -1,0 +1,6 @@
+Parameters:
+    CostCenter: '123'
+    Environment: testing
+Tags:
+    TagKey: my_tag
+    MyKey: new_value

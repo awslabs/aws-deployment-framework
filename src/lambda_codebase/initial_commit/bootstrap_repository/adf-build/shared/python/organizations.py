@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Organizations module used throughout the ADF
@@ -40,18 +40,18 @@ class Organizations: # pylint: disable=R0904
             "ou_parent_type": response.get('Type')
         }
 
-    def enable_scp(self):
+    def enable_organization_policies(self, policy_type='SERVICE_CONTROL_POLICY'): # or 'TAG_POLICY'
         try:
             self.client.enable_policy_type(
                 RootId=self.get_ou_root_id(),
-                PolicyType='SERVICE_CONTROL_POLICY'
+                PolicyType=policy_type
             )
         except self.client.exceptions.PolicyTypeAlreadyEnabledException:
-            LOGGER.info('SCPs are currently enabled within the Organization')
+            LOGGER.info('%s are currently enabled within the Organization', policy_type)
 
     @staticmethod
-    def trim_scp_path(scp):
-        return scp[2:] if scp.startswith('//') else scp
+    def trim_policy_path(policy):
+        return policy[2:] if policy.startswith('//') else policy
 
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
@@ -59,68 +59,68 @@ class Organizations: # pylint: disable=R0904
                 if organization_id in org_structure.values() and counter != 0:
                     continue
                 ou_name = self.describe_ou_name(organization_id)
-                trimmed_path = Organizations.trim_scp_path("{0}/{1}".format(name, ou_name))
+                trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, ou_name))
                 org_structure[trimmed_path] = organization_id
         counter = counter + 1
         # Counter is greater than 4 here is the conditional as organizations cannot have more than 5 levels of nested OUs
         return org_structure if counter > 4 else self.get_organization_map(org_structure, counter)
 
-    def update_scp(self, content, policy_id):
+    def update_policy(self, content, policy_id):
         self.client.update_policy(
             PolicyId=policy_id,
             Content=content
         )
 
-    def create_scp(self, content, ou_path):
+    def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
         response = self.client.create_policy(
             Content=content,
-            Description='ADF Managed Service Control Policy',
-            Name='adf-scp-{0}'.format(ou_path),
-            Type='SERVICE_CONTROL_POLICY'
+            Description='ADF Managed {0}'.format(policy_type),
+            Name='adf-{0}-{1}'.format('scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy', ou_path),
+            Type=policy_type
         )
         return response['Policy']['PolicySummary']['Id']
 
     @staticmethod
-    def get_scp_body(path):
-        with open(path, 'r') as scp:
-            return json.dumps(json.load(scp))
+    def get_policy_body(path):
+        with open(path, 'r') as policy:
+            return json.dumps(json.load(policy))
 
-    def list_scps(self, name):
-        response = list(paginator(self.client.list_policies, Filter="SERVICE_CONTROL_POLICY"))
+    def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
+        response = list(paginator(self.client.list_policies, Filter=policy_type))
         try:
             return [policy for policy in response if policy['Name'] == name][0]['Id']
         except IndexError:
             return []
 
-    def describe_scp_id_for_target(self, target_id):
+    def describe_policy_id_for_target(self, target_id, policy_type='SERVICE_CONTROL_POLICY'):
         response = self.client.list_policies_for_target(
             TargetId=target_id,
-            Filter='SERVICE_CONTROL_POLICY'
+            Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if p['Description'] == 'ADF Managed Service Control Policy'][0]['Id']
+            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description']][0]['Id']
         except IndexError:
             return []
 
-    def describe_scp(self, policy_id):
+    def describe_policy(self, policy_id):
         response = self.client.describe_policy(
             PolicyId=policy_id
         )
         return response.get('Policy')
 
-    def attach_scp(self, policy_id, target_id):
+    def attach_policy(self, policy_id, target_id):
         self.client.attach_policy(
             PolicyId=policy_id,
             TargetId=target_id
         )
 
-    def detach_scp(self, policy_id, target_id):
+    def detach_policy(self, policy_id, target_id):
         self.client.detach_policy(
             PolicyId=policy_id,
             TargetId=target_id
         )
 
-    def delete_scp(self, policy_id):
+    def delete_policy(self, policy_id):
         self.client.delete_policy(
             PolicyId=policy_id
         )
@@ -239,7 +239,6 @@ class Organizations: # pylint: disable=R0904
         return account_ids
 
     def list_organizational_units_for_parent(self, parent_ou):
-        """Returns a list of OUs for the given parent"""
         organizational_units = [
             ou
             for org_units in self.client.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
@@ -248,11 +247,6 @@ class Organizations: # pylint: disable=R0904
         return organizational_units
 
     def get_account_id(self, account_name):
-        """Retrieves the account ID
-
-        :param account_name: The name of the account
-        :return: Id of account, None if account does not exist
-        """
         for account in self.list_accounts():
             if account["Name"].strip() == account_name.strip():
                 return account['Id']
@@ -269,12 +263,6 @@ class Organizations: # pylint: disable=R0904
         return existing_accounts
 
     def get_ou_id(self, ou_path, parent_ou_id=None):
-        """Retrieve an organisational unit id
-
-        :param ou_path: the name of the organisational unit. For nested ou's use / notation, eg. eu/eudev
-        :param parent_ou_id: The parent from where to start parsing the ou_path, defaults to root
-        :return: (ou_id, parent_id)
-        """
         # Return root OU if '/' is provided
         if ou_path.strip() == '/':
             return self.root_id
@@ -300,17 +288,6 @@ class Organizations: # pylint: disable=R0904
         return parent_ou_id
 
     def move_account(self, account_id, ou_path):
-        """Move the account to an organisation unit.
-
-        Note that we are not allowing an account to move from non-root to another ou. This
-        is to avoid issues with the AWS Deployment Framework that requires you to first move
-        an account to root before moving to another OU.
-
-        :param account_id: ID of the account to move
-        :param ou_path: The full path to the ou in slash notation (e.g. /europe/test )
-        :param allow_direct_move: Set this to True to allow moving accounts directly between OUs
-                                  without first moving to the root OU.
-        """
         self.root_id = self.get_ou_root_id()
         ou_id = self.get_ou_id(ou_path)
         response = self.client.list_parents(ChildId=account_id)
@@ -327,14 +304,6 @@ class Organizations: # pylint: disable=R0904
         )
 
     def create_account_tags(self, account_id, tags):
-        """Adds tags to given account.
-
-        :param account_id: ID of the AWS account
-        :param tags: Dict of tags to apply to account
-        """
-        # TODO: Make the tag definition fully declarative
-        # meaning that any tag not referenced will be removed
-        # from the account. use org_client.untag_resource()
         formatted_tags = [
             {'Key': key, 'Value': value}
             for tag in tags
@@ -347,8 +316,6 @@ class Organizations: # pylint: disable=R0904
 
     @staticmethod
     def create_account_alias(account_alias, role):
-        """Creates or updates the account alias for given account_id"""
-
         iam_client = role.client('iam')
         try:
             iam_client.create_account_alias(AccountAlias=account_alias)
@@ -356,10 +323,6 @@ class Organizations: # pylint: disable=R0904
             pass  # Alias already exists
 
     def create_account(self, account, adf_role_name):
-        """Creates a new the account if it doesn't exist.
-        :param account: Class instance of Account
-        :return: account_id
-        """
         allow_billing = "ALLOW" if account.allow_billing else "DENY"
         response = self.client.create_account(
             Email=account.email,

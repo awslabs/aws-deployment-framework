@@ -1,4 +1,4 @@
-# // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
@@ -24,7 +24,7 @@ Parameters:
     Type : "AWS::SSM::Parameter::Value<String>"
     Default: cross_account_access_role
   Image:
-    Description: The Image you wish to use for CodeBuild.
+    Description: The Image you wish to use for CodeBuild (defaults to ubuntu).
     Type: String
     Default: "aws/codebuild/standard:2.0"
   ComputeType:
@@ -55,8 +55,8 @@ Resources:
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes: 
-        - python3.6
         - python3.7
+        - python3.8
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
   LambdaLayerVersionPermission:
@@ -241,8 +241,9 @@ Resources:
           - Effect: Allow
             Action:
               - "ssm:GetParameter"
-            Resource: 
-              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment/*
+            Resource:
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+              - !Sub arn:aws:ssm:${AWS::Region}::parameter/aws/service/*
           - Effect: Deny
             Action:
               - "sts:AssumeRole"
@@ -256,6 +257,16 @@ Resources:
               - "logs:PutLogEvents"
             Resource:
               - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/adf-build-*
+          - Effect: Allow
+            Action: # If you plan on building docker images in CodeBuild you need these
+              - "ecr:GetAuthorizationToken"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+            Resource:
+              - "*"
       Roles:
         - !Ref CodeBuildRole
   PipelineProvisionerCodeBuildRole:
@@ -409,14 +420,15 @@ Resources:
             Action:
               - "codepipeline:CreatePipeline"
               - "codepipeline:DeletePipeline"
+              - "codepipeline:DeleteWebhook"
+              - "codepipeline:DeregisterWebhookWithThirdParty"
               - "codepipeline:GetPipeline"
               - "codepipeline:GetPipelineState"
+              - "codepipeline:PutWebhook"
+              - "codepipeline:RegisterWebhookWithThirdParty"
               - "codepipeline:StartPipelineExecution"
               - "codepipeline:TagResource"
               - "codepipeline:UpdatePipeline"
-              - "codepipeline:PutWebhook"
-              - "codepipeline:DeregisterWebhookWithThirdParty"
-              - "codepipeline:RegisterWebhookWithThirdParty"
             Resource:
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
@@ -431,7 +443,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codepipeline-role
+              AWS: !GetAtt CodePipelineRole.Arn
             Action:
               - sts:AssumeRole
           - Effect: Allow
@@ -488,6 +500,102 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+  AdfAutomationRole:
+    # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
+    # This role is not assumed by CodeBuild in any other pipeline other than 'aws-deployment-framework-pipelines'
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-automation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !GetAtt PipelineProvisionerCodeBuildRole.Arn
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationDeploymentPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "KMS"
+            Action: # These are required for cross account deployments via codepipeline.
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:ReEncrypt*"
+            Resource: !GetAtt KMSKey.Arn
+      Roles:
+        - !Ref CloudFormationDeploymentRole
+  AdfAutomationRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-automation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource:
+              - !Sub "arn:aws:s3:::${PipelineBucket}/adf-build/templates/*"
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "cloudformation:CancelUpdateStack"
+              - "cloudformation:ContinueUpdateRollback"
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:CreateStack"
+              - "cloudformation:DeleteChangeSet"
+              - "cloudformation:DeleteStack"
+              - "cloudformation:DescribeChangeSet"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:ExecuteChangeSet"
+              - "cloudformation:SetStackPolicy"
+              - "cloudformation:SignalResource"
+              - "cloudformation:UpdateStack"
+            Resource:
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
+          - Effect: Allow
+            Sid: "CodeCommit"
+            Action:
+              - "codecommit:CreateRepository"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "Events"
+            Action:
+              - "events:DescribeRule"
+              - "events:EnableRule"
+              - "events:ListRules"
+              - "events:PutEvents"
+              - "events:PutRule"
+              - "events:PutTargets"
+              - "cloudformation:ValidateTemplate"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "SSM"
+            Action:
+              - "ssm:GetParameters"
+              - "ssm:GetParameter"
+            Resource:
+              - "arn:aws:ssm:*:*:parameter/bucket_name"
+              - "arn:aws:ssm:*:*:parameter/deployment_account_id"
+              - "arn:aws:ssm:*:*:parameter/kms_arn"
+      Roles:
+        - !Ref AdfAutomationRole
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -542,7 +650,7 @@ Resources:
                 nodejs: 10
             pre_build:
               commands:
-                - npm install cdk@1.13.1 -g -y --quiet --no-progress
+                - npm install cdk@1.20 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
@@ -1055,12 +1163,6 @@ Resources:
       FunctionName: PipelinesCreateInitialCommitFunction
       Runtime: python3.7
       Timeout: 300
-  DeploymentAccountIdParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "deployment_account_id"
-      Type: "String"
-      Value: !Ref AWS::AccountId
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"
     Properties:

@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -27,7 +27,6 @@ class Repo:
         self.name = name
         if not description:
             description = 'Created by ADF'
-
         self.description = description
         self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
         self.account_id = account_id
@@ -75,6 +74,6 @@ class Repo:
 
         # Update the stack if the repo and the adf contolled stack exist
         update_stack = (self.repo_exists() and cloudformation.get_stack_status())
-        if not self.repo_exists() or update_stack:
+        if update_stack:
             LOGGER.info('Ensuring State for Codecommit Repository Stack %s on Account %s', self.name, self.account_id)
             cloudformation.create_stack()

@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodePipeline Action Input
@@ -133,7 +133,13 @@ class Action:
             )
             _props = {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get('properties', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "StackName": self.target.get(
+                    'properties', {}).get('stack_name') or self.map_params.get(
+                        'default_providers', {}).get(
+                            'deploy', {}).get(
+                                'properties', {}).get(
+                                    'stack_name') or "{0}{1}".format(
+                                        ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "TemplateConfiguration": "{input_artifact}::{path_prefix}params/{target_name}_{region}.json".format(
                     input_artifact=_input_artifact,
@@ -238,7 +244,7 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
@@ -301,7 +307,7 @@ class Action:
                         name=self.target.get('properties', {}).get('outputs')
                     )
                 ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled', True):
+            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
                 action_props["input_artifacts"] = [
                     _codepipeline.CfnPipeline.OutputArtifactProperty(
                         name="output-source"
@@ -361,7 +367,8 @@ class Pipeline(core.Construct):
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
-                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name']
+                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
             }
         })
 

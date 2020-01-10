@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Main entry point for main.py execution which
@@ -21,7 +21,7 @@ from errors import GenericAccountConfigureError, ParameterNotFoundError
 from sts import STS
 from s3 import S3
 from config import Config
-from scp import SCP
+from organization_policy import OrganizationPolicy
 
 
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
@@ -229,7 +229,7 @@ def main(): #pylint: disable=R0915
     LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
-    scp = SCP()
+    policies = OrganizationPolicy()
     config = Config()
     config.store_config()
 
@@ -242,7 +242,7 @@ def main(): #pylint: disable=R0915
             role=boto3,
             account_id=deployment_account_id
         )
-        scp.apply(organizations, parameter_store, config.config)
+        policies.apply(organizations, parameter_store, config.config)
         sts = STS()
         deployment_account_role = prepare_deployment_account(
             sts=sts,
@@ -262,18 +262,6 @@ def main(): #pylint: disable=R0915
             bucket=S3_BUCKET_NAME
         )
 
-        # Updating the stack on the master account in deployment region
-        cloudformation = CloudFormation(
-            region=config.deployment_account_region,
-            deployment_account_region=config.deployment_account_region,
-            role=boto3,
-            wait=True,
-            stack_name=None,
-            s3=s3,
-            s3_key_path='adf-build',
-            account_id=ACCOUNT_ID
-        )
-        cloudformation.create_stack()
         kms_and_bucket_dict = {}
         # First Setup/Update the Deployment Account in all regions (KMS Key and S3 Bucket + Parameter Store values)
         for region in list(set([config.deployment_account_region] + config.target_regions)):
@@ -288,7 +276,7 @@ def main(): #pylint: disable=R0915
                 account_id=deployment_account_id
             )
             cloudformation.create_stack()
-            updated_kms_bucket_dict = update_deployment_account_output_parameters(
+            update_deployment_account_output_parameters(
                 deployment_account_region=config.deployment_account_region,
                 region=region,
                 kms_and_bucket_dict=kms_and_bucket_dict,
@@ -298,6 +286,18 @@ def main(): #pylint: disable=R0915
             if region == config.deployment_account_region:
                 cloudformation.create_iam_stack()
 
+        # Updating the stack on the master account in deployment region
+        cloudformation = CloudFormation(
+            region=config.deployment_account_region,
+            deployment_account_region=config.deployment_account_region,
+            role=boto3,
+            wait=True,
+            stack_name=None,
+            s3=s3,
+            s3_key_path='adf-build',
+            account_id=ACCOUNT_ID
+        )
+        cloudformation.create_stack()
         threads = []
         account_ids = [account_id["Id"] for account_id in organizations.get_accounts()]
         for account_id in [account for account in account_ids if account != deployment_account_id]:
@@ -328,10 +328,9 @@ def main(): #pylint: disable=R0915
         step_functions.execute_statemachine()
     except ParameterNotFoundError:
         LOGGER.info(
-            'You are now ready to bootstrap a deployment account '
-            'by moving it into your deployment OU. '
-            'Once you have moved it into the deployment OU, '
-            'be sure to check out its progress in AWS Step Functions'
+            'A Deployment Account is ready to be bootstrapped! '
+            'The Account provisioner will now kick into action, ' 
+            'be sure to check out its progress in AWS Step Functions in this account.'
         )
         return
 

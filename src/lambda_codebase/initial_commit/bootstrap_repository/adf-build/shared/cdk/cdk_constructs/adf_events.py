@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Events Input
@@ -47,7 +47,7 @@ class Events(core.Construct):
                             "branch"
                         ],
                         "referenceName": [
-                            "master"
+                            params['source']['branch']
                         ]
                     }
                 )
@@ -59,9 +59,11 @@ class Events(core.Construct):
             )
         if params.get('topic_arn'):
             _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])
-            _on_state_change = _pipeline.on_state_change(
-                id='pipeline_state_change_event',
+            _event = _events.Rule(
+                self,
+                'pipeline_state_{0}'.format(params["name"]),
                 description="{0} | Trigger notifications based on pipeline state changes".format(params["name"]),
+                enabled=True,
                 event_pattern=_events.EventPattern(
                     detail={
                         "state": [
@@ -70,7 +72,7 @@ class Events(core.Construct):
                             "SUCCEEDED"
                         ],
                         "pipeline": [
-                            _pipeline.pipeline_name
+                            "{0}{1}".format(ADF_PIPELINE_PREFIX, params["name"])
                         ]
                     },
                     detail_type=[
@@ -79,7 +81,7 @@ class Events(core.Construct):
                     source=["aws.codepipeline"]
                 )
             )
-            _on_state_change.add_target(
+            _event.add_target(
                 _targets.SnsTopic(
                     topic=_topic,
                     message=_events.RuleTargetInput.from_text(
@@ -106,7 +108,7 @@ class Events(core.Construct):
                                 "SUCCEEDED"
                             ],
                             "pipeline": [
-                                _pipeline.pipeline_name
+                                "{0}{1}".format(ADF_PIPELINE_PREFIX, params["name"])
                             ]
                         },
                         detail_type=[

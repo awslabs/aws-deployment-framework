@@ -1,5 +1,7 @@
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 """
-# account.py
 Model for handling AWS accounts within the organization. The Account class
 allows you to create or update a new account.
 """
@@ -18,23 +20,6 @@ class Account:
             allow_billing=True,
             tags=None
     ):
-        """Initialize Account object.
-
-        :param full_name: Full name of the account
-        :param email: Valid email address of account
-        :param ou_path: Organizational Unit path. For nested OUs use / notation, eg. us/development.
-                        Use root identifier to target root OU (eg. r-abc1) or just use '/'
-
-        :param alias: Optional Alias to use, if None the alias will default to full_name
-        :param delete_default_vpc: Set this to True to delete the default vpc from the account
-        :param allow_direct_move_between_ou: Set this to False to prevent the script from moving
-                                             an account directly from one OU to another. This is
-                                             useful if you are using the AWS Deployment Framework
-                                             as it requires you to first move an account to the root
-                                             to trigger the base cloudformation stack updates.
-        :param allow_billing: Set this to False to prevent account admins from using the billing console
-        :param tags: a dict containing optional tags for the account
-        """
         self.full_name = full_name
         self.email = email
         self.ou_path = ou_path
