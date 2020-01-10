@@ -5,7 +5,6 @@
 """
 
 import json
-import boto3
 from time import sleep
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -305,7 +304,7 @@ class Organizations: # pylint: disable=R0904
 
     def create_account_tags(self, account_id, tags):
         formatted_tags = [
-            {'Key': key, 'Value': value}
+            {'Key': str(key), 'Value': str(value)}
             for tag in tags
             for key, value in tag.items()
         ]
@@ -342,6 +341,6 @@ class Organizations: # pylint: disable=R0904
             sleep(5)  # waiting for 5 sec before checking account status again
         account_id = response["AccountId"]
         # TODO: Instead of sleeping, query for the role.
-        sleep(10)  # Wait until OrganizationalRole is created in new account
+        sleep(20)  # Wait until OrganizationalRole is created in new account
 
         return account_id

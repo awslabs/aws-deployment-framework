@@ -52,8 +52,6 @@ class Pipeline:
         if not params.get('default_providers', {}).get('build', {}):
             params['default_providers']['build'] = {}
             params['default_providers']['build']['provider'] = 'codebuild'
-        if not params.get('default_providers', {}).get('build', {}).get('enabled'):
-            params['default_providers']['build']['provider'] = 'codebuild'
         if not params.get('default_providers', {}).get('deploy', {}):
             params['default_providers']['deploy'] = {}
             params['default_providers']['deploy']['provider'] = 'cloudformation'

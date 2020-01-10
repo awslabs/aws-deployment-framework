@@ -16,6 +16,8 @@ master-deploy.yml
 .pytest_cache
 shared_layer.zip
 .aws-sam
+pipeline.json
+template-sam.yml
 deploy.sh
 
 # Byte-compiled / optimized / DLL files

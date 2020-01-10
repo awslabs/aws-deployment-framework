@@ -9,7 +9,6 @@ import os
 import sys
 import json
 import yaml
-import boto3
 
 from schema import SchemaError
 from schema_validation import SchemaValidation

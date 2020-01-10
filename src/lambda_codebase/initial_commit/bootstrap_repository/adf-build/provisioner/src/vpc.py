@@ -5,10 +5,10 @@
 Remove default VPC and related resources
 """
 from time import sleep
-import boto3
 from botocore import exceptions
 from logger import configure_logger
 LOGGER = configure_logger(__name__)
+
 
 def vpc_cleanup(vpcid, role, region):
     if not vpcid:
@@ -38,6 +38,7 @@ def vpc_cleanup(vpcid, role, region):
     ec2client.delete_vpc(VpcId=vpcid)
     LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
 
+
 def delete_default_vpc(client, account_id, region, role):
     default_vpc_id = None
     max_retry_seconds = 360
@@ -47,10 +48,12 @@ def delete_default_vpc(client, account_id, region, role):
             break
         except exceptions.ClientError as e:
             if e.response["Error"]["Code"] == 'OptInRequired':
-                LOGGER.warning(f'Passing on region {client.meta.region_name} as Opt-in is required.')
+                LOGGER.warning(
+                    f'Passing on region {client.meta.region_name} as Opt-in is required.')
                 return
         except BaseException as e:
-            LOGGER.warning(f'Could not retrieve VPCs: {e}. Sleeping for 2 seconds before trying again.')
+            LOGGER.warning(
+                f'Could not retrieve VPCs: {e}. Sleeping for 2 seconds before trying again.')
             max_retry_seconds = + 2
             sleep(2)
             if max_retry_seconds <= 0:
@@ -62,8 +65,10 @@ def delete_default_vpc(client, account_id, region, role):
             break
 
     if default_vpc_id is None:
-        LOGGER.debug(f"No default VPC found in account {account_id} in the {region} region")
+        LOGGER.debug(
+            f"No default VPC found in account {account_id} in the {region} region")
         return
 
-    LOGGER.info(f"Found default VPC Id {default_vpc_id} in the {region} region")
+    LOGGER.info(
+        f"Found default VPC Id {default_vpc_id} in the {region} region")
     vpc_cleanup(default_vpc_id, role, region)

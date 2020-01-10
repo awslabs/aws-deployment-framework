@@ -109,7 +109,7 @@ def ensure_org_unit(parent_id: str, org_unit_name: str) -> Tuple[OrgUnitId, Crea
         pass
     except ORGANIZATION_CLIENT.exceptions.ConcurrentModificationException as err:
         LOGGER.info(err)
-        time.sleep(5)
+        time.sleep(10)
         ensure_org_unit(parent_id, org_unit_name)
 
 

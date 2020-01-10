@@ -6,7 +6,6 @@ Model for handling AWS accounts within the organization. The Account class
 allows you to create or update a new account.
 """
 
-from time import sleep
 
 class Account:
     def __init__(
@@ -44,9 +43,18 @@ class Account:
             config["account_full_name"],
             config["email"],
             config["organizational_unit_path"],
-            alias=config.get("alias", None),
-            delete_default_vpc=config.get("delete_default_vpc", False),
-            allow_direct_move_between_ou=config.get("allow_direct_move_between_ou", False),
-            allow_billing=config.get("allow_billing", True),
-            tags=config.get("tags", {})
-        )
+            alias=config.get(
+                "alias",
+                None),
+            delete_default_vpc=config.get(
+                "delete_default_vpc",
+                False),
+            allow_direct_move_between_ou=config.get(
+                "allow_direct_move_between_ou",
+                False),
+            allow_billing=config.get(
+                "allow_billing",
+                True),
+            tags=config.get(
+                "tags",
+                {}))

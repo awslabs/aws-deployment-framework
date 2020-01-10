@@ -374,6 +374,7 @@ Resources:
               - "ssm:GetParameters"
               - "ssm:GetParametersByPath"
               - "ssm:PutParameter"
+              - "organizations:DescribeOrganization"
             Resource: "*"
           - Effect: Allow
             Action:

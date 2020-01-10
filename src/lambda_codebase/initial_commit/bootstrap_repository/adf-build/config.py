@@ -64,7 +64,8 @@ class Config:
 
         try:
             if self.config.get('scp'):
-                assert self.config.get('scp').get('keep-default-scp') in ['enabled', 'disabled']
+                assert self.config.get('scp').get(
+                    'keep-default-scp') in ['enabled', 'disabled']
         except AssertionError:
             raise InvalidConfigError(
                 'Configuration settings for organizations should be either enabled or disabled'

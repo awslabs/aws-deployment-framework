@@ -26,13 +26,58 @@ The OU name is the name of the direct parent of the account. If you want to move
 - Removing accounts
 - Handling root account credentials and MFA
 
-
-### Configuration parameters
+### Configuration Parameters
 
 - `account_full_name`: AWS account name
 - `organizational_unit_path`: Path to the OU within AWS Organizations. OUs are divided by /, e.g., `ou-l1/ou-l2/ou-l3`
 - `email`: Email associated by the account, must be valid otherwise it is not possible to access as root user when needed
 - `delete_default_vpc`: `True|False` if Default VPCs need to be delete from all AWS Regions.
 - `allow_billing`: `True|False` if the account see its own costs within the organization.
-- `alias`: AWS account alias. Must be unique globally otherwise cannot be created. Check https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html for further details. If the account alias is not created or already exists, in the Federation login page, no alias will be presented
+- `alias`: AWS account alias. Must be unique globally otherwise cannot be created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html) for further details. If the account alias is not created or already exists, in the Federation login page, no alias will be presented
 - `tags`: list of tags associate to the account.
+
+### Examples
+You can create as many *.yml* files as required and split them up into groups as required. As mentioned above, when deploying ADF initially you will get an *adf.yml* file which will hold the information for the initial deployment account. If you are upgrading from a previous version of ADF you may need to create the *adf.yml* yourself if you want to manage the deployment account itself via ADF. You can create other files to create the structure you desire, as an example, we might create a *prod.yml* and *test.yml* which hold their respective environments AWS Accounts.
+
+*prod.yml*
+```yaml
+accounts:
+  - account_full_name: company-prod-1
+    organizational_unit_path: /business-unit1/prod
+    email: prod-team-1@company.com
+    allow_billing: False
+    delete_default_vpc: True
+    alias: prod-company-1
+    tags:
+      - created_by: adf
+      - environment: prod
+      - costcenter: 123
+```
+
+*test.yml*
+```yaml
+accounts:
+  - account_full_name: company-test-1
+    organizational_unit_path: /business-unit1/test
+    email: test-team-1@company.com
+    allow_billing: True
+    delete_default_vpc: False
+    alias: test-company-11
+    tags:
+      - created_by: adf
+      - environment: test
+      - costcenter: 123
+
+  - account_full_name: company-test-2
+    organizational_unit_path: /business-unit1/test
+    email: test-team-2@company.com
+    allow_billing: True
+    delete_default_vpc: False
+    alias: test-company-12
+    tags:
+      - created_by: adf
+      - environment: test
+      - costcenter: 123
+```
+
+When the bootstrap pipeline runs it will check to see if these accounts already exist in the Organization, if they do it will ensure the tags and alias' are correct and continue on. If they do not exist, ADF will call the Organizations API to create these accounts and move them into the correct OU *(thus starting the bootstrap process)*.

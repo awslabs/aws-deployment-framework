@@ -309,7 +309,7 @@ class Action:
                 ]
             if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
                 action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.OutputArtifactProperty(
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
                         name="output-source"
                     )
                 ]
@@ -326,6 +326,7 @@ class Action:
                     name="output-source"
                 )
             ]
+
         return _codepipeline.CfnPipeline.ActionDeclarationProperty(
             **action_props
         )

@@ -4,8 +4,10 @@
 """
 Module to parse and validate the yaml configuration files.
 """
-import yaml
+
+
 import os
+import yaml
 from .account import Account
 
 

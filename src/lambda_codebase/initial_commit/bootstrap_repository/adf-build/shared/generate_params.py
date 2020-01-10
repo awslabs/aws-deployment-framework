@@ -25,13 +25,13 @@ SHARED_MODULES_BUCKET = os.environ["S3_BUCKET_NAME"]
 PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 
 class Parameters:
-    def __init__(self, build_name, parameter_store, directory=None):
+    def __init__(self, build_name, parameter_store, s3, directory=None):
         self.cwd = directory or os.getcwd()
         self._create_params_folder()
         self.global_path = "params/global"
         self.parameter_store = parameter_store
         self.build_name = build_name
-        self.s3 = S3(DEPLOYMENT_ACCOUNT_REGION, SHARED_MODULES_BUCKET)
+        self.s3 = s3
         self.file_name = "".join(
             secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
         )
@@ -150,12 +150,14 @@ class Parameters:
         return resolver.__dict__.get('stage_parameters')
 
 def main():
+    s3 = S3(DEPLOYMENT_ACCOUNT_REGION, SHARED_MODULES_BUCKET)
     parameters = Parameters(
         PROJECT_NAME,
         ParameterStore(
             DEPLOYMENT_ACCOUNT_REGION,
             boto3
-        )
+        ),
+        s3
     )
     parameters.create_parameter_files()
 

@@ -1,18 +1,20 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+"""Main
+"""
+
 #!/usr/bin/env python3
 
-import yaml
+import os
+from concurrent.futures import ThreadPoolExecutor
+import boto3
 from src import read_config_files, delete_default_vpc
 from organizations import Organizations
 from logger import configure_logger
 from parameter_store import ParameterStore
-from pathlib import Path
 from sts import STS
-import os
-import boto3
-from concurrent.futures import ThreadPoolExecutor
+
 
 LOGGER = configure_logger(__name__)
 ACCOUNTS_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'adf-accounts'))
@@ -31,7 +33,7 @@ def main():
         try:
             account_id = next(acc["Id"] for acc in all_accounts if acc["Name"] == account.full_name)
         except StopIteration: # If the account does not exist yet..
-            pass
+            account_id = None
         create_or_update_account(organizations, account, adf_role_name, account_id)
 
 
@@ -57,7 +59,17 @@ def create_or_update_account(org_session, account, adf_role_name, account_id=Non
         ec2_client = role.client('ec2')
         all_regions = [
             region['RegionName']
-            for region in ec2_client.describe_regions(AllRegions=False)['Regions']
+            for region in ec2_client.describe_regions(
+                AllRegions=False,
+                Filters=[
+                    {
+                        'Name': 'opt-in-status',
+                        'Values': [
+                            'opt-in-not-required',
+                        ]
+                    }
+                ]
+            )['Regions']
         ]
         args = (
             (account_id, region, role)

@@ -43,7 +43,8 @@ def is_account_in_invalid_state(ou_id, config):
 
     protected = config.get('protected', [])
     if ou_id in protected:
-        return "Is a in a protected Organizational Unit {0}, it will be skipped.".format(ou_id)
+        return "Is a in a protected Organizational Unit {0}, it will be skipped.".format(
+            ou_id)
 
     return False
 
@@ -109,7 +110,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             config.cross_account_access_role),
         'master'
     )
-    for region in list(set([config.deployment_account_region] + config.target_regions)):
+    for region in list(
+            set([config.deployment_account_region] + config.target_regions)):
         deployment_account_parameter_store = ParameterStore(
             region,
             deployment_account_role
@@ -131,7 +133,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_parameter_store.put_parameter(
         'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
     )
-    auto_create_repositories = config.config.get('scm', {}).get('auto-create-repositories')
+    auto_create_repositories = config.config.get(
+        'scm', {}).get('auto-create-repositories')
     if auto_create_repositories is not None:
         deployment_account_parameter_store.put_parameter(
             'auto_create_repositories', str(auto_create_repositories)
@@ -139,9 +142,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
         config.notification_endpoint = "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
-            config.deployment_account_region,
-            deployment_account_id
-        )
+            config.deployment_account_region, deployment_account_id)
     for item in (
             'cross_account_access_role',
             'notification_type',
@@ -155,6 +156,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             )
 
     return deployment_account_role
+
 
 def worker_thread(
         account_id,
@@ -193,11 +195,15 @@ def worker_thread(
         )
 
         # Regional base stacks can be updated after global
-        for region in list(set([config.deployment_account_region] + config.target_regions)):
-            # Ensuring the kms_arn and bucket_name on the target account is up-to-date
+        for region in list(
+                set([config.deployment_account_region] + config.target_regions)):
+            # Ensuring the kms_arn and bucket_name on the target account is
+            # up-to-date
             parameter_store = ParameterStore(region, role)
-            parameter_store.put_parameter('kms_arn', updated_kms_bucket_dict[region]['kms'])
-            parameter_store.put_parameter('bucket_name', updated_kms_bucket_dict[region]['s3_regional_bucket'])
+            parameter_store.put_parameter(
+                'kms_arn', updated_kms_bucket_dict[region]['kms'])
+            parameter_store.put_parameter(
+                'bucket_name', updated_kms_bucket_dict[region]['s3_regional_bucket'])
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -217,15 +223,15 @@ def worker_thread(
                     LOGGER.error(
                         '%s - Failed to update its base stack due to missing parameters (deployment_account_id or kms_arn), '
                         'ensure this account has been bootstrapped correctly by being moved from the root '
-                        'into an Organizational Unit within AWS Organizations.', account_id
-                    )
+                        'into an Organizational Unit within AWS Organizations.', account_id)
                 raise Exception from error
 
     except GenericAccountConfigureError as generic_account_error:
         LOGGER.info(generic_account_error)
         return
 
-def main(): #pylint: disable=R0915
+
+def main():  # pylint: disable=R0915
     LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
@@ -263,8 +269,10 @@ def main(): #pylint: disable=R0915
         )
 
         kms_and_bucket_dict = {}
-        # First Setup/Update the Deployment Account in all regions (KMS Key and S3 Bucket + Parameter Store values)
-        for region in list(set([config.deployment_account_region] + config.target_regions)):
+        # First Setup/Update the Deployment Account in all regions (KMS Key and
+        # S3 Bucket + Parameter Store values)
+        for region in list(
+                set([config.deployment_account_region] + config.target_regions)):
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -299,8 +307,10 @@ def main(): #pylint: disable=R0915
         )
         cloudformation.create_stack()
         threads = []
-        account_ids = [account_id["Id"] for account_id in organizations.get_accounts()]
-        for account_id in [account for account in account_ids if account != deployment_account_id]:
+        account_ids = [account_id["Id"]
+                       for account_id in organizations.get_accounts()]
+        for account_id in [
+                account for account in account_ids if account != deployment_account_id]:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
                 sts,
@@ -329,9 +339,8 @@ def main(): #pylint: disable=R0915
     except ParameterNotFoundError:
         LOGGER.info(
             'A Deployment Account is ready to be bootstrapped! '
-            'The Account provisioner will now kick into action, ' 
-            'be sure to check out its progress in AWS Step Functions in this account.'
-        )
+            'The Account provisioner will now kick into action, '
+            'be sure to check out its progress in AWS Step Functions in this account.')
         return
 
 

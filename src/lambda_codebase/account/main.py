@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Account main that is called when ADF is installed to initially create the deployment account if required
+The Account main that is called when ADF is installed to initially create the deployment account if required.
 """
 
 from typing import Mapping, Any, Tuple
@@ -11,7 +11,7 @@ import logging
 import time
 import json
 import boto3
-from cfn_custom_resource import ( # pylint: disable=unused-import
+from cfn_custom_resource import (  # pylint: disable=unused-import
     lambda_handler,
     create,
     update,
@@ -69,8 +69,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
         "CrossAccountAccessRoleName"
     ]
     account_id, created = ensure_account(
-        existing_account_id, account_name, account_email, cross_account_access_role_name
-    )
+        existing_account_id, account_name, account_email, cross_account_access_role_name)
     return PhysicalResource(
         account_id, account_name, account_email, created
     ).as_cfn_response()
@@ -79,15 +78,15 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
 @update()
 def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     existing_account_id = event["ResourceProperties"]["ExistingAccountId"]
-    previously_created = PhysicalResource.from_json(event["PhysicalResourceId"]).created
+    previously_created = PhysicalResource.from_json(
+        event["PhysicalResourceId"]).created
     account_name = event["ResourceProperties"]["AccountName"]
     account_email = event["ResourceProperties"]["AccountEmailAddress"]
     cross_account_access_role_name = event["ResourceProperties"][
         "CrossAccountAccessRoleName"
     ]
     account_id, created = ensure_account(
-        existing_account_id, account_name, account_email, cross_account_access_role_name
-    )
+        existing_account_id, account_name, account_email, cross_account_access_role_name)
     return PhysicalResource(
         account_id, account_name, account_email, created or previously_created
     ).as_cfn_response()
@@ -96,7 +95,8 @@ def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
 @delete()
 def delete_(event, _context):
     try:
-        physical_resource = PhysicalResource.from_json(event["PhysicalResourceId"])
+        physical_resource = PhysicalResource.from_json(
+            event["PhysicalResourceId"])
     except InvalidPhysicalResourceId:
         raw_physical_resource = event["PhysicalResourceId"]
         LOGGER.info(
@@ -110,14 +110,17 @@ def delete_(event, _context):
 
 
 # pylint: disable=bad-continuation # https://github.com/PyCQA/pylint/issues/747
-def ensure_account(
-    existing_account_id: str, account_name: str, account_email: str, cross_account_access_role_name: str
-) -> Tuple[AccountId, bool]:
+def ensure_account(existing_account_id: str,
+                   account_name: str,
+                   account_email: str,
+                   cross_account_access_role_name: str) -> Tuple[AccountId,
+                                                                 bool]:
     # If an existing account ID was provided, use that:
     if existing_account_id:
         return existing_account_id, False
 
-    # If no existing account ID was provided, check if the ID is stores in parameter store:
+    # If no existing account ID was provided, check if the ID is stores in
+    # parameter store:
     try:
         get_parameter = SSM_CLIENT.get_parameter(Name="deployment_account_id")
         return get_parameter["Parameter"]["Value"], False
@@ -136,7 +139,11 @@ def ensure_account(
     except ORGANIZATION_CLIENT.exceptions.ConcurrentModificationException as err:
         LOGGER.info(err)
         time.sleep(5)
-        ensure_account(existing_account_id, account_name, account_email, cross_account_access_role_name)
+        ensure_account(
+            existing_account_id,
+            account_name,
+            account_email,
+            cross_account_access_role_name)
 
     request_id = create_account["CreateAccountStatus"]["Id"]
     LOGGER.info("Account creation requested, request ID: %s", request_id)
@@ -149,7 +156,9 @@ def ensure_account(
             reason = account_status["CreateAccountStatus"]["FailureReason"]
             raise Exception("Failed to create account because %s" % reason)
         if account_status["CreateAccountStatus"]["State"] == "IN_PROGRESS":
-            LOGGER.info("Account creation still in progress, waiting.. then calling again with %s", request_id)
+            LOGGER.info(
+                "Account creation still in progress, waiting.. then calling again with %s",
+                request_id)
             time.sleep(10)
         else:
             account_id = account_status["CreateAccountStatus"]["AccountId"]

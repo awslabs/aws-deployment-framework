@@ -120,5 +120,3 @@ class Event:
                 'adf_log_level': ADF_LOG_LEVEL
             }
         }
-
-

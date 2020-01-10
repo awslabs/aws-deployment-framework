@@ -30,7 +30,7 @@ class PipelineStack(core.Stack):
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
         _source_name = stack_input['input']["default_providers"]["source"]["provider"].lower()
-        _build_name = stack_input['input']["default_providers"]["build"]["provider"].lower()
+        _build_name = stack_input['input']["default_providers"]["build"].get("provider", '').lower()
         _stages = []
         if stack_input['input'].get('params', {}).get('notification_endpoint'):
             stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
