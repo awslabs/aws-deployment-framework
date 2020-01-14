@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This is the main construct file file for PipelineStack
@@ -30,7 +30,7 @@ class PipelineStack(core.Stack):
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
         _source_name = stack_input['input']["default_providers"]["source"]["provider"].lower()
-        _build_name = stack_input['input']["default_providers"]["build"]["provider"].lower()
+        _build_name = stack_input['input']["default_providers"]["build"].get("provider", '').lower()
         _stages = []
         if stack_input['input'].get('params', {}).get('notification_endpoint'):
             stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
@@ -58,7 +58,7 @@ class PipelineStack(core.Stack):
                     stack_input['input']
                 ).source
             )
-        if 'codebuild' in _build_name and stack_input["input"]["default_providers"]["build"].get("properties", {}).get('enabled', True):
+        if 'codebuild' in _build_name and stack_input["input"]["default_providers"]["build"].get('enabled', True):
             _stages.append(
                 adf_codebuild.CodeBuild(
                     self,

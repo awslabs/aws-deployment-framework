@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers

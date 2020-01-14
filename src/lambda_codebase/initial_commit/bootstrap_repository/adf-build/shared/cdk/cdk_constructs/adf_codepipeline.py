@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodePipeline Action Input
@@ -137,7 +137,9 @@ class Action:
                     'properties', {}).get('stack_name') or self.map_params.get(
                         'default_providers', {}).get(
                             'deploy', {}).get(
-                                'properties', {}).get('stack_name')or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                                'properties', {}).get(
+                                    'stack_name') or "{0}{1}".format(
+                                        ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "TemplateConfiguration": "{input_artifact}::{path_prefix}params/{target_name}_{region}.json".format(
                     input_artifact=_input_artifact,
@@ -305,9 +307,9 @@ class Action:
                         name=self.target.get('properties', {}).get('outputs')
                     )
                 ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled', True):
+            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
                 action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.OutputArtifactProperty(
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
                         name="output-source"
                     )
                 ]
@@ -324,6 +326,7 @@ class Action:
                     name="output-source"
                 )
             ]
+
         return _codepipeline.CfnPipeline.ActionDeclarationProperty(
             **action_props
         )
@@ -365,7 +368,8 @@ class Pipeline(core.Construct):
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
-                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name']
+                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
             }
         })
 

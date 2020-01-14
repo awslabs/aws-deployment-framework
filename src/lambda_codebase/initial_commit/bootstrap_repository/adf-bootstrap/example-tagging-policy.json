@@ -1,0 +1,20 @@
+{
+    "tags": {
+        "my_key": {
+            "tag_key": {
+                "@@assign": "my_key"
+            },
+            "tag_value": {
+                "@@assign": [
+                    "value1",
+                    "value2"
+                ]
+            },
+            "enforced_for": {
+                "@@assign": [
+                    "s3:bucket"
+                ]
+            }
+        }
+    }
+}

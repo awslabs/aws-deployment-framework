@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -80,8 +80,12 @@ S3_SOURCE = {
 }
 
 # CodeBuild
+CODEBUILD_IMAGE_PROPS = {
+    "repository_arn": str, # arn:aws:ecr:region:012345678910:repository/test
+    Optional("tags"): dict,
+}
 CODEBUILD_PROPS = {
-    Optional("image"): str,
+    Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
     Optional("size"): Or('small', 'medium', 'large'),
     Optional("spec_filename"): str,
     Optional("environment_variables"): {Optional(str): Or(str, bool, int, object)},
@@ -89,7 +93,6 @@ CODEBUILD_PROPS = {
     Optional("timeout"): int,
     Optional("privileged"): bool,
     Optional("spec_inline"): str
-
 }
 DEFAULT_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',

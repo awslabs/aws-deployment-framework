@@ -1,0 +1,10 @@
+Parameters:
+    Environment: testing
+    ApplicationName: sample
+    InstanceMaxSize: '3'
+    InstanceMinSize: '1'
+    ImageId: 'resolve:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    InstanceType: t3.micro
+    CodeDeployAgentInstallScript: 'upload:path:scripts/install-codedeploy.sh'
+    JavaInstallScript: 'upload:path:scripts/install-deps.sh'
+    KeyPair: some_key_pair
