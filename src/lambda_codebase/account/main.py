@@ -138,7 +138,7 @@ def ensure_account(existing_account_id: str,
         )
     except ORGANIZATION_CLIENT.exceptions.ConcurrentModificationException as err:
         LOGGER.info(err)
-        time.sleep(5)
+        time.sleep(10)
         ensure_account(
             existing_account_id,
             account_name,

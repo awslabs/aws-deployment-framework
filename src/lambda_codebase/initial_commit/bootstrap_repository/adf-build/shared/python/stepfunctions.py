@@ -91,7 +91,6 @@ class StepFunctions:
         )
         self._execution_status = execution.get('status', None)
 
-    # Is there a legit waiter for this?
     def _wait_state_machine_execution(self):
         """
         Waits until the statemachine is complete

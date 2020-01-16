@@ -52,5 +52,4 @@ def lambda_handler(event, _):
     codepipeline.start_pipeline_execution(
         'aws-deployment-framework-pipelines'
     )
-
     return generate_notify_message(event)

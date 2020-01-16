@@ -71,17 +71,20 @@ class Organizations: # pylint: disable=R0904
         )
 
     def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
-        response = self.client.create_policy(
-            Content=content,
-            Description='ADF Managed {0}'.format(policy_type),
-            Name='adf-{0}-{1}'.format('scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy', ou_path),
-            Type=policy_type
-        )
-        return response['Policy']['PolicySummary']['Id']
+        try:
+            response = self.client.create_policy(
+                Content=content,
+                Description='ADF Managed {0}'.format(policy_type),
+                Name='adf-{0}-{1}'.format('scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy', ou_path),
+                Type=policy_type
+            )
+            return response['Policy']['PolicySummary']['Id']
+        except self.client.exceptions.DuplicatePolicyAttachmentException:
+            pass
 
     @staticmethod
     def get_policy_body(path):
-        with open(path, 'r') as policy:
+        with open('./adf-bootstrap/{0}'.format(path), 'r') as policy:
             return json.dumps(json.load(policy))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
@@ -108,10 +111,13 @@ class Organizations: # pylint: disable=R0904
         return response.get('Policy')
 
     def attach_policy(self, policy_id, target_id):
-        self.client.attach_policy(
-            PolicyId=policy_id,
-            TargetId=target_id
-        )
+        try:
+            self.client.attach_policy(
+                PolicyId=policy_id,
+                TargetId=target_id
+            )
+        except self.client.exceptions.DuplicatePolicyAttachmentException:
+            pass
 
     def detach_policy(self, policy_id, target_id):
         self.client.detach_policy(
@@ -296,7 +302,7 @@ class Organizations: # pylint: disable=R0904
             # Account is already resided in ou_path
             return
 
-        response = self.client.move_account(
+        self.client.move_account(
             AccountId=account_id,
             SourceParentId=source_parent_id,
             DestinationParentId=ou_id
@@ -341,6 +347,6 @@ class Organizations: # pylint: disable=R0904
             sleep(5)  # waiting for 5 sec before checking account status again
         account_id = response["AccountId"]
         # TODO: Instead of sleeping, query for the role.
-        sleep(20)  # Wait until OrganizationalRole is created in new account
+        sleep(45)  # Wait until OrganizationalRole is created in new account
 
         return account_id

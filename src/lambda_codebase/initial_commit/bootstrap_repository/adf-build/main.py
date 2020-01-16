@@ -176,7 +176,6 @@ def worker_thread(
         account_id=account_id
     )
     ou_id = organizations.get_parent_info().get("ou_parent_id")
-
     account_state = is_account_in_invalid_state(ou_id, config.config)
     if account_state:
         LOGGER.info("%s %s", account_id, account_state)
@@ -334,7 +333,6 @@ def main():  # pylint: disable=R0915
             account_ids=account_ids,
             update_pipelines_only=0
         )
-
         step_functions.execute_statemachine()
     except ParameterNotFoundError:
         LOGGER.info(
