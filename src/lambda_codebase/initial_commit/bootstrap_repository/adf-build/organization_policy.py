@@ -19,10 +19,11 @@ class OrganizationPolicy:
 
     @staticmethod
     def _find_all(policy):
-        return [
+        _files = [
             p for p in glob.iglob(
-                './**/{0}.json'.format(policy),
+                './adf-bootstrap/**/{0}.json'.format(policy),
                 recursive=True)]
+        return [f.replace('./adf-bootstrap', '.') for f in _files]
 
     def _compare_ordered_policy(self, obj):
         if isinstance(obj, dict):
@@ -35,12 +36,11 @@ class OrganizationPolicy:
 
     @staticmethod
     def _trim_scp_file_name(policy):
-        return policy[15:][:-8] if policy[15:][:-8] == '/' else policy[16:][:-9]
+        return policy[1:][:-8] if policy[1:][:-8] == '/' else policy[2:][:-9]
 
     @staticmethod
     def _trim_tagging_policy_file_name(policy):
-        return policy[15:][:-19] if policy[15:][:- \
-            19] == '/' else policy[16:][:-20]
+        return policy[1:][:-19] if policy[1:][:-19] == '/' else policy[2:][:-20]
 
     @staticmethod
     def set_scp_attachment(
@@ -163,7 +163,7 @@ class OrganizationPolicy:
                         policy_id, organization_mapping[path])
                 except organizations.client.exceptions.DuplicatePolicyException:
                     LOGGER.info(
-                        'Policy (%s) for %s already exists but was not attached, attaching.',
+                        'Policy (%s) for %s exists ensuring attached.',
                         policy,
                         organization_mapping[path])
                     policy_id = organizations.list_policies(
