@@ -153,10 +153,58 @@ default_providers:
   - product_id - *(String)* **(required)**
     > What is the Product ID of the Service Catalog Product to Deploy.
   - configuration_file_path - *(String)*
-    > If you wish to pass a custom path to the configuration file path. Defaults to the account-name_region.json pattern used for CloudFormation Parameter files. 
+    > If you wish to pass a custom path to the configuration file path. Defaults to the account-name_region.json pattern used for CloudFormation Parameter files.
 
 - **lambda**
   - function_name *(String)* **(required)**
       > The name of the Lambda Function to invoke.
   - input *(String)*
       > An Object to pass into the Function as input. This input will be object stringified.
+
+## Pipeline Types:
+
+In order to enhance the flexibility of ADF, it's possible to define custom pipeline types as separate CDK Stacks (either installed via PIP or added to the bootstrap repository)
+
+The pipeline type can be (optionally) configured in the parameter section of the pipeline deployment map
+
+### Adding a new pipeline type
+
+A pipeline can either be added manually into the [cdk_stacks](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks) folder as a seperate python file or installed via [requirements.txt](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt) in the adf-build folder.
+
+#### Source Code
+###### adf-build/shared/cdk/cdk_stacks/custom_pipeline.py
+```python
+PIPELINE_TYPE = "demo_custom_pipeline"
+
+LOGGER = configure_logger(__name__)
+
+
+def generate_custom_pipeline(scope: core.Stack, _build_name, _source_name, stack_input) -> None: #pylint: disable=R0912, R0915
+  # your custom CDK code here
+
+```
+###### adf-build/shared/cdk/cdk_stacks/main.py
+```python
+
+from custom_pipeline import generate_custom_pipeline, PIPELINE_TYPE as CUSTOM_PIPELINE
+...
+# removed for brevity.
+...
+
+def generate_pipeline(self, _pipeline_type, stack_input):
+  ...
+  if _pipeline_type == CUSTOM_PIPELINE:
+          generate_custom_pipeline(self, _build_name, _source_name, stack_input)
+
+```
+
+
+
+### Using a custom pipeline type
+
+```YAML
+params:
+  notification_endpoint: <endpoint_value>
+  ...
+  pipeline_type: "demo_custom_pipeline"
+  ```

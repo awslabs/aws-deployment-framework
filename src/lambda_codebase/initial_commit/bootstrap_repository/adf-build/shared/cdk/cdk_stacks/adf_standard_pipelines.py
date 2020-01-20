@@ -12,15 +12,18 @@ from cdk_constructs import adf_jenkins
 from cdk_constructs import adf_s3
 from logger import configure_logger
 
+
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+
 PIPELINE_TYPE = "adf_default"
 
 LOGGER = configure_logger(__name__)
 
 
-def generate_adf_pipeline(scope: core.Stack, _build_name, _source_name, _stages, stack_input) -> None: #pylint: disable=R0912, R0915
+def generate_adf_pipeline(scope: core.Stack, _build_name, _source_name, stack_input) -> None: #pylint: disable=R0912, R0915
+    _stages = []
     if "codecommit" in _source_name:
         _stages.append(adf_codecommit.CodeCommit(scope, "source", stack_input["input"]).source)
     elif "github" in _source_name:
