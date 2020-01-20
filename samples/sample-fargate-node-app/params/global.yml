@@ -1,0 +1,8 @@
+Parameters:
+    Environment: testing
+    ServiceName: sample-node-app
+    ContainerPort: '3000'
+    Priority: '1'
+Tags:
+    TagKey: TagValue
+    MyKey: MyValue

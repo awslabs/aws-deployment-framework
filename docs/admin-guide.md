@@ -14,8 +14,14 @@
     - [Bootstrapping Inheritance](#bootstrapping-inheritance)
     - [Regional Bootstrapping](#regional-bootstrapping)
     - [Global Bootstrapping](#global-bootstrapping)
-    - [Bootstrapping Regions](#region-bootstrapping)
+    - [Bootstrapping Regions](#bootstrapping-regions)
+    - [Bootstrapping Recommendations](#bootstrapping-recommendations)
+  - [Pipelines](#pipelines)
+    - [Pipeline Parameters](#pipeline-parameters)
+    - [Using Github](#using-github)
+    - [Chaining Pipelines](#chaining-pipelines)
 - [Service Control Policies](#service-control-policies)
+- [Tagging Policies](#tagging-policies)
 - [Pipelines](#pipelines)
   - [Pipeline Parameters](#pipeline-parameters)
   - [Chaining Pipelines](#chaining-pipelines)
@@ -83,11 +89,14 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 
 ### Deployment Account
 
-The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map. The Deployment account holds the [deployment_map.yml](#deployment_map) file which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the `deployment_map.yml` via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
+The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map files via AWS CodePipeline. The Deployment account holds the [deployment_map.yml](#deployment_map) file(s) which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the deployment map files via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
 
 #### Default Deployment Account Region
 
 The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline_types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the region that you would consider your default region of choice when deploying resources in AWS.
+
+### Account Provisioning
+ADF enables automated AWS Account creation and management via its Account Provisioning process. This process runs as part of the bootstrap pipeline and ensures the existence of AWS Accounts defined in *.yml* files within the *adf-accounts* directory. For more information on how how this works see the *readme.md* in the adf-accounts directory.
 
 ### Bootstrapping Accounts
 
@@ -108,10 +117,8 @@ Any changes in the future made to this repository such as its templates contents
 When bootstrapping AWS Accounts you might have a large number of accounts that are all required to have the same baseline applied to them. For this reason we use a recursive search concept to apply base stacks *(and parameters)* to accounts. Lets take the following example.
 
 ```
-bootstrap_repository
-│   adfconfig.yml
+adf-bootstrap <-- This folder lives in the bootstrap repo on master account
 │
-└───adf-build
 └───deployment
 │    ------│   global.yml
 │    ------│   regional.yml
@@ -148,12 +155,10 @@ bootstrap_repository
 In the above example we have defined a different global and regional configuration for *each* of the OU's under our business unit's *(insurance and banking)*. This means, that any account we move into these OU's will apply the most specific template that they can. However, if we decided that `dev` and `test` would have the same base template we can change the structure to be as follows:
 
 ```
-bootstrap_repository
-│   adfconfig.yml
+adf-bootstrap <-- This folder lives in the bootstrap repo on master account
 │   regional.yml  <== These will be used when specificity is lowest
 │   global.yml
 │
-└───adf-build
 └───deployment
 │   -------- │   regional.yml
 │   -------- │   global.yml
@@ -169,7 +174,7 @@ bootstrap_repository
 │
 ```
 
-What we have done is removed two folder representations of the Organizational Units and moved our generic `test & dev` base stacks into the root of our repository *(as a single template)*. This means that any account move into an OU that cannot find its `regional.yml` or `global.yml` will recursively search one level up until it reaches the root. This same logic is applied for parameter files such as `regional-params.json` and `global-params.json`.
+What we have done is removed two folder representations of the Organizational Units and moved our generic `test & dev` base stacks into the root of our repository *(as a single template)*. This means that any account move into an OU that cannot find its `regional.yml` or `global.yml` will recursively search one level up until it reaches the root. This same logic is applied for parameter files such as `regional-params.json` and `global-params.json` *(if they exist)*.
 
 #### Regional Bootstrapping
 
@@ -312,14 +317,27 @@ pipelines:
 ```
 
 ## Service Control Policies
-Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `bootstrap_repository` folder.
+Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
 
 SCPs are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the SCPs.
+
+## Tagging Policies
+Tag Policies are a feature that allows you to define rules on how tags can be used on AWS resources in your accounts in AWS Organizations. You can use Tag Policies to easily adopt a standardized approach for tagging AWS resources. You can define your Tagging Policy definition in a file named `tagging-policy.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+
+Tag Policies are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the Tag Policies. For more information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
 
 ## Integrating Slack
 
-The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg my-team)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account with the type of 'Other' *(eg API Key)*. Give the Secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for my team called `team-bugs` this would be stored in Secrets Manager as `/adf/slack/team-bugs`.
+The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg team-bugs)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account:
+
+1. In AWS Console, click _Store a new secret_ and select type 'Other type of secrets' *(eg API Key)*.
+2. In _Secret key/value_ tab, enter the channel name *(eg team-bugs)* in the first field and the webhook URL in the second field.
+3. In _Select the encryption key_ section, choose *aws/secretsmanager* as the encryption key. Click _Next_.
+4. In _Secret Name_, give the secret a name that maps to the channel that the webhook is authorized to send messages to. For example, if I had created a webhook for a channel called `team-bugs` this would be stored in Secrets Manager as `/adf/slack/team-bugs`.
+5. Optionally, enter a description for the key
+6. Click _Next_. Ensure *Disable automatic rotation* is selected. Click _Next_ again.
+7. Review the data and then click _Store_.
 
 Once the value is stored as a secret, it can be used like so:
 
