@@ -234,6 +234,7 @@ Resources:
             Action:
               - "codecommit:CreateRepository"
               - "codecommit:UpdateRepository"
+              - "codecommit:GetRepository"
               - "codecommit:TagResource"
             Resource:
               - "*"

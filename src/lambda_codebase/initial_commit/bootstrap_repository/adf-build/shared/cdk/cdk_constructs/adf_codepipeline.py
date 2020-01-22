@@ -295,6 +295,12 @@ class Action:
                     name="{0}-build".format(self.map_params['name'])
                 )
             ]
+            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
+                action_props["input_artifacts"] = [
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
+                        name="output-source"
+                    )
+                ]
         if self.category == 'Deploy':
             action_props["input_artifacts"] = [
                 _codepipeline.CfnPipeline.InputArtifactProperty(
@@ -305,12 +311,6 @@ class Action:
                 action_props["output_artifacts"] = [
                     _codepipeline.CfnPipeline.OutputArtifactProperty(
                         name=self.target.get('properties', {}).get('outputs')
-                    )
-                ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
-                action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.InputArtifactProperty(
-                        name="output-source"
                     )
                 ]
             for override in self.target.get('properties', {}).get('param_overrides', []):
