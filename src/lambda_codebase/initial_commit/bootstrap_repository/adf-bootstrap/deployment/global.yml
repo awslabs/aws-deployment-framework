@@ -256,7 +256,7 @@ Resources:
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
             Resource:
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/adf-build-*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
           - Effect: Allow
             Action: # If you plan on building docker images in CodeBuild you need these
               - "ecr:GetAuthorizationToken"
@@ -572,6 +572,9 @@ Resources:
             Sid: "CodeCommit"
             Action:
               - "codecommit:CreateRepository"
+              - "codecommit:UpdateRepository"
+              - "codecommit:GetRepository"
+              - "codecommit:TagResource"
             Resource:
               - "*"
           - Effect: Allow
