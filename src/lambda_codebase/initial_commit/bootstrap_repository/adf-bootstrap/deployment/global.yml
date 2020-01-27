@@ -225,6 +225,11 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
           - Effect: Allow
             Action:
+              - "organizations:DescribeOrganization"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
               - "sts:AssumeRole"
             Resource: 
               - "*"
