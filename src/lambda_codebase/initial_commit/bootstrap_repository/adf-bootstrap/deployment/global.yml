@@ -241,6 +241,7 @@ Resources:
           - Effect: Allow
             Action:
               - "ssm:GetParameter"
+              - "ssm:GetParameters"
             Resource:
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
               - !Sub arn:aws:ssm:${AWS::Region}::parameter/aws/service/*
