@@ -45,20 +45,22 @@ class Resolver:
             optional = True
         export = export[:-1] if optional else export
         try:
-            role = self.sts.assume_cross_account_role(
-                'arn:aws:iam::{0}:role/{1}'.format(
-                    account_id,
-                    'adf-readonly-automation-role'),
-                'importer'
-            )
-            cloudformation = CloudFormation(
-                region=region,
-                deployment_account_region=os.environ["AWS_REGION"],
-                role=role,
-                stack_name=stack_name,
-                account_id=account_id
-            )
-            stack_output = self.cache.check(value) or cloudformation.get_stack_output(export)
+            stack_output = self.cache.check(value)
+            if not stack_output:
+                role = self.sts.assume_cross_account_role(
+                    'arn:aws:iam::{0}:role/{1}'.format(
+                        account_id,
+                        'adf-readonly-automation-role'),
+                    'importer'
+                )
+                cloudformation = CloudFormation(
+                    region=region,
+                    deployment_account_region=os.environ["AWS_REGION"],
+                    role=role,
+                    stack_name=stack_name,
+                    account_id=account_id
+                )
+                stack_output = cloudformation.get_stack_output(export)
             if stack_output:
                 LOGGER.info("Stack output value is %s", stack_output)
                 self.cache.add(value, stack_output)
