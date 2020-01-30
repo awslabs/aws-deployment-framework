@@ -44,9 +44,9 @@ class IAM:
         self.policy_name = policy_name
 
     def _fetch_policy_document(self, role_name, policy_name):
+        LOGGER.debug('Fetching policy %s for role %s', policy_name, role_name)
         self._set_role_name(role_name)
         self._set_policy_name(policy_name)
-
         policy = self.client.get_role_policy(
             RoleName=role_name,
             PolicyName=policy_name
@@ -69,6 +69,7 @@ class IAM:
         _policy = self._get_policy()
         for statement in _policy.get('Statement', None):
             if statement['Sid'] == 'S3':
+                LOGGER.debug('calling _update_iam_policy_bucket for bucket_name %s', bucket_name)
                 if "arn:aws:s3:::{0}".format(
                         bucket_name) not in statement['Resource']:
                     LOGGER.info('Updating Role %s to access %s', self.role_name, bucket_name)
@@ -85,11 +86,10 @@ class IAM:
         Updates the Cloudformation Deployment Role to allow use of the KMS Key
         """
         _policy = self._get_policy()
-
         for statement in _policy.get('Statement', None):
             if statement['Sid'] == 'KMS':
                 if kms_key_arn not in statement['Resource']:
-                    LOGGER.info('Updating Role %s to be to access %s', self.role_name, kms_key_arn)
+                    LOGGER.info('Updating Role %s to be able to access %s', self.role_name, kms_key_arn)
                     try:
                         statement['Resource'].append(kms_key_arn)
                     except AttributeError:
