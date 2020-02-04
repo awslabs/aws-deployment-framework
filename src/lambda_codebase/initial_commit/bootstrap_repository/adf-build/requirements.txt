@@ -8,3 +8,4 @@ astroid~=2.1.0
 six~=1.11.0
 aws-sam-cli==0.22.0
 pip==19.1.1
+tenacity==6.0.0

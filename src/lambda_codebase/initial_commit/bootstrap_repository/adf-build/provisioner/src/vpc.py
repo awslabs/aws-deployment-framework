@@ -10,33 +10,38 @@ from logger import configure_logger
 LOGGER = configure_logger(__name__)
 
 
-def vpc_cleanup(vpcid, role, region):
+def vpc_cleanup(account_id, vpcid, role, region):
     if not vpcid:
         return
-    ec2 = role.resource('ec2', region_name=region)
-    ec2client = ec2.meta.client
-    vpc = ec2.Vpc(vpcid)
-    # detach and delete all gateways associated with the vpc
-    for gw in vpc.internet_gateways.all():
-        vpc.detach_internet_gateway(InternetGatewayId=gw.id)
-        gw.delete()
-    # Route table associations
-    for rt in vpc.route_tables.all():
-        for rta in rt.associations:
-            if not rta.main:
-                rta.delete()
-    # Security Group
-    for sg in vpc.security_groups.all():
-        if sg.group_name != 'default':
-            sg.delete()
-    # Network interfaces
-    for subnet in vpc.subnets.all():
-        for interface in subnet.network_interfaces.all():
-            interface.delete()
-        subnet.delete()
-    # Delete vpc
-    ec2client.delete_vpc(VpcId=vpcid)
-    LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
+    try:
+        ec2 = role.resource('ec2', region_name=region)
+        ec2client = ec2.meta.client
+        vpc = ec2.Vpc(vpcid)
+        # detach and delete all gateways associated with the vpc
+        for gw in vpc.internet_gateways.all():
+            vpc.detach_internet_gateway(InternetGatewayId=gw.id)
+            gw.delete()
+        # Route table associations
+        for rt in vpc.route_tables.all():
+            for rta in rt.associations:
+                if not rta.main:
+                    rta.delete()
+        # Security Group
+        for sg in vpc.security_groups.all():
+            if sg.group_name != 'default':
+                sg.delete()
+        # Network interfaces
+        for subnet in vpc.subnets.all():
+            for interface in subnet.network_interfaces.all():
+                interface.delete()
+            subnet.delete()
+        # Delete vpc
+        ec2client.delete_vpc(VpcId=vpcid)
+        LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
+    except exceptions.ClientError as ce:
+        print(ce)
+        LOGGER.warning(f"WARNING: cannot delete VPC {vpcid} in account {account_id}")
+        pass
 
 
 def delete_default_vpc(client, account_id, region, role):
@@ -71,4 +76,4 @@ def delete_default_vpc(client, account_id, region, role):
 
     LOGGER.info(
         f"Found default VPC Id {default_vpc_id} in the {region} region")
-    vpc_cleanup(default_vpc_id, role, region)
+    vpc_cleanup(account_id, default_vpc_id, role, region)
