@@ -97,8 +97,7 @@ def get_all_regions(ec2_client):
                         'Values': [
                             'opt-in-not-required',
                         ]
-                    }async def funcname(parameter_list):
-                        pass
+                    }
                 ]
             )['Regions']
         ]
