@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -48,6 +48,7 @@ def configure_generic_account(sts, event, region, role):
             role
         )
         kms_arn = parameter_store_deployment_account.fetch_parameter('/cross_region/kms_arn/{0}'.format(region))
+        bucket_name = parameter_store_deployment_account.fetch_parameter('/cross_region/s3_regional_bucket/{0}'.format(region))
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             'Account {0} cannot yet be bootstrapped '
@@ -55,6 +56,7 @@ def configure_generic_account(sts, event, region, role):
             'Have you moved your Deployment account into the deployment OU?'.format(event['account_id'])
         ) from None
     parameter_store_target_account.put_parameter('kms_arn', kms_arn)
+    parameter_store_target_account.put_parameter('bucket_name', bucket_name)
     parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
 
 def configure_master_account_parameters(event):
@@ -64,7 +66,6 @@ def configure_master_account_parameters(event):
     """
     parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
     parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
-
     parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
     parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
 
@@ -81,6 +82,9 @@ def configure_deployment_account_parameters(event, role):
                 key,
                 value
             )
+
+def is_inter_ou_account_move(event):
+    return not event["source_ou_id"].startswith('r-') and not event["destination_ou_id"].startswith('r-')
 
 def lambda_handler(event, _):
     sts = STS()
@@ -107,12 +111,16 @@ def lambda_handler(event, _):
             region=region,
             deployment_account_region=event["deployment_account_region"],
             role=role,
-            wait=False,
+            wait=True,
             stack_name=None, # Stack name will be automatically defined based on event
             s3=s3,
             s3_key_path=event["full_path"],
             account_id=event["account_id"]
         )
+        if is_inter_ou_account_move(event):
+            cloudformation.delete_all_base_stacks(True) #override Wait
         cloudformation.create_stack()
+        if region == event["deployment_account_region"]:
+            cloudformation.create_iam_stack()
 
     return event

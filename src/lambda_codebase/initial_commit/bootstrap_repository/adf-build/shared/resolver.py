@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
@@ -48,7 +48,7 @@ class Resolver:
             role = self.sts.assume_cross_account_role(
                 'arn:aws:iam::{0}:role/{1}'.format(
                     account_id,
-                    'adf-cloudformation-deployment-role'),
+                    'adf-readonly-automation-role'),
                 'importer'
             )
             cloudformation = CloudFormation(

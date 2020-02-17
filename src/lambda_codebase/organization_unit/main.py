@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -9,6 +9,7 @@ from typing import Mapping, Any, Tuple
 from dataclasses import dataclass, asdict
 import logging
 import json
+import time
 import boto3
 from cfn_custom_resource import ( # pylint: disable=unused-import
     lambda_handler,
@@ -106,6 +107,11 @@ def ensure_org_unit(parent_id: str, org_unit_name: str) -> Tuple[OrgUnitId, Crea
     except ORGANIZATION_CLIENT.exceptions.DuplicateOrganizationalUnitException:
         LOGGER.info("deployment OU already exists")
         pass
+    except ORGANIZATION_CLIENT.exceptions.ConcurrentModificationException as err:
+        LOGGER.info(err)
+        time.sleep(10)
+        ensure_org_unit(parent_id, org_unit_name)
+
 
     params: dict = {"ParentId": parent_id}
     while True:

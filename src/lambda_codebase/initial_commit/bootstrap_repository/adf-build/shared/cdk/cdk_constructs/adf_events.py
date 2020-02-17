@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Events Input
@@ -47,7 +47,7 @@ class Events(core.Construct):
                             "branch"
                         ],
                         "referenceName": [
-                            "master"
+                            params['source']['branch']
                         ]
                     }
                 )

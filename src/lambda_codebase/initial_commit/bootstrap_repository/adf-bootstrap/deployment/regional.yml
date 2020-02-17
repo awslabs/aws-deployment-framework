@@ -1,0 +1,97 @@
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ADF CloudFormation Template (Regional) for Deployment Account
+Parameters:
+  OrganizationId:
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: organization_id
+Resources:
+  DeploymentFrameworkRegionalS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+  DeploymentFrameworkRegionalPipelineBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref "DeploymentFrameworkRegionalS3Bucket"
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:Get*
+              - s3:List*
+              - s3:PutObject*
+              - s3:PutReplicationConfiguration
+            Effect: Allow
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+            Resource:
+              - !Sub arn:aws:s3:::${DeploymentFrameworkRegionalS3Bucket}
+              - !Sub arn:aws:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: "*"
+  DeploymentFrameworkRegionalKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: !Ref AWS::StackName
+        Statement:
+          - Sid: Allows admin of the key
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:Create*"
+              - "kms:Decrypt"
+              - "kms:Delete*"
+              - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Disable*"
+              - "kms:Enable*"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:ReEncrypt*"
+              - "kms:Revoke*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Update*"
+            Resource: "*"
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+Outputs:
+  DeploymentFrameworkRegionalS3Bucket:
+    Description: The S3 Bucket used for cross region codepipeline deployments
+    Value: !Ref DeploymentFrameworkRegionalS3Bucket
+    Export:
+      Name: !Sub "S3Bucket-${AWS::Region}"
+  DeploymentFrameworkRegionalKMSKey:
+    Description: The KMSKey used for cross region codepipeline deployments
+    Value: !GetAtt DeploymentFrameworkRegionalKMSKey.Arn
+    Export:
+      Name: !Sub "KMSArn-${AWS::Region}"

@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -51,8 +51,6 @@ class Pipeline:
     def _input_type_validation(self, params): #pylint: disable=R0201
         if not params.get('default_providers', {}).get('build', {}):
             params['default_providers']['build'] = {}
-            params['default_providers']['build']['provider'] = 'codebuild'
-        if not params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled'):
             params['default_providers']['build']['provider'] = 'codebuild'
         if not params.get('default_providers', {}).get('deploy', {}):
             params['default_providers']['deploy'] = {}

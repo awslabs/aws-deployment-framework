@@ -1,0 +1,26 @@
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
+Resources:
+  CloudFormationDeploymentPolicy:
+    # This is the policy that will be used to deploy CloudFormation resources from
+    # within the target account. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action: # These are examples..
+              - "s3:*"
+              - "ecr:*"
+            Resource:
+              - "*"
+      Roles:
+        - adf-cloudformation-deployment-role

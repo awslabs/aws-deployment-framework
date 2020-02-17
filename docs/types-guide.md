@@ -55,7 +55,7 @@ default_providers:
 
 - **codebuild**
   - image *(String)*
-    > The Image that the AWS CodeBuild will use. Images can be found [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html). Defaults to UBUNTU_14_04_PYTHON_3_7_1.
+    > The Image that the AWS CodeBuild will use. Images can be found [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html). Defaults to UBUNTU_14_04_PYTHON_3_7_1. Image can also take an object that contains a property key of *repository_arn* which is the repository ARN of an ECR repository on the deloyment account within the main deployment region. This allows your pipeline to consume a custom image if required. Along with *repository_arn*, we also support a *tag* key which can be used to define which image should be used (defaults to *latest*).
   - size *(String)* **(small|medium|large)**
     > The Compute type to use for the build, types can be found [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html). Defaults to *small*.
   - environment_variables *(Object)*

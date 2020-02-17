@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -8,6 +8,7 @@ The Organization main that is called when ADF is installed to create the organiz
 from typing import Mapping, Any, Tuple, cast
 from dataclasses import dataclass, asdict
 import logging
+import os
 import json
 import boto3
 from cfn_custom_resource import ( # pylint: disable=unused-import
@@ -60,6 +61,8 @@ class PhysicalResource:
 
 @create()
 def create_(_event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
+    if os.environ["AWS_REGION"] != 'us-east-1':
+        raise Exception("Deployment of ADF is only available via the us-east-1 region.")
     organization_id, created = ensure_organization()
     organization_root_id = get_organization_root_id()
     return PhysicalResource(

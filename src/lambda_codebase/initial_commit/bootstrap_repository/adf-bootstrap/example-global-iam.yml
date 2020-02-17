@@ -1,0 +1,70 @@
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
+Resources:
+  CloudFormationDeploymentPolicy:
+    # This is the policy that will be used to deploy CloudFormation resources from
+    # within the target account. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action: # These below actions are examples, change these to your requirements..
+              - "apigateway:*"
+              - "ecr:*"
+              - "ecs:*"
+              - "ec2:*"
+              - "iam:*"
+              - "logs:*"
+              - "s3:*"
+              - "codedeploy:*"
+              - "autoscaling:*"
+              - "cloudwatch:*"
+              - "elasticloadbalancing:*"
+            Resource:
+              - "*"
+      Roles:
+        - adf-cloudformation-deployment-role # This role is created in the global.yml and is the default cloudformation deployment role for ADF.
+
+  # MyExampleCustomRole:
+  #   # Am example custom role that you would need to create in order to deploy custom resources in other AWS Accounts within the organization.
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     RoleName: "adf-custom-deploy-role"
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Sid: "AssumeRole"
+  #           Principal:
+  #             AWS:
+  #               # This would allow all codebuild projects to be able to assume this role
+  #               # - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+  #               - !Sub arn:aws:iam::${DeploymentAccountId}:role/my-custom-codebuild-role
+  #               # The above role would be created on the deployment account for the purpose deploying this custom resource via codebuild
+  #           Action:
+  #             - sts:AssumeRole
+  #     Path: /
+  # MyExampleCustomRolePolicy:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: "adf-custom-deploy-role-policy"
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - "ec2:*"
+  #             - "s3:*"
+  #           Resource:
+  #             - "*"
+  #     Roles:
+  #       - !Ref MyExampleCustomRole

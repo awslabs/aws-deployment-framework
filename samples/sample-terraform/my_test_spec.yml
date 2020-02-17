@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: eu-central-1 # The region you plan on deploying resources into
+    TF_VAR_TARGET_ACCOUNT_ID: 111111111111 # The AWS Account you plan on targeting
+    TF_VAR_TARGET_ACCOUNT_ROLE: adf-custom-deploy-role # The IAM Role terraform will assume to deploy resources
+    TF_IN_AUTOMATION: true
+    TF_CLI_ARGS: "-no-color"
+
+phases:
+  build:
+    commands:
+      - export PATH=$PATH:$(pwd)
+      - |
+        terraform init \
+          -backend-config "bucket=$S3_BUCKET_NAME" \
+          -backend-config "region=$AWS_DEFAULT_REGION" \
+          -backend-config "key=$ADF_PROJECT_NAME/$TF_VAR_TARGET_ACCOUNT_ID"
+      - terraform validate
+      - bash adf-build/helpers/sts.sh $TF_VAR_TARGET_ACCOUNT_ID $TF_VAR_TARGET_ACCOUNT_ROLE
+      - terraform plan -out $ADF_PROJECT_NAME
+      - terraform apply $ADF_PROJECT_NAME
