@@ -169,6 +169,13 @@ Resources:
             Action:
               - sts:AssumeRole
           - Effect: Allow
+            Sid: "AssumeRoleLambda"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-lambda-role
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
             Sid: "AssumeRole"
             Principal:
               AWS:

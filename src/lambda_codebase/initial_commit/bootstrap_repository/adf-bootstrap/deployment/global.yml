@@ -240,9 +240,6 @@ Resources:
             Action:
               - "secretsmanager:Get*"
             Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
               - "ssm:GetParameter"

@@ -33,7 +33,7 @@ def update_iam(role, s3_bucket, kms_key_arn, role_policies):
 
 def lambda_handler(event, _):
     target_role_policies = {
-        'adf-cloudformation-deployment-role': 'adf-cloudformation-deployment-role-policy',
+        'adf-cloudformation-deployment-role': 'adf-cloudformation-deployment-role-policy-kms',
         'adf-cloudformation-role': 'adf-cloudformation-role-policy'
     }
 
@@ -64,10 +64,10 @@ def lambda_handler(event, _):
                         'adf-cloudformation-deployment-role'
                         ), 'base_cfn_role'
                 )
-                LOGGER.debug("Role has bee assumed for %s", account_id)
+                LOGGER.debug("Role has been assumed for %s", account_id)
                 update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
-            except ClientError:
-                LOGGER.debug("%s not yet configured, continuing", account_id)
+            except ClientError as err:
+                LOGGER.debug("%s could not be assumed (%s), continuing", account_id, err, exc_info=True)
                 continue
 
     return event
