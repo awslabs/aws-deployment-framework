@@ -276,7 +276,7 @@ Resources:
         - !Ref AdfAutomationRole
   ReadOnlyAutomationRole:
     # This role is used by CodeBuild on the Deployment Account for each of the deployment pipelines
-    # to gather information from other accounts accounts. For example, certain intrinsic functions (resolve/import) allow fetching/reading data from other accounts CloudFormation stacks and Parameter Store values.
+    # to gather information from other accounts. For example, certain intrinsic functions (resolve/import) allow fetching/reading data from other accounts CloudFormation stacks and Parameter Store values.
     # This is the role that will be assumed in order to facilitate this scenario.
     Type: AWS::IAM::Role
     Properties:
