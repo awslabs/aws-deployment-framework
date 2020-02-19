@@ -54,7 +54,7 @@ Resources:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
       ContentUri: "../../adf-build/shared/"
-      CompatibleRuntimes: 
+      CompatibleRuntimes:
         - python3.7
         - python3.8
       Description: "Shared Lambda Layer between master and deployment account"
@@ -225,8 +225,13 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
           - Effect: Allow
             Action:
+              - "organizations:DescribeOrganization"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
               - "sts:AssumeRole"
-            Resource: 
+            Resource:
               - "*"
           - Effect: Allow
             Condition:
@@ -235,12 +240,10 @@ Resources:
             Action:
               - "secretsmanager:Get*"
             Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
               - "ssm:GetParameter"
+              - "ssm:GetParameters"
             Resource:
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
               - !Sub arn:aws:ssm:${AWS::Region}::parameter/aws/service/*
@@ -313,7 +316,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: 
+            Resource:
               - !Sub "arn:aws:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
               - arn:aws:iam::*:role/adf-automation-role
           - Effect: Allow
@@ -565,6 +568,7 @@ Resources:
               - "cloudformation:SetStackPolicy"
               - "cloudformation:SignalResource"
               - "cloudformation:UpdateStack"
+              - "cloudformation:UpdateTerminationProtection"
             Resource:
               - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
               - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
@@ -645,7 +649,7 @@ Resources:
       Name: "aws-deployment-framework-base"
       Source:
         Type: CODEPIPELINE
-        BuildSpec: !Sub | 
+        BuildSpec: !Sub |
           version: 0.2
           phases:
             install:
@@ -871,7 +875,7 @@ Resources:
               - codecommit:GetBranch
               - codecommit:GetCommit
               - codecommit:UploadArchive
-              - codecommit:GetUploadArchiveStatus   
+              - codecommit:GetUploadArchiveStatus
               - codecommit:CancelUploadArchive
             Resource:
               - "*"
@@ -927,7 +931,7 @@ Resources:
       Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
-    Properties: 
+    Properties:
       CodeUri: lambda_codebase/
       Layers:
           - !Ref LambdaLayerVersion
@@ -945,7 +949,7 @@ Resources:
       Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
-    Properties: 
+    Properties:
       CodeUri: lambda_codebase/
       Layers:
           - !Ref LambdaLayerVersion
@@ -962,25 +966,25 @@ Resources:
       Timeout: 120
   LambdaRole:
     Type: "AWS::IAM::Role"
-    Properties: 
+    Properties:
       RoleName: "adf-lambda-role"
-      AssumeRolePolicyDocument: 
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
-            Principal: 
-              Service: 
+            Principal:
+              Service:
                 - "lambda.amazonaws.com"
                 - "states.amazonaws.com"
                 - "sns.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRole"
       Path: "/"
-      Policies: 
+      Policies:
         - PolicyName: "adf-lambda-execution-role"
-          PolicyDocument: 
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement: 
+            Statement:
               - Effect: "Allow"
                 Action: "sts:AssumeRole"
                 Resource: "*"
@@ -1017,11 +1021,11 @@ Resources:
                   - "secretsmanager:Get*"
                 Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow Lambda access to get secrets that start with /adf/*
               - Effect: "Allow"
-                Action: 
+                Action:
                   - "s3:Get*"
                   - "s3:Put*"
                   - "s3:List*"
-                Resource: 
+                Resource:
                   - !Sub arn:aws:s3:::${PipelineBucket}
                   - !Sub arn:aws:s3:::${PipelineBucket}/*
               - Effect: "Allow"
@@ -1054,9 +1058,9 @@ Resources:
                   - "sns:Publish"
                   - "states:StartExecution"
                 Resource: "*"
-  LambdaInvokePermission: 
+  LambdaInvokePermission:
     Type: AWS::Lambda::Permission
-    Properties: 
+    Properties:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn: !Ref PipelineSNSTopic
@@ -1152,9 +1156,9 @@ Resources:
       Description: "ADF Lambda Function - PipelinesCreateInitialCommitFunction"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
-              Action: 
+              Action:
                 - codecommit:GetDifferences
                 - codecommit:CreateCommit
                 - codecommit:CreatePullRequest
@@ -1192,7 +1196,7 @@ Resources:
               Statement:
                 - Effect: Allow
                   Action: codepipeline:StartPipelineExecution
-                  Resource: !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ] 
+                  Resource: !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1212,7 +1216,7 @@ Resources:
           referenceName:
             - master
       Targets:
-        - Arn: 
+        - Arn:
             !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
@@ -1269,4 +1273,3 @@ Outputs:
     Value: !GetAtt KMSKey.Arn
     Export:
       Name: "KmsKeyArn"
-

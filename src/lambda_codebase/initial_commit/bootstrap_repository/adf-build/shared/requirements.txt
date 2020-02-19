@@ -50,4 +50,7 @@ aws_cdk.aws_cloudwatch==1.20
 aws_cdk.aws_kinesis==1.20
 aws_cdk.aws_s3_assets==1.20
 aws_cdk.aws_sns_subscriptions==1.20
+aws-cdk.aws-sam==1.20
+aws-cdk.cx-api==1.20
+aws-cdk.region-info==1.20
 aws-cdk.core==1.20
