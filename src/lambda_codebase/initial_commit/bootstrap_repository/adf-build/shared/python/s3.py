@@ -33,6 +33,10 @@ class S3:
                 bucket=self.bucket,
                 key=key
             )
+        if style == 's3-key-only':
+            return "{key}".format(
+                key=key
+            )
         s3_region_name = "s3"
         if self.region != 'us-east-1':
             s3_region_name = "s3-{region}".format(region=self.region)

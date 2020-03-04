@@ -445,7 +445,7 @@ upload:${style}:${local_path}
 upload:${style}:${region}:${local_path}
 ```
 
-There are three different styles that one could choose from.
+There are five different styles that one could choose from.
 
 * `path` style, as shown in the example above, will return the S3 path to the object as.
   This is referred to as the classic [Path Style method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html).
@@ -464,6 +464,8 @@ There are three different styles that one could choose from.
 * `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
   As an example, this style is required for [CodeBuild project source locations](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-source.html#cfn-codebuild-project-source-location).
   * It returns: `${bucket}/${key}`
+* `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
+  * It returns: `${key}`
 
 The `region` is optional.
 This allows you to upload files to S3 Buckets within specific regions by
