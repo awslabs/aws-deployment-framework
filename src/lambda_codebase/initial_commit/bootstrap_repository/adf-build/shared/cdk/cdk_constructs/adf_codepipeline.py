@@ -36,7 +36,7 @@ class Action:
         self.action_name = kwargs.get('action_name')
         self.action_mode = kwargs.get('action_mode', '').upper()
         self.region = kwargs.get('region') or ADF_DEPLOYMENT_REGION
-        self.account_id = self.map_params["default_providers"]["source"].get('property', {}).get("account_id")
+        self.account_id = self.map_params["default_providers"]["source"].get('properties', {}).get("account_id")
         self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
         self.configuration = self._generate_configuration()
@@ -49,7 +49,7 @@ class Action:
                 return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["default_providers"]["build"].get('properties', {}).get("role"))
         if self.target.get('properties', {}).get('role') or self.map_params["default_providers"]["deploy"].get('properties', {}).get("role"):
             if self.category == 'Deploy':
-                return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["default_providers"]["deploy"].get('properties', {}).get("role"))
+                return 'arn:aws:iam::{0}:role/{1}'.format(self.target['id'], self.map_params["default_providers"]["deploy"].get('properties', {}).get("role"))
         return None
 
     def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
