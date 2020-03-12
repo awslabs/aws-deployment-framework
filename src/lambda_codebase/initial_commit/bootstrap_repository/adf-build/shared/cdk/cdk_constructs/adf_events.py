@@ -22,6 +22,7 @@ ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 class Events(core.Construct):
     def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
+        # pylint: disable=no-value-for-parameter
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')
         _provider = params.get('source', {}).get('provider')
@@ -58,6 +59,7 @@ class Events(core.Construct):
                 )
             )
         if params.get('topic_arn'):
+            # pylint: disable=no-value-for-parameter
             _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])
             _event = _events.Rule(
                 self,
@@ -117,6 +119,7 @@ class Events(core.Construct):
                         source=["aws.codepipeline"]
                     )
                 )
+                # pylint: disable=no-value-for-parameter
                 _completion_pipeline = _codepipeline.Pipeline.from_pipeline_arn(
                     self,
                     'pipeline-{0}'.format(index),
@@ -135,6 +138,7 @@ class Events(core.Construct):
                 'schedule_{0}'.format(params['name']),
                 description="Triggers {0} on a schedule of {1}".format(params['name'], params['schedule']),
                 enabled=True,
+                # pylint: disable=no-value-for-parameter
                 schedule=_events.Schedule.expression(params['schedule'])
             )
             _target_pipeline = _targets.CodePipeline(
