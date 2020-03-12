@@ -18,6 +18,7 @@ from cdk_constructs.adf_codepipeline import Action
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEFAULT_CODEBUILD_IMAGE = "UBUNTU_14_04_PYTHON_3_7_1"
 
 class CodeBuild(core.Construct):
     # pylint: disable=no-value-for-parameter
@@ -123,35 +124,32 @@ class CodeBuild(core.Construct):
 
     @staticmethod
     def determine_build_image(scope, target, map_params):
+        specific_image = None
         if target:
-            return target.get(
-                'properties', {}).get(
-                    'image') or getattr(
-                        _codebuild.LinuxBuildImage,
-                        map_params['default_providers']['deploy'].get(
-                            'properties', {}).get(
-                                'image', "UBUNTU_14_04_PYTHON_3_7_1").upper())
-        if isinstance(map_params['default_providers']['build'].get('properties', {}).get('image', False), dict):
-            _image_repo_arn = target.get(
-                'properties', {}).get(
-                    'image', {}).get(
-                        'repository_arn', {}) or map_params['default_providers']['build'].get(
-                            'properties', {}).get(
-                                'image', {}).get(
-                                    'repository_arn', {})
-            _tag = target.get(
-                'properties', {}).get(
-                    'image', {}).get(
-                        'tag', '') or map_params['default_providers']['build'].get(
-                            'properties', {}).get(
-                                'image', {}).get(
-                                    'tag', 'latest')
-            _repo_arn = _ecr.Repository.from_repository_arn(scope, 'custom_repo', _image_repo_arn)
-            return _codebuild.LinuxBuildImage.from_ecr_repository(_repo_arn, _tag)
-        return getattr(_codebuild.LinuxBuildImage,
-                       map_params['default_providers']['build'].get(
-                           'properties', {}).get(
-                               'image', "UBUNTU_14_04_PYTHON_3_7_1").upper())
+            specific_image = (
+                target.get('properties', {}).get('image') or
+                map_params['default_providers']['deploy'].get(
+                    'properties', {}).get('image')
+            )
+        else:
+            specific_image = (
+                map_params['default_providers']['build'].get(
+                    'properties', {}).get('image')
+            )
+        if isinstance(specific_image, dict):
+            repo_arn = _ecr.Repository.from_repository_arn(
+                scope,
+                'custom_repo',
+                specific_image.get('repository_arn', ''),
+            )
+            return _codebuild.LinuxBuildImage.from_ecr_repository(
+                repo_arn,
+                specific_image.get('tag', 'latest'),
+            )
+        return getattr(
+            _codebuild.LinuxBuildImage,
+            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper(),
+        )
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):
