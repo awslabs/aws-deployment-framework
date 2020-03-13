@@ -34,16 +34,16 @@ class Resolver:
 
     def fetch_stack_output(self, value, key, optional=False): # pylint: disable=too-many-statements
         try:
-            [_, account_id, region, stack_name, export] = str(value).split(':')
+            [_, account_id, region, stack_name, output_key] = str(value).split(':')
         except ValueError:
             raise ValueError(
                 "{0} is not a valid import string."
-                "syntax should be import:account_id:region:stack_name:export_key".format(str(value))
+                "syntax should be import:account_id:region:stack_name:output_key".format(str(value))
             )
-        if Resolver._is_optional(export):
-            LOGGER.info("Parameter %s is considered optional", export)
+        if Resolver._is_optional(output_key):
+            LOGGER.info("Parameter %s is considered optional", output_key)
             optional = True
-        export = export[:-1] if optional else export
+        output_key = output_key[:-1] if optional else output_key
         try:
             role = self.sts.assume_cross_account_role(
                 'arn:aws:iam::{0}:role/{1}'.format(
@@ -58,7 +58,7 @@ class Resolver:
                 stack_name=stack_name,
                 account_id=account_id
             )
-            stack_output = self.cache.check(value) or cloudformation.get_stack_output(export)
+            stack_output = self.cache.check(value) or cloudformation.get_stack_output(output_key)
             if stack_output:
                 LOGGER.info("Stack output value is %s", stack_output)
                 self.cache.add(value, stack_output)
@@ -73,7 +73,16 @@ class Resolver:
                 self.stage_parameters[parent_key][key] = stack_output
             else:
                 if not stack_output:
-                    raise Exception("No Stack Output found on %s in %s with stack name %s and output key %s" % account_id, region, stack_name, export)
+                    raise Exception(
+                        "No Stack Output found on {account_id} in {region} "
+                        "with stack name {stack} and output key "
+                        "{output_key}".format(
+                            account_id=account_id,
+                            region=region,
+                            stack=stack_name,
+                            output_key=output_key,
+                        )
+                    )
                 self.stage_parameters[parent_key][key] = stack_output
         except IndexError:
             if stack_output:
