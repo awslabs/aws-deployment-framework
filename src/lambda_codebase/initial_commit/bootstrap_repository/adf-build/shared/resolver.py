@@ -93,7 +93,7 @@ class Resolver:
         return True
 
     def upload(self, value, key, file_name):
-        if not any(item in value for item in ['path', 'virtual-hosted']):
+        if not any(item in value for item in ['path', 'virtual-hosted', 's3-key-only']):
             raise Exception(
                 'When uploading to S3 you need to specify a '
                 'pathing style for the response either path or virtual-hosted, '

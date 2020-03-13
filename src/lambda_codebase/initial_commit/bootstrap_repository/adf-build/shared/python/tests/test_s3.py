@@ -57,6 +57,20 @@ def test_build_pathing_style_s3_uri_any_other_region(eu_west_1_cls):
             key=key,
         )
 
+def test_build_pathing_style_s3_key_only_us_east_1(us_east_1_cls):
+    key = 'some/key'
+    assert us_east_1_cls.build_pathing_style('s3-key-only', key) == \
+        "{key}".format(
+            key=key,
+        )
+
+def test_build_pathing_style_s3_key_only_any_other_region(eu_west_1_cls):
+    key = 'some/key'
+    assert eu_west_1_cls.build_pathing_style('s3-key-only', key) == \
+        "{key}".format(
+            key=key,
+        )
+
 def test_build_pathing_style_path_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('path', key) == \
