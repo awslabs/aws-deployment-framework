@@ -391,7 +391,7 @@ pipelines:
 
 ### Parameter Injection
 
-Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of exported values from CloudFormation stacks across accounts and regions.
+Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of output values from CloudFormation stacks across accounts and regions.
 
 #### Retrieving parameter values
 
@@ -410,16 +410,16 @@ To highlight an example of how Parameter Injection can work well, think of the f
 
 There is also the concept of optionally resolving or importing values. This can be achieved by ending the import or resolve function with a **?**. For example, if you want to resolve a value from Parameter Store that might or might not yet exist you can use an optional resolve *(eg resolve:/my/path/to/myMagicKey?)*. If the key *myMagicKey* does not exist in Parameter Store then an empty string will be returned as the value.
 
-#### Importing exported values
+#### Importing output values
 
-Parameter injection is also useful for importing exported values from CloudFormation stacks in other accounts or regions. Using the special **"import"** syntax you can access these values directly into your parameter files.
+Parameter injection is also useful for importing output values from CloudFormation stacks in other accounts or regions. Using the special **"import"** syntax you can access these values directly into your parameter files.
 
 ```yaml
 Parameters:
-    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:export_key'
+    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:output_key'
 ```
 
-In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *export_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:export_key?)* if the key *export_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
 
 #### Uploading assets
 
