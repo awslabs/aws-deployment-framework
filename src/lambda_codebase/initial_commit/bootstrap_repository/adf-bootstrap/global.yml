@@ -298,9 +298,6 @@ Resources:
                 - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
             Action:
               - sts:AssumeRole
-            Condition:
-                ArnEquals:
-                    'aws:SourceArn': !Sub 'arn:aws:codebuild:${AWS::Region}:${DeploymentAccountId}:project/*'
       Path: /
   ReadOnlyAutomationRolePolicy:
     Type: AWS::IAM::Policy
