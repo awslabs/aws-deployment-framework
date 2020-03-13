@@ -96,6 +96,7 @@ class Action:
                 "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
                 "Repo": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master',
+                # pylint: disable=no-value-for-parameter
                 "OAuthToken": core.SecretValue.secrets_manager(
                     self.map_params['default_providers']['source'].get('properties', {}).get('oauth_token_path'),
                     json_field=self.map_params['default_providers']['source'].get('properties', {}).get('json_field')
@@ -394,5 +395,6 @@ class Pipeline(core.Construct):
     def import_required_arns():
         _output = []
         for arn in Pipeline._import_arns:
+            # pylint: disable=no-value-for-parameter
             _output.append(core.Fn.import_value(arn))
         return _output

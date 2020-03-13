@@ -55,6 +55,7 @@ class GitHub(core.Construct):
             ],
             target_action="source",
             name="adf-webhook-{0}".format(map_params['name']),
+            # pylint: disable=no-value-for-parameter
             target_pipeline_version=core.Token.as_number(_version),
             register_with_third_party=True
         )
