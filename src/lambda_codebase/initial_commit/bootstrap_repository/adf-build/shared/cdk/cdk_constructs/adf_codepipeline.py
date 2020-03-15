@@ -43,13 +43,11 @@ class Action:
         self.config = self.generate()
 
     def _generate_role_arn(self):
-        if self.target.get('properties', {}).get('role') or self.map_params["default_providers"]["build"].get('properties', {}).get("role"):
-            if self.provider == 'CodeBuild' and self.category == 'Build':
-                # CodePipeline would need access to assume this if you pass in a custom role
-                return 'arn:aws:iam::{0}:role/{1}'.format(self.account_id, self.map_params["default_providers"]["build"].get('properties', {}).get("role"))
-        if self.target.get('properties', {}).get('role') or self.map_params["default_providers"]["deploy"].get('properties', {}).get("role"):
-            if self.category == 'Deploy':
-                return 'arn:aws:iam::{0}:role/{1}'.format(self.target['id'], self.map_params["default_providers"]["deploy"].get('properties', {}).get("role"))
+        default_provider = self.map_params['default_providers'][self.category.lower()]
+        specific_role = self.target.get('properties', {}).get('role') or default_provider.get('properties', {}).get('role')
+        if specific_role:
+            account_id = self.account_id if self.provider == 'CodeBuild' else self.target['id']
+            return 'arn:aws:iam::{0}:role/{1}'.format(account_id, specific_role)
         return None
 
     def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
