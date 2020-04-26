@@ -79,8 +79,9 @@ def create_or_update_account(org_session, account, adf_role_name, account_id=Non
             for _ in executor.map(lambda f: schedule_delete_default_vpc(*f), args):
                 pass
 
-    LOGGER.info(f'Ensuring account alias for {account_id} of {account.alias}')
-    org_session.create_account_alias(account.alias, role)
+    if account.alias:
+        LOGGER.info(f'Ensuring account alias for {account_id} of {account.alias}')
+        org_session.create_account_alias(account.alias, role)
 
     if account.tags:
         LOGGER.info(f'Ensuring tags exist for account {account_id}: {account.tags}')

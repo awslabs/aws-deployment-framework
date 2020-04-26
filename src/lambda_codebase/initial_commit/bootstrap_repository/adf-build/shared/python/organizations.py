@@ -347,6 +347,6 @@ class Organizations: # pylint: disable=R0904
             sleep(5)  # waiting for 5 sec before checking account status again
         account_id = response["AccountId"]
         # TODO: Instead of sleeping, query for the role.
-        sleep(20)  # Wait until OrganizationalRole is created in new account
+        sleep(90)  # Wait 90 sec until OrganizationalRole is created in new account (Temp solution)
 
         return account_id

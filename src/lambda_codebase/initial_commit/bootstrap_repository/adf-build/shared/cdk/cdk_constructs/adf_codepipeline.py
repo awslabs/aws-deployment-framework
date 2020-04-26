@@ -347,7 +347,8 @@ class Pipeline(core.Construct):
             "restart_execution_on_update": map_params.get('params', {}).get('restart_execution_on_update', False),
             "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
             "stages": stages,
-            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params)
+            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
+            "tags": Pipeline.restructure_tags(map_params.get('tags', {}))
         }
         self.cfn = _codepipeline.CfnPipeline(
             self,
@@ -373,6 +374,13 @@ class Pipeline(core.Construct):
                 "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
             }
         })
+
+    @staticmethod
+    def restructure_tags(current_tags):
+        tags = []
+        for k, v in current_tags.items():
+            tags.append({"key": k, "value": v})
+        return tags
 
     @staticmethod
     def generate_artifact_stores(map_params, ssm_params):
