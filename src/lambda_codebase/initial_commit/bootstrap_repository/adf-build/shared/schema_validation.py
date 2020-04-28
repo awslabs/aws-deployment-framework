@@ -14,7 +14,7 @@ LOGGER = configure_logger(__name__)
 PARAM_SCHEMA = {
     Optional("notification_endpoint"): str,
     Optional("schedule"): str,
-    Optional("restart_execution_on_update"): bool,
+    Optional("restart_execution_on_update"): bool
 }
 
 AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
@@ -296,6 +296,7 @@ PIPELINE_SCHEMA = {
     "name": And(str, len),
     "default_providers": PROVIDER_SCHEMA,
     Optional("params"): PARAM_SCHEMA,
+    Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
     Optional("regions"): REGION_SCHEMA,
     Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA

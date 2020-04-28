@@ -36,6 +36,8 @@ pipelines:
           account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
     params:
         notification_endpoint: janes_team@doe.com # Optional
+    tags:
+      foo: bar # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1

@@ -19,6 +19,7 @@ Resources:
             Sid: "CloudFormation"
             Action: # These below actions are examples, change these to your requirements..
               - "apigateway:*"
+              - "cloudformation:*" # You will need Cloudformation actions in order to work with Cloudformation
               - "ecr:*"
               - "ecs:*"
               - "ec2:*"
