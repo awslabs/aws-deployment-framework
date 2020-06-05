@@ -1,11 +1,11 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Organizations module used throughout the ADF
 """
 
 import json
-
+from time import sleep
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from errors import RootOUIDError
@@ -14,7 +14,6 @@ from paginator import paginator
 
 LOGGER = configure_logger(__name__)
 
-
 class Organizations: # pylint: disable=R0904
     """Class used for modeling Organizations
     """
@@ -22,7 +21,6 @@ class Organizations: # pylint: disable=R0904
     _config = Config(retries=dict(max_attempts=30))
 
     def __init__(self, role, account_id=None):
-        self.role = role
         self.client = role.client(
             'organizations',
             config=Organizations._config)
@@ -41,18 +39,18 @@ class Organizations: # pylint: disable=R0904
             "ou_parent_type": response.get('Type')
         }
 
-    def enable_scp(self):
+    def enable_organization_policies(self, policy_type='SERVICE_CONTROL_POLICY'): # or 'TAG_POLICY'
         try:
             self.client.enable_policy_type(
                 RootId=self.get_ou_root_id(),
-                PolicyType='SERVICE_CONTROL_POLICY'
+                PolicyType=policy_type
             )
         except self.client.exceptions.PolicyTypeAlreadyEnabledException:
-            LOGGER.info('SCPs are currently enabled within the Organization')
+            LOGGER.info('%s are currently enabled within the Organization', policy_type)
 
     @staticmethod
-    def trim_scp_path(scp):
-        return scp[2:] if scp.startswith('//') else scp
+    def trim_policy_path(policy):
+        return policy[2:] if policy.startswith('//') else policy
 
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
@@ -60,97 +58,86 @@ class Organizations: # pylint: disable=R0904
                 if organization_id in org_structure.values() and counter != 0:
                     continue
                 ou_name = self.describe_ou_name(organization_id)
-                trimmed_path = Organizations.trim_scp_path("{0}/{1}".format(name, ou_name))
+                trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, ou_name))
                 org_structure[trimmed_path] = organization_id
         counter = counter + 1
         # Counter is greater than 4 here is the conditional as organizations cannot have more than 5 levels of nested OUs
         return org_structure if counter > 4 else self.get_organization_map(org_structure, counter)
 
-    def update_scp(self, content, policy_id):
+    def update_policy(self, content, policy_id):
         self.client.update_policy(
             PolicyId=policy_id,
             Content=content
         )
 
-    def create_scp(self, content, ou_path):
-        response = self.client.create_policy(
-            Content=content,
-            Description='ADF Managed Service Control Policy',
-            Name='adf-scp-{0}'.format(ou_path),
-            Type='SERVICE_CONTROL_POLICY'
-        )
-        return response['Policy']['PolicySummary']['Id']
+    def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
+        try:
+            response = self.client.create_policy(
+                Content=content,
+                Description='ADF Managed {0}'.format(policy_type),
+                Name='adf-{0}-{1}'.format('scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy', ou_path),
+                Type=policy_type
+            )
+            return response['Policy']['PolicySummary']['Id']
+        except self.client.exceptions.DuplicatePolicyAttachmentException:
+            pass
 
     @staticmethod
-    def get_scp_body(path):
-        with open(path, 'r') as scp:
-            return json.dumps(json.load(scp))
+    def get_policy_body(path):
+        with open('./adf-bootstrap/{0}'.format(path), 'r') as policy:
+            return json.dumps(json.load(policy))
 
-    def list_scps(self, name):
-        response = list(paginator(self.client.list_policies, Filter="SERVICE_CONTROL_POLICY"))
+    def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
+        response = list(paginator(self.client.list_policies, Filter=policy_type))
         try:
             return [policy for policy in response if policy['Name'] == name][0]['Id']
         except IndexError:
             return []
 
-    def describe_scp_id_for_target(self, target_id):
+    def describe_policy_id_for_target(self, target_id, policy_type='SERVICE_CONTROL_POLICY'):
         response = self.client.list_policies_for_target(
             TargetId=target_id,
-            Filter='SERVICE_CONTROL_POLICY'
+            Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if p['Description'] == 'ADF Managed Service Control Policy'][0]['Id']
+            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description']][0]['Id']
         except IndexError:
             return []
 
-    def describe_scp(self, policy_id):
+    def describe_policy(self, policy_id):
         response = self.client.describe_policy(
             PolicyId=policy_id
         )
         return response.get('Policy')
 
-    def attach_scp(self, policy_id, target_id):
-        self.client.attach_policy(
-            PolicyId=policy_id,
-            TargetId=target_id
-        )
+    def attach_policy(self, policy_id, target_id):
+        try:
+            self.client.attach_policy(
+                PolicyId=policy_id,
+                TargetId=target_id
+            )
+        except self.client.exceptions.DuplicatePolicyAttachmentException:
+            pass
 
-    def detach_scp(self, policy_id, target_id):
+    def detach_policy(self, policy_id, target_id):
         self.client.detach_policy(
             PolicyId=policy_id,
             TargetId=target_id
         )
 
-    def delete_scp(self, policy_id):
+    def delete_policy(self, policy_id):
         self.client.delete_policy(
             PolicyId=policy_id
         )
 
-    def get_account_ids(self):
+
+    def get_accounts(self):
         for account in paginator(self.client.list_accounts):
             if not account.get('Status') == 'ACTIVE':
                 LOGGER.warning('Account %s is not an Active AWS Account', account['Id'])
                 continue
-            self.account_ids.append(account['Id'])
+            self.account_ids.append(account)
         return self.account_ids
-
-    def get_account_ids_for_tags(self, tags):
-        tag_filter = []
-
-        for key, value in tags.items():
-            if isinstance(value, list):
-                values = value
-            else:
-                values = [value]
-            tag_filter.append({'Key': key, 'Values': values})
-
-        account_ids = []
-        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
-            arn = resource['ResourceARN']
-            account_id = arn.split('/')[::-1][0]
-            account_ids.append(account_id)
-
-        return account_ids
 
     def get_organization_info(self):
         response = self.client.describe_organization()
@@ -240,3 +227,126 @@ class Organizations: # pylint: disable=R0904
                 self.get_parent_info().get("ou_parent_id")
             )
         )
+
+    def get_account_ids_for_tags(self, tags):
+        tag_filter = []
+        for key, value in tags.items():
+            if isinstance(value, list):
+                values = value
+            else:
+                values = [value]
+            tag_filter.append({'Key': key, 'Values': values})
+        account_ids = []
+        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
+            arn = resource['ResourceARN']
+            account_id = arn.split('/')[::-1][0]
+            account_ids.append(account_id)
+        return account_ids
+
+    def list_organizational_units_for_parent(self, parent_ou):
+        organizational_units = [
+            ou
+            for org_units in self.client.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
+            for ou in org_units['OrganizationalUnits']
+        ]
+        return organizational_units
+
+    def get_account_id(self, account_name):
+        for account in self.list_accounts():
+            if account["Name"].strip() == account_name.strip():
+                return account['Id']
+
+        return None
+
+    def list_accounts(self):
+        """Retrieves all accounts in organization."""
+        existing_accounts = [
+            account
+            for accounts in self.client.get_paginator("list_accounts").paginate()
+            for account in accounts['Accounts']
+        ]
+        return existing_accounts
+
+    def get_ou_id(self, ou_path, parent_ou_id=None):
+        # Return root OU if '/' is provided
+        if ou_path.strip() == '/':
+            return self.root_id
+
+        # Set initial OU to start looking for given ou_path
+        if parent_ou_id is None:
+            parent_ou_id = self.root_id
+
+        # Parse ou_path and find the ID
+        ou_hierarchy = ou_path.strip('/').split('/')
+        hierarchy_index = 0
+
+        while hierarchy_index < len(ou_hierarchy):
+            org_units = self.list_organizational_units_for_parent(parent_ou_id)
+            for ou in org_units:
+                if ou['Name'] == ou_hierarchy[hierarchy_index]:
+                    parent_ou_id = ou['Id']
+                    hierarchy_index += 1
+                    break
+            else:
+                raise ValueError(f'Could not find ou with name {ou_hierarchy} in OU list {org_units}.')
+
+        return parent_ou_id
+
+    def move_account(self, account_id, ou_path):
+        self.root_id = self.get_ou_root_id()
+        ou_id = self.get_ou_id(ou_path)
+        response = self.client.list_parents(ChildId=account_id)
+        source_parent_id = response['Parents'][0]['Id']
+
+        if source_parent_id == ou_id:
+            # Account is already resided in ou_path
+            return
+
+        response = self.client.move_account(
+            AccountId=account_id,
+            SourceParentId=source_parent_id,
+            DestinationParentId=ou_id
+        )
+
+    def create_account_tags(self, account_id, tags):
+        formatted_tags = [
+            {'Key': str(key), 'Value': str(value)}
+            for tag in tags
+            for key, value in tag.items()
+        ]
+        self.client.tag_resource(
+            ResourceId=account_id,
+            Tags=formatted_tags
+        )
+
+    @staticmethod
+    def create_account_alias(account_alias, role):
+        iam_client = role.client('iam')
+        try:
+            iam_client.create_account_alias(AccountAlias=account_alias)
+        except iam_client.exceptions.EntityAlreadyExistsException:
+            pass  # Alias already exists
+
+    def create_account(self, account, adf_role_name):
+        allow_billing = "ALLOW" if account.allow_billing else "DENY"
+        response = self.client.create_account(
+            Email=account.email,
+            AccountName=account.full_name,
+            RoleName=adf_role_name,  # defaults to OrganizationAccountAccessRole
+            IamUserAccessToBilling=allow_billing,
+        )["CreateAccountStatus"]
+        while response["State"] == "IN_PROGRESS":
+            response = self.client.describe_create_account_status(
+                CreateAccountRequestId=response["Id"]
+            )["CreateAccountStatus"]
+
+            if response.get("FailureReason"):
+                raise IOError(
+                    f"Failed to create account {account.full_name}: {response['FailureReason']}"
+                )
+            sleep(5)  # waiting for 5 sec before checking account status again
+        account_id = response["AccountId"]
+        # TODO: Instead of sleeping, query for the role.
+        sleep(90)  # Wait 90 sec until OrganizationalRole is created in new account (Temp solution)
+
+        return account_id

@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Github Codepipeline Input
@@ -55,6 +55,7 @@ class GitHub(core.Construct):
             ],
             target_action="source",
             name="adf-webhook-{0}".format(map_params['name']),
+            # pylint: disable=no-value-for-parameter
             target_pipeline_version=core.Token.as_number(_version),
             register_with_third_party=True
         )

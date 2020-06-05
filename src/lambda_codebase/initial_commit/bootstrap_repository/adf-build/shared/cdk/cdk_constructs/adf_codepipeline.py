@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodePipeline Action Input
@@ -94,6 +94,7 @@ class Action:
                 "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
                 "Repo": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master',
+                # pylint: disable=no-value-for-parameter
                 "OAuthToken": core.SecretValue.secrets_manager(
                     self.map_params['default_providers']['source'].get('properties', {}).get('oauth_token_path'),
                     json_field=self.map_params['default_providers']['source'].get('properties', {}).get('json_field')
@@ -131,7 +132,13 @@ class Action:
             )
             _props = {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get('properties', {}).get('stack_name') or "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
+                "StackName": self.target.get(
+                    'properties', {}).get('stack_name') or self.map_params.get(
+                        'default_providers', {}).get(
+                            'deploy', {}).get(
+                                'properties', {}).get(
+                                    'stack_name') or "{0}{1}".format(
+                                        ADF_STACK_PREFIX, self.map_params['name']),
                 "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
                 "TemplateConfiguration": "{input_artifact}::{path_prefix}params/{target_name}_{region}.json".format(
                     input_artifact=_input_artifact,
@@ -236,7 +243,7 @@ class Action:
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
@@ -287,6 +294,12 @@ class Action:
                     name="{0}-build".format(self.map_params['name'])
                 )
             ]
+            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
+                action_props["input_artifacts"] = [
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
+                        name="output-source"
+                    )
+                ]
         if self.category == 'Deploy':
             action_props["input_artifacts"] = [
                 _codepipeline.CfnPipeline.InputArtifactProperty(
@@ -297,12 +310,6 @@ class Action:
                 action_props["output_artifacts"] = [
                     _codepipeline.CfnPipeline.OutputArtifactProperty(
                         name=self.target.get('properties', {}).get('outputs')
-                    )
-                ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled', True):
-                action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.OutputArtifactProperty(
-                        name="output-source"
                     )
                 ]
             for override in self.target.get('properties', {}).get('param_overrides', []):
@@ -318,6 +325,7 @@ class Action:
                     name="output-source"
                 )
             ]
+
         return _codepipeline.CfnPipeline.ActionDeclarationProperty(
             **action_props
         )
@@ -337,7 +345,8 @@ class Pipeline(core.Construct):
             "restart_execution_on_update": map_params.get('params', {}).get('restart_execution_on_update', False),
             "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
             "stages": stages,
-            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params)
+            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
+            "tags": Pipeline.restructure_tags(map_params.get('tags', {}))
         }
         self.cfn = _codepipeline.CfnPipeline(
             self,
@@ -359,9 +368,17 @@ class Pipeline(core.Construct):
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
-                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name']
+                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
             }
         })
+
+    @staticmethod
+    def restructure_tags(current_tags):
+        tags = []
+        for k, v in current_tags.items():
+            tags.append({"key": k, "value": v})
+        return tags
 
     @staticmethod
     def generate_artifact_stores(map_params, ssm_params):
@@ -384,5 +401,6 @@ class Pipeline(core.Construct):
     def import_required_arns():
         _output = []
         for arn in Pipeline._import_arns:
+            # pylint: disable=no-value-for-parameter
             _output.append(core.Fn.import_value(arn))
         return _output

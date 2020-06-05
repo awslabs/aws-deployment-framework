@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """S3 module used throughout the ADF
@@ -23,29 +23,40 @@ class S3:
         self.bucket = bucket
 
     def build_pathing_style(self, style, key):
+        if style == 's3-url':
+            return "s3://{bucket}/{key}".format(
+                bucket=self.bucket,
+                key=key
+            )
+        if style == 's3-uri':
+            return "{bucket}/{key}".format(
+                bucket=self.bucket,
+                key=key
+            )
+        if style == 's3-key-only':
+            return "{key}".format(
+                key=key
+            )
+        s3_region_name = "s3"
+        if self.region != 'us-east-1':
+            s3_region_name = "s3-{region}".format(region=self.region)
         if style == 'path':
-            if self.region == 'us-east-1':
-                return "https://s3.amazonaws.com/{bucket}/{key}".format(
-                    bucket=self.bucket,
-                    key=key
-                )
-            return "https://s3-{region}.amazonaws.com/{bucket}/{key}".format(
-                region=self.region,
+            return "https://{s3_region}.amazonaws.com/{bucket}/{key}".format(
+                s3_region=s3_region_name,
                 bucket=self.bucket,
                 key=key
             )
         if style == 'virtual-hosted':
-            if self.region == 'us-east-1':
-                return "http://{bucket}.s3.amazonaws.com/{key}".format(
-                    bucket=self.bucket,
-                    key=key
-                )
-            return "http://{bucket}.s3-{region}.amazonaws.com/{key}".format(
-                region=self.region,
+            return "https://{bucket}.{s3_region}.amazonaws.com/{key}".format(
+                s3_region=s3_region_name,
                 bucket=self.bucket,
                 key=key
             )
-        raise Exception("Unknown upload style syntax, path or virtual-hosted must be specified.")
+        raise Exception(
+            "Unknown upload style syntax: {style}. "
+            "Valid options include: s3-uri, path, or "
+            "virtual-hosted.".format(style=style)
+        )
 
 
     def put_object(self, key, file_path, style="path", pre_check=False):
@@ -70,7 +81,6 @@ class S3:
     def fetch_s3_url(self, key):
         """Recursively search for an object in S3 and return its URL
         """
-
         try:
             s3_object = self.resource.Object(self.bucket, key)
             s3_object.get()
@@ -88,7 +98,6 @@ class S3:
         except self.client.exceptions.NoSuchKey:
             # Split the path to remove the last key entry from the string
             key_level_up = key.split('/')
-
             # Return None here if nothing could be found from recursive
             # searching
             if len(key_level_up) == 1:

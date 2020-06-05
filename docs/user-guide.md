@@ -36,6 +36,8 @@ pipelines:
           account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
     params:
         notification_endpoint: janes_team@doe.com # Optional
+    tags:
+      foo: bar # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1
@@ -229,8 +231,6 @@ If you are using [AWS CodeBuild](https://aws.amazon.com/codebuild/) as your buil
 
 Let's take a look an example to breakdown how the AWS Deployment Framework uses `buildspec.yml` files to elevate heavy lifting when it comes to deploying CloudFormation templates.
 
-*Note:* You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild.
-
 ```yaml
 version: 0.2
 
@@ -249,6 +249,24 @@ In the example we have three steps to our install phase in our build, the remain
 Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
 If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline  by using the *inline_spec* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
+
+#### Custom Build Images
+You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild. This can be defined in the your deployment map files like so:
+
+```yaml
+pipelines:
+  - name: example-custom-image
+    default_providers:
+      source:
+        ...
+      build:
+        provider: codebuild
+        image:
+          repository_arn: arn:aws:ecr:region:012345678910:repository/test
+          tag: latest #optional (and also defaults to latest)
+    targets:
+      - ...
+```
 
 ### CloudFormation Parameters and Tagging
 
@@ -375,7 +393,9 @@ pipelines:
 
 ### Parameter Injection
 
-Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of exported values from CloudFormation stacks across accounts and regions.
+Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of output values from CloudFormation stacks across accounts and regions.
+
+#### Retrieving parameter values
 
 If you wish to resolve values from Parameter Store on the Deployment Account directly into your parameter files you can do the the following:
 
@@ -392,26 +412,72 @@ To highlight an example of how Parameter Injection can work well, think of the f
 
 There is also the concept of optionally resolving or importing values. This can be achieved by ending the import or resolve function with a **?**. For example, if you want to resolve a value from Parameter Store that might or might not yet exist you can use an optional resolve *(eg resolve:/my/path/to/myMagicKey?)*. If the key *myMagicKey* does not exist in Parameter Store then an empty string will be returned as the value.
 
-Parameter injection is also useful for importing exported values from CloudFormation stacks in other accounts or regions. Using the special **"import"** syntax you can access these values directly into your parameter files.
+#### Importing output values
+
+Parameter injection is also useful for importing output values from CloudFormation stacks in other accounts or regions. Using the special **"import"** syntax you can access these values directly into your parameter files.
 
 ```yaml
 Parameters:
-    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:export_key'
+    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:output_key'
 ```
 
-In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *export_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:export_key?)* if the key *export_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+
+#### Uploading assets
 
 Another built-in function is **upload**, You can use *upload* to perform an automated upload of a resource such as a template or file into Amazon S3 as part of the build process.
 Once the upload is complete, the Amazon S3 URL for the object will be put in place of the *upload* string in the parameter file.
 
-For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization *(see samples)* you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point since the file has not yet been uploaded to S3.
+For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization *(see samples)* you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point, since the file has not yet been uploaded to S3.
 
 ```yaml
 Parameters:
     ProductYTemplateURL: 'upload:path:productY/template.yml'
 ```
 
-In the above example, we are calling the **upload** function on a file called `template.yml` that lives in the *productY* folder within our repository and then returning the path style URL from S3 (indicated by the word *path* in the string). The string *"upload:path:productY/template.yml"* will be replaced by the URL of the object in S3 once it has been uploaded. You can optionally also upload files to S3 Buckets within specific regions by adding in the region name as part of the string *(eg upload:path:us-west-1:productY/template.yml)*. The upload function allows for two response types, to use the classic [Path Style method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html) use the keyword *path* in your upload string as per the example above. If you wish to use virtual-hosted style *(eg, http://johnsmith-bucket.s3-eu-west-1.amazonaws.com/homepage.html)* then define your upload string such as *upload:virtual-path:us-west-1:productY/template.yml*.
+In the above example, we are calling the **upload** function on a file called `template.yml` that lives in the *productY* folder within our repository and then returning the path style URL from S3 (indicated by the word *path* in the string). The string *"upload:path:productY/template.yml"* will be replaced by the URL of the object in S3 once it has been uploaded.
+
+Syntax:
+
+```
+# Using the default region:
+upload:${style}:${local_path}
+
+# Or, when you would like to choose a specific region:
+upload:${style}:${region}:${local_path}
+```
+
+There are five different styles that one could choose from.
+
+* `path` style, as shown in the example above, will return the S3 path to the object as.
+  This is referred to as the classic [Path Style method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html).
+  * In case the bucket is stored in us-east-1, it will return:
+    `https://s3.amazonaws.com/${bucket}/${key}`
+  * In case the bucket is stored in any other region, it will return:
+    `https://s3-${region}.amazonaws.com/${bucket}/${key}`
+* `virtual-hosted` style, will return the S3 location using the virtual hosted bucket domain.
+  * In case the bucket is stored in us-east-1, it will return:
+    `https://${bucket}.s3.amazonaws.com/${key}`
+  * In case the bucket is stored in any other region, it will return:
+    `https://${bucket}.s3-${region}.amazonaws.com/${key}`
+* `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
+  As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html). 
+  * It returns: `s3://${bucket}/${key}`
+* `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
+  As an example, this style is required for [CodeBuild project source locations](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-source.html#cfn-codebuild-project-source-location).
+  * It returns: `${bucket}/${key}`
+* `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
+  * It returns: `${key}`
+
+The `region` is optional.
+This allows you to upload files to S3 Buckets within specific regions by
+adding in the region name as part of the string
+(eg. `upload:path:us-west-1:productY/template.yml`).
+
+The `local_path` references the files that you would like to be uploaded from
+the location where `adf-build/generate-params.py` scripts gets executed from.
+As shown in the example shared above, the file to upload would be the
+`productY/template.yml` file that is stored in the root of the repository.
 
 The bucket being used to hold the uploaded object is the same Amazon S3 Bucket that holds deployment artifacts *(On the Deployment Account)* for the specific region which they are intended to be deployed to. Files that are uploaded using this functionality will receive a random name each time they are uploaded.
 

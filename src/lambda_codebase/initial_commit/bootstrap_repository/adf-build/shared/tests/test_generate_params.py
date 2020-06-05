@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
@@ -20,10 +20,13 @@ from resolver import Resolver
 @fixture
 def cls():
     parameter_store = Mock()
+    s3 = Mock()
+    s3.read_object.return_value = str({})
     parameter_store.fetch_parameter.return_value = str({})
     parameters = Parameters(
         build_name='some_name',
         parameter_store=parameter_store,
+        s3=s3,
         directory=os.path.abspath(os.path.join(os.path.dirname(__file__), 'stubs'))
     )
     parameters.account_ous = {'account_name1': '/banking/testing', 'account_name2': '/banking/production'}

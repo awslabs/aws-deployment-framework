@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
@@ -17,6 +17,7 @@ from ..deployment_map import DeploymentMap
 def cls():
     return DeploymentMap(
         parameter_store=None,
+        s3=None,
         pipeline_name_prefix='adf',
         map_path='{0}/stubs/stub_deployment_map.yml'.format(
             os.path.dirname(os.path.realpath(__file__))
@@ -24,8 +25,8 @@ def cls():
     )
 
 def test_update_deployment_parameters(cls):
-    cls.parameter_store = Mock()
-    cls.parameter_store.put_parameter.return_value = None
+    cls.s3 = Mock()
+    cls.s3.put_object.return_value = None
 
     pipeline = Pipeline({
         "name": "pipeline",

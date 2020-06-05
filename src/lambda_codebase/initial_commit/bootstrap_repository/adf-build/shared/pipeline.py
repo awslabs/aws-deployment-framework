@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -21,6 +21,7 @@ class Pipeline:
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.completion_trigger = pipeline.get('completion_trigger', {})
+        self.tags = pipeline.get('tags', {})
         self.schedule = self.parameters.get('schedule', {})
         if not isinstance(self.completion_trigger.get('pipelines', []), list):
             self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
@@ -52,8 +53,6 @@ class Pipeline:
         if not params.get('default_providers', {}).get('build', {}):
             params['default_providers']['build'] = {}
             params['default_providers']['build']['provider'] = 'codebuild'
-        if not params.get('default_providers', {}).get('build', {}).get('properties', {}).get('enabled'):
-            params['default_providers']['build']['provider'] = 'codebuild'
         if not params.get('default_providers', {}).get('deploy', {}):
             params['default_providers']['deploy'] = {}
             params['default_providers']['deploy']['provider'] = 'cloudformation'
@@ -64,6 +63,7 @@ class Pipeline:
             "environments": self.template_dictionary,
             "name": self.name,
             "params": self.parameters,
+            "tags": self.tags,
             "default_providers": self.default_providers,
             "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
             "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),

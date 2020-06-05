@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -7,6 +7,7 @@ Module used for working with the Deployment Map (yml) file.
 
 import os
 import sys
+import json
 import yaml
 
 from schema import SchemaError
@@ -20,12 +21,14 @@ class DeploymentMap:
     def __init__(
             self,
             parameter_store,
+            s3,
             pipeline_name_prefix,
             map_path=None
     ):
         self.map_path = map_path or 'deployment_map.yml'
         self.map_dir_path = map_path or 'deployment_maps'
         self.parameter_store = parameter_store
+        self.s3 = s3
         self._get_all()
         self.pipeline_name_prefix = pipeline_name_prefix
         self.account_ou_names = {}
@@ -39,12 +42,13 @@ class DeploymentMap:
                     self.account_ou_names.update(
                         {item['name']: item['path'] for item in target if item['name'] != 'approval'}
                     )
-
-        self.parameter_store.put_parameter(
-            "/deployment/{0}/account_ous".format(
+        with open('{0}.json'.format(pipeline.name), 'w') as outfile:
+            json.dump(self.account_ou_names, outfile)
+        self.s3.put_object(
+            "adf-parameters/deployment/{0}/account_ous.json".format(
                 pipeline.name
             ),
-            str(self.account_ou_names)
+            '{0}.json'.format(pipeline.name)
         )
         if pipeline.notification_endpoint:
             self.parameter_store.put_parameter(

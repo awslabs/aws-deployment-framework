@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
@@ -67,11 +67,12 @@ def test_update_deployment_account_output_parameters(cls, sts):
             call('/cross_region/kms_arn/eu-central-1', 'some_kms_arn'),
             call('/cross_region/s3_regional_bucket/eu-central-1', 'some_s3_bucket'),
         ]
+        kms_and_bucket_dict={}
         update_deployment_account_output_parameters(
             deployment_account_region='eu-central-1',
             region='eu-central-1',
             deployment_account_role=sts,
-            kms_dict={},
+            kms_and_bucket_dict={},
             cloudformation=cloudformation
         )
         assert 4 == mock.call_count

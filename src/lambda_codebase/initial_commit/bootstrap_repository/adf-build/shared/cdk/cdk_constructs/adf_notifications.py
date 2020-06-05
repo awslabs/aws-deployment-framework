@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Notifications Codepipeline Input
@@ -23,6 +23,7 @@ class Notifications(core.Construct):
     def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         LOGGER.debug('Notification configuration required for %s', map_params['name'])
+        # pylint: disable=no-value-for-parameter
         _slack_func = _lambda.Function.from_function_arn(
             self,
             'slack_lambda_function',

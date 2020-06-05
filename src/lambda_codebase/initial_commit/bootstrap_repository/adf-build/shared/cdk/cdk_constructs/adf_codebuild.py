@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodeBuild Input
@@ -10,6 +10,7 @@ from aws_cdk import (
     aws_codebuild as _codebuild,
     aws_iam as _iam,
     aws_kms as _kms,
+    aws_ecr as _ecr,
     core
 )
 
@@ -17,8 +18,11 @@ from cdk_constructs.adf_codepipeline import Action
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEFAULT_CODEBUILD_IMAGE = "UBUNTU_14_04_PYTHON_3_7_1"
 
 class CodeBuild(core.Construct):
+    # pylint: disable=no-value-for-parameter
+
     def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/adf-codebuild-role'.format(ADF_DEPLOYMENT_ACCOUNT_ID)
@@ -31,13 +35,7 @@ class CodeBuild(core.Construct):
             ) if target.get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=target.get(
-                    'properties', {}).get(
-                        'image') or getattr(
-                            _codebuild.LinuxBuildImage,
-                            map_params['default_providers']['build'].get(
-                                'properties', {}).get(
-                                    'image', "UBUNTU_14_04_PYTHON_3_7_1").upper()),
+                build_image=CodeBuild.determine_build_image(scope, target, map_params),
                 compute_type=target.get(
                     'properties', {}).get(
                         'size') or getattr(
@@ -60,7 +58,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(id),
                 project_name="adf-deploy-{0}".format(id),
                 timeout=core.Duration.minutes(_timeout),
-                role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role),
+                role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role, mutable=False),
                 build_spec=_codebuild.BuildSpec.from_source_filename(_spec_filename)
             )
             self.deploy = Action(
@@ -80,7 +78,7 @@ class CodeBuild(core.Construct):
             ) if map_params['default_providers']['build'].get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
             _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=getattr(_codebuild.LinuxBuildImage, map_params['default_providers']['build'].get('properties', {}).get('image', "UBUNTU_14_04_PYTHON_3_7_1")),
+                build_image=CodeBuild.determine_build_image(scope, target, map_params),
                 compute_type=getattr(_codebuild.ComputeType, map_params['default_providers']['build'].get('properties', {}).get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
@@ -108,7 +106,7 @@ class CodeBuild(core.Construct):
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
                 build_spec=_spec,
-                role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role)
+                role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role, mutable=False)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
                 name="Build",
@@ -123,6 +121,35 @@ class CodeBuild(core.Construct):
                     ).config
                 ]
             )
+
+    @staticmethod
+    def determine_build_image(scope, target, map_params):
+        specific_image = None
+        if target:
+            specific_image = (
+                target.get('properties', {}).get('image') or
+                map_params['default_providers']['deploy'].get(
+                    'properties', {}).get('image')
+            )
+        else:
+            specific_image = (
+                map_params['default_providers']['build'].get(
+                    'properties', {}).get('image')
+            )
+        if isinstance(specific_image, dict):
+            repo_arn = _ecr.Repository.from_repository_arn(
+                scope,
+                'custom_repo',
+                specific_image.get('repository_arn', ''),
+            )
+            return _codebuild.LinuxBuildImage.from_ecr_repository(
+                repo_arn,
+                specific_image.get('tag', 'latest'),
+            )
+        return getattr(
+            _codebuild.LinuxBuildImage,
+            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper(),
+        )
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
@@ -16,6 +16,7 @@ from pipeline import Pipeline
 from repo import Repo
 from rule import Rule
 from target import Target, TargetStructure
+from s3 import S3
 from logger import configure_logger
 from errors import ParameterNotFoundError
 from deployment_map import DeploymentMap
@@ -32,6 +33,7 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
+SHARED_MODULES_BUCKET = os.environ["SHARED_MODULES_BUCKET"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
@@ -174,8 +176,10 @@ def main():
         DEPLOYMENT_ACCOUNT_REGION,
         boto3
     )
+    s3 = S3(DEPLOYMENT_ACCOUNT_REGION, SHARED_MODULES_BUCKET)
     deployment_map = DeploymentMap(
         parameter_store,
+        s3,
         ADF_PIPELINE_PREFIX
     )
     sts = STS()

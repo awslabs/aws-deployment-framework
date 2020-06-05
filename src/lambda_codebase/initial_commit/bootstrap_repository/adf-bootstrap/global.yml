@@ -1,0 +1,319 @@
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ADF CloudFormation Template - Global Base - Cross Account Roles to Allow Access to CodePipeline in Deployment Account
+Parameters:
+  KMSArn:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: ARN of the KMS CMK created in the Deployment account
+    Default: kms_arn
+  DeploymentAccountId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Account ID
+    Default: deployment_account_id
+  DeploymentAccountBucketName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Bucket Name
+    Default: bucket_name
+Resources:
+  CodeCommitRole:
+    # This role is used to connect the Pipeline in the deployment account to CodeCommit in
+    # In the source account. If you are not using CodeCommit or are using it only for a specific
+    # OU you can target this more specifically and remove it from the global.yml
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codecommit-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-codecommit-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codecommit:BatchGetRepositories"
+              - "codecommit:CancelUploadArchive"
+              - "codecommit:Get*"
+              - "codecommit:GitPull"
+              - "codecommit:List*"
+              - "codecommit:UploadArchive"
+              - "codepipeline:StartPipelineExecution"
+              - "events:PutEvents"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "s3:Get*"
+              - "s3:List*"
+              - "s3:Put*"
+            Resource:
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
+          - Effect: Allow
+            Action:
+              - "kms:Decrypt"
+              - "kms:Describe*"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:Get*"
+              - "kms:List*"
+              - "kms:ReEncrypt*"
+            Resource: !Ref KMSArn
+      Roles:
+        - !Ref CodeCommitRole
+  CloudFormationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - cloudformation:*
+              - codedeploy:*
+              - iam:PassRole
+              - servicecatalog:CreateProvisioningArtifact
+              - servicecatalog:DeleteProvisioningArtifact
+              - servicecatalog:DescribeProvisioningArtifact
+              - servicecatalog:ListProvisioningArtifacts
+              - servicecatalog:UpdateProduct
+            Resource: "*"
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
+            Resource:
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Resource: !Ref KMSArn
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-cloudformation-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+  CloudFormationDeploymentPolicy:
+    # This is the policy that will be used to deploy CloudFormation resources from
+    # within the target account. You should scope this policy depending
+    # On what you would like to deploy within certain Organizational Units.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-deployment-role-policy-kms"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey*"
+              - "kms:ReEncrypt*"
+            Resource: !Ref "KMSArn"
+      Roles:
+        - !Ref CloudFormationDeploymentRole
+  CloudFormationDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-cloudformation-deployment-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Sid: "AssumeRoleLambda"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-lambda-role
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+            Action:
+              - sts:AssumeRole
+            Condition:
+                ArnEquals:
+                    'aws:SourceArn': !Sub 'arn:aws:codepipeline:${AWS::Region}:${DeploymentAccountId}:*'
+      Path: /
+  AdfAutomationRole:
+    # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
+    # This role is not assumed by CodeBuild in any other pipeline other than 'aws-deployment-framework-pipelines'
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-automation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+  AdfAutomationRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-automation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource:
+              - !Sub "arn:aws:s3:::${DeploymentAccountBucketName}/adf-build/templates/*"
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "cloudformation:CancelUpdateStack"
+              - "cloudformation:ContinueUpdateRollback"
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:CreateStack"
+              - "cloudformation:DeleteChangeSet"
+              - "cloudformation:DeleteStack"
+              - "cloudformation:DescribeChangeSet"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:ExecuteChangeSet"
+              - "cloudformation:SetStackPolicy"
+              - "cloudformation:SignalResource"
+              - "cloudformation:UpdateStack"
+              - "cloudformation:UpdateTerminationProtection"
+            Resource:
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
+              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
+          - Effect: Allow
+            Sid: "CodeCommit"
+            Action:
+              - "codecommit:CreateRepository"
+              - "codecommit:UpdateRepository"
+              - "codecommit:GetRepository"
+              - "codecommit:TagResource"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "Events"
+            Action:
+              - "events:DescribeRule"
+              - "events:EnableRule"
+              - "events:ListRules"
+              - "events:PutEvents"
+              - "events:PutRule"
+              - "events:PutTargets"
+              - "cloudformation:ValidateTemplate"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "SSM"
+            Action:
+              - "ssm:GetParameters"
+              - "ssm:GetParameter"
+            Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/bucket_name"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kms_arn"
+          - Effect: Allow
+            Sid: "IAM"
+            Action:
+              - "iam:CreateRole"
+              - "iam:CreateRolePolicy"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:GetRole"
+              - "iam:GetRolePolicy"
+              - "iam:PassRole"
+              - "iam:PutRolePolicy"
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
+      Roles:
+        - !Ref AdfAutomationRole
+  ReadOnlyAutomationRole:
+    # This role is used by CodeBuild on the Deployment Account for each of the deployment pipelines
+    # to gather information from other accounts. For example, certain intrinsic functions (resolve/import) allow fetching/reading data from other accounts CloudFormation stacks and Parameter Store values.
+    # This is the role that will be assumed in order to facilitate this scenario.
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-readonly-automation-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+  ReadOnlyAutomationRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-readonly-automation-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CloudFormation"
+            Action:
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:ValidateTemplate"
+            Resource:
+              - "*"
+      Roles:
+        - !Ref ReadOnlyAutomationRole
