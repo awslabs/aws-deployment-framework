@@ -16,6 +16,7 @@ from sts import STS
 from parameter_store import ParameterStore
 from logger import configure_logger
 from cloudformation import CloudFormation
+from paginator import paginator
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.environ.get('AWS_REGION')
@@ -28,9 +29,10 @@ def worker_thread(sts, region, account_id, role, event):
         'remove_base')
 
     parameter_store = ParameterStore(region, role)
-    parameters = [param['Name'] for param in parameter_store.client.describe_parameters()['Parameters'] if 'Used by The AWS Deployment Framework' in param['Description']]
-    for parameter in parameters:
-        parameter_store.delete_parameter(parameter)
+    for page in paginator(parameter_store.client.describe_parameters):
+        for parameter in page['Parameters']:
+            if 'Used by The AWS Deployment Framework' in parameter.get('Description', ''):
+                parameter_store.delete_parameter(parameter)
 
     cloudformation = CloudFormation(
         region=region,
