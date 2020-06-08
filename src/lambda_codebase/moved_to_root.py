@@ -32,7 +32,7 @@ def worker_thread(sts, region, account_id, role, event):
     for page in paginator(parameter_store.client.describe_parameters):
         for parameter in page['Parameters']:
             if 'Used by The AWS Deployment Framework' in parameter.get('Description', ''):
-                parameter_store.delete_parameter(parameter["Name"])
+                parameter_store.delete_parameter(parameter.get('Name'))
 
     cloudformation = CloudFormation(
         region=region,
