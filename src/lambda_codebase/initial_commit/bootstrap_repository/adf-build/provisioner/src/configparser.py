@@ -20,4 +20,5 @@ def read_config_files(folder):
                 config = yaml.safe_load(stream)
                 for account in config.get('accounts', []):
                     accounts.append(Account.load_from_config(account))
+
     return accounts

@@ -26,12 +26,8 @@ class Account:
         self.delete_default_vpc = delete_default_vpc
         self.allow_direct_move_between_ou = allow_direct_move_between_ou
         self.allow_billing = allow_billing
+        self.alias = alias
         self.support_level = support_level
-
-        if alias is None:
-            self.alias = full_name
-        else:
-            self.alias = alias
 
         if tags is None:
             self.tags = {}

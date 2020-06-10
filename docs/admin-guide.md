@@ -249,6 +249,8 @@ Along with Pipeline Parameters there can potentially be stage parameters if requ
           object_key: input.zip
       deploy:
         provider: s3
+    tags:
+      owner: john
     targets:
       - path: 222222222222
         regions: eu-west-1
