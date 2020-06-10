@@ -1,4 +1,4 @@
-# Types Guide
+# Providers Guide
 
 Types can be defined at the top level or at a stage level of a pipeline to structure the source, build, test, approval, deploy or invoke actions. Types defined in the stage of a pipeline override a default type that was defined at a top level. Types are the basic building blocks of the ADF pipeline creation process and allow for flexibility and abstraction over AWS CodePipeline Providers and Actions.
 
