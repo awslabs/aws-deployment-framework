@@ -444,7 +444,7 @@ Syntax:
 upload:${style}:${local_path}
 
 # Or, when you would like to choose a specific region:
-upload:${style}:${region}:${local_path}
+upload:${region}:${style}:${local_path}
 ```
 
 There are five different styles that one could choose from.
@@ -472,7 +472,7 @@ There are five different styles that one could choose from.
 The `region` is optional.
 This allows you to upload files to S3 Buckets within specific regions by
 adding in the region name as part of the string
-(eg. `upload:path:us-west-1:productY/template.yml`).
+(eg. `upload:us-west-1:path:productY/template.yml`).
 
 The `local_path` references the files that you would like to be uploaded from
 the location where `adf-build/generate-params.py` scripts gets executed from.
