@@ -22,6 +22,22 @@ class S3:
         self.resource = boto3.resource('s3', region_name=region)
         self.bucket = bucket
 
+    @staticmethod
+    def supported_path_styles():
+        """
+        Fetch the list of supported path styles.
+
+        Returns:
+            list(str): The list of supported path styles.
+        """
+        return [
+            'path',
+            's3-key-only',
+            's3-uri',
+            's3-url',
+            'virtual-hosted',
+        ]
+
     def build_pathing_style(self, style, key):
         if style == 's3-url':
             return "s3://{bucket}/{key}".format(
