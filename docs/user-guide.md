@@ -7,7 +7,7 @@
   - [Repositories](#repositories)
   - [Completion Triggers](#completion-triggers)
   - [Additional Deployment Maps](#additional-deployment-maps)
-  - [Removing Pipelines](#serverless-transforms)
+  - [Removing Pipelines](#removing-pipelines)
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [BuildSpec](#buildspec)
   - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
