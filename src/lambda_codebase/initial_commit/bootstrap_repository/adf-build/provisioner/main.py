@@ -9,7 +9,7 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 import boto3
-from src import read_config_files, delete_default_vpc
+from src import read_config_files, delete_default_vpc, Support
 from organizations import Organizations
 from logger import configure_logger
 from parameter_store import ParameterStore
@@ -26,6 +26,7 @@ def main():
         return
     LOGGER.info(f"Found {len(accounts)} account(s) in configuration file(s).")
     organizations = Organizations(boto3)
+    support = Support(boto3)
     all_accounts = organizations.get_accounts()
     parameter_store = ParameterStore(os.environ.get('AWS_REGION', 'us-east-1'), boto3)
     adf_role_name = parameter_store.fetch_parameter('cross_account_access_role')
@@ -34,10 +35,10 @@ def main():
             account_id = next(acc["Id"] for acc in all_accounts if acc["Name"] == account.full_name)
         except StopIteration: # If the account does not exist yet..
             account_id = None
-        create_or_update_account(organizations, account, adf_role_name, account_id)
+        create_or_update_account(organizations, support, account, adf_role_name, account_id)
 
 
-def create_or_update_account(org_session, account, adf_role_name, account_id=None):
+def create_or_update_account(org_session, support_session, account, adf_role_name, account_id=None):
     """Creates or updates a single AWS account.
     :param org_session: Instance of Organization class
     :param account: Instance of Account class
@@ -45,12 +46,15 @@ def create_or_update_account(org_session, account, adf_role_name, account_id=Non
     if not account_id:
         LOGGER.info(f'Creating new account {account.full_name}')
         account_id = org_session.create_account(account, adf_role_name)
+        # This only runs on account creation at the moment.
+        support_session.set_support_level_for_account(account, account_id)
+
     sts = STS()
     role = sts.assume_cross_account_role(
         'arn:aws:iam::{0}:role/{1}'.format(
             account_id,
             adf_role_name
-        ), 'delete_default_vpc'
+        ), 'adf_account_provisioning'
     )
 
     LOGGER.info(f'Ensuring account {account_id} (alias {account.alias}) is in OU {account.ou_path}')
