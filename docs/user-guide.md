@@ -1,13 +1,13 @@
 # User Guide
 
 - [Deployment Map](#deployment-map)
-  - [Types](#types)
+  - [Providers](#providers)
   - [Targets Syntax](#targets-syntax)
   - [Params](#params)
   - [Repositories](#repositories)
   - [Completion Triggers](#completion-triggers)
   - [Additional Deployment Maps](#additional-deployment-maps)
-  - [Removing Pipelines](#serverless-transforms)
+  - [Removing Pipelines](#removing-pipelines)
 - [Deploying via Pipelines](#deploying-via-pipelines)
   - [BuildSpec](#buildspec)
   - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
@@ -20,11 +20,20 @@
 
 ## Deployment Map
 
-The deployment_map.yml file *(or [files](#additional-deployment-maps))* lives in the repository named *aws-deployment-framework-pipelines* on the Deployment Account. These files are the general pipeline definitions that are responsible for mapping the specific pipelines to their deployment targets along with their respective parameters. The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) will synthesize during the CodeBuild step within the *aws-deployment-framework-pipelines* pipeline. Prior to the CDK creating these pipeline templates, a input generation step will run to parse the deployment_map.yml files, it will then assume a readonly role on the master account in the Organization that will have access to resolve the accounts in the AWS Organizations OU's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values into the input files that will go on to be main CDK applications inputs.
+The `deployment_map.yml` file *(or [files](#additional-deployment-maps))* lives in the repository named `aws-deployment-framework-pipelines` on the Deployment Account. These files are the general pipeline definitions that are responsible for mapping the specific pipelines to their deployment targets along with their respective parameters. The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) will synthesize during the CodeBuild step within the `aws-deployment-framework-pipelines` pipeline. Prior to the CDK creating these pipeline templates, a input generation step will run to parse the deployment_map.yml files, it will then assume a readonly role on the master account in the Organization that will have access to resolve the accounts in the AWS Organizations OU's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values into the input files that will go on to be main CDK applications inputs.
 
-The Deployment Map file defines the pipelines along with their inputs, types and parameters. it also defines the targets of the pipeline within a list type structure. Each entry in the *'targets'* key list represents a stage within the pipeline that will be created. The Deployment map files also allow for some unique steps and actions to occur in your pipeline. You can add an approval step to your pipeline by putting a step in your targets definition titled, *'approval'* this will add a manual approval stage at this point in your pipeline.
+The deployment map file defines the pipelines along with their inputs,
+providers to use and their configuration. It also defines the targets of the
+pipeline within a list type structure.
 
-A basic example of a *deployment_map.yml* would look like the following:
+Each entry in the `'targets'` key list represents a stage within the pipeline
+that will be created. The deployment map files also allow for some unique steps
+and actions to occur in your pipeline. For example, you can add an approval
+step to your pipeline by putting a step in your targets definition titled,
+`'approval'`. This will add a manual approval stage at this point in your
+pipeline.
+
+A basic example of a `deployment_map.yml` would look like the following:
 
 ```yaml
 pipelines:
@@ -60,15 +69,15 @@ pipelines:
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable *'auto-create-repositories'* (which is enabled by default). The pipeline *iam* pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
-The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with **/adf/**.
+The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
 
 By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
 #### Targeting via Tags
 
-Tags on AWS Accounts can also be used to define stages within a pipeline. For example, we might want to create a pipeline that targets all AWS Accounts with the tag **cost-center** and value of **foo-team**. *path/target* and *tags* should not be used in combination.
+Tags on AWS Accounts can also be used to define stages within a pipeline. For example, we might want to create a pipeline that targets all AWS Accounts with the tag `cost-center` and value of `foo-team`. You cannot use a combination of `path/target` and `tags`.
 
 We do that with the following syntax:
 
@@ -100,9 +109,11 @@ example `012345671234`, it will treat it as a octal number instead.
 Since this cannot be detected without making risky assumptions, the deployment
 will error to be on the safe side instead.
 
-### Types
+### Providers
 
-The ADF comes with an extensive set of abstractions over CodePipeline providers that can be used to define pipelines. For example, see the below pipeline definition:
+The ADF comes with an extensive set of abstractions over CodePipeline providers
+that can be used to define pipelines. For example, see the following pipeline
+definition:
 
 ```yaml
 pipelines:
@@ -124,11 +135,30 @@ pipelines:
           deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 ```
 
-The pipeline *sample-ec2-java-app-codedeploy* has a *default_providers* top level key that defines the high level structure of the pipeline. It explicitly defines the source *(requirement for all pipelines)* and also defines what type of build will occur along with any associated parameters. In this example, we're explicitly saying we want to use AWS CodeBuild *(which is also the default)* and also to use a specific Docker Image for build stage. The deploy type is also defined at the top level of this pipeline, in this case *codedeploy*. This means that any of the targets of the pipeline will use AWS CodeDeploy as their default [Deployment Provider](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#actions-valid-providers).
+The pipeline `sample-ec2-java-app-codedeploy` has a `default_providers` key
+that defines the high-level structure of the pipeline.
+It explicitly defines the source *(requirement for all pipelines)* and also
+defines what type of build will occur along with any associated parameters.
 
-In the targets section itself we have the opportunity to override the provider itself or pass in any additional properties to that provider. In this example we are passing in *application_name* and *deployment_group_name* as properties to CodeDeploy for this specific stage. properties can either be defined at the top level or used in the stage level to override top level values. By default, the build type is AWS CodeBuild and the deploy type is AWS CloudFormation.
+In this example, we're explicitly saying we want to use AWS CodeBuild
+*(which is also the default)* and also to use a specific Docker Image for build
+stage. The default deployment provider for this pipeline is configured to be
+`codedeploy` in this example. This means that any of the targets of the
+pipeline will use AWS CodeDeploy as their default
+[Deployment Provider](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#actions-valid-providers).
 
-For detailed information on types, see the [types guide](./types-guide.md).
+In the targets section itself we have the opportunity to override the provider
+itself or pass in any additional properties to that provider. In this example
+we are passing in `application_name` and *deployment_group_name* as properties
+to CodeDeploy for this specific stage. The `properties` can either be defined
+by changing the `default_providers` configuration or get updated at the stage
+level. Stage level config overrides default provider config.
+
+By default, the build provider is AWS CodeBuild and the deployment provider is
+AWS CloudFormation.
+
+For detailed information on providers and their supported properties, see the
+[providers guide](./providers-guide.md).
 
 ### Targets Syntax
 
@@ -149,7 +179,7 @@ targets:
   - target: 9999999999 # Target and Path keys can be used interchangeably
     regions: eu-west-1
     name: my-special-account # Defaults to adf-cloudformation-deployment-role
-    provider: some_provider # If you intend to override the provider for this stage (see types guide for available providers)
+    provider: some_provider # If you intend to override the provider for this stage (see providers guide for available providers)
     properties:
       my_prop: my_value # If you intend to pass properties to this specific stage
   - path: /my_ou/production # This can also be an array of OUs or AWS Account IDs
@@ -165,13 +195,13 @@ Pipelines also have parameters that don't relate to a specific stage but rather 
 
 The following are the available pipeline parameters:
 
-- **notification_endpoint**
+- *notification_endpoint* *(String)* defaults to none.
   > Can either be a valid email address or a string that represents the name of a Slack Channel. In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md) in the admin guide. By Default, Notifications will be sent when pipelines Start, Complete or Fail.
 
-- **schedule**
+- *schedule* *(String)* defaults to none.
   > If the Pipeline should execute on a specific Schedule. Schedules are defined by using a Rate or an Expression. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions) for more information on how to define Rate or an Expression.
 
-- **restart_execution_on_update** *(Boolean)*
+- *restart_execution_on_update* *(Boolean)* default: `False`.
   > If the Pipeline should start a new execution if its structure is updated. Pipelines can often update their structure if targets of the pipeline are Organizational Unit paths. This setting allows pipelines to automatically run once an AWS Account has been moved in or out of a targeted OU.
 
 ### Completion Triggers
@@ -248,7 +278,7 @@ In the example we have three steps to our install phase in our build, the remain
 
 Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
-If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline  by using the *inline_spec* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
+If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline by using the *spec_inline* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
 
 #### Custom Build Images
 You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild. This can be defined in the your deployment map files like so:

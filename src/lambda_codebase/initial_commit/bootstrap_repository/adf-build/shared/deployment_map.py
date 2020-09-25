@@ -81,13 +81,9 @@ class DeploymentMap:
         self.map_contents = {}
         self.map_contents['pipelines'] = []
         if os.path.isdir(self.map_dir_path):
-            for file in os.listdir(self.map_dir_path):
-                if file.endswith(".yml") and file != 'example-deployment_map.yml':
-                    self.determine_extend_map(
-                        self._read('{0}/{1}'.format(self.map_dir_path, file))
-                    )
+            self._process_dir(self.map_dir_path)
         self.determine_extend_map(
-            self._read() # Calling with default no args to get deployment_map.yml in root if it exists
+            self._read()  # Calling with default no args to get deployment_map.yml in root if it exists
         )
         if not self.map_contents['pipelines']:
             LOGGER.error(
@@ -95,3 +91,16 @@ class DeploymentMap:
                 "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
             )
             raise InvalidDeploymentMapError("No Deployment Map files found..") from None
+
+    def _process_dir(self, path):
+        files = [os.path.join(path, f) for f in os.listdir(path)]
+        for filename in files:
+            LOGGER.info(f"Processing {filename} in path {path}")
+            if os.path.isdir(filename):
+                self._process_dir(filename)
+            elif filename.endswith(".yml") and filename != "example-deployment_map.yml":
+                self.determine_extend_map(
+                    self._read(filename)
+                )
+            else:
+                LOGGER.warning(f"{filename} is not a directory and doesn't end in.yml")
