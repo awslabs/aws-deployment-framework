@@ -25,7 +25,7 @@ LOGGER = configure_logger(__name__)
 PIPELINE_TYPE = "default"
 
 
-def generate_standard_adf_pipeline(scope: core.Stack, stack_input):
+def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     _stages = []
 
     if stack_input["input"].get("params", {}).get("notification_endpoint"):
@@ -35,8 +35,54 @@ def generate_standard_adf_pipeline(scope: core.Stack, stack_input):
 
     _source_name = generate_source_stage_for_pipeline(_stages, scope, stack_input)
     generate_build_stage_for_pipeline(_stages, scope, stack_input)
-    print(stack_input["input"].get("environments", {}).get("targets", []))
-    for index, targets in enumerate(stack_input["input"].get("environments", {}).get("targets", [])):
+    generate_targets_for_pipeline(_stages, scope, stack_input)
+
+    _pipeline = adf_codepipeline.Pipeline(
+        scope, "code_pipeline", stack_input["input"], stack_input["ssm_params"], _stages
+    )
+    if "github" in _source_name:
+        adf_github.GitHub.create_webhook(scope, _pipeline.cfn, stack_input["input"])
+
+
+def generate_source_stage_for_pipeline(_stages, scope, stack_input):
+    _source_name = stack_input["input"]["default_providers"]["source"][
+        "provider"
+    ].lower()
+    if "codecommit" in _source_name:
+        _stages.append(
+            adf_codecommit.CodeCommit(scope, "source", stack_input["input"]).source
+        )
+    elif "github" in _source_name:
+        _stages.append(adf_github.GitHub(scope, "source", stack_input["input"]).source)
+    elif "s3" in _source_name:
+        _stages.append(adf_s3.S3(scope, "source", stack_input["input"]).source)
+    return _source_name
+
+
+def generate_build_stage_for_pipeline(_stages, scope, stack_input):
+    _build_name = (
+        stack_input["input"]["default_providers"]["build"].get("provider", "").lower()
+    )
+    build_enabled = stack_input["input"]["default_providers"]["build"].get("enabled", True)
+    if "codebuild" in _build_name and build_enabled:
+        _stages.append(
+            adf_codebuild.CodeBuild(
+                scope,
+                "build",
+                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["modules"],
+                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["kms"],
+                stack_input["input"],
+                {},  # Empty target since this is a build only stage
+            ).build
+        )
+    elif "jenkins" in _build_name:
+        _stages.append(adf_jenkins.Jenkins(scope, "build", stack_input["input"]).build)
+
+
+def generate_targets_for_pipeline(_stages, scope, stack_input):
+    for index, targets in enumerate(
+            stack_input["input"].get("environments", {}).get("targets", [])
+    ):
         _actions = []
         top_level_deployment_type = (
             stack_input["input"]
@@ -54,7 +100,6 @@ def generate_standard_adf_pipeline(scope: core.Stack, stack_input):
         )
 
         for target in targets:
-            print(target)
             target_stage_override = target.get("provider") or top_level_deployment_type
             if target.get("name") == "approval" or target.get("provider", "") == "approval":
                 _actions.extend(
@@ -112,23 +157,25 @@ def generate_standard_adf_pipeline(scope: core.Stack, stack_input):
             # per target.
             targets[0].get("step_name")
             or "{action_type_name}-stage-{index}".format(
-                action_type_name=_action_type_name, index=index + 1,
+                action_type_name=_action_type_name,
+                index=index + 1,
             )
         )
         _stages.append(
             _codepipeline.CfnPipeline.StageDeclarationProperty(
-                name=_stage_name, actions=_actions,
+                name=_stage_name,
+                actions=_actions,
             )
         )
 
-    _pipeline = adf_codepipeline.Pipeline(
-        scope, "code_pipeline", stack_input["input"], stack_input["ssm_params"], _stages
-    )
-    if "github" in _source_name:
-        adf_github.GitHub.create_webhook(scope, _pipeline.cfn, stack_input["input"])
 
-
-def generate_deployment_action_per_region(_actions, regions, stack_input, target, target_stage_override, top_level_action):
+def generate_deployment_action_per_region(_actions,
+                                          regions,
+                                          stack_input,
+                                          target,
+                                          target_stage_override,
+                                          top_level_action
+                                          ):
     for region in regions:
         if "cloudformation" in target_stage_override:
             target_approval_mode = target.get("properties", {}).get(
@@ -222,39 +269,3 @@ def generate_deployment_action_per_region(_actions, regions, stack_input, target
                     ).config
                 ]
             )
-
-
-def generate_build_stage_for_pipeline(_stages, scope, stack_input):
-    _build_name = (
-        stack_input["input"]["default_providers"]["build"].get("provider", "").lower()
-    )
-    if "codebuild" in _build_name and stack_input["input"]["default_providers"][
-            "build"
-    ].get("enabled", True):
-        _stages.append(
-            adf_codebuild.CodeBuild(
-                scope,
-                "build",
-                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["modules"],
-                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["kms"],
-                stack_input["input"],
-                {},  # Empty target since this is a build only stage
-            ).build
-        )
-    elif "jenkins" in _build_name:
-        _stages.append(adf_jenkins.Jenkins(scope, "build", stack_input["input"]).build)
-
-
-def generate_source_stage_for_pipeline(_stages, scope, stack_input):
-    _source_name = stack_input["input"]["default_providers"]["source"][
-        "provider"
-    ].lower()
-    if "codecommit" in _source_name:
-        _stages.append(
-            adf_codecommit.CodeCommit(scope, "source", stack_input["input"]).source
-        )
-    elif "github" in _source_name:
-        _stages.append(adf_github.GitHub(scope, "source", stack_input["input"]).source)
-    elif "s3" in _source_name:
-        _stages.append(adf_s3.S3(scope, "source", stack_input["input"]).source)
-    return _source_name

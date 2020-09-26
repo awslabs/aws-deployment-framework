@@ -10,7 +10,7 @@ from aws_cdk import (
 from cdk_constructs import adf_notifications
 from logger import configure_logger
 
-from cdk_stacks.adf_standard_pipelines import generate_standard_adf_pipeline as generate_default_pipeline, PIPELINE_TYPE as DEFAULT_PIPELINE
+from cdk_stacks.adf_default_pipeline import generate_adf_default_pipeline as generate_default_pipeline, PIPELINE_TYPE as DEFAULT_PIPELINE
 
 LOGGER = configure_logger(__name__)
 
