@@ -6,26 +6,23 @@
 """This file is pulled into CodeBuild containers
    and used to build the pipeline cloudformation stack inputs
 """
-
-import os
 import json
+import os
 from thread import PropagatingThread
-import boto3
 
+import boto3
+from cache import Cache
+from deployment_map import DeploymentMap
+from errors import ParameterNotFoundError
+from logger import configure_logger
+from organizations import Organizations
+from parameter_store import ParameterStore
 from pipeline import Pipeline
 from repo import Repo
 from rule import Rule
-from target import Target, TargetStructure
 from s3 import S3
-from logger import configure_logger
-from errors import ParameterNotFoundError
-from deployment_map import DeploymentMap
-from cache import Cache
-from cloudformation import CloudFormation
-from organizations import Organizations
 from sts import STS
-from parameter_store import ParameterStore
-
+from target import Target, TargetStructure
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
@@ -36,34 +33,6 @@ ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 SHARED_MODULES_BUCKET = os.environ["SHARED_MODULES_BUCKET"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
-
-
-def clean(parameter_store, deployment_map):
-    """
-    Function used to remove stale entries in Parameter Store and
-    Deployment Pipelines that are no longer in the Deployment Map
-    """
-    current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
-        '/deployment/')
-
-    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
-    cloudformation = CloudFormation(
-        region=DEPLOYMENT_ACCOUNT_REGION,
-        deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-        role=boto3
-    )
-    stacks_to_remove = []
-    for parameter in current_pipeline_parameters:
-        name = parameter.get('Name').split('/')[-2]
-        if name not in [p.get('name') for p in deployment_map.map_contents['pipelines']]:
-            parameter_store.delete_parameter(parameter.get('Name'))
-            stacks_to_remove.append(name)
-
-    for stack in list(set(stacks_to_remove)):
-        cloudformation.delete_stack("{0}{1}".format(
-            ADF_PIPELINE_PREFIX,
-            stack
-        ))
 
 
 def ensure_event_bus_status(organization_id):
@@ -190,7 +159,6 @@ def main():
         ), 'pipeline'
     )
     organizations = Organizations(role)
-    clean(parameter_store, deployment_map)
     ensure_event_bus_status(ORGANIZATION_ID)
     try:
         auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')

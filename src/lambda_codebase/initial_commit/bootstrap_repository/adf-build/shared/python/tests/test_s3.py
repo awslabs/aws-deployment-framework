@@ -9,12 +9,14 @@ from pytest import fixture, raises
 from mock import Mock, patch, mock_open
 from s3 import S3
 
+
 @fixture
 def us_east_1_cls():
     return S3(
         'us-east-1',
         'some_bucket'
     )
+
 
 @fixture
 def eu_west_1_cls():
@@ -24,6 +26,27 @@ def eu_west_1_cls():
     )
     return cls
 
+
+def test_supported_path_styles_path():
+    assert 'path' in S3.supported_path_styles()
+
+
+def test_supported_path_styles_s3_key_only():
+    assert 's3-key-only' in S3.supported_path_styles()
+
+
+def test_supported_path_styles_s3_uri():
+    assert 's3-uri' in S3.supported_path_styles()
+
+
+def test_supported_path_styles_s3_url():
+    assert 's3-url' in S3.supported_path_styles()
+
+
+def test_supported_path_styles_virtual_hosted():
+    assert 'virtual-hosted' in S3.supported_path_styles()
+
+
 def test_build_pathing_style_s3_url_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('s3-url', key) == \
@@ -31,6 +54,7 @@ def test_build_pathing_style_s3_url_us_east_1(us_east_1_cls):
             bucket=us_east_1_cls.bucket,
             key=key,
         )
+
 
 def test_build_pathing_style_s3_url_any_other_region(eu_west_1_cls):
     key = 'some/key'
@@ -40,6 +64,7 @@ def test_build_pathing_style_s3_url_any_other_region(eu_west_1_cls):
             key=key,
         )
 
+
 def test_build_pathing_style_s3_uri_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('s3-uri', key) == \
@@ -47,6 +72,7 @@ def test_build_pathing_style_s3_uri_us_east_1(us_east_1_cls):
             bucket=us_east_1_cls.bucket,
             key=key,
         )
+
 
 def test_build_pathing_style_s3_uri_any_other_region(eu_west_1_cls):
     key = 'some/key'
@@ -56,12 +82,14 @@ def test_build_pathing_style_s3_uri_any_other_region(eu_west_1_cls):
             key=key,
         )
 
+
 def test_build_pathing_style_s3_key_only_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('s3-key-only', key) == \
         "{key}".format(
             key=key,
         )
+
 
 def test_build_pathing_style_s3_key_only_any_other_region(eu_west_1_cls):
     key = 'some/key'
@@ -70,6 +98,7 @@ def test_build_pathing_style_s3_key_only_any_other_region(eu_west_1_cls):
             key=key,
         )
 
+
 def test_build_pathing_style_path_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('path', key) == \
@@ -77,6 +106,7 @@ def test_build_pathing_style_path_us_east_1(us_east_1_cls):
             bucket=us_east_1_cls.bucket,
             key=key,
         )
+
 
 def test_build_pathing_style_path_any_other_region(eu_west_1_cls):
     key = 'some/key'
@@ -87,6 +117,7 @@ def test_build_pathing_style_path_any_other_region(eu_west_1_cls):
             key=key,
         )
 
+
 def test_build_pathing_style_virtual_hosted_us_east_1(us_east_1_cls):
     key = 'some/key'
     assert us_east_1_cls.build_pathing_style('virtual-hosted', key) == \
@@ -94,6 +125,7 @@ def test_build_pathing_style_virtual_hosted_us_east_1(us_east_1_cls):
             bucket=us_east_1_cls.bucket,
             key=key,
         )
+
 
 def test_build_pathing_style_virtual_hosted_any_other_region(eu_west_1_cls):
     key = 'some/key'
@@ -103,6 +135,7 @@ def test_build_pathing_style_virtual_hosted_any_other_region(eu_west_1_cls):
             bucket=eu_west_1_cls.bucket,
             key=key,
         )
+
 
 def test_build_pathing_style_unknown_style(us_east_1_cls):
     key = 'some/key'
