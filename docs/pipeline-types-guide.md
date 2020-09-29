@@ -36,12 +36,13 @@ def generate_pipeline(self, _pipeline_type, stack_input):
 ```
 
 ###### adf-build/shared/schema_validation.py
+Add your new pipeline type here.
 ```python
 PARAM_SCHEMA: {
     ...
     ...
     
-    Optional("pipeline_type"): Or('Default', "CDK", "YourCustomTypeHere"),
+    Optional("pipeline_type"): Or("default", "cdk", "yourCustomTypeHere"),
     }
 
 ```
