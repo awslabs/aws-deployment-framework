@@ -1,10 +1,14 @@
 # Install libs here that you might want in AWS CodeBuild (On Master Account)
-boto3==1.12.46
-pylint~=2.2.2
-pytest~=3.0.7
-mock~=2.0.0
-pyyaml~=5.1
-astroid~=2.1.0
-six~=1.11.0
-aws-sam-cli==0.46.2
-pip==19.1.1
+astroid~=2.4.2
+awscli==1.18.140
+aws-sam-cli==1.15.0
+botocore==1.17.63
+boto3==1.14.63
+jsii<2.0.0,>=1.16.0
+mock~=4.0.3
+pip~=20.2.3
+pylint~=2.6.0
+pytest~=6.2.1
+pyyaml>=5.3
+six~=1.15.0
+urllib3~=1.25.11

@@ -156,8 +156,8 @@ class Organizations: # pylint: disable=R0904
                 OrganizationalUnitId=ou_id
             )
             return response['OrganizationalUnit']['Name']
-        except ClientError:
-            raise RootOUIDError("OU is the Root of the Organization")
+        except ClientError as error:
+            raise RootOUIDError("OU is the Root of the Organization") from error
 
     @staticmethod
     def determine_ou_path(ou_path, ou_child_name):
