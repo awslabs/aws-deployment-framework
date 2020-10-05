@@ -4,14 +4,22 @@ In order to enhance the flexibility of ADF, it's possible to define custom pipel
 
 The pipeline type can be (optionally) configured in the parameter section of the pipeline deployment map
 
+NB: 
+Pipeline types is a feature aimed at advanced users and developers of ADF. 
+Any custom changes made to the adf-bootstrap repository will have to be merged in when updating ADF versions. 
+
+
 ### Adding a new pipeline type
 
 A pipeline can either be added manually into the [cdk_stacks](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks) folder as a seperate python file or installed via [requirements.txt](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt) in the adf-build folder.
 
+
+
 #### Source Code
+This is the file that creates your CDK constructs. It takes in a single CDK stack that you can interact with and add constructs to. 
 ###### adf-build/shared/cdk/cdk_stacks/custom_pipeline.py
 ```python
-PIPELINE_TYPE = "YourCustomTypeHere"
+PIPELINE_TYPE = "yourCustomTypeHere"
 
 LOGGER = configure_logger(__name__)
 
@@ -20,6 +28,9 @@ def generate_custom_pipeline(scope: core.Stack, stack_input) -> None: #pylint: d
   # your custom CDK code here
 
 ```
+
+This file is where the pipeline type is used to select what CDK stack to deploy. 
+Import your generate function and pipeline type in and add it to the file as shown below. 
 ###### adf-build/shared/cdk/cdk_stacks/main.py
 ```python
 
@@ -35,25 +46,22 @@ def generate_pipeline(self, _pipeline_type, stack_input):
 
 ```
 
-###### adf-build/shared/schema_validation.py
 Add your new pipeline type here.
+###### adf-build/shared/schema_validation.py
 ```python
 PARAM_SCHEMA: {
     ...
     ...
     
-    Optional("pipeline_type"): Or("default", "cdk", "yourCustomTypeHere"),
+    Optional("pipeline_type"): Or("default", "yourCustomTypeHere"),
     }
 
 ```
-
-
-
+To use your new custom pipeline type, add a pipeline_type value to your params in the deployment_map as shown below. 
 ### Using a custom pipeline type
-
 ```YAML
 params:
   notification_endpoint: <endpoint_value>
   ...
-  pipeline_type: "YourCustomTypeHere"
+  pipeline_type: "yourCustomTypeHere"
   ```
