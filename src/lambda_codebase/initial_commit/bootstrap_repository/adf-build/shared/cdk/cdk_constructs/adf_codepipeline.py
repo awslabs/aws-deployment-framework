@@ -43,6 +43,8 @@ class Action:
         self.config = self.generate()
 
     def _generate_role_arn(self):
+        if self.category not in ['Build', 'Deploy']:
+            return None
         default_provider = self.map_params['default_providers'][self.category.lower()]
         specific_role = self.target.get('properties', {}).get('role') or default_provider.get('properties', {}).get('role')
         if specific_role:
