@@ -29,6 +29,7 @@ ORGANIZATION_CLIENT = boto3.client("organizations")
 SSM_CLIENT = boto3.client("ssm")
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
+MAX_RETRIES = 120  # => 120 retries * 5 seconds = 10 minutes
 
 
 class InvalidPhysicalResourceId(Exception):
@@ -113,8 +114,8 @@ def delete_(event, _context):
 def ensure_account(existing_account_id: str,
                    account_name: str,
                    account_email: str,
-                   cross_account_access_role_name: str) -> Tuple[AccountId,
-                                                                 bool]:
+                   cross_account_access_role_name: str,
+                   no_retries: int = 0) -> Tuple[AccountId, bool]:
     # If an existing account ID was provided, use that:
     if existing_account_id:
         return existing_account_id, False
@@ -137,17 +138,22 @@ def ensure_account(existing_account_id: str,
             IamUserAccessToBilling="ALLOW",
         )
     except ORGANIZATION_CLIENT.exceptions.ConcurrentModificationException as err:
-        LOGGER.info(err)
-        time.sleep(5)
-        ensure_account(
+        return handle_concurrent_modification(
+            err,
             existing_account_id,
             account_name,
             account_email,
-            cross_account_access_role_name)
+            cross_account_access_role_name,
+            no_retries + 1,
+        )
 
     request_id = create_account["CreateAccountStatus"]["Id"]
     LOGGER.info("Account creation requested, request ID: %s", request_id)
 
+    return wait_on_account_creation(request_id)
+
+
+def wait_on_account_creation(request_id: str) -> Tuple[AccountId, bool]:
     while True:
         account_status = ORGANIZATION_CLIENT.describe_create_account_status(
             CreateAccountRequestId=request_id
@@ -157,10 +163,36 @@ def ensure_account(existing_account_id: str,
             raise Exception("Failed to create account because %s" % reason)
         if account_status["CreateAccountStatus"]["State"] == "IN_PROGRESS":
             LOGGER.info(
-                "Account creation still in progress, waiting.. then calling again with %s",
+                "Account creation still in progress, waiting.. "
+                "then calling again with %s",
                 request_id)
             time.sleep(10)
         else:
             account_id = account_status["CreateAccountStatus"]["AccountId"]
             LOGGER.info("Account created: %s", account_id)
             return account_id, True
+
+
+def handle_concurrent_modification(
+    error: Exception,
+    existing_account_id: str,
+    account_name: str,
+    account_email: str,
+    cross_account_access_role_name: str,
+    no_retries: int = 0,
+) -> Tuple[AccountId, bool]:
+    LOGGER.info("Attempt %d - hit %s", no_retries + 1, error)
+    if no_retries > MAX_RETRIES:
+        LOGGER.error(
+            "Reached maximum number of retries to create the account. "
+            "Raising error to abort the execution."
+        )
+        raise error
+    time.sleep(5)
+    return ensure_account(
+        existing_account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+        no_retries + 1,
+    )

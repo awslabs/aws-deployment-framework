@@ -93,11 +93,13 @@ class Resolver:
         return True
 
     def upload(self, value, key, file_name):
-        if not any(item in value for item in ['path', 'virtual-hosted', 's3-key-only']):
+        if not any(item in value for item in S3.supported_path_styles()):
             raise Exception(
-                'When uploading to S3 you need to specify a '
-                'pathing style for the response either path or virtual-hosted, '
-                'read more: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html'
+                'When uploading to S3 you need to specify a path style'
+                'to use for the returned value to be used. '
+                'Supported path styles include: {supported_list}'.format(
+                    supported_list=S3.supported_path_styles(),
+                )
             ) from None
         if str(value).count(':') > 2:
             [_, region, style, value] = value.split(':')
