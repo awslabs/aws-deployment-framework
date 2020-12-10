@@ -15,6 +15,7 @@ from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_jenkins
 from cdk_constructs import adf_codecommit
 from cdk_constructs import adf_github
+from cdk_constructs import adf_codestar
 from cdk_constructs import adf_s3
 from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
@@ -45,6 +46,14 @@ class PipelineStack(core.Stack):
         elif 'github' in _source_name:
             _stages.append(
                 adf_github.GitHub(
+                    self,
+                    'source',
+                    stack_input['input']
+                ).source
+            )
+        elif 'codestar' in _source_name:
+            _stages.append(
+                adf_codestar.CodeStar(
                     self,
                     'source',
                     stack_input['input']

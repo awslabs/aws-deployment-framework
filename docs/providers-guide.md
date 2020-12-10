@@ -16,6 +16,7 @@ Providers and Actions.
   - [CodeCommit](#codecommit)
   - [GitHub](#github)
   - [S3](#s3)
+  - [CodeStar](#codestar)
 - [Build](#build)
   - [CodeBuild](#codebuild)
   - [Jenkins](#jenkins)
@@ -33,7 +34,7 @@ Providers and Actions.
 ```yaml
 default_providers:
   source:
-    provider: codecommit|github|s3
+    provider: codecommit|github|s3|codestar
     properties:
       # All provider specific properties go here.
 ```
@@ -125,6 +126,35 @@ Provider type: `s3`.
 - *object_key* - *(String)* **(required)**
   > The Specific Object within the bucket that will trigger the pipeline
   > execution.
+
+### CodeStar
+
+Use CodeStar as a source to trigger your pipeline.  The source action retrieves code changes when a pipeline is manually executed or when a webhook event is sent from the source provider. CodeStar Connections currently supports the following third-party repositories:
+
+- Bitbucket
+- GitHub and GitHub Enterprise Cloud
+- GitHub Enterprise Server
+
+The AWS CodeStar connection needs to already exist and be in the "Available" Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored in AWS Systems Manager Parameter Store in the deployment account's main region (see details below). Read the CodePipeline documentation for more [information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
+
+Provider type: `codestar`.
+#### Properties
+
+- *repository* - *(String)* defaults to name of the pipeline.
+  > The CodeStar repository name.
+  > For example, for the ADF repository it would be:
+  > `aws-deployment-framework`.
+- *branch* - *(String)* - default: `master`.
+  > The Branch on the third-party repository to use to trigger this specific
+  > pipeline.
+- *owner* - *(String)* **(required)**
+  > The name of the third-party user or organization who owns the third-party repository.
+  > For example, for the ADF repository that would be: `awslabs`.
+- *codestar_connection_path* - *(String)* **(required)**
+  > The CodeStar Connection ARN token path in AWS Systems Manager Parameter Store in the deployment account
+  > in the main region that holds the CodeStar Connection ARN that will be used to download the source
+  > code and create the web hook as part of the pipeline. Read the CodeStar Connections documentation
+  > for more [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
 
 ## Build
 

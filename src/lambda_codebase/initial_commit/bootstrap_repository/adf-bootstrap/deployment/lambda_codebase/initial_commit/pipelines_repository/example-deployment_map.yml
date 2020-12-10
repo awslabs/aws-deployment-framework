@@ -59,6 +59,18 @@ pipelines:
       - path: /banking/testing
         name: fancy-name
 
+  - name: sample-ecs-app
+    default_providers: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
+      source:
+        provider: codestar
+        properties:
+          repository: my-ecs-app # Optional, above name property will be used if this is not specified
+          owner: github-enterprise-team-org
+          codestar_connection_path: /ghes/connection1/arn # The path in AWS Systems Manager Parameter Store that holds the AWS CodeStar Connection arn
+    params:
+        notification_endpoint: ivan@ecorp.com
+    targets:
+      - [ /ecoin/testing, /ephone/testing ]
 
   - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
     default_providers:

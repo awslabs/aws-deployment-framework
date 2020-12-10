@@ -436,6 +436,10 @@ Resources:
             Resource:
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
+          - Effect: Allow
+            Action:
+              - "codestar-connections:*"
+            Resource: "*"
       Roles:
         - !Ref PipelineProvisionerCodeBuildRole
   CloudFormationRole:
@@ -894,6 +898,11 @@ Resources:
                         - elasticbeanstalk.amazonaws.com
                         - ec2.amazonaws.com
                         - ecs-tasks.amazonaws.com
+          - Effect: Allow
+            Sid: "AllowCodeStarConnections"
+            Action:
+              - "codestar-connections:*"
+            Resource: "*"
       Roles:
         - !Ref CodePipelineRole
   PipelineBucketPolicy:
