@@ -438,7 +438,12 @@ Resources:
               - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
           - Effect: Allow
             Action:
-              - "codestar-connections:*"
+              - "codestar-connections:GetConnection"
+              - "codestar-connections:GetHost"
+              - "codestar-connections:ListConnections"
+              - "codestar-connections:ListHosts"
+              - "codestar-connections:PassConnection"
+              - "codestar-connections:UseConnection"
             Resource: "*"
       Roles:
         - !Ref PipelineProvisionerCodeBuildRole
@@ -901,7 +906,12 @@ Resources:
           - Effect: Allow
             Sid: "AllowCodeStarConnections"
             Action:
-              - "codestar-connections:*"
+              - "codestar-connections:GetConnection"
+              - "codestar-connections:GetHost"
+              - "codestar-connections:ListConnections"
+              - "codestar-connections:ListHosts"
+              - "codestar-connections:PassConnection"
+              - "codestar-connections:UseConnection"
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole

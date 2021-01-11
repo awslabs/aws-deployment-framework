@@ -66,11 +66,11 @@ pipelines:
         properties:
           repository: my-ecs-app # Optional, above name property will be used if this is not specified
           owner: github-enterprise-team-org
-          codestar_connection_path: /ghes/connection1/arn # The path in AWS Systems Manager Parameter Store that holds the AWS CodeStar Connection arn
+          codestar_connection_path: /path/to/parameter # The path in AWS Systems Manager Parameter Store that holds the AWS CodeStar Connection arn
     params:
-        notification_endpoint: ivan@ecorp.com
+        notification_endpoint: team@example.com
     targets:
-      - [ /ecoin/testing, /ephone/testing ]
+      - [ /banking/testing, /banking/production ]
 
   - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
     default_providers:

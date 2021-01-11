@@ -14,12 +14,15 @@ from aws_cdk import (
 )
 
 from cdk_constructs import adf_events
+from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+
+LOGGER = configure_logger(__name__)
 
 class Action:
     _version = "1"
@@ -100,7 +103,7 @@ class Action:
             try:
                 response = ssm_client.get_parameter(Name=codestar_connection_path)
             except Exception as e:
-                print(f"No parameter found at {codestar_connection_path}. Check the path/value.")
+                LOGGER.error(f"No parameter found at {codestar_connection_path}. Check the path/value.")
                 raise e
             connection_arn = response['Parameter']['Value']
             return {

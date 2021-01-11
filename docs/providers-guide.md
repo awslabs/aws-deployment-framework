@@ -138,6 +138,7 @@ Use CodeStar as a source to trigger your pipeline.  The source action retrieves 
 The AWS CodeStar connection needs to already exist and be in the "Available" Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored in AWS Systems Manager Parameter Store in the deployment account's main region (see details below). Read the CodePipeline documentation for more [information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
 
 Provider type: `codestar`.
+
 #### Properties
 
 - *repository* - *(String)* defaults to name of the pipeline.
