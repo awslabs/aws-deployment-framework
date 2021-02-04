@@ -476,7 +476,6 @@ Resources:
                 python: 3.8
             pre_build:
               commands:
-                - apt-get update -qq
                 - pip install -r adf-build/requirements.txt --quiet
                 - pytest -vvv
             build:
