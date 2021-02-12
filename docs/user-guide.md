@@ -243,7 +243,28 @@ In the above example, the *ami-builder* pipeline runs every 7 days based on its 
 
 ### Additional Deployment Maps
 
-You can also create additional deployment map files. These can live in a folder in the pipelines repository called *deployment_maps*. These are entirely optional but can help split up complex environments with many pipelines. For example, you might have a map used for infrastructure type pipelines and one used for deploying applications. Taking it a step further, you can even create a map per service. These additional deployment map files can have any name, as long as they end with *.yml*.
+You can also create additional deployment map files.
+These can live in a folder in the pipelines repository called *deployment_maps*.
+These are entirely optional, but can help split up complex environments with many pipelines.
+
+For example, you might have a map used for infrastructure type pipelines and one used for deploying applications.
+These additional deployment map files can have any name, as long as they end with *.yml*.
+
+Taking it a step further, you can create a map per service.
+So you can organize these deployment map files inside your preferred directory structure
+For example, the `aws-deployment-framework-pipelines` repo could look like this:
+
+```
+deployment_maps/
+  security/
+    amazon-guardduty.yml
+    aws-config.yml
+  product-one/
+    roles/
+      some-role-pipeline.yml
+    infrastructure/
+      some-infra-pipeline.yml
+```
 
 ### Repositories
 
