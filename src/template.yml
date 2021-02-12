@@ -95,7 +95,7 @@ Resources:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
-      CompatibleRuntimes: 
+      CompatibleRuntimes:
         - python3.7
         - python3.8
       Description: "Shared Lambda Layer between master and deployment account"
@@ -109,16 +109,16 @@ Resources:
       Principal: "*"
   LambdaRole:
     Type: "AWS::IAM::Role"
-    Properties: 
-      AssumeRolePolicyDocument: 
+    Properties:
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Effect: "Allow"
-            Principal: 
-              Service: 
+            Principal:
+              Service:
                 - "states.amazonaws.com"
                 - "lambda.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRole"
   LambdaPolicy:
     Type: "AWS::IAM::ManagedPolicy"
@@ -176,7 +176,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   DetermineEventFunction:
     Type: 'AWS::Serverless::Function'
@@ -197,7 +197,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   CrossAccountExecuteFunction:
     Type: 'AWS::Serverless::Function'
@@ -218,7 +218,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 600
   RoleStackDeploymentFunction:
     Type: 'AWS::Serverless::Function'
@@ -237,7 +237,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   MovedToRootActionFunction:
     Type: 'AWS::Serverless::Function'
@@ -256,7 +256,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 900
   UpdateResourcePoliciesFunction:
     Type: 'AWS::Serverless::Function'
@@ -275,11 +275,11 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   CloudWatchEventsRule:
     Type: "AWS::Events::Rule"
-    Properties: 
+    Properties:
       Description: Triggers StateMachine on Move OU
       EventPattern:
         source:
@@ -333,9 +333,9 @@ Resources:
         Statement:
         - Effect: "Allow"
           Principal:
-            Service: 
+            Service:
               - "codebuild.amazonaws.com"
-          Action: 
+          Action:
             - "sts:AssumeRole"
       ManagedPolicyArns:
         - !Ref "CodeBuildPolicy"
@@ -417,7 +417,7 @@ Resources:
               - "arn:aws:s3:::adf-shared-modules-*-*/*"
           - Effect: "Allow"
             Action:
-              - "codebuild:*" 
+              - "codebuild:*"
             Resource:
               - !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
           - Effect: "Allow"
@@ -446,7 +446,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: false
-        Image: "aws/codebuild/standard:2.0"
+        Image: "aws/codebuild/standard:5.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: 3.0.6
@@ -460,23 +460,22 @@ Resources:
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET
             Value: !GetAtt SharedModulesBucketName.Value
-          - Name: ORGANIZATION_ID 
+          - Name: ORGANIZATION_ID
             Value: !GetAtt Organization.OrganizationId
-          - Name: ADF_LOG_LEVEL 
+          - Name: ADF_LOG_LEVEL
             Value: INFO
         Type: LINUX_CONTAINER
       Name: 'aws-deployment-framework-base-templates'
       ServiceRole: !Ref CodeBuildRole
       Source:
-        BuildSpec: !Sub | 
+        BuildSpec: !Sub |
           version: 0.2
           phases:
             install:
               runtime-versions:
-                python: 3.7
+                python: 3.8
             pre_build:
               commands:
-                - apt-get update -qq
                 - pip install -r adf-build/requirements.txt --quiet
                 - pytest -vvv
             build:
@@ -734,9 +733,9 @@ Resources:
       Description: "ADF Lambda Function - BootstrapCreateInitialCommitFunction"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
-              Action: 
+              Action:
                 - codecommit:CreateBranch
                 - codecommit:CreateCommit
                 - codecommit:CreatePullRequest
@@ -745,7 +744,7 @@ Resources:
                 - codecommit:GetDifferences
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: BootstrapCreateInitialCommitFunction
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   SharedModulesBucket:
     Type: Custom::CrossRegionBucket
@@ -773,14 +772,14 @@ Resources:
                 - cloudformation.amazonaws.com
   SharedModulesBucketName:
     Type: AWS::SSM::Parameter
-    Properties: 
+    Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
       Name: shared_modules_bucket
       Type: String
       Value: !GetAtt SharedModulesBucket.BucketName
   LogLevelSetting:
     Type: AWS::SSM::Parameter
-    Properties: 
+    Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
       Name: adf_log_level
       Type: String
@@ -793,7 +792,7 @@ Resources:
       Description: "ADF Lambda Function - Create Deployment Bucket in Main Deployment Region"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
               Action: s3:CreateBucket
               Resource: "*"
@@ -809,7 +808,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
       FunctionName: CrossRegionBucketHandler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   Organization:
     Type: Custom::Organization
@@ -823,7 +822,7 @@ Resources:
       Description: "ADF Lambda Function - Enable AWS Organizations"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
               Action:
                 - "organizations:CreateOrganization"
@@ -835,7 +834,7 @@ Resources:
               Action: "iam:CreateServiceLinkedRole"
               Resource: "arn:aws:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   DeploymentOrganizationUnit:
     Type: Custom::OrganizationUnit
@@ -851,7 +850,7 @@ Resources:
       Description: "ADF Lambda Function - Create Organization Unit"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
               Action:
                 - "organizations:CreateOrganizationalUnit"
@@ -859,7 +858,7 @@ Resources:
                 - "organizations:ListOrganizationalUnitsForParent"
               Resource: "*"
       FunctionName: OrganizationUnitHandler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   DeploymentAccount:
     Type: Custom::Account
@@ -878,7 +877,7 @@ Resources:
       Description: "ADF Lambda Function - Create Account"
       Policies:
         - Version: "2012-10-17"
-          Statement: 
+          Statement:
             - Effect: Allow
               Action:
                 - "organizations:CreateAccount"
@@ -888,7 +887,7 @@ Resources:
               Action: ssm:GetParameter
               Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
       FunctionName: AccountHandler
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   PipelineCloudWatchEventRole:
       Type: AWS::IAM::Role
@@ -909,7 +908,7 @@ Resources:
               Statement:
                 - Effect: Allow
                   Action: codepipeline:StartPipelineExecution
-                  Resource: !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ] 
+                  Resource: !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -929,7 +928,7 @@ Resources:
           referenceName:
             - master
       Targets:
-        - Arn: 
+        - Arn:
             !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-bootstrap

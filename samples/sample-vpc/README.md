@@ -9,6 +9,10 @@
         provider: codecommit
         properties:
           account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_4_0"
     params:
       restart_execution_on_update: True
     targets:

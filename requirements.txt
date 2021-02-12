@@ -1,9 +1,10 @@
-tox==2.2.1
-pylint==2.2.2
-pytest==3.0.7
-isort==4.3.21
-mock==2.0.0
-boto3~=1.10, >=1.10.47
-pyyaml>=5.1
-astroid==2.1.0
-schema==0.7.1
+astroid~=2.4.2
+botocore==1.17.63
+boto3==1.14.63
+isort==5.6.4
+mock~=4.0.3
+pylint~=2.6.0
+pytest~=6.2.1
+pyyaml>=5.3
+schema~=0.7.2
+tox==3.20.1
