@@ -9,6 +9,7 @@ phases:
       - python adf-build/generate_params.py
   build:
     commands:
+      - ./build-lambda.sh
       - bash adf-build/helpers/package_transform.sh
 artifacts:
   files: "**/*"
