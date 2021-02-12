@@ -110,7 +110,6 @@ def delete_(event, _context):
         return
 
 
-# pylint: disable=bad-continuation # https://github.com/PyCQA/pylint/issues/747
 def ensure_account(existing_account_id: str,
                    account_name: str,
                    account_email: str,

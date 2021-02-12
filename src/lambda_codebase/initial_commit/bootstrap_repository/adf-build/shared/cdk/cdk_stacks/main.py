@@ -96,7 +96,7 @@ class PipelineStack(core.Stack):
                         ).config
                     ])
                     continue
-                elif 'codebuild' in target_stage_override:
+                if 'codebuild' in target_stage_override:
                     _actions.extend([
                         adf_codebuild.CodeBuild(
                             self,
