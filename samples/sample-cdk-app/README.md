@@ -14,7 +14,7 @@ This pipeline is expecting *(in the example case)* a AWS CodeCommit repository o
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_2_0"
+          image: "STANDARD_4_0"
     targets:
       - /banking/testing
       - /banking/production
