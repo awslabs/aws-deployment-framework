@@ -35,7 +35,7 @@ class CodeBuild(core.Construct):
                 ADF_DEPLOYMENT_ACCOUNT_ID,
                 target.get('properties', {}).get('role')
             ) if target.get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
-            _timeout = target.get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
+            _timeout = target.get('properties', {}).get('timeout') or map_params['default_providers']['deploy'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
                 build_image=CodeBuild.determine_build_image(scope, target, map_params),
                 compute_type=target.get(
@@ -200,6 +200,10 @@ class CodeBuild(core.Construct):
         for _env_var in _build_env_vars.items():
             _output[_env_var[0]] = codebuild.BuildEnvironmentVariable(value=str(_env_var[1]))
         if target:
+            _deploy_env_vars = map_params.get('default_providers', {}).get('deploy', {}).get('properties', {}).get('environment_variables', {})
+            for _env_var in _deploy_env_vars.items():
+                _output[_env_var[0]] = codebuild.BuildEnvironmentVariable(value=str(_env_var[1]))
+
             _target_env_vars = target.get('properties', {}).get('environment_variables', {})
             for _target_env_var in _target_env_vars.items():
                 _output[_target_env_var[0]] = codebuild.BuildEnvironmentVariable(value=_target_env_var[1])
