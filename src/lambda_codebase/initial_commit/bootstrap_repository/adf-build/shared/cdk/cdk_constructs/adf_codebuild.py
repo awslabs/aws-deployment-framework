@@ -19,6 +19,8 @@ from cdk_constructs.adf_codepipeline import Action
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 DEFAULT_CODEBUILD_IMAGE = "UBUNTU_14_04_PYTHON_3_7_1"
+DEFAULT_BUILD_SPEC_FILENAME = 'buildspec.yml'
+DEFAULT_DEPLOY_SPEC_FILENAME = 'deployspec.yml'
 
 class CodeBuild(core.Construct):
     # pylint: disable=no-value-for-parameter
@@ -45,10 +47,10 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
                 privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
-            _spec_filename = (
-                target.get('properties', {}).get('spec_filename') or
-                map_params['default_providers']['deploy'].get('properties', {}).get('spec_filename') or
-                'deployspec.yml'
+            build_spec = CodeBuild.determine_build_spec(
+                id,
+                map_params['default_providers']['deploy'].get('properties', {}),
+                target,
             )
             _codebuild.PipelineProject(
                 self,
@@ -59,7 +61,7 @@ class CodeBuild(core.Construct):
                 project_name="adf-deploy-{0}".format(id),
                 timeout=core.Duration.minutes(_timeout),
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role, mutable=False),
-                build_spec=_codebuild.BuildSpec.from_source_filename(_spec_filename)
+                build_spec=build_spec,
             )
             self.deploy = Action(
                 name="{0}".format(id),
@@ -85,18 +87,10 @@ class CodeBuild(core.Construct):
             )
             if map_params['default_providers']['build'].get('properties', {}).get('role'):
                 ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['default_providers']['build'].get('properties', {}).get('role'))
-            _build_stage_spec = map_params['default_providers']['build'].get('properties', {}).get('spec_filename')
-            _build_inline_spec = map_params['default_providers']['build'].get(
-                'properties', {}).get(
-                    'spec_inline', '') or map_params['default_providers']['build'].get(
-                        'properties', {}).get(
-                            'spec_inline', '')
-            if _build_stage_spec:
-                _spec = _codebuild.BuildSpec.from_source_filename(_build_stage_spec)
-            elif _build_inline_spec:
-                _spec = _codebuild.BuildSpec.from_object(_build_inline_spec)
-            else:
-                _spec = None
+            build_spec = CodeBuild.determine_build_spec(
+                id,
+                map_params['default_providers']['build'].get('properties', {})
+            )
             _codebuild.PipelineProject(
                 self,
                 'project',
@@ -105,7 +99,7 @@ class CodeBuild(core.Construct):
                 description="ADF CodeBuild Project for {0}".format(map_params['name']),
                 project_name="adf-build-{0}".format(map_params['name']),
                 timeout=core.Duration.minutes(_timeout),
-                build_spec=_spec,
+                build_spec=build_spec,
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role, mutable=False)
             )
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -121,6 +115,49 @@ class CodeBuild(core.Construct):
                     ).config
                 ]
             )
+
+    @staticmethod
+    def _determine_stage_build_spec(codebuild_id, props, stage_name, default_filename):
+        filename = props.get('spec_filename')
+        spec_inline = props.get('spec_inline', {})
+        if filename and spec_inline:
+            raise Exception(
+                "The spec_filename and spec_inline are both present "
+                "inside the {0} stage definition of {1}. "
+                "Whereas only one of these two is allowed.".format(
+                    stage_name,
+                    codebuild_id,
+                ),
+            )
+
+        if spec_inline:
+            return _codebuild.BuildSpec.from_object(spec_inline)
+
+        return _codebuild.BuildSpec.from_source_filename(
+            filename or default_filename,
+        )
+
+    @staticmethod
+    def determine_build_spec(codebuild_id, default_props, target=None):
+        if target:
+            target_props = target.get('properties', {})
+            if 'spec_inline' in target_props or 'spec_filename' in target_props:
+                return CodeBuild._determine_stage_build_spec(
+                    codebuild_id=codebuild_id,
+                    props=target_props,
+                    stage_name='deploy target',
+                    default_filename=DEFAULT_DEPLOY_SPEC_FILENAME,
+                )
+        return CodeBuild._determine_stage_build_spec(
+            codebuild_id=codebuild_id,
+            props=default_props,
+            stage_name='default {}'.format('deploy' if target else 'build'),
+            default_filename=(
+                DEFAULT_DEPLOY_SPEC_FILENAME
+                if target
+                else DEFAULT_BUILD_SPEC_FILENAME
+            ),
+        )
 
     @staticmethod
     def determine_build_image(scope, target, map_params):

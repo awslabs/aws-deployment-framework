@@ -13,7 +13,7 @@ export class LambdaCronStack extends cdk.Stack {
       code: new lambda.InlineCode(fs.readFileSync('handler.py', { encoding: 'utf-8' })),
       handler: 'index.main',
       timeout: cdk.Duration.seconds(300),
-      runtime: lambda.Runtime.PYTHON_3_7
+      runtime: lambda.Runtime.PYTHON_3_8
     });
     // Run every day at 6PM UTC
     // See https://docs.aws.amazon.com/lambda/latest/dg/tutorial-scheduled-events-schedule-expressions.html

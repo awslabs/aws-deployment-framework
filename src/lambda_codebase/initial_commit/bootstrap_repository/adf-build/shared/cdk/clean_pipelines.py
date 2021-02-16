@@ -74,7 +74,7 @@ def main():
         ADF_PIPELINE_PREFIX
     )
 
-    LOGGER.info(f'Cleaning Stale Deployment Map entries')
+    LOGGER.info('Cleaning Stale Deployment Map entries')
     clean(parameter_store, deployment_map)
 
 
