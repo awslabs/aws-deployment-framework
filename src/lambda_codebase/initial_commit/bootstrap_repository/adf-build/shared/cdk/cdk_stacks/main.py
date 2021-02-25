@@ -24,6 +24,7 @@ class PipelineStack(core.Stack):
         if stack_input['input'].get('params', {}).get('notification_endpoint'):
             stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
 
+
         self.generate_pipeline(_pipeline_type, stack_input)
 
     def generate_pipeline(self, _pipeline_type, stack_input):

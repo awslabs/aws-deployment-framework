@@ -203,7 +203,7 @@ class CloudFormation(StackProperties):
                 return True
             return False
         except ClientError as error:
-            raise GenericAccountConfigureError(error)
+            raise GenericAccountConfigureError(error) from error
         except WaiterError as error:
             err = error.last_response
             if CloudFormation._change_set_failed_due_to_empty(err["Status"], err["StatusReason"]):

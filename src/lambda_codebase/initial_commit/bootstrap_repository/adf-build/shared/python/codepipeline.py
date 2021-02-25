@@ -25,8 +25,9 @@ class CodePipeline():
                 name=pipeline_name
             )
 
-            return [i for i in response.get(
-                'stageStates')][0]['latestExecution']['status']
+            return list(
+                response.get('stageStates')
+            )[0]['latestExecution']['status']
         except KeyError:
             LOGGER.error('Pipeline status for %s could not be determined', pipeline_name)
             return None
