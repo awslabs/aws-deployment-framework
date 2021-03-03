@@ -275,62 +275,93 @@ class Action:
             "region": self.region or ADF_DEPLOYMENT_REGION,
             "run_order": self.run_order
         }
+        input_artifacts = self._get_input_artifacts()
+        if input_artifacts:
+            action_props["input_artifacts"] = input_artifacts
+        output_artifacts = self._get_output_artifacts()
+        if output_artifacts:
+            action_props["output_artifacts"] = output_artifacts
         if _role:
             action_props["role_arn"] = _role
         if self.category == 'Manual':
             del action_props['region']
-        if self.category == 'Build' and not self.target:
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="output-source"
-                )
-            ]
-            action_props["output_artifacts"] = [
-                _codepipeline.CfnPipeline.OutputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-        if self.category == 'Build' and self.target:
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
-                action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.InputArtifactProperty(
-                        name="output-source"
-                    )
-                ]
-        if self.category == 'Deploy':
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-            if self.provider == "CloudFormation" and self.target.get('properties', {}).get('outputs') and self.action_mode != 'CHANGE_SET_REPLACE':
-                action_props["output_artifacts"] = [
-                    _codepipeline.CfnPipeline.OutputArtifactProperty(
-                        name=self.target.get('properties', {}).get('outputs')
-                    )
-                ]
-            for override in self.target.get('properties', {}).get('param_overrides', []):
-                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
-                    action_props["input_artifacts"].append(
-                        _codepipeline.CfnPipeline.InputArtifactProperty(
-                            name=override.get('inputs')
-                        )
-                    )
-        if self.category == 'Source':
-            action_props["output_artifacts"] = [
-                _codepipeline.CfnPipeline.OutputArtifactProperty(
-                    name="output-source"
-                )
-            ]
 
         return _codepipeline.CfnPipeline.ActionDeclarationProperty(
             **action_props
         )
+
+    def _get_base_input_artifact_name(self):
+        """
+        Determine the name for the input artifact for this action.
+
+        Returns:
+            str: The output artifact name as a string
+        """
+        use_output_source = (
+            not self.target or
+            not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True)
+        )
+        if use_output_source:
+            return "output-source"
+        return "{0}-build".format(self.map_params['name'])
+
+    def _get_input_artifacts(self):
+        """
+        Generate the list of input artifacts that are required for this action
+
+        Returns:
+            list<CfnPipeline.InputArtifactProperty>: The Input Artifacts
+        """
+        if not self.category in ['Build', 'Deploy']:
+            return []
+        input_artifacts = [
+            _codepipeline.CfnPipeline.InputArtifactProperty(
+                name=self._get_base_input_artifact_name(),
+            ),
+        ]
+        if self.category == 'Deploy':
+            for override in self.target.get('properties', {}).get('param_overrides', []):
+                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
+                    input_artifacts.append(
+                        _codepipeline.CfnPipeline.InputArtifactProperty(
+                            name=override.get('inputs')
+                        )
+                    )
+        return input_artifacts
+
+    def _get_base_output_artifact_name(self):
+        """
+        Determine the name for the output artifact for this action.
+
+        Returns:
+            str: The output artifact name as a string
+        """
+        if self.category == 'Source':
+            return "output-source"
+        if self.category == 'Build' and not self.target:
+            return "{0}-build".format(self.map_params['name'])
+        if self.category == 'Deploy' and self.provider == "CloudFormation":
+            outputs_name = self.target.get('properties', {}).get('outputs', '')
+            if outputs_name and self.action_mode != 'CHANGE_SET_REPLACE':
+                return outputs_name
+        return ''
+
+    def _get_output_artifacts(self):
+        """
+        Generate the list of output artifacts that are required for this action
+
+        Returns:
+            list<CfnPipeline.OutputArtifactProperty>: The Output Artifacts
+        """
+        output_artifact_name = self._get_base_output_artifact_name()
+        if output_artifact_name:
+            return [
+                _codepipeline.CfnPipeline.OutputArtifactProperty(
+                    name=output_artifact_name
+                ),
+            ]
+        return []
+
 
 class Pipeline(core.Construct):
     _import_arns = [
