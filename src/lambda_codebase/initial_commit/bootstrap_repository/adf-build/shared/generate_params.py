@@ -62,7 +62,7 @@ class Parameters:
     def create_parameter_files(self):
         for account, ou in self.account_ous.items():
             for region in self.regions:
-                compare_params = {}
+                compare_params = {'Parameters': {}, 'Tags': {}}
                 compare_params = self._param_updater(
                     Parameters._parse("{0}/params/{1}".format(self.cwd, "{0}_{1}".format(account, region))),
                     compare_params,
