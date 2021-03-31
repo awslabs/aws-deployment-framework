@@ -72,16 +72,16 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !GetAtt Organization.OrganizationId
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
+              - !GetAtt BootstrapTemplatesBucket.Arn
+              - !Sub "${BootstrapTemplatesBucket.Arn}/*"
             Principal:
               AWS: "*"
           - Action:
               - s3:PutObject*
             Effect: Allow
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
+              - !GetAtt BootstrapTemplatesBucket.Arn
+              - !Sub "${BootstrapTemplatesBucket.Arn}/*"
             Principal:
               AWS: !Ref AWS::AccountId
   BootstrapArtifactStorageBucket:
@@ -434,16 +434,18 @@ Resources:
               - "s3:ListBucket"
               - "s3:PutObject"
             Resource:
-              - !Sub "arn:${AWS::Partition}:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*"
-              - !Sub "arn:${AWS::Partition}:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*/*"
+              - !GetAtt "BootstrapTemplatesBucket.Arn"
+              - !Sub "${BootstrapTemplatesBucket.Arn}/*"
               - !GetAtt BootstrapArtifactStorageBucket.Arn
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
-              - !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*-*"
-              - !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*-*/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}"
+              - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}/*"
           - Effect: "Allow"
             Action:
               - "codebuild:*"
             Resource:
+              # Hardcoded name (instead of !GetAtt CodeBuildProject.Arn)to avoid a circular dependency.
+              # Converting this to an inline policy can break the circle
               - !Sub "arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
           - Effect: "Allow"
             Action:
@@ -536,7 +538,7 @@ Resources:
                 - Name: "TemplateSource"
               Configuration:
                 BranchName: "master"
-                RepositoryName: 'aws-deployment-framework-bootstrap'
+                RepositoryName: !GetAtt CodeCommitRepository.Name
                 PollForSourceChanges: false
               RunOrder: 1
         - Name: UploadAndUpdateBaseStacks
@@ -823,10 +825,13 @@ Resources:
                 - s3:PutEncryptionConfiguration
                 - s3:PutBucketPolicy
                 - s3:PutBucketPublicAccessBlock
-              Resource: !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*"
+              # This must match BucketNamePrefix of the SharedModulesBucket resource
+              Resource: !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-${DeploymentAccountMainRegion}-*"
             - Effect: Allow
               Action: ssm:GetParameter
               Resource:
+                # Hardcoded name (instead of ${SharedModulesBucketName})to avoid a circular dependency.
+                # Converting this to an inline policy can break the circle
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
       FunctionName: CrossRegionBucketHandler
@@ -940,7 +945,7 @@ Resources:
         detail-type:
           - 'CodeCommit Repository State Change'
         resources:
-          - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
+          - !GetAtt CodeCommitRepository.Arn
         detail:
           event:
             - referenceCreated
