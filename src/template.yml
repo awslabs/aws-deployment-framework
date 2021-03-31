@@ -345,7 +345,6 @@ Resources:
               - "codecommit:List*"
               - "codecommit:CancelUploadArchive"
               - "codecommit:UploadArchive"
-              - "s3:Get"
             Resource: "*"
       Roles:
         - !Ref CodeCommitRole
