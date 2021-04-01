@@ -21,7 +21,8 @@ CFN_CONFIG = Config(
         max_attempts=10
     )
 )
-CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9:/._+]")
+# A stack name can contain only alphanumeric characters (case sensitive) and hyphens.
+CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 
 class StackProperties:
     clean_stack_status = [
