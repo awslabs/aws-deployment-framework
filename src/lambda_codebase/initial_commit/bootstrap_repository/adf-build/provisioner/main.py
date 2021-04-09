@@ -9,12 +9,12 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 import boto3
+import tenacity
 from organizations import Organizations
 from logger import configure_logger
 from parameter_store import ParameterStore
 from sts import STS
 from src import read_config_files, delete_default_vpc, Support
-import tenacity
 
 
 LOGGER = configure_logger(__name__)
@@ -89,7 +89,10 @@ def create_or_update_account(org_session, support_session, account, adf_role_nam
         org_session.create_account_tags(account_id, account.tags)
 
 
-@tenacity.retry(wait=tenacity.wait_fixed(5), stop=tenacity.stop_after_attempt(60))
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(9),
+    wait=tenacity.wait_random_exponential(),
+)
 def get_all_regions(ec2_client):
     try:
         all_regions = [
@@ -109,8 +112,7 @@ def get_all_regions(ec2_client):
         LOGGER.info(f'Regions are: {all_regions}')
         return all_regions
     except Exception as ce:
-        print(ce)
-        LOGGER.info(f'I am going to retry')
+        LOGGER.info('Failed to describe regions: %s, retrying...', ce)
         raise
 
 

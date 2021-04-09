@@ -38,10 +38,12 @@ def vpc_cleanup(account_id, vpcid, role, region):
         # Delete vpc
         ec2client.delete_vpc(VpcId=vpcid)
         LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
-    except exceptions.ClientError as ce:
-        print(ce)
-        LOGGER.warning(f"WARNING: cannot delete VPC {vpcid} in account {account_id}")
-        pass
+    except exceptions.ClientError:
+        LOGGER.warning(
+            f"WARNING: cannot delete VPC {vpcid} in account {account_id}",
+            exc_info=True,
+        )
+        raise
 
 
 def delete_default_vpc(client, account_id, region, role):
