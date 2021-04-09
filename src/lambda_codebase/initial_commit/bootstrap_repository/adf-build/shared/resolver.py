@@ -35,11 +35,13 @@ class Resolver:
     def fetch_stack_output(self, value, key, optional=False): # pylint: disable=too-many-statements
         try:
             [_, account_id, region, stack_name, output_key] = str(value).split(':')
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
-                "{0} is not a valid import string."
-                "syntax should be import:account_id:region:stack_name:output_key".format(str(value))
-            )
+                "{0} is not a valid import string. Syntax should be "
+                "import:account_id:region:stack_name:output_key".format(
+                    str(value),
+                )
+            ) from error
         if Resolver._is_optional(output_key):
             LOGGER.info("Parameter %s is considered optional", output_key)
             optional = True
@@ -84,20 +86,25 @@ class Resolver:
                         )
                     )
                 self.stage_parameters[parent_key][key] = stack_output
-        except IndexError:
+        except IndexError as error:
             if stack_output:
                 if self.stage_parameters.get(key):
                     self.stage_parameters[key] = stack_output
             else:
-                raise Exception("Could not determine the structure of the file in order to import from CloudFormation")
+                raise Exception(
+                    "Could not determine the structure of the file in order "
+                    "to import from CloudFormation",
+                ) from error
         return True
 
     def upload(self, value, key, file_name):
-        if not any(item in value for item in ['path', 'virtual-hosted', 's3-key-only']):
+        if not any(item in value for item in S3.supported_path_styles()):
             raise Exception(
-                'When uploading to S3 you need to specify a '
-                'pathing style for the response either path or virtual-hosted, '
-                'read more: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html'
+                'When uploading to S3 you need to specify a path style'
+                'to use for the returned value to be used. '
+                'Supported path styles include: {supported_list}'.format(
+                    supported_list=S3.supported_path_styles(),
+                )
             ) from None
         if str(value).count(':') > 2:
             [_, region, style, value] = value.split(':')

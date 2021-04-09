@@ -18,6 +18,7 @@ The OU name is the name of the direct parent of the account. If you want to move
 - Create and update account alias.
 - Account tagging.
 - Allow the account access to view its own billing.
+- Set up support subscriptions during account provisioning
 
 ### Currently not supported
 
@@ -25,6 +26,7 @@ The OU name is the name of the direct parent of the account. If you want to move
 - Updating account email addresses
 - Removing accounts
 - Handling root account credentials and MFA
+- Changing the support subscription of an account.
 
 ### Configuration Parameters
 
@@ -33,6 +35,9 @@ The OU name is the name of the direct parent of the account. If you want to move
 - `email`: Email associated by the account, must be valid otherwise it is not possible to access as root user when needed
 - `delete_default_vpc`: `True|False` if Default VPCs need to be delete from all AWS Regions.
 - `allow_billing`: `True|False` if the account see its own costs within the organization.
+- `support_level`: `basic|enterprise` ADF will raise a ticket to add the account to an existing AWS support subscription when an account is created. Currently only supports basic or enterprise.
+ **NB: This is for activating enterprise support on account creation only. As a prerequisite your organization master account must already have enterprise support activated**
+
 - `alias`: AWS account alias. Must be unique globally otherwise cannot be created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html) for further details. If the account alias is not created or already exists, in the Federation login page, no alias will be presented
 - `tags`: list of tags associate to the account.
 
@@ -47,6 +52,7 @@ accounts:
     email: prod-team-1@company.com
     allow_billing: False
     delete_default_vpc: True
+    support_level: enterprise
     alias: prod-company-1
     tags:
       - created_by: adf
@@ -62,6 +68,7 @@ accounts:
     email: test-team-1@company.com
     allow_billing: True
     delete_default_vpc: False
+    support_level: basic
     alias: test-company-11
     tags:
       - created_by: adf

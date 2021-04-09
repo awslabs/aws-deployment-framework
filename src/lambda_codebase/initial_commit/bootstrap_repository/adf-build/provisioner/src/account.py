@@ -17,6 +17,7 @@ class Account:
             delete_default_vpc=False,
             allow_direct_move_between_ou=False,
             allow_billing=True,
+            support_level='basic',
             tags=None
     ):
         self.full_name = full_name
@@ -26,6 +27,7 @@ class Account:
         self.allow_direct_move_between_ou = allow_direct_move_between_ou
         self.allow_billing = allow_billing
         self.alias = alias
+        self.support_level = support_level
 
         if tags is None:
             self.tags = {}
@@ -51,6 +53,9 @@ class Account:
             allow_billing=config.get(
                 "allow_billing",
                 True),
+            support_level=config.get(
+                "support_level",
+                'basic'),
             tags=config.get(
                 "tags",
                 {}))

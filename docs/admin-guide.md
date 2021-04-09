@@ -26,6 +26,7 @@
   - [Pipeline Parameters](#pipeline-parameters)
   - [Chaining Pipelines](#chaining-pipelines)
 - [Integrating Slack](#integrating-slack)
+- [Check Current Version](#check-current-version)
 - [Updating Between Versions](#updating-between-versions)
 - [Removing ADF](#removing-adf)
 
@@ -361,11 +362,75 @@ pipelines:
         name: omg_production
 ```
 
+## Check Current Version
+
+To determine the current version, follow these steps:
+
+### ADF version you have deployed
+
+To check the current version of ADF that you have deployed, go to the management
+account in us-east-1.
+Check the CloudFormation stack output or tag of the `serverlessrepo-aws-deployment-framework` Stack.
+
+* In the outputs tab, it will show the version as the `ADFVersionNumber`.
+* In the tags on the CloudFormation stack, it is presented as `serverlessrepo:semanticVersion`.
+
+### Latest ADF version that is available
+
+If you want to check which version is the latest one available, go to the management account in us-east-1:
+1. Navigate to the AWS Deployment Framework Serverless Application Repository *(SAR)*, it can be found [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
+1. You can find the latest version in the title of the page, like so: `aws-deployment-framework — version x.y.z`.
+
 ## Updating Between Versions
 
-To update ADF between releases, open the Serverless Application Repository *(SAR)* on the master account in **us-east-1**. From here, search for *adf* and click deploy. During an update of ADF there is no need to pass in any parameters other than the defaults *(granted you used the defaults to deploy initially)*.
+Go to the management account in us-east-1:
 
-This will cause your *serverlessrepo-aws-deployment-framework* stack to update with any new changes that were included in that release of ADF. However, there might be changes to some of the foundational aspects of ADF and how it works *(eg CDK Constructs)*, because of this, there might be changes to the files that live within the *bootstrap* repository in your AWS account. To do this, AWS CloudFormation will run the *InitialCommit* Custom CloudFormation resource when updating via the SAR, this resource will open a pull request against the current *master* branch on the *bootstrap* repository with a set of changes that you can optionally choose to merge. If those changes are merged into master, the bootstrap pipeline will run to finalize the update to the latest version.
+1. Navigate to the AWS Deployment Framework Serverless Application Repository *(SAR)*, it can be found [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
+1. Tick the box at the bottom that states: "I acknowledge that this app creates custom IAM roles and resource policies."
+1. Keep all other form fields as is. Unless you changed the default parameters that are set initially, in that case you need to supply the same values here too.
+1. Click the Deploy button.
+
+This will take a few minutes to deploy and kick-off your SAR deployment using CloudFormation.
+Leave the browser window open until it changes pages.
+
+Your `serverlessrepo-aws-deployment-framework` stack is updating
+with new changes that were included in that release of ADF.
+
+To check the progress in the management account in us-east-1, follow these steps:
+1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=serverlessrepo-aws-deployment-framework&viewNested=true&hideStacks=false) searching for the aws-deployment-framework stack.
+1. Open the stack named: `serverlessrepo-aws-deployment-framework`.
+1. In the overview of the stack, it reports it current state, `UPDATE_COMPLETE` with a recent `Updated time` is what you want to see.
+1. If it is in progress or if it hasn't applied the update yet, you can go to the `Events` tab to see what is happening and if any error happened. Use the refresh button on the top right of the table to retrieve updates on the stack deployment.
+
+Once finished, you need to merge the pull request after reviewing the changes if any are present.
+Since there might be changes to some of the foundational aspects of ADF and
+how it works *(eg CDK Constructs)*. These changes might need to be applied to
+the files that live within the *bootstrap* repository in your AWS management account too.
+
+To ease this process, the AWS CloudFormation stack will run the *InitialCommit*
+Custom CloudFormation resource when updating via the SAR. This resource will
+open a pull request against the current *master* branch on the *bootstrap*
+repository with a set of changes that you can optionally choose to merge.
+If those changes are merged into master, the bootstrap pipeline will run to
+finalize the update to the latest version.
+
+In the management account in us-east-1:
+1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
+1. There might be a pull request if the `aws-deployment-framework-bootstrap` repository that you have has to be updated to apply recent changes of ADF. This would show up with the version that you deployed recently, for example `v3.1.0`.
+1. If there is no pull request, nothing to worry about, no changes were required in your repository for this update, continue to the next step. If there is a pull request, open it and review the changes that it proposes. Once reviewed, merge the pull request to continue.
+
+Confirm the `aws-deployment-framework-bootstrap` pipeline in the management account in us-east-1:
+1. Go to the [CodePipeline console for the aws-deployment-framework-bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
+1. This should progress and turn up as green. If you did not have to merge the pull request in the prior step, feel free to 'Release changes' on the pipeline to test it.
+1. If any of these steps fail, you can click on the `Details` link to get more insights into the failure. Please report the step where it failed and include a copy of the logs when it fails here.
+
+Once finished, it will trigger the aws-deployment-framework-_pipelines_ pipeline in the _deployment account_ in _your main region_:
+1. Open your deployment account.
+1. Make sure you are in the main deployment region, where all your pipelines are located.
+1. Go to the CodePipeline console and search for `aws-deployment-framework-pipelines`.
+1. This should progress and turn up as green. If any of these steps fail, it could be that one of your pipelines could not be updated. You can click on the `Details` link to get more insights into the failure. Please report the step where it failed by opening an issue [here](https://github.com/awslabs/aws-deployment-framework/issues) and include a copy of the logs when it fails here.
+
+If this last pipeline turned green, to be sure that all went well, you can release changes in a pipeline of your choice to test them.
 
 ## Removing ADF
 

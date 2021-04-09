@@ -11,6 +11,8 @@
           account_id: 111111111111
           bucket_name: banking-etl-bucket-source
           object_key: input.zip
+      build:
+        enabled: False
       deploy:
         provider: s3
     targets:
