@@ -302,7 +302,10 @@ PIPELINE_SCHEMA = {
     Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
-    "pipelines": [PIPELINE_SCHEMA]
+    "pipelines": [PIPELINE_SCHEMA],
+    # Allow any toplevel key starting with "x-" or "x_".
+    # ADF will ignore these, but users can use them to define anchors in one place.
+    Optional(Regex('^[x][-_].*')): object
 }
 
 class SchemaValidation:

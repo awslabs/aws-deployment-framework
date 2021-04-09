@@ -615,6 +615,23 @@ pipelines:
     targets: *generic_targets
 ```
 
+If you want to define anchors before you use them as an alias, you can use any top-level key that starts with `x-` or `x_`. For example, if you want to define all account ids in one place, you could write:
+
+```yaml
+x_account_ids:
+  - &codecommit_account: "111111111111"
+  - &some_target_account: "222222222222"
+pipelines:
+  - name: sample-vpc
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: *codecommit_account
+    targets:
+      - *some_target_account
+```
+
 For more advanced yaml usage, see [here](https://learnxinyminutes.com/docs/yaml/)
 
 ### One to many relationships
