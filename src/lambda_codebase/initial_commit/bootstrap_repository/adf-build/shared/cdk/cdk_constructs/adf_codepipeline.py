@@ -6,6 +6,7 @@
 
 import os
 import json
+import boto3
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
@@ -13,12 +14,15 @@ from aws_cdk import (
 )
 
 from cdk_constructs import adf_events
+from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+
+LOGGER = configure_logger(__name__)
 
 class Action:
     _version = "1"
@@ -90,6 +94,22 @@ class Action:
                                 'object_key') or self.target.get(
                                     'properties', {}).get(
                                         'object_key')
+            }
+        if self.provider == "CodeStarSourceConnection":
+            owner = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {})
+            repo = self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name']
+            codestar_connection_path = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('codestar_connection_path', {})
+            ssm_client = boto3.client('ssm')
+            try:
+                response = ssm_client.get_parameter(Name=codestar_connection_path)
+            except Exception as e:
+                LOGGER.error(f"No parameter found at {codestar_connection_path}. Check the path/value.")
+                raise e
+            connection_arn = response['Parameter']['Value']
+            return {
+                "ConnectionArn": connection_arn,
+                "FullRepositoryId": f"{owner}/{repo}",
+                "BranchName": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master'
             }
         if self.provider == "GitHub":
             return {
@@ -237,6 +257,8 @@ class Action:
         if self.provider == "CodeCommit":
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
         if self.provider == "GitHub":
+            return None
+        if self.provider == "CodeStarSourceConnection":
             return None
         if self.provider == "CodeBuild":
             return None
