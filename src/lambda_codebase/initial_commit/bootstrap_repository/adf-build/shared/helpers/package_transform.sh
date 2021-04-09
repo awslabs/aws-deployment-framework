@@ -24,8 +24,6 @@ do
   esac
 done
 
-pip install --upgrade awscli aws-sam-cli -q
-
 if [[ $SKIP_BUILD == 0 ]]; then
   echo "Perform build step"
   # Build our template and its potential dependencies

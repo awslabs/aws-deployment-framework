@@ -228,12 +228,25 @@ Provider type: `codebuild`.
   > If you wish to pass in a custom inline Buildspec as a string for the
   > CodeBuild Project this would override any `buildspec.yml` file.
   > Read more [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example).
+  >
+  > Note: Either specify the `spec_inline` or the `spec_filename` in the
+  > properties block. If both are supplied, the pipeline generator will throw
+  > an error instead.
 - *spec_filename* *(String)* default: `buildspec.yml`.
   > If you wish to pass in a custom Buildspec file that is within the
   > repository. This is useful for custom deploy type actions where CodeBuild
   > will perform the execution of the commands. Path is relational to the
   > root of the repository, so `build/buidlspec.yml` refers to the
   > `buildspec.yml` stored in the `build` directory of the repository.
+  >
+  > In case CodeBuild is used as a deployment provider, the default BuildSpec
+  > file name is `deployspec.yml` instead. In case you would like to test
+  > a given environment using CodeBuild, you can rename it to `testspec.yml`
+  > or something similar using this property.
+  >
+  > Note: Either specify the `spec_inline` or the `spec_filename` in the
+  > properties block. If both are supplied, the pipeline generator will throw
+  > an error instead.
 
 ### Jenkins
 

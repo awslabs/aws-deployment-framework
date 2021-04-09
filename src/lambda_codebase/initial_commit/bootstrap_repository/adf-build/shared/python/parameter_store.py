@@ -62,10 +62,10 @@ class ParameterStore:
                              Recursive=True,
                              WithDecryption=False
                             )
-        except self.client.exceptions.ParameterNotFound:
+        except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
                 'Parameter Path {0} Not Found'.format(path)
-            )
+            ) from error
 
 
     def fetch_parameter(self, name, with_decryption=False):
@@ -78,7 +78,7 @@ class ParameterStore:
                 WithDecryption=with_decryption
             )
             return response['Parameter']['Value']
-        except self.client.exceptions.ParameterNotFound:
+        except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
                 'Parameter {0} Not Found'.format(name)
-            )
+            ) from error

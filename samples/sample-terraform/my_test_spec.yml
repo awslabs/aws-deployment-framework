@@ -9,6 +9,9 @@ env:
     TF_CLI_ARGS: "-no-color"
 
 phases:
+  install:
+    runtime-versions:
+      python: 3.8
   build:
     commands:
       - export PATH=$PATH:$(pwd)

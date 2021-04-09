@@ -57,7 +57,9 @@ def delete_default_vpc(client, account_id, region, role):
             max_retry_seconds = + 2
             sleep(2)
             if max_retry_seconds <= 0:
-                raise Exception("Could not describe VPCs within retry limit.")
+                raise Exception(
+                    "Could not describe VPCs within retry limit.",
+                ) from e
 
     for vpc in vpc_response["Vpcs"]:
         if vpc["IsDefault"] is True:
