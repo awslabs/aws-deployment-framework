@@ -198,6 +198,13 @@ Provider type: `codebuild`.
   > pipeline to consume a custom image if required.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
+  > 
+  > Image can also take an object that contains a reference to a
+  > public docker hub image such as `bitnami/mongodb`. This allows your
+  > pipeline to consume a public docker hub image if required.
+  > Along with the docker hub image name, we also support a `tag` key which can be used
+  > to define which image should be used (defaults to `latest`).
+  > 
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
