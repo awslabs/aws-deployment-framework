@@ -83,6 +83,19 @@ Resources:
   BootstrapArtifactStorageBucket:
     DeletionPolicy: Retain
     Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
   BootstrapTemplatesBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -90,10 +103,15 @@ Resources:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: AES256
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       VersioningConfiguration:
         Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
@@ -757,6 +775,7 @@ Resources:
       ServiceToken: !GetAtt CrossRegionBucketHandler.Arn
       Region: !Ref DeploymentAccountMainRegion
       BucketNamePrefix: !Sub "adf-shared-modules-${DeploymentAccountMainRegion}"
+      Version: 3.1.2
       PolicyDocument:
         Statement:
           - Action:
@@ -806,6 +825,7 @@ Resources:
                 - s3:DeleteBucket
                 - s3:PutEncryptionConfiguration
                 - s3:PutBucketPolicy
+                - s3:PutBucketPublicAccessBlock
               Resource: "arn:aws:s3:::adf-shared-modules-*"
             - Effect: Allow
               Action: ssm:GetParameter
