@@ -120,7 +120,7 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
                 )
                 continue
 
-            elif "codebuild" in target_stage_override:
+            if "codebuild" in target_stage_override:
                 _actions.extend(
                     [
                         adf_codebuild.CodeBuild(
