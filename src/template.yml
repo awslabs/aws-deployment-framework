@@ -14,8 +14,12 @@ Metadata:
     ReadmeUrl: ../docs/serverless-application-repo.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.1.0
+    SemanticVersion: 3.1.2
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
+Mappings:
+  Metadata:
+    ADF:
+      Version: 3.1.2
 Parameters:
   CrossAccountAccessRoleName:
     Type: String
@@ -80,6 +84,22 @@ Resources:
               - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}/*
             Principal:
               AWS: !Ref AWS::AccountId
+  BootstrapArtifactStorageBucket:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
   BootstrapTemplatesBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -87,10 +107,15 @@ Resources:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: AES256
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       VersioningConfiguration:
         Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
@@ -172,7 +197,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
@@ -193,7 +218,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
@@ -214,7 +239,7 @@ Resources:
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
@@ -233,7 +258,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
@@ -252,7 +277,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
@@ -271,7 +296,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: 3.1.0
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: INFO
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
@@ -413,6 +438,8 @@ Resources:
             Resource:
               - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*"
               - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*/*"
+              - !GetAtt BootstrapArtifactStorageBucket.Arn
+              - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
               - "arn:aws:s3:::adf-shared-modules-*-*"
               - "arn:aws:s3:::adf-shared-modules-*-*/*"
           - Effect: "Allow"
@@ -449,7 +476,7 @@ Resources:
         Image: "aws/codebuild/standard:5.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
-            Value: 3.1.0
+            Value: !FindInMap ['Metadata', 'ADF', 'Version']
           - Name: TERMINATION_PROTECTION
             Value: false
           - Name: PYTHONPATH
@@ -495,7 +522,7 @@ Resources:
     Properties:
       ArtifactStore:
         Type: S3
-        Location: !Ref BootstrapTemplatesBucket
+        Location: !Ref BootstrapArtifactStorageBucket
       RoleArn: !GetAtt CodePipelineRole.Arn
       Name: 'aws-deployment-framework-bootstrap-pipeline'
       Stages:
@@ -713,7 +740,7 @@ Resources:
     Type: Custom::InitialCommit
     Properties:
       ServiceToken: !GetAtt InitialCommitHandler.Arn
-      Version: 3.1.0
+      Version: !FindInMap ['Metadata', 'ADF', 'Version']
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
       ExistingAccountId: !Ref DeploymentAccountId
@@ -752,6 +779,7 @@ Resources:
       ServiceToken: !GetAtt CrossRegionBucketHandler.Arn
       Region: !Ref DeploymentAccountMainRegion
       BucketNamePrefix: !Sub "adf-shared-modules-${DeploymentAccountMainRegion}"
+      Version: !FindInMap ['Metadata', 'ADF', 'Version']
       PolicyDocument:
         Statement:
           - Action:
@@ -801,6 +829,7 @@ Resources:
                 - s3:DeleteBucket
                 - s3:PutEncryptionConfiguration
                 - s3:PutBucketPolicy
+                - s3:PutBucketPublicAccessBlock
               Resource: "arn:aws:s3:::adf-shared-modules-*"
             - Effect: Allow
               Action: ssm:GetParameter
@@ -934,7 +963,7 @@ Resources:
           Id: adf-codepipeline-trigger-bootstrap
 Outputs:
   ADFVersionNumber:
-    Value: 3.1.0
+    Value: !FindInMap ['Metadata', 'ADF', 'Version']
     Export:
       Name: "ADFVersionNumber"
   LayerArn:

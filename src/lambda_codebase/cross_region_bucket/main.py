@@ -74,6 +74,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
     return PhysicalResource(region, bucket_name, created).as_cfn_response()
@@ -87,6 +88,7 @@ def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
     return PhysicalResource(
@@ -165,6 +167,19 @@ def ensure_bucket_encryption(bucket_name: str, region: str) -> None:
             "Rules": [
                 {"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
             ]
+        },
+    )
+
+
+def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
+    s3_client = get_s3_client(region)
+    s3_client.put_public_access_block(
+        Bucket=bucket_name,
+        PublicAccessBlockConfiguration={
+            "BlockPublicAcls": True,
+            "IgnorePublicAcls": True,
+            "BlockPublicPolicy": True,
+            "RestrictPublicBuckets": True,
         },
     )
 

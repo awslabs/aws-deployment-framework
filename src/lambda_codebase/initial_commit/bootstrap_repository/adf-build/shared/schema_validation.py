@@ -69,6 +69,19 @@ GITHUB_SOURCE = {
     "properties": GITHUB_SOURCE_PROPS
 }
 
+# CodeStar Source
+CODESTAR_SOURCE_PROPS = {
+    Optional("repository"): str,
+    Optional("branch"): str,
+    "owner": str,
+    "codestar_connection_path": str
+}
+
+CODESTAR_SOURCE = {
+    "provider": 'codestar',
+    "properties": CODESTAR_SOURCE_PROPS
+}
+
 # S3 Source
 S3_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
@@ -228,6 +241,7 @@ PROVIDER_SOURCE_SCHEMAS = {
     'codecommit': Schema(CODECOMMIT_SOURCE),
     'github': Schema(GITHUB_SOURCE),
     's3': Schema(S3_SOURCE),
+    'codestar': Schema(CODESTAR_SOURCE),
 }
 PROVIDER_BUILD_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
@@ -244,7 +258,7 @@ PROVIDER_DEPLOY_SCHEMAS = {
 PROVIDER_SCHEMA = {
     'source': And(
         {
-            'provider': Or('codecommit', 'github', 's3'),
+            'provider': Or('codecommit', 'github', 's3', 'codestar'),
             'properties': dict,
         },
         lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
@@ -303,7 +317,10 @@ PIPELINE_SCHEMA = {
     Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
-    "pipelines": [PIPELINE_SCHEMA]
+    "pipelines": [PIPELINE_SCHEMA],
+    # Allow any toplevel key starting with "x-" or "x_".
+    # ADF will ignore these, but users can use them to define anchors in one place.
+    Optional(Regex('^[x][-_].*')): object
 }
 
 class SchemaValidation:

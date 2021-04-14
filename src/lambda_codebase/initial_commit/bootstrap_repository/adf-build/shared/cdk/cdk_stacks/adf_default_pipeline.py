@@ -12,6 +12,7 @@ from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_jenkins
 from cdk_constructs import adf_codecommit
 from cdk_constructs import adf_github
+from cdk_constructs import adf_codestar
 from cdk_constructs import adf_s3
 from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
@@ -52,6 +53,8 @@ def generate_source_stage_for_pipeline(_stages, scope, stack_input):
         _stages.append(
             adf_codecommit.CodeCommit(scope, "source", stack_input["input"]).source
         )
+    elif "codestar" in _source_name:
+        _stages.append(adf_codestar.CodeStar(scope, "source", stack_input['input']).source)
     elif "github" in _source_name:
         _stages.append(adf_github.GitHub(scope, "source", stack_input["input"]).source)
     elif "s3" in _source_name:
