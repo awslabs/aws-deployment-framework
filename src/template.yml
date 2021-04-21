@@ -14,12 +14,12 @@ Metadata:
     ReadmeUrl: ../docs/serverless-application-repo.md
     Labels: ['adf', 'aws-deployment-framework', 'multi-account', 'cicd', 'devops']
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.1.2
+    SemanticVersion: 3.1.4
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 Mappings:
   Metadata:
     ADF:
-      Version: 3.1.2
+      Version: 3.1.4
 Parameters:
   CrossAccountAccessRoleName:
     Type: String
@@ -72,16 +72,16 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !GetAtt Organization.OrganizationId
             Resource:
-              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}
-              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
             Principal:
               AWS: "*"
           - Action:
               - s3:PutObject*
             Effect: Allow
             Resource:
-              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}
-              - !Sub arn:aws:s3:::${BootstrapTemplatesBucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
             Principal:
               AWS: !Ref AWS::AccountId
   BootstrapArtifactStorageBucket:
@@ -425,9 +425,9 @@ Resources:
               - "cloudformation:SignalResource"
               - "cloudformation:UpdateTerminationProtection"
             Resource:
-              - "arn:aws:cloudformation:*:*:stack/adf-global-base-*/*"
-              - "arn:aws:cloudformation:*:*:stack/adf-regional-base-*/*"
-              - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-global-base-*/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-regional-base-*/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
           - Effect: "Allow"
             Action:
               - "s3:DeleteObject"
@@ -436,17 +436,17 @@ Resources:
               - "s3:ListBucket"
               - "s3:PutObject"
             Resource:
-              - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*"
-              - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*/*"
+              - !Sub "arn:${AWS::Partition}:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*"
+              - !Sub "arn:${AWS::Partition}:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*/*"
               - !GetAtt BootstrapArtifactStorageBucket.Arn
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
-              - "arn:aws:s3:::adf-shared-modules-*-*"
-              - "arn:aws:s3:::adf-shared-modules-*-*/*"
+              - !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*-*"
+              - !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*-*/*"
           - Effect: "Allow"
             Action:
               - "codebuild:*"
             Resource:
-              - !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
+              - !Sub "arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
           - Effect: "Allow"
             Action:
               - "iam:CreatePolicy"
@@ -457,8 +457,8 @@ Resources:
               - "iam:PutRolePolicy"
               - "iam:UpdateAssumeRolePolicy"
             Resource:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -611,7 +611,7 @@ Resources:
           - Effect: Allow
             Action:
               - "codepipeline:StartPipelineExecution"
-            Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+            Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
       Roles:
         - !Ref OrgEventCodePipelineRole
   StatesExecutionRole:
@@ -788,12 +788,7 @@ Resources:
               - s3:PutObject
             Effect: Allow
             Principal:
-              AWS:
-                - Fn::Join:
-                  - ""
-                  - - "arn:aws:iam::"
-                    - !GetAtt DeploymentAccount.AccountId
-                    - ":root"
+              AWS: !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:root"
               Service:
                 - codebuild.amazonaws.com
                 - lambda.amazonaws.com
@@ -830,12 +825,12 @@ Resources:
                 - s3:PutEncryptionConfiguration
                 - s3:PutBucketPolicy
                 - s3:PutBucketPublicAccessBlock
-              Resource: "arn:aws:s3:::adf-shared-modules-*"
+              Resource: !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*"
             - Effect: Allow
               Action: ssm:GetParameter
               Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
       FunctionName: CrossRegionBucketHandler
       Runtime: python3.8
       Timeout: 300
@@ -861,7 +856,7 @@ Resources:
               Resource: "*"
             - Effect: Allow
               Action: "iam:CreateServiceLinkedRole"
-              Resource: "arn:aws:iam::*:role/aws-service-role/*"
+              Resource: !Sub "arn:${AWS::Partition}:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
       Runtime: python3.8
       Timeout: 300
@@ -914,7 +909,7 @@ Resources:
               Resource: "*"
             - Effect: Allow
               Action: ssm:GetParameter
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
       FunctionName: AccountHandler
       Runtime: python3.8
       Timeout: 300
@@ -937,7 +932,7 @@ Resources:
               Statement:
                 - Effect: Allow
                   Action: codepipeline:StartPipelineExecution
-                  Resource: !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
+                  Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -947,7 +942,7 @@ Resources:
         detail-type:
           - 'CodeCommit Repository State Change'
         resources:
-          - !Join [ '', [ 'arn:aws:codecommit:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !GetAtt CodeCommitRepository.Name ] ]
+          - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
         detail:
           event:
             - referenceCreated
@@ -957,8 +952,7 @@ Resources:
           referenceName:
             - master
       Targets:
-        - Arn:
-            !Join [ '', [ 'arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref CodePipeline ] ]
+        - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-bootstrap
 Outputs:
