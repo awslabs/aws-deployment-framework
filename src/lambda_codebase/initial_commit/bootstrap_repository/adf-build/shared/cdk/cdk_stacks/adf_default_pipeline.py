@@ -42,7 +42,7 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
         scope, "code_pipeline", stack_input["input"], stack_input["ssm_params"], _stages
     )
     if "github" in _source_name:
-        adf_github.GitHub.create_webhook(scope, _pipeline.cfn, stack_input["input"])
+        adf_github.GitHub.create_webhook_when_required(scope, _pipeline.cfn, stack_input["input"])
 
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
