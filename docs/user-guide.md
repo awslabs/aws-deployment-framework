@@ -187,6 +187,14 @@ targets:
     name: production_step
     provider: ...
     properties: ...
+  - path: /my_ou/production/some_path
+    regions: [eu-central-1, us-west-1]
+    name: another_step
+    wave_config:
+      size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
+    exclude: 
+      - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids 
+    properties: ...    
 ```
 
 ### Params

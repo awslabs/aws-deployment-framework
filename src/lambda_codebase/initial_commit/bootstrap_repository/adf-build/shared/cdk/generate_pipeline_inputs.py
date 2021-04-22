@@ -111,8 +111,8 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
                 pipeline.stage_regions.append(regions)
                 pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
-        pipeline.template_dictionary["targets"].append(
-            target_structure.account_list)
+
+            pipeline.template_dictionary["targets"].append(target.target_structure.generate_waves())
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)

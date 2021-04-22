@@ -86,7 +86,7 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
     for index, targets in enumerate(
             stack_input["input"].get("environments", {}).get("targets", [])
     ):
-        _actions = []
+
         top_level_deployment_type = (
             stack_input["input"]
             .get("default_providers", {})
@@ -102,74 +102,72 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
             .get("action", "")
         )
 
-        for target in targets:
-            target_stage_override = target.get("provider") or top_level_deployment_type
-            if target.get("name") == "approval" or target.get("provider", "") == "approval":
-                _actions.extend(
-                    [
-                        adf_codepipeline.Action(
-                            name="{0}".format(target["name"]),
-                            provider="Manual",
-                            category="Approval",
-                            target=target,
-                            run_order=1,
-                            map_params=stack_input["input"],
-                            action_name="{0}".format(target["name"]),
-                        ).config
-                    ]
-                )
-                continue
+        for wave_index, wave in enumerate(targets):
+            _actions = []
+            _is_approval = (
+                wave[0].get("name", "").startswith("approval")
+                or wave[0].get("provider", "") == "approval"
+            )
+            _action_type_name = "approval" if _is_approval else "deployment"
+            _stage_name = (
+                # 0th Index since step names are for entire stages not
+                # per target.
+                f"{wave[0].get('step_name')}-{wave_index}"
+                if wave[0].get("step_name") else f"{_action_type_name}-stage-{index + 1}-wave-{wave_index}"
+            )
 
-            if "codebuild" in target_stage_override:
-                _actions.extend(
-                    [
-                        adf_codebuild.CodeBuild(
-                            scope,
-                            # Use the name of the pipeline for CodeBuild
-                            # instead of the target name as it will always
-                            # operate from the deployment account.
-                            "{pipeline_name}-stage-{index}".format(
-                                pipeline_name=stack_input["input"]["name"],
-                                index=index + 1,
-                            ),
-                            stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["modules"],
-                            stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["kms"],
-                            stack_input["input"],
-                            target,
-                        ).deploy
-                    ]
-                )
-                continue
+            for target in wave:
+                target_stage_override = target.get("provider") or top_level_deployment_type
+                if target.get("name") == "approval" or target.get("provider", "") == "approval":
+                    _actions.extend(
+                        [
+                            adf_codepipeline.Action(
+                                name=f"wave-{wave_index}-{target.get('name')}".format(target["name"]),
+                                provider="Manual",
+                                category="Approval",
+                                target=target,
+                                run_order=1,
+                                map_params=stack_input["input"],
+                                action_name=f"{target.get('name')}",
+                            ).config
+                        ]
+                    )
+                    continue
 
-            regions = target.get("regions", [])
-            generate_deployment_action_per_region(
-                _actions,
-                regions,
-                stack_input,
-                target,
-                target_stage_override,
-                top_level_action,
+                if "codebuild" in target_stage_override:
+                    _actions.extend(
+                        [
+                            adf_codebuild.CodeBuild(
+                                scope,
+                                # Use the name of the pipeline for CodeBuild
+                                # instead of the target name as it will always
+                                # operate from the deployment account.
+                                f"{stack_input['input']['name']}-target-{index + 1}-wave-{wave_index}",
+                                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["modules"],
+                                stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["kms"],
+                                stack_input["input"],
+                                target,
+                            ).deploy
+                        ]
+                    )
+                    continue
+
+                regions = target.get("regions", [])
+                generate_deployment_action_per_region(
+                    _actions,
+                    regions,
+                    stack_input,
+                    target,
+                    target_stage_override,
+                    top_level_action,
+                )
+
+            _stages.append(
+                _codepipeline.CfnPipeline.StageDeclarationProperty(
+                    name=_stage_name,
+                    actions=_actions,
+                )
             )
-        _is_approval = (
-            targets[0].get("name", "").startswith("approval")
-            or targets[0].get("provider", "") == "approval"
-        )
-        _action_type_name = "approval" if _is_approval else "deployment"
-        _stage_name = (
-            # 0th Index since step names are for entire stages not
-            # per target.
-            targets[0].get("step_name")
-            or "{action_type_name}-stage-{index}".format(
-                action_type_name=_action_type_name,
-                index=index + 1,
-            )
-        )
-        _stages.append(
-            _codepipeline.CfnPipeline.StageDeclarationProperty(
-                name=_stage_name,
-                actions=_actions,
-            )
-        )
 
 
 def generate_deployment_action_per_region(_actions,

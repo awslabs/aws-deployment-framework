@@ -296,6 +296,10 @@ TARGET_LIST_SCHEMA = [Or(
     int
 )]
 
+TARGET_WAVE_CONFIG_SCHEME = {
+    Optional("size", default=50): int,
+}
+
 # Pipeline Params
 
 TARGET_SCHEMA = {
@@ -305,7 +309,9 @@ TARGET_SCHEMA = {
     Optional("name"): str,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
-    Optional("regions"): REGION_SCHEMA
+    Optional("regions"): REGION_SCHEMA,
+    Optional("exclude", default=[]): [str],
+    Optional("wave_config", default={"size": 50}): TARGET_WAVE_CONFIG_SCHEME
 }
 COMPLETION_TRIGGERS_SCHEMA = {
     "pipelines": [str]
