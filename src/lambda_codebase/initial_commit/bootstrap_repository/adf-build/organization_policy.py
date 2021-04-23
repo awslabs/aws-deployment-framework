@@ -19,10 +19,10 @@ class OrganizationPolicy:
 
     @staticmethod
     def _find_all(policy):
-        _files = [
-            p for p in glob.iglob(
-                './adf-bootstrap/**/{0}.json'.format(policy),
-                recursive=True)]
+        _files = list(glob.iglob(
+            './adf-bootstrap/**/{0}.json'.format(policy),
+            recursive=True,
+        ))
         return [f.replace('./adf-bootstrap', '.') for f in _files]
 
     def _compare_ordered_policy(self, obj):

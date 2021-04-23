@@ -16,6 +16,7 @@ Providers and Actions.
   - [CodeCommit](#codecommit)
   - [GitHub](#github)
   - [S3](#s3)
+  - [CodeStar](#codestar)
 - [Build](#build)
   - [CodeBuild](#codebuild)
   - [Jenkins](#jenkins)
@@ -33,7 +34,7 @@ Providers and Actions.
 ```yaml
 default_providers:
   source:
-    provider: codecommit|github|s3
+    provider: codecommit|github|s3|codestar
     properties:
       # All provider specific properties go here.
 ```
@@ -75,6 +76,17 @@ Provider type: `codecommit`.
   > The role to use to fetch the contents of the CodeCommit repository.
   > Only specify when you need a specific role to access it. By default ADF
   > will use its own role to access it instead.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes all together when set to False.
+  > In other words, when you don't want to rely on polling or event
+  > based triggers of changes pushed into the repository.
+  >
+  > By default, it will trigger on changes using the event triggered by
+  > CodeCommit when an update to the repository took place.
 
 ### GitHub
 
@@ -103,6 +115,17 @@ Provider type: `github`.
 - *json_field* - *(String)* **(required)**
   > The name of the JSON key in the object that is stored in AWS Secrets
   > Manager that holds the OAuth Token.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes when set to False.
+  > It will not deploy the web hook that GitHub would otherwise use to
+  > trigger the pipeline on changes.
+  >
+  > By default, it will trigger deploy the web hook and trigger on changes
+  > using web hook call executed by GitHub.
 
 ### S3
 
@@ -125,6 +148,46 @@ Provider type: `s3`.
 - *object_key* - *(String)* **(required)**
   > The Specific Object within the bucket that will trigger the pipeline
   > execution.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline
+  > if a change was detected in the S3 object.
+  >
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > By default, it will trigger on changes using the polling mechanism
+  > of CodePipeline. Monitoring the S3 object so it can trigger a release
+  > when an update took place.
+
+### CodeStar
+
+Use CodeStar as a source to trigger your pipeline.  The source action retrieves code changes when a pipeline is manually executed or when a webhook event is sent from the source provider. CodeStar Connections currently supports the following third-party repositories:
+
+- Bitbucket
+- GitHub and GitHub Enterprise Cloud
+- GitHub Enterprise Server
+
+The AWS CodeStar connection needs to already exist and be in the "Available" Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored in AWS Systems Manager Parameter Store in the deployment account's main region (see details below). Read the CodePipeline documentation for more [information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
+
+Provider type: `codestar`.
+
+#### Properties
+
+- *repository* - *(String)* defaults to name of the pipeline.
+  > The CodeStar repository name.
+  > For example, for the ADF repository it would be:
+  > `aws-deployment-framework`.
+- *branch* - *(String)* - default: `master`.
+  > The Branch on the third-party repository to use to trigger this specific
+  > pipeline.
+- *owner* - *(String)* **(required)**
+  > The name of the third-party user or organization who owns the third-party repository.
+  > For example, for the ADF repository that would be: `awslabs`.
+- *codestar_connection_path* - *(String)* **(required)**
+  > The CodeStar Connection ARN token path in AWS Systems Manager Parameter Store in the deployment account
+  > in the main region that holds the CodeStar Connection ARN that will be used to download the source
+  > code and create the web hook as part of the pipeline. Read the CodeStar Connections documentation
+  > for more [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
 
 ## Build
 
@@ -197,12 +260,25 @@ Provider type: `codebuild`.
   > If you wish to pass in a custom inline Buildspec as a string for the
   > CodeBuild Project this would override any `buildspec.yml` file.
   > Read more [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example).
+  >
+  > Note: Either specify the `spec_inline` or the `spec_filename` in the
+  > properties block. If both are supplied, the pipeline generator will throw
+  > an error instead.
 - *spec_filename* *(String)* default: `buildspec.yml`.
   > If you wish to pass in a custom Buildspec file that is within the
   > repository. This is useful for custom deploy type actions where CodeBuild
   > will perform the execution of the commands. Path is relational to the
   > root of the repository, so `build/buidlspec.yml` refers to the
   > `buildspec.yml` stored in the `build` directory of the repository.
+  >
+  > In case CodeBuild is used as a deployment provider, the default BuildSpec
+  > file name is `deployspec.yml` instead. In case you would like to test
+  > a given environment using CodeBuild, you can rename it to `testspec.yml`
+  > or something similar using this property.
+  >
+  > Note: Either specify the `spec_inline` or the `spec_filename` in the
+  > properties block. If both are supplied, the pipeline generator will throw
+  > an error instead.
 
 ### Jenkins
 

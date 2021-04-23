@@ -10,6 +10,10 @@ This stack imports values from `sample-vpc` and `sample-iam`.
         provider: codecommit
         properties:
           account_id: 111111111111
+      build:
+        provider: codebuild
+        properties:
+          image: "STANDARD_4_0"
     targets:
       - /banking/testing
       - path: /banking/production

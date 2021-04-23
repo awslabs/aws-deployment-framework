@@ -14,7 +14,8 @@ LOGGER = configure_logger(__name__)
 PARAM_SCHEMA = {
     Optional("notification_endpoint"): str,
     Optional("schedule"): str,
-    Optional("restart_execution_on_update"): bool
+    Optional("restart_execution_on_update"): bool,
+    Optional("pipeline_type", default="default"): Or("default"),
 }
 
 AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
@@ -48,7 +49,8 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
     Optional("owner"): str,
-    Optional("role"): str
+    Optional("role"): str,
+    Optional("trigger_on_changes"): bool,
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -61,18 +63,33 @@ GITHUB_SOURCE_PROPS = {
     Optional("branch"): str,
     "owner": str,
     "oauth_token_path": str,
-    "json_field": str
+    "json_field": str,
+    Optional("trigger_on_changes"): bool,
 }
 GITHUB_SOURCE = {
     "provider": 'github',
     "properties": GITHUB_SOURCE_PROPS
 }
 
+# CodeStar Source
+CODESTAR_SOURCE_PROPS = {
+    Optional("repository"): str,
+    Optional("branch"): str,
+    "owner": str,
+    "codestar_connection_path": str
+}
+
+CODESTAR_SOURCE = {
+    "provider": 'codestar',
+    "properties": CODESTAR_SOURCE_PROPS
+}
+
 # S3 Source
 S3_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
     "bucket_name": str,
-    "object_key": str
+    "object_key": str,
+    Optional("trigger_on_changes"): bool,
 }
 S3_SOURCE = {
     "provider": 's3',
@@ -92,7 +109,7 @@ CODEBUILD_PROPS = {
     Optional("role"): str,
     Optional("timeout"): int,
     Optional("privileged"): bool,
-    Optional("spec_inline"): str
+    Optional("spec_inline"): object,
 }
 DEFAULT_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',
@@ -227,6 +244,7 @@ PROVIDER_SOURCE_SCHEMAS = {
     'codecommit': Schema(CODECOMMIT_SOURCE),
     'github': Schema(GITHUB_SOURCE),
     's3': Schema(S3_SOURCE),
+    'codestar': Schema(CODESTAR_SOURCE),
 }
 PROVIDER_BUILD_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
@@ -243,7 +261,7 @@ PROVIDER_DEPLOY_SCHEMAS = {
 PROVIDER_SCHEMA = {
     'source': And(
         {
-            'provider': Or('codecommit', 'github', 's3'),
+            'provider': Or('codecommit', 'github', 's3', 'codestar'),
             'properties': dict,
         },
         lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
@@ -302,7 +320,10 @@ PIPELINE_SCHEMA = {
     Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
-    "pipelines": [PIPELINE_SCHEMA]
+    "pipelines": [PIPELINE_SCHEMA],
+    # Allow any toplevel key starting with "x-" or "x_".
+    # ADF will ignore these, but users can use them to define anchors in one place.
+    Optional(Regex('^[x][-_].*')): object
 }
 
 class SchemaValidation:

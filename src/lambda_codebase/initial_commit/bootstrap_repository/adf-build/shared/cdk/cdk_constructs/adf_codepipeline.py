@@ -6,6 +6,7 @@
 
 import os
 import json
+import boto3
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
@@ -13,12 +14,15 @@ from aws_cdk import (
 )
 
 from cdk_constructs import adf_events
+from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+
+LOGGER = configure_logger(__name__)
 
 class Action:
     _version = "1"
@@ -65,7 +69,8 @@ class Action:
         if self.provider == "S3" and self.category == "Source":
             return {
                 "S3Bucket": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('bucket_name'),
-                "S3ObjectKey": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('object_key')
+                "S3ObjectKey": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('object_key'),
+                "PollForSourceChanges": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }
         if self.provider == "S3" and self.category == "Deploy":
             return {
@@ -90,6 +95,22 @@ class Action:
                                 'object_key') or self.target.get(
                                     'properties', {}).get(
                                         'object_key')
+            }
+        if self.provider == "CodeStarSourceConnection":
+            owner = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {})
+            repo = self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name']
+            codestar_connection_path = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('codestar_connection_path', {})
+            ssm_client = boto3.client('ssm')
+            try:
+                response = ssm_client.get_parameter(Name=codestar_connection_path)
+            except Exception as e:
+                LOGGER.error(f"No parameter found at {codestar_connection_path}. Check the path/value.")
+                raise e
+            connection_arn = response['Parameter']['Value']
+            return {
+                "ConnectionArn": connection_arn,
+                "FullRepositoryId": f"{owner}/{repo}",
+                "BranchName": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master'
             }
         if self.provider == "GitHub":
             return {
@@ -229,7 +250,10 @@ class Action:
             return {
                 "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
-                "PollForSourceChanges": self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
+                "PollForSourceChanges": (
+                    self.map_params['default_providers']['source'].get('properties', {}).get('trigger_on_changes', True)
+                    and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
+                )
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
@@ -237,6 +261,8 @@ class Action:
         if self.provider == "CodeCommit":
             return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
         if self.provider == "GitHub":
+            return None
+        if self.provider == "CodeStarSourceConnection":
             return None
         if self.provider == "CodeBuild":
             return None
@@ -275,62 +301,93 @@ class Action:
             "region": self.region or ADF_DEPLOYMENT_REGION,
             "run_order": self.run_order
         }
+        input_artifacts = self._get_input_artifacts()
+        if input_artifacts:
+            action_props["input_artifacts"] = input_artifacts
+        output_artifacts = self._get_output_artifacts()
+        if output_artifacts:
+            action_props["output_artifacts"] = output_artifacts
         if _role:
             action_props["role_arn"] = _role
         if self.category == 'Manual':
             del action_props['region']
-        if self.category == 'Build' and not self.target:
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="output-source"
-                )
-            ]
-            action_props["output_artifacts"] = [
-                _codepipeline.CfnPipeline.OutputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-        if self.category == 'Build' and self.target:
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-            if not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True):
-                action_props["input_artifacts"] = [
-                    _codepipeline.CfnPipeline.InputArtifactProperty(
-                        name="output-source"
-                    )
-                ]
-        if self.category == 'Deploy':
-            action_props["input_artifacts"] = [
-                _codepipeline.CfnPipeline.InputArtifactProperty(
-                    name="{0}-build".format(self.map_params['name'])
-                )
-            ]
-            if self.provider == "CloudFormation" and self.target.get('properties', {}).get('outputs') and self.action_mode != 'CHANGE_SET_REPLACE':
-                action_props["output_artifacts"] = [
-                    _codepipeline.CfnPipeline.OutputArtifactProperty(
-                        name=self.target.get('properties', {}).get('outputs')
-                    )
-                ]
-            for override in self.target.get('properties', {}).get('param_overrides', []):
-                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
-                    action_props["input_artifacts"].append(
-                        _codepipeline.CfnPipeline.InputArtifactProperty(
-                            name=override.get('inputs')
-                        )
-                    )
-        if self.category == 'Source':
-            action_props["output_artifacts"] = [
-                _codepipeline.CfnPipeline.OutputArtifactProperty(
-                    name="output-source"
-                )
-            ]
 
         return _codepipeline.CfnPipeline.ActionDeclarationProperty(
             **action_props
         )
+
+    def _get_base_input_artifact_name(self):
+        """
+        Determine the name for the input artifact for this action.
+
+        Returns:
+            str: The output artifact name as a string
+        """
+        use_output_source = (
+            not self.target or
+            not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True)
+        )
+        if use_output_source:
+            return "output-source"
+        return "{0}-build".format(self.map_params['name'])
+
+    def _get_input_artifacts(self):
+        """
+        Generate the list of input artifacts that are required for this action
+
+        Returns:
+            list<CfnPipeline.InputArtifactProperty>: The Input Artifacts
+        """
+        if not self.category in ['Build', 'Deploy']:
+            return []
+        input_artifacts = [
+            _codepipeline.CfnPipeline.InputArtifactProperty(
+                name=self._get_base_input_artifact_name(),
+            ),
+        ]
+        if self.category == 'Deploy':
+            for override in self.target.get('properties', {}).get('param_overrides', []):
+                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE":
+                    input_artifacts.append(
+                        _codepipeline.CfnPipeline.InputArtifactProperty(
+                            name=override.get('inputs')
+                        )
+                    )
+        return input_artifacts
+
+    def _get_base_output_artifact_name(self):
+        """
+        Determine the name for the output artifact for this action.
+
+        Returns:
+            str: The output artifact name as a string
+        """
+        if self.category == 'Source':
+            return "output-source"
+        if self.category == 'Build' and not self.target:
+            return "{0}-build".format(self.map_params['name'])
+        if self.category == 'Deploy' and self.provider == "CloudFormation":
+            outputs_name = self.target.get('properties', {}).get('outputs', '')
+            if outputs_name and self.action_mode != 'CHANGE_SET_REPLACE':
+                return outputs_name
+        return ''
+
+    def _get_output_artifacts(self):
+        """
+        Generate the list of output artifacts that are required for this action
+
+        Returns:
+            list<CfnPipeline.OutputArtifactProperty>: The Output Artifacts
+        """
+        output_artifact_name = self._get_base_output_artifact_name()
+        if output_artifact_name:
+            return [
+                _codepipeline.CfnPipeline.OutputArtifactProperty(
+                    name=output_artifact_name
+                ),
+            ]
+        return []
+
 
 class Pipeline(core.Construct):
     _import_arns = [
@@ -371,7 +428,9 @@ class Pipeline(core.Construct):
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
                 "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
-                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master'),
+                "poll_for_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('poll_for_changes', False),
+                "trigger_on_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }
         })
 
