@@ -15,8 +15,10 @@ Upon stack deletion the default VPCs will be recreated.
     build:
       provider: codebuild
       properties:
+        image: "STANDARD_4_0" # So we can specify which Python version we need
         environment_variables:
           CONTAINS_TRANSFORM: true # Required for templates that contain transforms. (eg SAM Templates)
+
   params:
     - restart_execution_on_update: true
   targets:

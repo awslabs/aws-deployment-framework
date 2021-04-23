@@ -21,7 +21,8 @@ CFN_CONFIG = Config(
         max_attempts=10
     )
 )
-CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9:/._+]")
+# A stack name can contain only alphanumeric characters (case sensitive) and hyphens.
+CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 
 class StackProperties:
     clean_stack_status = [
@@ -203,7 +204,7 @@ class CloudFormation(StackProperties):
                 return True
             return False
         except ClientError as error:
-            raise GenericAccountConfigureError(error)
+            raise GenericAccountConfigureError(error) from error
         except WaiterError as error:
             err = error.last_response
             if CloudFormation._change_set_failed_due_to_empty(err["Status"], err["StatusReason"]):
