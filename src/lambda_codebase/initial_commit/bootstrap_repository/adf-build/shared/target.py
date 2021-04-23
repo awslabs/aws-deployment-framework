@@ -101,8 +101,8 @@ class Target:
 
     def _target_is_external_account_id(self):
         responses = {
-            'Id': str(self.path[2:]),
-            'Name': str(self.path[2:]),
+            'Id': str(self.path[17:]),
+            'Name': str(self.path[17:]),
             'Status': 'ACTIVE'
         }
         self._create_response_object([responses])
@@ -157,7 +157,7 @@ class Target:
                 # in the correct way, starting with: 0o.
                 str(oct(int(self.path))).replace('o', ''),
             )
-        if str(self.path).startswith('//') and AWS_ACCOUNT_ID_REGEX.match(str(self.path[2:])):
+        if str(self.path).startswith('ext-account-id://') and AWS_ACCOUNT_ID_REGEX.match(str(self.path[17:])):
             return self._target_is_external_account_id()
         if str(self.path).startswith('/'):
             return self._target_is_ou_path()
@@ -167,3 +167,4 @@ class Target:
         raise InvalidDeploymentMapError(
             "Unknown definition for target: {0}".format(self.path)
         )
+        

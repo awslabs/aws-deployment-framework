@@ -26,7 +26,7 @@ Parameters:
   Image:
     Description: The Image you wish to use for CodeBuild (defaults to ubuntu).
     Type: String
-    Default: "aws/codebuild/standard:2.0"
+    Default: "aws/codebuild/standard:5.0"
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
@@ -49,6 +49,12 @@ Parameters:
     Description: The Prefix that will be attached to stacks deployed via ADF.
     Type: String
     Default: "adf-"
+  ExternalOrganizationIds: #[optional] For deploying to external accounts outside the Organization, this wil grant the external Organization s3 bucket and kms permissions 
+    Type: CommaDelimitedList
+    Description: The list of Organizations for external accounts 
+    Default: ''
+Conditions:
+  ExtraOrgs: !Not [!Equals [!Join ["", !Ref ExternalOrganizationIds], '']]
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -112,6 +118,23 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+          - !If
+            - ExtraOrgs
+            - Sid: Allow external accounts/organizations use of the key
+              Effect: Allow
+              Principal:
+                AWS: "*"
+              Action:
+                - kms:Decrypt
+                - kms:DescribeKey
+                - kms:Encrypt
+                - kms:GenerateDataKey*
+                - kms:ReEncrypt*
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  aws:PrincipalOrgID: !Ref ExternalOrganizationIds  
+            - !Ref AWS::NoValue
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -654,11 +677,11 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.7
-                nodejs: 10
+                python: 3.8
+                nodejs: 12
             pre_build:
               commands:
-                - npm install cdk@1.32 -g -y --quiet --no-progress
+                - npm install cdk@1.88 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
@@ -916,6 +939,24 @@ Resources:
               - !Sub arn:aws:s3:::${PipelineBucket}/*
             Principal:
               AWS: "*"
+          - !If
+            - ExtraOrgs
+            - Action:
+                - "s3:Get*"
+                - "s3:List*"
+                - "s3:PutObject*"
+                - "s3:PutReplicationConfiguration"
+              Effect: Allow
+              Condition:
+                StringEquals:
+                  aws:PrincipalOrgID: !Ref ExternalOrganizationIds
+              Resource:
+                - !Sub arn:aws:s3:::${PipelineBucket}
+                - !Sub arn:aws:s3:::${PipelineBucket}/*
+              Principal:
+                AWS: "*"
+            - !Ref AWS::NoValue
+
   SendSlackNotification:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -930,7 +971,7 @@ Resources:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
           ADF_LOG_LEVEL: !Ref ADFLogLevel
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
@@ -948,7 +989,7 @@ Resources:
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
@@ -965,7 +1006,7 @@ Resources:
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 120
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -1172,7 +1213,7 @@ Resources:
                 - codecommit:DeleteBranch
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 300
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"
