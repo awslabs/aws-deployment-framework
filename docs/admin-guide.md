@@ -15,6 +15,7 @@
     - [Regional Bootstrapping](#regional-bootstrapping)
     - [Global Bootstrapping](#global-bootstrapping)
     - [Bootstrapping Regions](#bootstrapping-regions)
+    - [Bootstrapping accounts outside the current Organization](#Bootstrapping-accounts-outside-the-current-Organization)
     - [Bootstrapping Recommendations](#bootstrapping-recommendations)
   - [Pipelines](#pipelines)
     - [Pipeline Parameters](#pipeline-parameters)
@@ -188,6 +189,14 @@ Similar to [Regional Bootstrapping](#regional-bootstrapping) however defined at 
 #### Bootstrapping Regions
 
 When you setup the initial configuration for the AWS Deployment Framework you define your parameters in the Serverless Application Repository, some of these details get placed into the [adfconfig.yml](#adfconfig.yml). This file defines the regions you will use for not only bootstrapping but which regions will later be used as targets for deployment pipelines. Be sure you read the section on *adfconfig* to understand how this ties in with bootstrapping.
+
+#### Bootstrapping accounts outside the current Organization
+
+When you would like to deploy to an account that is outside the current Organization you should first bootstrap that account manually. You can find the CloudFormation template called `example-global-adf-cross-organization.yml` in the *adf-bootstrap/* directory. Don't forget to change the parameters before deploying this template.
+
+Next on, we have to add permissions the external Organization permissions to use the S3 bucket and the KMS key. This can be done by adding the external Organization ID at the parameter called `ExternalOrganizationIds` in the `global.yml`  *adf-bootstrap/deployment* directory. You can add multiple Organization IDs (example: Default: orgId1, orgId2, orgId3).
+
+Finally you can start deploying to the external accounts by defining it with `ext-account-id://` as mentioned in the *user-guide*.
 
 #### Bootstrapping Recommendations
 

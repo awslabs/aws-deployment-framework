@@ -189,6 +189,15 @@ targets:
     properties: ...
 ```
 
+It is also possible to target accounts outside the current Organization by giving *ext-account-id://* key on the targets definition as shown below. Before doing this make sure that the target account is bootstrapped and the target organization has the permissions to use the KMS key and the S3 buckets. This needs to be done manually. More information about how to bootstrap manually can be found at the *admin-guide*.
+
+```yaml
+targets:
+  - 9999999999 # Single Account, Deployment Account Region
+  - /my_ou/production  # Group of Accounts, Deployment Account Region
+  - ext-account-id://9999999999 # External account ID, outside the current organization
+```
+
 ### Params
 
 Pipelines also have parameters that don't relate to a specific stage but rather the pipeline as a whole. For example, a pipeline might have an single notification endpoint in which it would send a notification when it completes or fails. It also might have things such as a schedule for how often it runs.

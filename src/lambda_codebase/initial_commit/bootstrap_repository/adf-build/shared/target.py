@@ -102,7 +102,7 @@ class Target:
     def _target_is_external_account_id(self):
         responses = {
             'Id': str(self.path[17:]),
-            'Name': str(self.path[17:]),
+            'Name': "ext-"+str(self.path[17:]),
             'Status': 'ACTIVE'
         }
         self._create_response_object([responses])
