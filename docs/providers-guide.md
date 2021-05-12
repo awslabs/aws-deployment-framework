@@ -101,7 +101,7 @@ Provider type: `github`.
   > The GitHub repository name.
   > For example, for the ADF repository it would be:
   > `aws-deployment-framework`.
-- *branch* - *(String)* - default: `master`.
+- *branch* - *(String)* - default: `main`.
   > The Branch on the GitHub repository to use to trigger this specific
   > pipeline.
 - *owner* - *(String)* **(required)**
