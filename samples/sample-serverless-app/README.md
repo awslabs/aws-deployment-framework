@@ -10,8 +10,9 @@
         properties:
           account_id: 111111111111
       build:
-        provider: STANDARD_2_0
+        provider: codebuild
         properties:
+          image: "STANDARD_4_0"
           environment_variables:
             CONTAINS_TRANSFORM: True
     targets:
