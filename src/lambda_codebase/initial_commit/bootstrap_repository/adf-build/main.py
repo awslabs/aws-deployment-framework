@@ -43,7 +43,7 @@ def is_account_in_invalid_state(ou_id, config):
 
     protected = config.get('protected', [])
     if ou_id in protected:
-        return "Is a in a protected Organizational Unit {0}, it will be skipped.".format(
+        return "Is in a protected Organizational Unit {0}, it will be skipped.".format(
             ou_id)
 
     return False

@@ -14,7 +14,8 @@ LOGGER = configure_logger(__name__)
 PARAM_SCHEMA = {
     Optional("notification_endpoint"): str,
     Optional("schedule"): str,
-    Optional("restart_execution_on_update"): bool
+    Optional("restart_execution_on_update"): bool,
+    Optional("pipeline_type", default="default"): Or("default"),
 }
 
 AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
@@ -48,7 +49,8 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
     Optional("owner"): str,
-    Optional("role"): str
+    Optional("role"): str,
+    Optional("trigger_on_changes"): bool,
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -61,7 +63,8 @@ GITHUB_SOURCE_PROPS = {
     Optional("branch"): str,
     "owner": str,
     "oauth_token_path": str,
-    "json_field": str
+    "json_field": str,
+    Optional("trigger_on_changes"): bool,
 }
 GITHUB_SOURCE = {
     "provider": 'github',
@@ -85,7 +88,8 @@ CODESTAR_SOURCE = {
 S3_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
     "bucket_name": str,
-    "object_key": str
+    "object_key": str,
+    Optional("trigger_on_changes"): bool,
 }
 S3_SOURCE = {
     "provider": 's3',
