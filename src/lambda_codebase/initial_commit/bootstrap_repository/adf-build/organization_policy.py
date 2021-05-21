@@ -161,6 +161,11 @@ class OrganizationPolicy:
                         path)
                     organizations.attach_policy(
                         policy_id, organization_mapping[path])
+                except organizations.client.exceptions.DuplicatePolicyAttachmentException:
+                    LOGGER.info(
+                        'Policy (%s) for %s exists and is attached already.',
+                        policy,
+                        organization_mapping[path])
                 except organizations.client.exceptions.DuplicatePolicyException:
                     LOGGER.info(
                         'Policy (%s) for %s exists ensuring attached.',
