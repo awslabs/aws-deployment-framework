@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      # It will connect through the VPC to fetch all the resources.
+      # Make sure the subnets and security groups are configured such that
+      # it is able to connect to S3 and fetch the requirements using pip.
+      #
+      # If you want to restrict public access, you can create a local copy
+      # of the pip required packages and use S3 private link.
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - pip install -r adf-build/requirements.txt -q
+
+  build:
+    commands:
+      - python adf-build/generate_params.py
+
+artifacts:
+  files:
+    - 'template.yml'
+    - 'params/*.json'
+    - 'params/*.yml"'
