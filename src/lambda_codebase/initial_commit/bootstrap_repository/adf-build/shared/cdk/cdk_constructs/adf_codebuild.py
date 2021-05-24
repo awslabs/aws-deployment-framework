@@ -165,7 +165,8 @@ class CodeBuild(core.Construct):
             (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()):    
             return getattr(_codebuild.LinuxBuildImage,
                 (specific_image or DEFAULT_CODEBUILD_IMAGE).upper())
-        else:
+        if specific_image.startswith('docker-hub://'):
+            specific_image = specific_image.split('docker-hub://')[-1]
             return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
 
     @staticmethod
