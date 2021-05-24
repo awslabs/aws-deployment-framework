@@ -330,7 +330,7 @@ pipelines:
       build:
         provider: codebuild
         properties:
-          image: bitnami/mongodb
+          image: docker-hub://bitnami/mongodb
     targets:
       - ...
 ```
