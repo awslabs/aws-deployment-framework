@@ -232,8 +232,9 @@ Provider type: `codebuild`.
   > to define which image should be used (defaults to `latest`).
   > 
   > Image can also take an object that contains a reference to a
-  > public docker hub image such as `bitnami/mongodb`. This allows your
-  > pipeline to consume a public docker hub image if required.
+  > public docker hub image with a prefix of `docker-hub://`, such as
+  > `docker-hub://bitnami/mongodb`. This allows your pipeline
+  > to consume a public docker hub image if required.
   > Along with the docker hub image name, we also support using a tag which can
   > be provided after the docker hub image name to define which image should
   > be used (defaults to `latest`).
