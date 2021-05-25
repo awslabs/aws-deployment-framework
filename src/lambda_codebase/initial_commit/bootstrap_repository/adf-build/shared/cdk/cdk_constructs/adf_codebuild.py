@@ -158,16 +158,17 @@ class CodeBuild(core.Construct):
                 else DEFAULT_BUILD_SPEC_FILENAME
             ),
         )
-        
+    
     @staticmethod
     def get_image_by_name(specific_image: str):
         if hasattr(_codebuild.LinuxBuildImage,
-            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()):    
+            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()):
             return getattr(_codebuild.LinuxBuildImage,
                 (specific_image or DEFAULT_CODEBUILD_IMAGE).upper())
         if specific_image.startswith('docker-hub://'):
             specific_image = specific_image.split('docker-hub://')[-1]
             return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
+        return specific_image
 
     @staticmethod
     def determine_build_image(scope, target, map_params):
@@ -193,7 +194,7 @@ class CodeBuild(core.Construct):
                 repo_arn,
                 specific_image.get('tag', 'latest'),
             )
-        return CodeBuild.get_image_by_name(specific_image) 
+        return CodeBuild.get_image_by_name(specific_image)
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):
