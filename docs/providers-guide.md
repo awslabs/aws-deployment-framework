@@ -236,13 +236,9 @@ Provider type: `codebuild`.
   > `docker-hub://bitnami/mongodb`. This allows your pipeline
   > to consume a public docker hub image if required.
   > Along with the docker hub image name, we also support using a tag which can
-  > be provided after the docker hub image name to define which image should
-  > be used (defaults to `latest`).
+  > be provided after the docker hub image name such as `docker-hub://bitnami/mongodb:3.6.23`
+  > in order to define which image should be used (defaults to `latest`).
   > 
-  > For example:
-  ```yaml
-  image: docker-hub://bitnami/mongodb
-  ```
   > 
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
