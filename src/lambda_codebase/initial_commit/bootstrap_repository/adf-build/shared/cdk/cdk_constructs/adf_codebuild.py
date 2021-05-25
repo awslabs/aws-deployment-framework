@@ -158,7 +158,7 @@ class CodeBuild(core.Construct):
                 else DEFAULT_BUILD_SPEC_FILENAME
             ),
         )
-    
+
     @staticmethod
     def get_image_by_name(specific_image: str):
         if hasattr(_codebuild.LinuxBuildImage,
