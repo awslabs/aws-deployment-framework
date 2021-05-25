@@ -239,6 +239,11 @@ Provider type: `codebuild`.
   > be provided after the docker hub image name to define which image should
   > be used (defaults to `latest`).
   > 
+  > For example:
+  ```yaml
+  image: docker-hub://bitnami/mongodb
+  ```
+  > 
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
