@@ -168,7 +168,11 @@ class CodeBuild(core.Construct):
         if specific_image.startswith('docker-hub://'):
             specific_image = specific_image.split('docker-hub://')[-1]
             return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
-        return specific_image
+        raise Exception(
+                "The CodeBuild image {0} could not be found.".format(
+                    specific_image
+                    ),
+                )
 
     @staticmethod
     def determine_build_image(scope, target, map_params):
