@@ -140,3 +140,50 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     assert build_stage_action['ActionTypeId']['Provider'] == "CodeBuild"
 
     assert len(build_stage['Actions']) == 1
+
+def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_chatbot():
+    region_name = "eu-central-1"
+    acount_id = "123456789012"
+
+    stack_input = {
+        "input": {"params": {"notification_endpoint": {"target": "fake-config", "type": "chat_bot"}}, "default_providers": {}, "regions": {}, },
+        "ssm_params": {"fake-region": {}},
+    }
+
+    stack_input["input"]["name"] = "test-stack"
+
+    stack_input["input"]["default_providers"]["source"] = {
+        "provider": "codecommit",
+        "properties": {"account_id": "123456789012"},
+    }
+    stack_input["input"]["default_providers"]["build"] = {
+        "provider": "codebuild",
+        "properties": {"account_id": "123456789012"},
+    }
+
+    stack_input["ssm_params"][region_name] = {
+        "modules": "fake-bucket-name",
+        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+    }
+    app = core.App()
+    PipelineStack(app, stack_input)
+
+    cloud_assembly = app.synth()
+    resources = {k[0:-8]: v for k, v in cloud_assembly.stacks[0].template['Resources'].items()}
+    pipeline_notification = resources['pipelinenoti']['Properties']
+
+    target = pipeline_notification["Targets"][0]
+    
+    assert resources["pipelinenoti"]["Type"] == "AWS::CodeStarNotifications::NotificationRule"
+    assert target["TargetAddress"] == "arn:aws:chatbot::111111111111:chat-configuration/slack-channel/fake-config"
+    assert target["TargetType"] == "AWSChatbotSlack"
+    assert pipeline_notification["EventTypeIds"] == [
+            "codepipeline-pipeline-stage-execution-succeeded",
+            "codepipeline-pipeline-stage-execution-failed",
+            "codepipeline-pipeline-pipeline-execution-started",
+            "codepipeline-pipeline-pipeline-execution-failed",
+            "codepipeline-pipeline-pipeline-execution-succeeded",
+            "codepipeline-pipeline-manual-approval-needed",
+            "codepipeline-pipeline-manual-approval-succeeded"
+         ]
+    assert pipeline_notification["DetailType"] == "FULL"

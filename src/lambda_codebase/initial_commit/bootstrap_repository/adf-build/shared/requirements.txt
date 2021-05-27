@@ -6,6 +6,7 @@ aws-cdk.aws-autoscaling==1.88
 aws-cdk.aws-autoscaling_common==1.88
 aws-cdk.aws-autoscaling_hooktargets==1.88
 aws-cdk.aws-certificatemanager==1.88
+aws-cdk.aws-chatbot==1.88
 aws-cdk.aws-cloudformation==1.88
 aws-cdk.aws-cloudfront==1.88
 aws-cdk.aws-cloudwatch==1.88
@@ -14,6 +15,7 @@ aws-cdk.aws-codecommit==1.88
 aws-cdk.aws-codedeploy==1.88
 aws-cdk.aws-codepipeline-actions==1.88
 aws-cdk.aws-codepipeline==1.88
+aws-cdk.aws-codestarnotifications==1.88
 aws-cdk.aws-dynamodb==1.88
 aws-cdk.aws-ec2==1.88
 aws-cdk.aws-ecr==1.88
