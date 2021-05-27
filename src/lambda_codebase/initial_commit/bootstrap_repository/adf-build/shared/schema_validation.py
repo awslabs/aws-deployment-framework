@@ -18,7 +18,6 @@ NOTIFICATION_PROPS = {
 # Pipeline Params
 PARAM_SCHEMA = {
     Optional("notification_endpoint"): Or(str, NOTIFICATION_PROPS),
-    Optional("notification_endpoint"): str,
     Optional("schedule"): str,
     Optional("restart_execution_on_update"): bool,
     Optional("pipeline_type", default="default"): Or("default"),
