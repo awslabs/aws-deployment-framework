@@ -82,6 +82,7 @@ def fetch_required_ssm_params(regions):
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
             output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
+            output['default_scm_branch'] = parameter_store.fetch_parameter('default_scm_branch')
     return output
 
 
@@ -125,6 +126,7 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     with open('cdk_inputs/{0}.json'.format(pipeline.input['name']), 'w') as outfile:
         data = {}
         data['input'] = pipeline.input
+        data['input']['default_scm_branch'] = ssm_params.get('default_scm_branch')
         data['ssm_params'] = ssm_params
         json.dump(data, outfile)
 

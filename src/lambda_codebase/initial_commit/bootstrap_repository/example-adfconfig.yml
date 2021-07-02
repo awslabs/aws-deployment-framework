@@ -15,5 +15,6 @@ config:
       action: safe  # Can be safe or remove-base (see docs)
   scp:
     keep-default-scp: enabled  # determines if the default AWSFullAccess SCP stays attached to all OU's 
-  scm: # Source control management, if true and using codecommit as source the repository will be automatically created
-    auto-create-repositories: enabled
+  scm: # Source control management
+    auto-create-repositories: enabled # if true and using codecommit as source the repository will be automatically created
+    default-scm-branch: master        # allow to specify custom defualt branch if pipeline specific is not provided. If parameter is not specified -  "master" branch will be used.
