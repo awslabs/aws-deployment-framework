@@ -49,7 +49,8 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
     Optional("owner"): str,
-    Optional("role"): str
+    Optional("role"): str,
+    Optional("trigger_on_changes"): bool,
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -62,7 +63,8 @@ GITHUB_SOURCE_PROPS = {
     Optional("branch"): str,
     "owner": str,
     "oauth_token_path": str,
-    "json_field": str
+    "json_field": str,
+    Optional("trigger_on_changes"): bool,
 }
 GITHUB_SOURCE = {
     "provider": 'github',
@@ -86,7 +88,8 @@ CODESTAR_SOURCE = {
 S3_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
     "bucket_name": str,
-    "object_key": str
+    "object_key": str,
+    Optional("trigger_on_changes"): bool,
 }
 S3_SOURCE = {
     "provider": 's3',
@@ -96,7 +99,7 @@ S3_SOURCE = {
 # CodeBuild
 CODEBUILD_IMAGE_PROPS = {
     "repository_arn": str, # arn:aws:ecr:region:012345678910:repository/test
-    Optional("tags"): dict,
+    Optional("tag"): str,  # defaults to latest
 }
 CODEBUILD_PROPS = {
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),

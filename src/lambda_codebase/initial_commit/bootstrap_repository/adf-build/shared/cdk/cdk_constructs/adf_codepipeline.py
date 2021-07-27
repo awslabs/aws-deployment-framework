@@ -69,7 +69,8 @@ class Action:
         if self.provider == "S3" and self.category == "Source":
             return {
                 "S3Bucket": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('bucket_name'),
-                "S3ObjectKey": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('object_key')
+                "S3ObjectKey": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('object_key'),
+                "PollForSourceChanges": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }
         if self.provider == "S3" and self.category == "Deploy":
             return {
@@ -249,7 +250,10 @@ class Action:
             return {
                 "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
-                "PollForSourceChanges": self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
+                "PollForSourceChanges": (
+                    self.map_params['default_providers']['source'].get('properties', {}).get('trigger_on_changes', True)
+                    and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
+                )
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
@@ -424,7 +428,9 @@ class Pipeline(core.Construct):
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
                 "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
-                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master')
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master'),
+                "poll_for_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('poll_for_changes', False),
+                "trigger_on_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }
         })
 

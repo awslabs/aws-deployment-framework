@@ -26,7 +26,13 @@ class Events(core.Construct):
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')
         _provider = params.get('source', {}).get('provider')
-        if _source_account and _provider == 'codecommit':
+        _add_trigger_on_changes = (
+            _provider == 'codecommit'
+            and _source_account
+            and params.get('source', {}).get('trigger_on_changes')
+            and not params.get('source', {}).get('poll_for_changes')
+        )
+        if _add_trigger_on_changes:
             _event = _events.Rule(
                 self,
                 'trigger_{0}'.format(params["name"]),
