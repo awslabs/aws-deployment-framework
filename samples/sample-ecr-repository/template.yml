@@ -1,22 +1,22 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (Shared ECR Repository)
 Metadata:
   License: Apache-2.0
 Parameters:
   TestingAccountId:
-    Description: Testing Accound Id that will pull from this repository
+    Description: Testing Account Id that will pull from this repository
     Type: String
   ProductionAccountId:
-    Description: Production Accound Id that will pull from this repository
+    Description: Production Account Id that will pull from this repository
     Type: String
 Resources:
   SampleAppRepository:
     Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: 'sample-node-app'
+    Properties
+      RepositoryName: "sample-node-app"
       LifecyclePolicy:
         LifecyclePolicyText: !Sub
           - |
@@ -48,21 +48,21 @@ Resources:
             }
           - DaysToRetainUntaggedContainerImages: 2
             MaxTaggedContainerImagesToRetain: 2
-      RepositoryPolicyText: 
+      RepositoryPolicyText:
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Sid: AllowPull
             Effect: Allow
-            Principal: 
-              AWS: 
-                - !Sub "arn:aws:iam::${TestingAccountId}:root"
-                - !Sub "arn:aws:iam::${ProductionAccountId}:root"
-            Action: 
+            Principal:
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${TestingAccountId}:root"
+                - !Sub "arn:${AWS::Partition}:iam::${ProductionAccountId}:root"
+            Action:
               - "ecr:Get*"
               - "ecr:Describe*"
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
 
-Outputs:    
+Outputs:
   SampleAppRepository:
     Value: !GetAtt SampleAppRepository.Arn
