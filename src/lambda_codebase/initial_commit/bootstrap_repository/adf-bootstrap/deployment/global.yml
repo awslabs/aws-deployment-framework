@@ -680,7 +680,7 @@ Resources:
                 - cdk --version
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py adf-build/cdk/generate_pipeline_inputs.py adf-build/cdk/generate_pipeline_stacks.py adf-build/cdk/clean_pipelines.py
                 - python adf-build/cdk/generate_pipeline_inputs.py
-                - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py 1> /dev/null
+                - cdk synth --no-version-reporting --app adf-build/cdk/generate_pipeline_stacks.py 1> /dev/null
                 - python adf-build/cdk/execute_pipeline_stacks.py
             post_build:
               commands:

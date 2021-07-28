@@ -18,10 +18,12 @@ from parameter_store import ParameterStore
 from cloudformation import CloudFormation
 from s3 import S3
 from sts import STS
+from partition import get_partition
 
 # Globals taken from the lambda environment variables
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
+PARTITION = get_partition(REGION_DEFAULT)
 LOGGER = configure_logger(__name__)
 
 
@@ -33,11 +35,13 @@ def configure_generic_account(sts, event, region, role):
     are required for the global.yml in all target accounts.
     """
     try:
+        deployment_account_id = event['deployment_account_id']
+        cross_account_access_role = event['cross_account_access_role']
+        role_arn = f'arn:{PARTITION}:iam::{deployment_account_id}:role/{cross_account_access_role}'
+
         deployment_account_role = sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/{1}'.format(
-                event['deployment_account_id'],
-                event['cross_account_access_role']
-            ), 'configure_generic'
+            role_arn=role_arn,
+            role_session_name='configure_generic'
         )
         parameter_store_deployment_account = ParameterStore(
             event['deployment_account_region'],
@@ -59,6 +63,7 @@ def configure_generic_account(sts, event, region, role):
     parameter_store_target_account.put_parameter('bucket_name', bucket_name)
     parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
 
+
 def configure_master_account_parameters(event):
     """
     Update the Master account parameter store in us-east-1 with the deployment_account_id
@@ -68,6 +73,7 @@ def configure_master_account_parameters(event):
     parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
     parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
     parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
+
 
 def configure_deployment_account_parameters(event, role):
     """
@@ -83,16 +89,21 @@ def configure_deployment_account_parameters(event, role):
                 value
             )
 
+
 def is_inter_ou_account_move(event):
     return not event["source_ou_id"].startswith('r-') and not event["destination_ou_id"].startswith('r-')
 
+
 def lambda_handler(event, _):
     sts = STS()
+
+    account_id = event["account_id"]
+    cross_account_access_role = event["cross_account_access_role"]
+    role_arn = f'arn:{PARTITION}:iam::{account_id}:role/{cross_account_access_role}'
+
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(
-            event["account_id"],
-            event["cross_account_access_role"]
-        ), 'master_lambda'
+        role_arn=role_arn,
+        role_session_name='master_lambda'
     )
 
     if event['is_deployment_account']:
@@ -112,13 +123,14 @@ def lambda_handler(event, _):
             deployment_account_region=event["deployment_account_region"],
             role=role,
             wait=True,
-            stack_name=None, # Stack name will be automatically defined based on event
+            # Stack name will be automatically defined based on event
+            stack_name=None,
             s3=s3,
             s3_key_path=event["full_path"],
-            account_id=event["account_id"]
+            account_id=account_id
         )
         if is_inter_ou_account_move(event):
-            cloudformation.delete_all_base_stacks(True) #override Wait
+            cloudformation.delete_all_base_stacks(True)  # override Wait
         cloudformation.create_stack()
         if region == event["deployment_account_region"]:
             cloudformation.create_iam_stack()

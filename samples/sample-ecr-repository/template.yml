@@ -15,7 +15,7 @@ Parameters:
 Resources:
   SampleAppRepository:
     Type: AWS::ECR::Repository
-    Properties
+    Properties:
       RepositoryName: "sample-node-app"
       LifecyclePolicy:
         LifecyclePolicyText: !Sub

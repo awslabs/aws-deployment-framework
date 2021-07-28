@@ -61,8 +61,17 @@ class PhysicalResource:
 
 @create()
 def create_(_event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
-    if os.environ["AWS_REGION"] != 'us-east-1':
-        raise Exception("Deployment of ADF is only available via the us-east-1 region.")
+    approved_regions = [
+        'us-east-1',
+        'us-gov-west-1'
+    ]
+    region = os.getenv('AWS_REGION')
+
+    if region not in approved_regions:
+        raise Exception(
+            "Deployment of ADF is only available via the us-east-1 "
+            "and us-gov-west-1 regions."
+        )
     organization_id, created = ensure_organization()
     organization_root_id = get_organization_root_id()
     return PhysicalResource(
@@ -112,7 +121,8 @@ def ensure_organization() -> Tuple[OrganizationId, Created]:
 
     if describe_organization["Organization"]["FeatureSet"] != "ALL":
         raise Exception(
-            "Existing organization is only set up for CONSOLIDATED_BILLING, but ADF needs ALL features"
+            "Existing organization is only set up for CONSOLIDATED_BILLING, "
+            "but ADF needs ALL features"
         )
     organization_id = describe_organization["Organization"]["Id"]
     LOGGER.info(

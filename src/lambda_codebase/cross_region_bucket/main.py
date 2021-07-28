@@ -20,6 +20,8 @@ from cfn_custom_resource import ( # pylint: disable=unused-import
     delete,
 )
 
+from partition import get_partition
+
 # Type aliases:
 BucketName = str
 Data = Mapping[str, str]
@@ -143,19 +145,23 @@ def ensure_bucket(region: str, bucket_name_prefix: str) -> Tuple[BucketName, Cre
         bucket_name_suffix = "".join(
             secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
         )
-        bucket_name = "{0}-{1}".format(bucket_name_prefix, bucket_name_suffix)
+        bucket_name = f"{bucket_name_prefix}-{bucket_name_suffix}"
         try:
+            LOGGER.info('Creating bucket')
             config = {'Bucket': bucket_name}
             if region != 'us-east-1':
-                config["CreateBucketConfiguration"] = {"LocationConstraint": region}
+                config["CreateBucketConfiguration"] = {
+                    "LocationConstraint": region
+                }
             s3_client.create_bucket(
                 **config
             )
-            LOGGER.info("Bucket created: %s", bucket_name)
+            LOGGER.info(f"Bucket created: {bucket_name}")
             return bucket_name, True
         except s3_client.exceptions.BucketAlreadyExists:
             LOGGER.info(
-                "Bucket name %s already taken, trying another one ...", bucket_name
+                f"Bucket name {bucket_name} already taken, "
+                f"trying another one ..."
             )
 
 
@@ -185,11 +191,14 @@ def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
 
 
 def ensure_bucket_policy(bucket_name: str, region: str, policy: MutableMapping) -> None:
+
+    partition = get_partition(region)
+
     s3_client = get_s3_client(region)
     for action in policy["Statement"]:
         action["Resource"] = [
-            "arn:aws:s3:::{0}".format(bucket_name),
-            "arn:aws:s3:::{0}/*".format(bucket_name),
+            f"arn:{partition}:s3:::{bucket_name}",
+            f"arn:{partition}:s3:::{bucket_name}/*",
         ]
     s3_client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
 
