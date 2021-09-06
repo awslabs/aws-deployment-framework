@@ -99,7 +99,7 @@ S3_SOURCE = {
 # CodeBuild
 CODEBUILD_IMAGE_PROPS = {
     "repository_arn": str, # arn:aws:ecr:region:012345678910:repository/test
-    Optional("tags"): dict,
+    Optional("tag"): str,  # defaults to latest
 }
 CODEBUILD_PROPS = {
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),

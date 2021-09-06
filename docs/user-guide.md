@@ -322,7 +322,7 @@ pipelines:
         provider: codebuild
         image:
           repository_arn: arn:aws:ecr:region:012345678910:repository/test
-          tag: latest #optional (and also defaults to latest)
+          tag: latest # optional (defaults to latest)
     targets:
       - ...
 ```
