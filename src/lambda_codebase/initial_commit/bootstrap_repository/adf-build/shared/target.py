@@ -129,7 +129,7 @@ class Target:
         self.path = '/deployment' # TODO we will fetch this from parameter store
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
-
+    #pylint: disable=R0911
     def fetch_accounts_for_target(self):
         if self.path == 'approval':
             return self._target_is_approval()
