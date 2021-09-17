@@ -51,6 +51,7 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("owner"): str,
     Optional("role"): str,
     Optional("trigger_on_changes"): bool,
+    Optional("output_artifact_format", default=None): Or(str, None)
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
