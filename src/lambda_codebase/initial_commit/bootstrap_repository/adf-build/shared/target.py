@@ -167,4 +167,3 @@ class Target:
         raise InvalidDeploymentMapError(
             "Unknown definition for target: {0}".format(self.path)
         )
-        
