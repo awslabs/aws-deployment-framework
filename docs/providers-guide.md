@@ -87,6 +87,10 @@ Provider type: `codecommit`.
   >
   > By default, it will trigger on changes using the event triggered by
   > CodeCommit when an update to the repository took place.
+- *output_artifact_format* - *(String)* default CODE_ZIP 
+  > The output artifact format. Values can be either CODEBUILD_CLONE_REF or CODE_ZIP. If unspecified, the default is CODE_ZIP.
+  > If you are using CODEBUILD_CLONE_REF, you need to ensure that the IAM role passed in via the *role* property has the CodeCommit:GitPull permission. 
+  > NB: The CODEBUILD_CLONE_REF value can only be used by CodeBuild downstream actions. 
 
 ### GitHub
 
