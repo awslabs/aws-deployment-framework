@@ -255,9 +255,9 @@ class Action:
                     and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
                 )
             }
-            output_artifcat_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
-            if output_artifcat_format:
-                props["OutputArtifactFormat"] = output_artifcat_format
+            output_artifact_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
+            if output_artifact_format:
+                props["OutputArtifactFormat"] = output_artifact_format
             return props
         raise Exception("{0} is not a valid provider".format(self.provider))
 
