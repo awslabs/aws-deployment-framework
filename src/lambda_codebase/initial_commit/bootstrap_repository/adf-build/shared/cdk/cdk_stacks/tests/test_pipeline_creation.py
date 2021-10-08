@@ -140,3 +140,73 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     assert build_stage_action['ActionTypeId']['Provider'] == "CodeBuild"
 
     assert len(build_stage['Actions']) == 1
+
+def test_pipeline_creation_outputs_with_codeartifact_trigger():
+    region_name = "eu-central-1"
+    acount_id = "123456789012"
+
+    stack_input = {
+        "input": {"params": {}, "default_providers": {}, "regions": {}, "triggers": {"triggered_by": {"code_artifact": {"repository": "my_test_repo"} }}},
+        "ssm_params": {"fake-region": {}},
+    }
+
+    stack_input["input"]["name"] = "test-stack"
+
+    stack_input["input"]["default_providers"]["source"] = {
+        "provider": "codecommit",
+        "properties": {"account_id": "123456789012"},
+    }
+    stack_input["input"]["default_providers"]["build"] = {
+        "provider": "codebuild",
+        "properties": {"account_id": "123456789012"},
+    }
+
+    stack_input["ssm_params"][region_name] = {
+        "modules": "fake-bucket-name",
+        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+    }
+    app = core.App()
+    PipelineStack(app, stack_input)
+
+    cloud_assembly = app.synth()
+    resources = {k[0:-8]: v for k, v in cloud_assembly.stacks[0].template['Resources'].items()}
+    trigger = resources['codepipelinecodeartifactpipelinetriggermytestrepoall']
+    assert trigger["Type"] == "AWS::Events::Rule"
+    assert trigger["Properties"]["EventPattern"]["detail-type"] == ["CodeArtifact Package Version State Change"]
+    assert trigger["Properties"]["EventPattern"]["source"] == ["aws.codeartifact"]
+    assert trigger["Properties"]["EventPattern"]["detail"] == {"repositoryName": "my_test_repo"}
+
+def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name():
+    region_name = "eu-central-1"
+    acount_id = "123456789012"
+
+    stack_input = {
+        "input": {"params": {}, "default_providers": {}, "regions": {}, "triggers": {"triggered_by": {"code_artifact": {"repository": "my_test_repo", "package": "my_test_package"} }}},
+        "ssm_params": {"fake-region": {}},
+    }
+
+    stack_input["input"]["name"] = "test-stack"
+
+    stack_input["input"]["default_providers"]["source"] = {
+        "provider": "codecommit",
+        "properties": {"account_id": "123456789012"},
+    }
+    stack_input["input"]["default_providers"]["build"] = {
+        "provider": "codebuild",
+        "properties": {"account_id": "123456789012"},
+    }
+
+    stack_input["ssm_params"][region_name] = {
+        "modules": "fake-bucket-name",
+        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+    }
+    app = core.App()
+    PipelineStack(app, stack_input)
+
+    cloud_assembly = app.synth()
+    resources = {k[0:-8]: v for k, v in cloud_assembly.stacks[0].template['Resources'].items()}
+    trigger = resources['codepipelinecodeartifactpipelinetriggermytestrepomytestpackage']
+    assert trigger["Type"] == "AWS::Events::Rule"
+    assert trigger["Properties"]["EventPattern"]["detail-type"] == ["CodeArtifact Package Version State Change"]
+    assert trigger["Properties"]["EventPattern"]["source"] == ["aws.codeartifact"]
+    assert trigger["Properties"]["EventPattern"]["detail"] == {"repositoryName": "my_test_repo", "packageName": "my_test_package"}

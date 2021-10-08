@@ -44,6 +44,10 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     if "github" in _source_name:
         adf_github.GitHub.create_webhook_when_required(scope, _pipeline.cfn, stack_input["input"])
 
+    pipeline_triggers = stack_input["input"].get("triggers", {}).get("triggered_by", None)
+    if pipeline_triggers:
+        for k, v in pipeline_triggers.items():
+            _pipeline.add_pipeline_trigger((k,v))
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
     _source_name = stack_input["input"]["default_providers"]["source"][
