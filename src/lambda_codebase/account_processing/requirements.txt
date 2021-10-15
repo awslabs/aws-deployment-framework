@@ -1,0 +1,3 @@
+pyyaml
+wrapt==1.12
+aws-xray-sdk

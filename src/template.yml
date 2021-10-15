@@ -116,6 +116,15 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+  AccountProcessingApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: account_processing.yml
+      Parameters:
+        LambdaLayer: !Ref LambdaLayerVersion
+        ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
+        OrganizationID: !GetAtt Organization.OrganizationId    
+        CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
@@ -483,6 +492,8 @@ Resources:
             Value: './adf-build/shared/python'
           - Name: S3_BUCKET
             Value: !Ref BootstrapTemplatesBucket
+          - Name: ACCOUNT_BUCKET
+            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket            
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET
@@ -511,8 +522,8 @@ Resources:
                 - sam package --output-template-file adf-bootstrap/deployment/global.yml --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet # Shared Modules to be used with AWS CodeBuild
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
+                - aws s3 sync ./adf-accounts s3://$ACCOUNT_BUCKET --quiet
                 - python adf-build/main.py  # Updates config, updates (or creates) base stacks.
-                - python adf-build/provisioner/main.py # Ensures/Creates AWS Accounts based on accounts definitions files.
         Type: CODEPIPELINE
       Tags:
         - Key: "Name"
