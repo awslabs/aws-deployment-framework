@@ -7,9 +7,10 @@ Creates an account within your organisation.
 
 import os
 from aws_xray_sdk.core import patch_all
+import boto3
+
 patch_all()
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
-import boto3
 
 
 def create_account(account, adf_role_name, org_client):

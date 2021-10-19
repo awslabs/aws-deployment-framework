@@ -5,8 +5,11 @@ Tests the account creation lambda
 import unittest
 import boto3
 from botocore.stub import Stubber
+from aws_xray_sdk import global_sdk_config
+
 from ..create_account import create_account
 
+global_sdk_config.set_sdk_enabled(False)
 
 # pylint: disable=W0106
 class SuccessTestCase(unittest.TestCase):

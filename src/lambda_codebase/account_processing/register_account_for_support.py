@@ -8,16 +8,14 @@ to register the newly created account for support.
 """
 
 from enum import Enum
-from logger import configure_logger
-from aws_xray_sdk.core import patch_all
-patch_all()
-
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
-
+from logger import configure_logger
+from aws_xray_sdk.core import patch_all
 
 LOGGER = configure_logger(__name__)
+patch_all()
 
 
 class SupportLevel(Enum):

@@ -12,4 +12,10 @@ test:
 	pytest src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared -vvv -s -c src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/pytest.ini
 lint:
 	# Linter performs static analysis to catch latent bugs
-	find src/ -iname "*.py" -not -path ".aws-sam/*" | xargs pylint --rcfile .pylintrc
+	find src/ -iname "*.py" -not -path "src/.aws-sam/*" | xargs pylint --rcfile .pylintrc
+
+build:
+	sam build -u
+
+deploy: 
+	sam deploy --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND

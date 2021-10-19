@@ -444,6 +444,7 @@ Resources:
               - "s3:GetObject"
               - "s3:ListBucket"
               - "s3:PutObject"
+              - "s3:ListObjects"
             Resource:
               - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*"
               - "arn:aws:s3:::serverlessrepo-aws-deplo-bootstraptemplatesbucket-*/*"
@@ -451,6 +452,8 @@ Resources:
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
               - "arn:aws:s3:::adf-shared-modules-*-*"
               - "arn:aws:s3:::adf-shared-modules-*-*/*"
+              - !Sub "arn:aws:s3:::${AccountProcessingApplication.Outputs.Bucket}"
+              - !Sub "arn:aws:s3:::${AccountProcessingApplication.Outputs.Bucket}/*"
           - Effect: "Allow"
             Action:
               - "codebuild:*"

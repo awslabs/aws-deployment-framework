@@ -73,6 +73,7 @@ Resources:
         - !Ref AccountProcessingLambdaRole   
         - !Ref GetAccountRegionsFunctionRole    
         - !Ref DeleteDefaultVPCFunctionRole   
+        - !Ref AccountAliasConfigFunctionRole
   ADFAccountProcessingLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -474,10 +475,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${AccountAliasConfigFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "ConfigureAccountTags"
                   },
@@ -485,10 +486,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${CreateAccountFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "WaitFor10Seconds"
                   },
@@ -501,10 +502,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${RegisterAccountForSupportFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "ConfigureAccountAlias"
                   },                                                       
@@ -512,10 +513,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${AccountTagConfigFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "ConfigureAccountOU"
                   },  
@@ -523,10 +524,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${AccountOUConfigFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "DeleteDefaultVPCChoice"
                   },
@@ -545,10 +546,10 @@ Resources:
                     "Type": "Task",
                     "Resource": "${GetAccountRegionsFunction.Arn}",
                     "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
+                        "ErrorEquals": ["States.TaskFailed"],
+                        "IntervalSeconds": 3,
+                        "BackoffRate": 1.5,
+                        "MaxAttempts": 30
                     }],
                     "Next": "DeleteDefaultVPCMap"
                   },

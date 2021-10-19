@@ -8,6 +8,7 @@ Gets all the default regions for an accounts.
 import os
 from sts import STS
 from aws_xray_sdk.core import patch_all
+
 patch_all()
 
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")

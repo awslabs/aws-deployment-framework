@@ -10,16 +10,13 @@ invokes the account processing step function per account.
 import json
 import os
 from typing import Tuple
-from aws_xray_sdk.core.patcher import patch
 import yaml
 
-from aws_xray_sdk.core import xray_recorder, patch_all
-
-patch_all()
-
+import boto3
+from aws_xray_sdk.core import patch_all
 from organizations import Organizations
 
-import boto3
+patch_all()
 
 ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv("ACCOUNT_MANAGEMENT_STATEMACHINE_ARN")
 
