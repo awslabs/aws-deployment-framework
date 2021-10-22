@@ -239,7 +239,28 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         name: web-app-testing
 ```
 
-In the above example, the *ami-builder* pipeline runs every 7 days based on its schedule. When it completes, it executes the *my-web-app-pipeline* pipeline as defined in its *completion_trigger* property.
+### Additional Triggers
+
+Pipelines can also be trigger by other events For example, a new version of a package hosted on CodeArtifact:
+
+```yaml
+  - name: ami-builder
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        role: packer
+        size: medium
+    triggers: # What should happen when this pipeline completes
+      triggered_by:
+        code_artifact:
+          repository: my_test_repository
+```
+
+In the above example, the *ami-builder* pipeline is triggered by everytime a new package version is published to the my_test_repository repo. 
 
 ### Additional Deployment Maps
 
