@@ -477,7 +477,7 @@ class Pipeline(core.Construct):
         if trigger_type in self._accepted_triggers.keys():
             trigger_type = self._accepted_triggers[trigger_type]
         else:
-            raise Exception(trigger)
+            raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
 
         if trigger_type == "CODEARTIFACT":
             details = {"repositoryName": trigger_config["repository"]}

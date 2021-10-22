@@ -210,3 +210,37 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
     assert trigger["Properties"]["EventPattern"]["detail-type"] == ["CodeArtifact Package Version State Change"]
     assert trigger["Properties"]["EventPattern"]["source"] == ["aws.codeartifact"]
     assert trigger["Properties"]["EventPattern"]["detail"] == {"repositoryName": "my_test_repo", "packageName": "my_test_package"}
+
+def test_pipeline_creation_outputs_with_invalid_trigger_type():
+    region_name = "eu-central-1"
+    acount_id = "123456789012"
+
+    stack_input = {
+        "input": {"params": {}, "default_providers": {}, "regions": {}, "triggers": {"triggered_by": {"infinidash": {"arn": "arn:aws:11111111:us-east-1:infinidash/dash:blahblahblah"} }}},
+        "ssm_params": {"fake-region": {}},
+    }
+
+    stack_input["input"]["name"] = "test-stack"
+
+    stack_input["input"]["default_providers"]["source"] = {
+        "provider": "codecommit",
+        "properties": {"account_id": "123456789012"},
+    }
+    stack_input["input"]["default_providers"]["build"] = {
+        "provider": "codebuild",
+        "properties": {"account_id": "123456789012"},
+    }
+
+    stack_input["ssm_params"][region_name] = {
+        "modules": "fake-bucket-name",
+        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+    }
+    app = core.App()
+
+
+    with pytest.raises(Exception) as e_info:
+        PipelineStack(app, stack_input)        
+        cloud_assembly = app.synth()
+        
+    
+

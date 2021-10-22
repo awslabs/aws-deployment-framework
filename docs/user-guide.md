@@ -6,6 +6,7 @@
   - [Params](#params)
   - [Repositories](#repositories)
   - [Completion Triggers](#completion-triggers)
+  - [Additional Triggers](#additional-triggers)
   - [Additional Deployment Maps](#additional-deployment-maps)
   - [Removing Pipelines](#removing-pipelines)
 - [Deploying via Pipelines](#deploying-via-pipelines)
@@ -241,7 +242,7 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
 
 ### Additional Triggers
 
-Pipelines can also be trigger by other events For example, a new version of a package hosted on CodeArtifact:
+Pipelines can also be triggered by other events. For example, a new version of a package hosted on CodeArtifact being published:
 
 ```yaml
   - name: ami-builder
@@ -260,7 +261,7 @@ Pipelines can also be trigger by other events For example, a new version of a pa
           repository: my_test_repository
 ```
 
-In the above example, the *ami-builder* pipeline is triggered by everytime a new package version is published to the my_test_repository repo. 
+In the above example, the *ami-builder* pipeline is triggered by everytime a new package version is published to the *my_test_repository* repo. 
 
 ### Additional Deployment Maps
 
