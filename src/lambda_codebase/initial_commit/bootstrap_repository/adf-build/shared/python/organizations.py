@@ -54,15 +54,25 @@ class Organizations: # pylint: disable=R0904
 
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
+            if ou_id[0] not in ['r','o']:
+                continue
+            # List OUs
             for organization_id in [organization_id['Id'] for organization_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ORGANIZATIONAL_UNIT"})]:
                 if organization_id in org_structure.values() and counter != 0:
                     continue
                 ou_name = self.describe_ou_name(organization_id)
                 trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, ou_name))
                 org_structure[trimmed_path] = organization_id
+            # List accounts
+            for account_id in [account_id['Id'] for account_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ACCOUNT"})]:
+                if account_id in org_structure.values() and counter != 0:
+                    continue
+                account_name = self.describe_account_name(account_id)
+                trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, account_name))
+                org_structure[trimmed_path] = account_id
         counter = counter + 1
-        # Counter is greater than 4 here is the conditional as organizations cannot have more than 5 levels of nested OUs
-        return org_structure if counter > 4 else self.get_organization_map(org_structure, counter)
+        # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
+        return org_structure if counter > 5 else self.get_organization_map(org_structure, counter)
 
     def update_policy(self, content, policy_id):
         self.client.update_policy(
@@ -161,6 +171,15 @@ class Organizations: # pylint: disable=R0904
             return response['OrganizationalUnit']['Name']
         except ClientError as error:
             raise RootOUIDError("OU is the Root of the Organization") from error
+
+    def describe_account_name(self, account_id):
+        try:
+            response = self.client.describe_account(
+                AccountId=account_id
+            )
+            return response['Account']['Name']
+        except ClientError as error:
+            raise
 
     @staticmethod
     def determine_ou_path(ou_path, ou_child_name):
