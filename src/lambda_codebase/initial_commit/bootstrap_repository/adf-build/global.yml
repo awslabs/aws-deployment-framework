@@ -90,8 +90,8 @@ Resources:
             Action:
               - cloudformation:ValidateTemplate
               - ssm:PutParameter
-              - ssm:GetParameters 
-              - ssm:GetParameter 
+              - ssm:GetParameters
+              - ssm:GetParameter
             Resource:
               - "*"
           - Effect: Allow
@@ -112,6 +112,6 @@ Resources:
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-automation-role"
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-terraform-role"
       Roles:
         - !Ref OrganizationsRole
-
