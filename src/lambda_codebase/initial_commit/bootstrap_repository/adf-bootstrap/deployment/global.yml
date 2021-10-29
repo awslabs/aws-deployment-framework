@@ -208,6 +208,15 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
+            Sid: "DynamoDB"
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:GetItem
+              - dynamodb:DeleteItem
+              - dynamodb:DescribeTable
+            Resource:
+              - !Sub "arn:aws:dynamodb:*:${AWS::AccountId}:table/adf-tflocktable*"
+          - Effect: Allow
             Sid: "S3"
             Action:
               - s3:Get*
