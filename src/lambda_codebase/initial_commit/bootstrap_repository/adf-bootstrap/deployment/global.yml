@@ -1287,6 +1287,19 @@ Resources:
             ]
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
+  TerraformLockTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: adf-tflocktable
   ADFTerraformRole:
     # ADF role to run terraform pipelines
     Type: AWS::IAM::Role
