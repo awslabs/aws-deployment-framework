@@ -183,8 +183,8 @@ Resources:
             Action:
               - sts:AssumeRole
             Condition:
-                ArnEquals:
-                    'aws:SourceArn': !Sub 'arn:aws:codepipeline:${AWS::Region}:${DeploymentAccountId}:*'
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:aws:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
       Path: /
   AdfAutomationRole:
     # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
@@ -317,3 +317,41 @@ Resources:
               - "*"
       Roles:
         - !Ref ReadOnlyAutomationRole
+  ADFTerraformRole:
+    # ADF role to run terraform pipelines
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-terraform-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Principal:
+              AWS:
+                # This would allow all codebuild projects to be able to assume this role
+                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+                # - !Sub arn:aws:iam::${DeploymentAccountId}:role/my-custom-codebuild-role
+                # The above role would be created on the deployment account for the purpose deploying this custom resource via codebuild
+            Action:
+              - sts:AssumeRole
+      Path: /
+  ADFTerraformPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-terraform-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "ec2:*"
+              - "s3:*"
+              - "ssm:*"
+              - "sso:*"
+              - "identitystore:*"
+              - "organizations:*"
+            Resource:
+              - "*"
+      Roles:
+        - !Ref ADFTerraformRole
