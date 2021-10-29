@@ -43,6 +43,7 @@ Resources:
               - organizations:DescribeAccount
               - organizations:ListOrganizationalUnitsForParent
               - organizations:ListRoots
+              - organizations:ListChildren
               - tag:GetResources
             Resource: "*"
       Roles:
