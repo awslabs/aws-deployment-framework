@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    AWS_DEFAULT_REGION: eu-west-1 # The region you plan on deploying resources into
+    AWS_DEFAULT_REGION: eu-west-1 # ADF main region
     TF_VAR_TARGET_ACCOUNT_ROLE: adf-terraform-role # The IAM Role terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
     TF_STAGE: "plan"
@@ -12,11 +12,7 @@ phases:
   install:
     runtime-versions:
       python: 3.8
-    # commands:
-    #   - pip install -r scripts/requirements.txt -q
   build:
     commands:
-      #- python scripts/get_accounts.py
       - python adf-build/helpers/terraform/get_accounts.py
-      #- bash if test "$(scripts/terraform/adf_terraform.sh $TF_STAGE)" false; then exit 1; fi
       - bash adf-build/helpers/terraform/adf_terraform.sh $TF_STAGE
