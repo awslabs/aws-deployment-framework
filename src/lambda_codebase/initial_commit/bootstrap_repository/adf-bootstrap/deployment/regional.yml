@@ -1,11 +1,11 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Regional) for Deployment Account
 Parameters:
   OrganizationId:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
@@ -89,6 +89,19 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+  TerraformLockTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: adf-tflocktable
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
     Description: The S3 Bucket used for cross region codepipeline deployments
