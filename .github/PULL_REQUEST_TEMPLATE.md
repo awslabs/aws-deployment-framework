@@ -6,15 +6,16 @@ This PR enables ADF to run terraform pipelines multi-accounts/OUs and multi-regi
 
 Terraform module includes:
 
-- `adf_terraform.sh`: this script
+- `adf_terraform.sh`: this script:
   - runs terraform plan and apply
   - centralize the terraform state file in the S3 bucket of the deployment account
     - e.g. main region adf-global-base-deployment-pipelinebucketxyz/ProjectName/accountID.tfstate
-    -
+    - e.g. secondary region adf-regional-base-deploy-deploymentframeworkregio-jsm/ProjectName/accountID.tfstate
   - centralize lock of the state file in regional DynamoDB tables in deployment account
 - `sample-terraform`: this folder contains an example of terraform pipelines definition and repository
 - `adf_terraform_role`: additional role added during the bootstrap of an account to deploy terraform resources
 - `adf_locktable`: regional DynamoDB to manage the lock of the state file
+- minor changes to adf core roles to enable terraform pipelines
 
 An overview of the terraform template components and functionalities
 
@@ -95,5 +96,18 @@ The module consists of three build stages defined in the following file:
 
 5. Push to sample-terraform ADF repository
 6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
+
+Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created
+e.g. Project name: sample-tf-module
+Target accounts: 111111111111, 222222222222
+Target regions: eu-west-1 (main ADF region), us-east-1
+The following state files are created
+
+- 111111111111 main region (eu-west-1) adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/111111111111.tfstate
+- 111111111111 secondary region (us-east-1) adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/111111111111.tfstate
+- 222222222222 main region (eu-west-1) adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/222222222222.tfstate
+- 222222222222 secondary region (us-east-1) adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/222222222222.tfstate
+
+A DynamoDB table manage the lock of the state file. It is deployed in every ADF regions named adf_locktable
 
 By submitting this pull request, I confirm that you can use, modify, copy, and redistribute this contribution, under the terms of your choice.
