@@ -90,4 +90,4 @@ The following state files are created:
 - 222222222222 main region (eu-west-1) adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/222222222222.tfstate
 - 222222222222 secondary region (us-east-1) adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/222222222222.tfstate
 
-A DynamoDB table manage the lock of the state file. It is deployed in every ADF regions named adf_locktable
+A DynamoDB table is created to manage the lock of the state file. It is deployed in every ADF regions named adf_locktable.
