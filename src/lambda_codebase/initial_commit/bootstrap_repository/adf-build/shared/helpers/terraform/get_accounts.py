@@ -26,7 +26,7 @@ def get_accounts():
 
     print("Master Account ID: " + master_acc_id)
     # Assume a role into the Org Master role to get account ID's and emails
-    organizations = get_boto3_client('organizations', 'arn:aws:sts::' + master_acc_id + ':role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     # organizations = get_boto3_client('organizations', 'arn:aws:sts::' + master_acc_id + ':role/Admin', 'getaccountID')
     for account in paginator(organizations.list_accounts):
         if account['Status'] == 'ACTIVE':
