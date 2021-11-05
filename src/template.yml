@@ -670,12 +670,18 @@ Resources:
                     "CreateOrUpdateBaseStack": {
                         "Type": "Task",
                         "Resource": "${CrossAccountExecuteFunction.Arn}",
-                        "Next": "WaitUntilBootstrapComplete",
+                        "Retry": [{
+                            "ErrorEquals": ["InvalidTemplateError", "GenericAccountConfigureError"],
+                            "IntervalSeconds": 1,
+                            "BackoffRate": 1.1,
+                            "MaxAttempts": 45
+                        }],
                         "Catch": [{
                             "ErrorEquals": ["States.ALL"],
                             "Next": "ExecuteDeploymentAccountStateMachine",
                             "ResultPath": "$.error"
                         }],
+                        "Next": "WaitUntilBootstrapComplete",
                         "TimeoutSeconds": 600
                     },
                     "MovedToRootAction": {
