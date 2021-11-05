@@ -40,7 +40,6 @@ def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
     organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
-    # organizations = get_boto3_client('organizations', 'arn:aws:sts::' + master_acc_id + ':role/Admin', 'getaccountID')
     # Read organization root id
     root_ids = []
     for id in paginator(organizations.list_roots):
