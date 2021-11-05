@@ -9,8 +9,6 @@ sts = boto3.client('sts')
 master_acc_id = os.environ["MASTER_ACCOUNT_ID"]
 if("TARGET_OUS" in os.environ):
     ou_path = os.environ["TARGET_OUS"]
-# ou_path="/core,/sandbox"
-# root_id="r-okhg"
 
 
 def list_organizational_units_for_parent(parent_ou):
