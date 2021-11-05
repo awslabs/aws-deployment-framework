@@ -7,7 +7,6 @@ from paginator import paginator
 sts = boto3.client('sts')
 
 master_acc_id = os.environ["MASTER_ACCOUNT_ID"]
-# master_acc_id = "568100899893"
 if("TARGET_OUS" in os.environ):
     ou_path = os.environ["TARGET_OUS"]
 # ou_path="/core,/sandbox"
