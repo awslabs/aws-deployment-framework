@@ -12,7 +12,7 @@ if("TARGET_OUS" in os.environ):
 
 
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', 'arn:aws:sts::' + master_acc_id + ':role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     # organizations = get_boto3_client('organizations', 'arn:aws:sts::' + master_acc_id + ':role/Admin', 'getaccountID')
     organizational_units = [
         ou
