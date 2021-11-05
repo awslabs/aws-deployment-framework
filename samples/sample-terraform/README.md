@@ -44,8 +44,6 @@ An optional approval step could be added between plan and apply as shown in the 
           TARGET_OUS: /core/infrastructure,/sandbox # target OUs
           MASTER_ACCOUNT_ID: 333333333333 # master account
           REGIONS: eu-west-1 # target regions. Add a comma separated list to define multiple regions e.g. eu-west-1,us-east-1
-  params:
-    restart_execution_on_update: true
   targets:
     - name: terraform-scan # optional
       properties:
