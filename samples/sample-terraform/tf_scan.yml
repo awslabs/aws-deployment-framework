@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - cd tf
-      - terrascan scan -o yaml --skip-rules="AC_AWS_078"
+      - terrascan scan -o yaml
