@@ -642,25 +642,86 @@ Resources:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
       DefinitionString: !Sub |-
-        {
-            "Comment": "ADF Account Bootstrapping Process",
-            "StartAt": "DetermineEvent",
-            "States": {
-                "DetermineEvent": {
-                    "Type": "Task",
-                    "Resource": "${DetermineEventFunction.Arn}",
-                    "Next": "MovedToRootOrProtected?",
-                    "TimeoutSeconds": 300
-                },
-                "MovedToRootOrProtected?": {
-                    "Type": "Choice",
-                    "Choices": [{
-                            "Variable": "$.moved_to_protected",
-                            "NumericEquals": 1,
-                            "Next": "ExecuteDeploymentAccountStateMachine"
-                        },
-                        {
-                            "Variable": "$.moved_to_root",
+            {
+                "Comment": "ADF Account Bootstrapping Process",
+                "StartAt": "DetermineEvent",
+                "States": {
+                    "DetermineEvent": {
+                        "Type": "Task",
+                        "Resource": "${DetermineEventFunction.Arn}",
+                        "Next": "MovedToRootOrProtected?",
+                        "TimeoutSeconds": 300
+                    },
+                    "MovedToRootOrProtected?": {
+                        "Type": "Choice",
+                        "Choices": [{
+                                "Variable": "$.moved_to_protected",
+                                "NumericEquals": 1,
+                                "Next": "ExecuteDeploymentAccountStateMachine"
+                            },
+                            {
+                                "Variable": "$.moved_to_root",
+                                "NumericEquals": 1,
+                                "Next": "MovedToRootAction"
+                            }
+                        ],
+                        "Default": "CreateOrUpdateBaseStack"
+                    },
+                    "CreateOrUpdateBaseStack": {
+                        "Type": "Task",
+                        "Resource": "${CrossAccountExecuteFunction.Arn}",
+                        "Retry": [{
+                            "ErrorEquals": ["InvalidTemplateError", "GenericAccountConfigureError"],
+                            "IntervalSeconds": 1,
+                            "BackoffRate": 1.1,
+                            "MaxAttempts": 45
+                        }],
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "Next": "WaitUntilBootstrapComplete",
+                        "TimeoutSeconds": 600
+                    },
+                    "MovedToRootAction": {
+                        "Type": "Task",
+                        "Resource": "${MovedToRootActionFunction.Arn}",
+                        "Retry": [{
+                            "ErrorEquals": ["RetryError"],
+                            "IntervalSeconds": 10,
+                            "BackoffRate": 1.0,
+                            "MaxAttempts": 20
+                        }],
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "Next": "ExecuteDeploymentAccountStateMachine",
+                        "TimeoutSeconds": 900
+                    },
+                    "WaitUntilBootstrapComplete": {
+                        "Type": "Task",
+                        "Resource": "${StackWaiterFunction.Arn}",
+                        "Retry": [{
+                            "ErrorEquals": ["RetryError"],
+                            "IntervalSeconds": 10,
+                            "BackoffRate": 1.0,
+                            "MaxAttempts": 500
+                        }],
+                        "Catch": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "Next": "ExecuteDeploymentAccountStateMachine",
+                            "ResultPath": "$.error"
+                        }],
+                        "Next": "DeploymentAccount?",
+                        "TimeoutSeconds": 900
+                    },
+                    "DeploymentAccount?": {
+                        "Type": "Choice",
+                        "Choices": [{
+                            "Variable": "$.is_deployment_account",
                             "NumericEquals": 1,
                             "Next": "MovedToRootAction"
                         }
