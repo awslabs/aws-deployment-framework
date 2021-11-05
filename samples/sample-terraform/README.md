@@ -82,7 +82,8 @@ Terraform state files are stored in the regional S3 buckets in the deployment ac
 e.g. Project name: sample-tf-module
 Target accounts: 111111111111, 222222222222
 Target regions: eu-west-1 (main ADF region), us-east-1
-The following state files are created
+
+The following state files are created:
 
 - 111111111111 main region (eu-west-1) adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/111111111111.tfstate
 - 111111111111 secondary region (us-east-1) adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/111111111111.tfstate
