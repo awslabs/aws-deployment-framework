@@ -32,9 +32,9 @@ Parameters:
     Type: String
     Default: "BUILD_GENERAL1_LARGE" # For threading with large amounts of pipelines this is the most effective default
     AllowedValues:
-      - "BUILD_GENERAL1_SMALL" #3 GB memory, 2 vCPU
-      - "BUILD_GENERAL1_MEDIUM" #7 GB memory, 4 vCPU
-      - "BUILD_GENERAL1_LARGE" #15 GB memory, 8 vCPU
+      - "BUILD_GENERAL1_SMALL" # 3 GB memory, 2 vCPU
+      - "BUILD_GENERAL1_MEDIUM" # 7 GB memory, 4 vCPU
+      - "BUILD_GENERAL1_LARGE" # 15 GB memory, 8 vCPU
   NotificationEndpoint:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: notification_endpoint
@@ -1223,18 +1223,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: codepipeline:StartPipelineExecution
-                Resource:
-                  !Join [
-                    "",
-                    [
-                      !Sub "arn:${AWS::Partition}:codepipeline:",
-                      !Ref "AWS::Region",
-                      ":",
-                      !Ref "AWS::AccountId",
-                      ":",
-                      !Ref CodePipeline,
-                    ],
-                  ]
+                Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1243,18 +1233,7 @@ Resources:
           - aws.codecommit
         detail-type:
           - "CodeCommit Repository State Change"
-        resources:
-          - !Join [
-              "",
-              [
-                !Sub "arn:${AWS::Partition}:codecommit:",
-                !Ref "AWS::Region",
-                ":",
-                !Ref "AWS::AccountId",
-                ":",
-                !GetAtt CodeCommitRepository.Name,
-              ],
-            ]
+        resources: !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
         detail:
           event:
             - referenceCreated
@@ -1264,20 +1243,10 @@ Resources:
           referenceName:
             - master
       Targets:
-        - Arn:
-            !Join [
-              "",
-              [
-                !Sub "arn:${AWS::Partition}:codepipeline:",
-                !Ref "AWS::Region",
-                ":",
-                !Ref "AWS::AccountId",
-                ":",
-                !Ref CodePipeline,
-              ],
-            ]
+        - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
+
 Outputs:
   ADFVersionNumber:
     Value: !Ref ADFVersion

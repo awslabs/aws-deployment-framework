@@ -274,8 +274,7 @@ class Action:
             }
         raise Exception("{0} is not a valid provider".format(self.provider))
 
-    def _generate_codepipeline_access_role(self): #pylint: disable=R0911
-
+    def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
         account_id = self.map_params['default_providers']['source']['properties']['account_id']
 
         if self.provider == "CodeCommit":

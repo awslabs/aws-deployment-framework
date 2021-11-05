@@ -156,12 +156,12 @@ def ensure_bucket(region: str, bucket_name_prefix: str) -> Tuple[BucketName, Cre
             s3_client.create_bucket(
                 **config
             )
-            LOGGER.info(f"Bucket created: {bucket_name}")
+            LOGGER.info("Bucket created: %s", bucket_name)
             return bucket_name, True
         except s3_client.exceptions.BucketAlreadyExists:
             LOGGER.info(
-                f"Bucket name {bucket_name} already taken, "
-                f"trying another one ..."
+                "Bucket name %s already taken, trying another "
+                "one ...", bucket_name
             )
 
 
@@ -191,7 +191,6 @@ def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
 
 
 def ensure_bucket_policy(bucket_name: str, region: str, policy: MutableMapping) -> None:
-
     partition = get_partition(region)
 
     s3_client = get_s3_client(region)

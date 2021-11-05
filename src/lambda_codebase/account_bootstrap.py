@@ -103,7 +103,7 @@ def lambda_handler(event, _):
 
     role = sts.assume_cross_account_role(
         role_arn=role_arn,
-        role_session_name='master_lambda'
+        role_session_name='management_lambda'
     )
 
     if event['is_deployment_account']:
