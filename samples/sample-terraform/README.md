@@ -8,14 +8,16 @@ The module consists of four build stages defined in the following file:
 - `buildspec.yml`: install the version of terraform specified in the pipeline configuration
 - `tf_scan.yml`: (optional) scans for vulnerabilities in the terraform code using the terrascan application. If vulnerabilities are found, it will fail and block further execution in the pipeline. It is recommended to enable this step in all ADF terraform pipelines.
 - `tf_plan.yml`: get the list of accounts from the organization and run a terraform plan
-- `tf_apply.yml`: run a terraform apply after the manual step approval
+- `tf_apply.yml`: get the list of accounts from the organization and run a terraform plan and apply
+
+An optional approval step could be added between plan and apply as shown in the pipeline definition below.
 
 ## Parameters
 
 - TERRAFORM_VERSION: the terraform version used to deploy the resource
 - TARGET_ACCOUNTS: comma separated list of target accounts
 - TARGET_OUS: comma separated list of target leaf OUs (parent OUs are supported)
-- REGIONS: comma separated list of target regions
+- REGIONS: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
 
 ### Deployment procedure
 
@@ -41,7 +43,7 @@ The module consists of four build stages defined in the following file:
           TARGET_ACCOUNTS: 111111111111,222222222222 # target accounts
           TARGET_OUS: /core/infrastructure,/sandbox # target OUs
           MASTER_ACCOUNT_ID: 333333333333 # master account
-          REGIONS: eu-west-1 # target regions
+          REGIONS: eu-west-1 # target regions. Add a comma separated list to define multiple regions e.g. eu-west-1,us-east-1
   params:
     restart_execution_on_update: true
   targets:
