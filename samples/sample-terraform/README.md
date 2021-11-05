@@ -15,7 +15,7 @@ The module consists of three build stages defined in the following file:
 - TERRAFORM_VERSION: the terraform version used to deploy the resource
 - TARGET_ACCOUNTS: comma separated list of target accounts
 - TARGET_OUS: comma separated list of target leaf OUs (parent OUs are supported)
-- REGIONS: comma separated list of target region
+- REGIONS: comma separated list of target regions
 
 ### Deployment procedure
 
