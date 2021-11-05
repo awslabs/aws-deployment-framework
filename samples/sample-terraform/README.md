@@ -75,7 +75,7 @@ An optional approval step could be added between plan and apply as shown in the 
          └──────│   local.auto.tfvars <-- this file contains variables related to account 222222222222
      ```
 
-5. Push to sample-terraform ADF repository
+5. Push to your sample-terraform ADF repository
 6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created
