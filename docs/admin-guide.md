@@ -331,7 +331,7 @@ Tag Policies are available only in an organization that has [all features enable
 
 
 ## Integrating Slack
-
+### Integrating with Slack using Lambda
 The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg team-bugs)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account:
 
 1. In AWS Console, click _Store a new secret_ and select type 'Other type of secrets' *(eg API Key)*.
@@ -360,6 +360,19 @@ pipelines:
         name: testing
       - path: /banking/production
         name: omg_production
+```
+
+### Integrating with Slack with AWS ChatBot
+The ADF also now supports integrating pipeline notifications with slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent slack notification across different AWS services. 
+
+In order to use AWS ChatBot, you must have already configured an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF. 
+
+Currently, there isn't the ability to dynamically create channel configurations, but each deployment map can have a unique channel configured via the notification endpoint param. 
+```
+    params:
+      notification_endpoint: 
+        type: chat_bot
+        target: my_channel_config
 ```
 
 ## Check Current Version
