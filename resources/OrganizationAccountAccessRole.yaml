@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Organizational Account Access Role for Cross-Account automation
+
+Parameters:
+  RoleName:
+    Type: String
+    Description: >-
+      The name of the Cross-Account role
+    Default: OrganizationAccountAccessRole
+  AdministratorAccountId:
+    Type: String
+    Description: >-
+      AWS Account Id of the administrator account
+      (the account in which StackSets will be created).
+    MaxLength: 12
+    MinLength: 12
+
+Resources:
+  OrganizationAccountAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AdministratorAccountId
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess
+
+Outputs:
+  RoleArn:
+    Description: The ARN of the Organization Account Access Role
+    Value: !GetAtt OrganizationAccountAccessRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-RoleArn"
