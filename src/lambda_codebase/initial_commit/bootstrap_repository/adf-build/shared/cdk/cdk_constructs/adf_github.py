@@ -37,7 +37,12 @@ class GitHub(core.Construct):
         )
 
     @staticmethod
-    def create_webhook(scope, pipeline, map_params):
+    def create_webhook_when_required(scope, pipeline, map_params):
+        trigger_on_changes = map_params.get("default_providers", {}).get(
+            "source", {}).get("properties", {}).get("trigger_on_changes", True)
+        if not trigger_on_changes:
+            return
+
         _version = pipeline.get_att('Version')
         _codepipeline.CfnWebhook(
             scope,

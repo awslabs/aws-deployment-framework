@@ -76,6 +76,17 @@ Provider type: `codecommit`.
   > The role to use to fetch the contents of the CodeCommit repository.
   > Only specify when you need a specific role to access it. By default ADF
   > will use its own role to access it instead.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes all together when set to False.
+  > In other words, when you don't want to rely on polling or event
+  > based triggers of changes pushed into the repository.
+  >
+  > By default, it will trigger on changes using the event triggered by
+  > CodeCommit when an update to the repository took place.
 
 ### GitHub
 
@@ -104,6 +115,17 @@ Provider type: `github`.
 - *json_field* - *(String)* **(required)**
   > The name of the JSON key in the object that is stored in AWS Secrets
   > Manager that holds the OAuth Token.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes when set to False.
+  > It will not deploy the web hook that GitHub would otherwise use to
+  > trigger the pipeline on changes.
+  >
+  > By default, it will trigger deploy the web hook and trigger on changes
+  > using web hook call executed by GitHub.
 
 ### S3
 
@@ -126,6 +148,16 @@ Provider type: `s3`.
 - *object_key* - *(String)* **(required)**
   > The Specific Object within the bucket that will trigger the pipeline
   > execution.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline
+  > if a change was detected in the S3 object.
+  >
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > By default, it will trigger on changes using the polling mechanism
+  > of CodePipeline. Monitoring the S3 object so it can trigger a release
+  > when an update took place.
 
 ### CodeStar
 
@@ -198,6 +230,7 @@ Provider type: `codebuild`.
   > pipeline to consume a custom image if required.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
+  > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).

@@ -11,6 +11,7 @@ from cloudformation import CloudFormation
 from s3 import S3
 from sts import STS
 from logger import configure_logger
+from partition import get_partition
 
 LOGGER = configure_logger(__name__)
 TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -22,6 +23,8 @@ s3 = S3(
     DEPLOYMENT_ACCOUNT_REGION,
     S3_BUCKET_NAME
 )
+
+
 class Repo:
     def __init__(self, account_id, name, description=''):
         self.name = name
@@ -30,8 +33,9 @@ class Repo:
         self.description = description
         self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
         self.account_id = account_id
+        self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         self.session = sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/adf-automation-role'.format(account_id),
+            f'arn:{self.partition}:iam::{account_id}:role/adf-automation-role',
             'create_repo_{0}'.format(account_id)
         )
 
