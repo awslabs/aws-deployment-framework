@@ -8,7 +8,7 @@ regions:
     - {{ Region }}
     {%- endfor %}
 config:
-  main-notification-endpoint: 
+  main-notification-endpoint:
     - type: {{ NotificationEndpointType }} # slack or email
       target: {{ NotificationEndpoint }} # Email/Slack channel who receives notifications for the main bootstrapping pipeline
   protected:

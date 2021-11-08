@@ -19,19 +19,20 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 LOGGER = configure_logger(__name__)
 
+
 class Notifications(core.Construct):
     def __init__(
         self, scope: core.Construct, id: str, map_params: dict, **kwargs
     ):  # pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
-        LOGGER.debug("Notification configuration required for %s", map_params["name"])
+        LOGGER.debug('Notification configuration required for %s', map_params['name'])
+        stack = core.Stack.of(self)
         # pylint: disable=no-value-for-parameter
         _slack_func = _lambda.Function.from_function_arn(
             self,
-            "slack_lambda_function",
-            "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
-                ADF_DEPLOYMENT_REGION, ADF_DEPLOYMENT_ACCOUNT_ID
-            ),
+            'slack_lambda_function',
+            f'arn:{stack.partition}:lambda:{ADF_DEPLOYMENT_REGION}:'
+            f'{ADF_DEPLOYMENT_ACCOUNT_ID}:function:SendSlackNotification'
         )
         _topic = _sns.Topic(self, "PipelineTopic")
         _statement = _iam.PolicyStatement(
