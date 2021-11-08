@@ -363,7 +363,7 @@ pipelines:
 ```
 
 ### Integrating with Slack with AWS ChatBot
-The ADF also now supports integrating pipeline notifications with slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent slack notification across different AWS services. 
+The ADF also supports integrating pipeline notifications with Slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent Slack notification across different AWS services. 
 
 In order to use AWS ChatBot, you must have already configured an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF. 
 
