@@ -369,6 +369,9 @@ In order to use AWS ChatBot, first you must configure an (AWS ChatBot Client)[ht
 
 Currently, there isn't the ability to dynamically create channel configurations, but each deployment map can have a unique channel configured via the notification endpoint param. 
 ```
+pipelines:
+  - name: some-pipeline
+    # ...
     params:
       notification_endpoint: 
         type: chat_bot
