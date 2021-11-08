@@ -202,7 +202,7 @@ The following are the available pipeline parameters:
   > notification_endpoint:
   >   type: chat_bot
   >   target: example_slack_channel (This is the name of an existing slack channel configuration within AWS Chat Bot)
-  > In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md) in the admin guide. By Default, Notifications will be sent when pipelines Start, Complete or Fail.
+  > In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md#integrating-with-slack-with-aws-chatbot) in the admin guide. By default, notifications will be sent when pipelines Start, Complete, or Fail.
 
 - *schedule* *(String)* defaults to none.
   > If the Pipeline should execute on a specific Schedule. Schedules are defined by using a Rate or an Expression. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions) for more information on how to define Rate or an Expression.
