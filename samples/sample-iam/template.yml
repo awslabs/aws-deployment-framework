@@ -1,21 +1,21 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (IAM)
 Metadata:
   License: Apache-2.0
 Resources:
   DevelopersIAMGroup:
     Type: AWS::IAM::Group
-    Properties: 
+    Properties:
       GroupName: adf-sample-developers-group
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/AWSServiceCatalogEndUserFullAccess'
-        - 'arn:aws:iam::aws:policy/AWSCloud9User'
-        - 'arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess'
-        - 'arn:aws:iam::aws:policy/AWSCodeCommitFullAccess'
-        - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSServiceCatalogEndUserFullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCloud9User"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCloudFormationReadOnlyAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCodeCommitFullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3ReadOnlyAccess"
   GlobalInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
@@ -75,7 +75,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole"
       RoleName: "codedeploy-service-role"
 Outputs:
   DevelopersIAMGroup:

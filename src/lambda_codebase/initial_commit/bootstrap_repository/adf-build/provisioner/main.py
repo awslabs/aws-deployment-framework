@@ -13,9 +13,11 @@ import tenacity
 from organizations import Organizations
 from logger import configure_logger
 from parameter_store import ParameterStore
+from partition import get_partition
 from sts import STS
 from src import read_config_files, delete_default_vpc, Support
 
+REGION_DEFAULT = os.getenv('AWS_REGION')
 
 LOGGER = configure_logger(__name__)
 ACCOUNTS_FOLDER = os.path.abspath(os.path.join(
@@ -26,14 +28,18 @@ def main():
     accounts = read_config_files(ACCOUNTS_FOLDER)
     if not bool(accounts):
         LOGGER.info(
-            f"Found {len(accounts)} account(s) in configuration file(s). Account provisioning will not continue.")
+            f"Found {len(accounts)} account(s) in configuration file(s). "
+            f"Account provisioning will not continue."
+        )
         return
     LOGGER.info(f"Found {len(accounts)} account(s) in configuration file(s).")
     organizations = Organizations(boto3)
     support = Support(boto3)
     all_accounts = organizations.get_accounts()
     parameter_store = ParameterStore(
-        os.environ.get('AWS_REGION', 'us-east-1'), boto3)
+        os.environ.get('AWS_REGION', 'us-east-1'),
+        boto3
+    )
     adf_role_name = parameter_store.fetch_parameter(
         'cross_account_access_role')
     for account in accounts:
@@ -58,15 +64,16 @@ def create_or_update_account(org_session, support_session, account, adf_role_nam
         support_session.set_support_level_for_account(account, account_id)
 
     sts = STS()
+    partition = get_partition(REGION_DEFAULT)
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(
-            account_id,
-            adf_role_name
-        ), 'adf_account_provisioning'
+        f'arn:{partition}:iam::{account_id}:role/{adf_role_name}',
+        'adf_account_provisioning'
     )
 
     LOGGER.info(
-        f'Ensuring account {account_id} (alias {account.alias}) is in OU {account.ou_path}')
+        f'Ensuring account {account_id} (alias {account.alias}) is in '
+        f'OU {account.ou_path}'
+    )
     org_session.move_account(account_id, account.ou_path)
     if account.delete_default_vpc:
         ec2_client = role.client('ec2')

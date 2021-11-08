@@ -17,6 +17,7 @@ from errors import ParameterNotFoundError
 from logger import configure_logger
 from organizations import Organizations
 from parameter_store import ParameterStore
+from partition import get_partition
 from pipeline import Pipeline
 from repo import Repo
 from rule import Rule
@@ -154,11 +155,12 @@ def main():
         ADF_PIPELINE_PREFIX
     )
     sts = STS()
+    partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
+    cross_account_access_role = parameter_store.fetch_parameter('cross_account_access_role')
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}-readonly'.format(
-            MASTER_ACCOUNT_ID,
-            parameter_store.fetch_parameter('cross_account_access_role')
-        ), 'pipeline'
+        f'arn:{partition}:iam::{MASTER_ACCOUNT_ID}:role/'
+        f'{cross_account_access_role}-readonly',
+        'pipeline'
     )
     organizations = Organizations(role)
     ensure_event_bus_status(ORGANIZATION_ID)

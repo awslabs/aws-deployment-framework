@@ -7,7 +7,6 @@
 from aws_cdk import (
     core
 )
-from cdk_constructs import adf_notifications
 from logger import configure_logger
 
 from cdk_stacks.adf_default_pipeline import generate_adf_default_pipeline as generate_default_pipeline, PIPELINE_TYPE as DEFAULT_PIPELINE
@@ -20,9 +19,6 @@ class PipelineStack(core.Stack):
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
         _pipeline_type = stack_input['input'].get('params', {}).get('type', DEFAULT_PIPELINE).lower()
-
-        if stack_input['input'].get('params', {}).get('notification_endpoint'):
-            stack_input['input']["topic_arn"] = adf_notifications.Notifications(self, 'adf_notifications', stack_input['input']).topic_arn
 
         self.generate_pipeline(_pipeline_type, stack_input)
 
