@@ -479,7 +479,7 @@ Resources:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
           - Name: TERMINATION_PROTECTION
-            Value: 'false'
+            Value: "false"
           - Name: PYTHONPATH
             Value: "./adf-build/shared/python"
           - Name: S3_BUCKET
