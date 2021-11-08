@@ -113,6 +113,7 @@ class Parameters:
                     return yaml.load(file, Loader=yaml.FullLoader)
             except yaml.scanner.ScannerError:
                 LOGGER.exception('Invalid Yaml for %s.yml', filename)
+                raise
             except FileNotFoundError:
                 return {'Parameters': {}, 'Tags': {}}
 

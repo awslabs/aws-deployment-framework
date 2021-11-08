@@ -26,16 +26,16 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: events:PutEvents
-                Resource: '*'
-  EventRule: 
+                Resource: "*"
+  EventRule:
     Type: AWS::Events::Rule
-    Properties: 
+    Properties:
       Name: !Sub adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
       EventPattern:
         source:
           - aws.codecommit
         detail-type:
-          - 'CodeCommit Repository State Change'
+          - "CodeCommit Repository State Change"
         detail:
           event:
             - referenceCreated
@@ -43,6 +43,6 @@ Resources:
           referenceType:
             - branch
       Targets:
-        - Arn: !Sub arn:aws:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default
+        - Arn: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default
           RoleArn: !GetAtt EventRole.Arn
           Id: codecommit-push-event

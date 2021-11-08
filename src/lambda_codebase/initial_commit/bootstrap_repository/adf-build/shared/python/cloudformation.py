@@ -224,7 +224,7 @@ class CloudFormation(StackProperties):
 
     def _update_stack_termination_protection(self):
         try:
-            return self.client.update_termination_protection(
+            self.client.update_termination_protection(
                 EnableTerminationProtection=STACK_TERMINATION_PROTECTION == "True",
                 StackName=self.stack_name
             )
@@ -232,19 +232,17 @@ class CloudFormation(StackProperties):
             LOGGER.error(
                 '%s | %s, Error: %s',
                 self.account_id, self.stack_name, e)
-            pass
 
     def _delete_change_set(self):
         try:
-            return self.client.delete_change_set(
+            self.client.delete_change_set(
                 ChangeSetName=self.stack_name,
                 StackName=self.stack_name
             )
-        except ClientError as e:
+        except ClientError as client_error:
             LOGGER.info(
                 '%s | %s, Error: %s',
-                self.account_id, self.stack_name, e)
-            pass
+                self.account_id, self.stack_name, client_error)
 
     def _execute_change_set(self, waiter):
         LOGGER.info(

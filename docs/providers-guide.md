@@ -230,6 +230,7 @@ Provider type: `codebuild`.
   > pipeline to consume a custom image if required.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
+  > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
