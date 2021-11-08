@@ -45,12 +45,11 @@ class ParameterStore:
     def delete_parameter(self, name):
         try:
             LOGGER.debug('Deleting Parameter %s', name)
-            return self.client.delete_parameter(
+            self.client.delete_parameter(
                 Name=name
             )
         except self.client.exceptions.ParameterNotFound:
             LOGGER.debug('Attempted to delete Parameter %s but it was not found', name)
-            pass
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)

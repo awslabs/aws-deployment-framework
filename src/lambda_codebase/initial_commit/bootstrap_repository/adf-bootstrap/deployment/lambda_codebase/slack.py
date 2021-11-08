@@ -133,7 +133,8 @@ def send_message(url, payload):
         data=params,
         headers={'content-type': 'application/json'}
     )
-    return urllib.request.urlopen(req)
+    with urllib.request.urlopen(req) as response:
+        return response.read()
 
 def lambda_handler(event, _):
     message = extract_message(event)

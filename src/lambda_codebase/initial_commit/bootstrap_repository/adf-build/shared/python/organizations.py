@@ -71,16 +71,19 @@ class Organizations: # pylint: disable=R0904
         )
 
     def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
-        try:
-            response = self.client.create_policy(
-                Content=content,
-                Description='ADF Managed {0}'.format(policy_type),
-                Name='adf-{0}-{1}'.format('scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy', ou_path),
-                Type=policy_type
-            )
-            return response['Policy']['PolicySummary']['Id']
-        except self.client.exceptions.DuplicatePolicyAttachmentException:
-            pass
+        response = self.client.create_policy(
+            Content=content,
+            Description='ADF Managed {0}'.format(policy_type),
+            Name='adf-{0}-{1}'.format(
+                (
+                    'scp' if policy_type == "SERVICE_CONTROL_POLICY"
+                    else 'tagging-policy'
+                ),
+                ou_path,
+            ),
+            Type=policy_type
+        )
+        return response['Policy']['PolicySummary']['Id']
 
     @staticmethod
     def get_policy_body(path):
