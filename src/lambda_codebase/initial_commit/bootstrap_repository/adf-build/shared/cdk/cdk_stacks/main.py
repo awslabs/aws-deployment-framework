@@ -19,10 +19,7 @@ class PipelineStack(core.Stack):
         super().__init__(scope, stack_input['input']['name'], **kwargs)
         LOGGER.info('Pipeline creation/update of %s commenced', stack_input['input']['name'])
         _pipeline_type = stack_input['input'].get('params', {}).get('type', DEFAULT_PIPELINE).lower()
-<<<<<<< pipeline-notification-fixes
-=======
 
->>>>>>> master
         self.generate_pipeline(_pipeline_type, stack_input)
 
     def generate_pipeline(self, _pipeline_type, stack_input):
