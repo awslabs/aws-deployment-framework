@@ -34,7 +34,7 @@ An optional approval step could be added between plan and apply as shown in the 
       provider: codebuild
       properties:
         environment_variables:
-          TERRAFORM_VERSION: "0.14.10" # terraform version
+          TERRAFORM_VERSION: "1.0.10" # terraform version
     deploy:
       provider: codebuild
       properties:
@@ -42,7 +42,7 @@ An optional approval step could be added between plan and apply as shown in the 
         environment_variables:
           TARGET_ACCOUNTS: 111111111111,222222222222 # target accounts
           TARGET_OUS: /core/infrastructure,/sandbox # target OUs
-          MANAGEMENT_ACCOUNT_ID: 333333333333  # management account / billing account
+          MANAGEMENT_ACCOUNT_ID: 333333333333 # management account / billing account
           REGIONS: eu-west-1 # target regions. Add a comma separated list to define multiple regions e.g. eu-west-1,us-east-1
   targets:
     - name: terraform-scan # optional
