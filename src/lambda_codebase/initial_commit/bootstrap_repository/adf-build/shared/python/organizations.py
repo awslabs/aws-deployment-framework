@@ -97,7 +97,7 @@ class Organizations: # pylint: disable=R0904
             Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description'] and p['Name'] == name][0]['Id']
+            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description'] and p['Name'] == policy_name][0]['Id']
         except IndexError:
             return []
 
