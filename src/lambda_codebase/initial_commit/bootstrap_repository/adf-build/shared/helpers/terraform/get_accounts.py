@@ -92,6 +92,7 @@ def get_boto3_client(service, role, session_name):
         )
     return session.client(service)
 
+
 def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> list:
     account_list = []
     # Get OUs
