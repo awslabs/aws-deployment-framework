@@ -320,12 +320,30 @@ pipelines:
 ```
 
 ## Service Control Policies
-Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit (or OU/AccountName path if you are wanting to apply an account-specific SCP) within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+
+For example, assume you have an account with name `my_banking_account` under the `banking/dev` OU:
+
+```
+adf-bootstrap <-- This folder lives in the bootstrap repo on master account
+│
+└───deployment
+│    ------│   scp.json
+│
+│───banking
+│   │
+│   │ ───dev
+│         │
+│         │ ───my_banking_account
+│         ------│   scp.json
+│
+```
+The file `adf-bootstrap/deployment/scp.json` applies the defined SCP to the `deployment` *OU*, while the file `adf-bootstrap/banking/dev/my_backing_account/scp.json` applies the defined SCP to the `my_banking_account` *account*.
 
 SCPs are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the SCPs.
 
 ## Tagging Policies
-Tag Policies are a feature that allows you to define rules on how tags can be used on AWS resources in your accounts in AWS Organizations. You can use Tag Policies to easily adopt a standardized approach for tagging AWS resources. You can define your Tagging Policy definition in a file named `tagging-policy.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+Tag Policies are a feature that allows you to define rules on how tags can be used on AWS resources in your accounts in AWS Organizations. You can use Tag Policies to easily adopt a standardized approach for tagging AWS resources. You can define your Tagging Policy definition in a file named `tagging-policy.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account. Tagging policies can also be applied to single account using the same approach described above for SCPs.
 
 Tag Policies are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the Tag Policies. For more information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
