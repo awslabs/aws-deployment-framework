@@ -52,9 +52,13 @@ class Organizations: # pylint: disable=R0904
     def trim_policy_path(policy):
         return policy[2:] if policy.startswith('//') else policy
 
+    def is_ou_id(ou_id):
+        return ou_id[0] in ['r','o']
+
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
-            if ou_id[0] not in ['r','o']:
+            # Skip accounts - accounts can't have children
+            if not is_ou_id(ou_id):
                 continue
             # List OUs
             for organization_id in [organization_id['Id'] for organization_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ORGANIZATIONAL_UNIT"})]:
@@ -179,6 +183,7 @@ class Organizations: # pylint: disable=R0904
             )
             return response['Account']['Name']
         except ClientError as error:
+            LOGGER.error('Failed to retrieve account name for account ID %s', account_id)
             raise
 
     @staticmethod
