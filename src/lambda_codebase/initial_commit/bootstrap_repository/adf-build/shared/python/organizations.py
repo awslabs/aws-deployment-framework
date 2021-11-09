@@ -59,7 +59,7 @@ class Organizations: # pylint: disable=R0904
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
             # Skip accounts - accounts can't have children
-            if not is_ou_id(ou_id):
+            if not Organizations.is_ou_id(ou_id):
                 continue
             # List OUs
             for organization_id in [organization_id['Id'] for organization_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ORGANIZATIONAL_UNIT"})]:
