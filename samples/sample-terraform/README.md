@@ -34,7 +34,7 @@ An optional approval step could be added between plan and apply as shown in the 
       provider: codebuild
       properties:
         environment_variables:
-          TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0
+          TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0.
     deploy:
       provider: codebuild
       properties:
@@ -78,10 +78,13 @@ An optional approval step could be added between plan and apply as shown in the 
 5. Push to your sample-terraform ADF repository
 6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
 
-Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created
-e.g. Project name: sample-tf-module
-Target accounts: 111111111111, 222222222222
-Target regions: eu-west-1 (main ADF region), us-east-1
+Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
+
+e.g.
+
+- Project name: sample-tf-module
+- Target accounts: 111111111111, 222222222222
+- Target regions: eu-west-1 (main ADF region), us-east-1
 
 The following state files are created:
 
