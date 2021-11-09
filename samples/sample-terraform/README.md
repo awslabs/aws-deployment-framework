@@ -34,7 +34,7 @@ An optional approval step could be added between plan and apply as shown in the 
       provider: codebuild
       properties:
         environment_variables:
-          TERRAFORM_VERSION: "1.0.10" # terraform version
+          TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0
     deploy:
       provider: codebuild
       properties:
