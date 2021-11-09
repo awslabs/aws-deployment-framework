@@ -52,6 +52,7 @@ class Organizations: # pylint: disable=R0904
     def trim_policy_path(policy):
         return policy[2:] if policy.startswith('//') else policy
 
+    @staticmethod
     def is_ou_id(ou_id):
         return ou_id[0] in ['r','o']
 
@@ -184,7 +185,7 @@ class Organizations: # pylint: disable=R0904
             return response['Account']['Name']
         except ClientError as error:
             LOGGER.error('Failed to retrieve account name for account ID %s', account_id)
-            raise
+            raise error
 
     @staticmethod
     def determine_ou_path(ou_path, ou_child_name):
