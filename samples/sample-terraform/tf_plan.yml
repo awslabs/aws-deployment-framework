@@ -15,4 +15,4 @@ phases:
   build:
     commands:
       - python adf-build/helpers/terraform/get_accounts.py
-      - bash adf-build/helpers/terraform/adf_terraform.sh $TF_STAGE
+      - bash adf-build/helpers/terraform/adf_terraform.sh
