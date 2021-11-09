@@ -20,7 +20,7 @@ class OrganizationPolicy:
     @staticmethod
     def _find_all(policy):
         _files = list(glob.iglob(
-            './adf-bootstrap/**/{0}.json'.format(policy),
+            './adf-bootstrap/**/{0}*.json'.format(policy),
             recursive=True,
         ))
         return [f.replace('./adf-bootstrap', '.') for f in _files]
@@ -35,12 +35,9 @@ class OrganizationPolicy:
             return obj
 
     @staticmethod
-    def _trim_scp_file_name(policy):
-        return policy[1:][:-8] if policy[1:][:-8] == '/' else policy[2:][:-9]
-
-    @staticmethod
-    def _trim_tagging_policy_file_name(policy):
-        return policy[1:][:-19] if policy[1:][:-19] == '/' else policy[2:][:-20]
+    def _trim_policy_file_name(policy):
+        # Returns policy target and filename as tuple
+        return '/' if '/'.join(policy.split('/')[1:-1]) == '' else '/'.join(policy.split('/')[1:-1]), policy.split('/')[-1]
 
     @staticmethod
     def set_scp_attachment(
@@ -71,10 +68,13 @@ class OrganizationPolicy:
     def clean_and_remove_policy_attachment(
             organization_mapping,
             path,
+            policy_filename,
             organizations,
             policy_type):
+        _type = 'scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy'
+        policy_name = 'adf-{0}-{1}--{2}'.format(_type, path, policy_filename) if policy_filename != '{}.json'.format(_type) else 'adf-{0}-{1}'.format(_type, path)
         policy_id = organizations.describe_policy_id_for_target(
-            organization_mapping[path], policy_type)
+            organization_mapping[path], policy_name, policy_type)
         if policy_type == 'SERVICE_CONTROL_POLICY':
             try:
                 organizations.attach_policy(
@@ -83,8 +83,8 @@ class OrganizationPolicy:
                 pass
         organizations.detach_policy(policy_id, organization_mapping[path])
         organizations.delete_policy(policy_id)
-        LOGGER.info('Policy (%s) %s will be deleted. Path is: %s',
-                    policy_type, organization_mapping[path], path)
+        LOGGER.info('Policy (%s) %s will be deleted. Name is %s',
+                    policy_type, organization_mapping[path], policy_name)
 
     def apply(self, organizations, parameter_store, config):  # pylint: disable=R0912, R0915
         status = organizations.get_organization_info()
@@ -106,8 +106,8 @@ class OrganizationPolicy:
                     parameter_store.fetch_parameter(policy)
                 )
                 for stored_policy in current_stored_policy:
-                    path = OrganizationPolicy._trim_scp_file_name(
-                        stored_policy) if policy == 'scp' else OrganizationPolicy._trim_tagging_policy_file_name(stored_policy)
+                    path, policy_filename = OrganizationPolicy._trim_policy_file_name(
+                        stored_policy)
                     OrganizationPolicy.set_scp_attachment(
                         config.get('scp'),
                         organization_mapping,
@@ -116,33 +116,34 @@ class OrganizationPolicy:
                     )
                     if stored_policy not in _policies:
                         OrganizationPolicy.clean_and_remove_policy_attachment(
-                            organization_mapping, path, organizations, _type)
+                            organization_mapping, path, policy_filename, organizations, _type)
             except ParameterNotFoundError:
                 LOGGER.debug(
                     'Parameter %s was not found in Parameter Store, continuing.', policy)
                 pass
 
             for _policy in _policies:
-                path = OrganizationPolicy._trim_scp_file_name(
-                    _policy) if policy == 'scp' else OrganizationPolicy._trim_tagging_policy_file_name(_policy)
+                path, policy_filename = OrganizationPolicy._trim_policy_file_name(
+                    _policy)
+                policy_name = 'adf-{0}-{1}--{2}'.format(policy, path, policy_filename) if policy_filename != '{}.json'.format(policy) else 'adf-{0}-{1}'.format(policy, path)
                 policy_id = organizations.describe_policy_id_for_target(
-                    organization_mapping[path], _type)
+                    organization_mapping[path], policy_name, _type)
                 proposed_policy = Organizations.get_policy_body(_policy)
                 if policy_id:
                     current_policy = organizations.describe_policy(policy_id)
                     if self._compare_ordered_policy(current_policy.get(
                             'Content')) == self._compare_ordered_policy(proposed_policy):
                         LOGGER.info(
-                            'Policy (%s) %s does not require updating. Path is: %s',
+                            'Policy (%s) %s does not require updating. Name is %s',
                             policy,
                             organization_mapping[path],
-                            path)
+                            policy_name)
                         continue
                     LOGGER.info(
-                        'Policy (%s) will be updated for %s. Path is: %s',
+                        'Policy (%s) will be updated for %s. Name is: %s',
                         policy,
                         organization_mapping[path],
-                        path)
+                        policy_name)
                     organizations.update_policy(
                         proposed_policy,
                         policy_id
@@ -152,27 +153,30 @@ class OrganizationPolicy:
                     policy_id = organizations.create_policy(
                         proposed_policy,
                         path,
+                        policy_name,
                         _type
                     )
                     LOGGER.info(
-                        'Policy (%s) has been created for %s. Path is: %s',
+                        'Policy (%s) has been created for %s. Name is: %s',
                         policy,
                         organization_mapping[path],
-                        path)
+                        policy_name)
                     organizations.attach_policy(
                         policy_id, organization_mapping[path])
                 except organizations.client.exceptions.DuplicatePolicyAttachmentException:
                     LOGGER.info(
-                        'Policy (%s) for %s exists and is attached already.',
+                        'Policy (%s) for %s with name %s exists and is attached already.',
                         policy,
-                        organization_mapping[path])
+                        organization_mapping[path],
+                        policy_name)
                 except organizations.client.exceptions.DuplicatePolicyException:
                     LOGGER.info(
-                        'Policy (%s) for %s exists ensuring attached.',
+                        'Policy (%s) for %s with name %s exists ensuring attached.',
                         policy,
-                        organization_mapping[path])
+                        organization_mapping[path],
+                        policy_name)
                     policy_id = organizations.list_policies(
-                        'adf-{0}-{1}'.format(policy, path), _type)
+                        policy_name, _type)
                     organizations.attach_policy(
                         policy_id, organization_mapping[path])
             parameter_store.put_parameter(policy, str(_policies))

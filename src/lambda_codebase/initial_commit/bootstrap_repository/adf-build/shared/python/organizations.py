@@ -70,17 +70,11 @@ class Organizations: # pylint: disable=R0904
             Content=content
         )
 
-    def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
+    def create_policy(self, content, ou_path, policy_name, policy_type="SERVICE_CONTROL_POLICY"):
         response = self.client.create_policy(
             Content=content,
             Description='ADF Managed {0}'.format(policy_type),
-            Name='adf-{0}-{1}'.format(
-                (
-                    'scp' if policy_type == "SERVICE_CONTROL_POLICY"
-                    else 'tagging-policy'
-                ),
-                ou_path,
-            ),
+            Name=policy_name,
             Type=policy_type
         )
         return response['Policy']['PolicySummary']['Id']
@@ -97,13 +91,13 @@ class Organizations: # pylint: disable=R0904
         except IndexError:
             return []
 
-    def describe_policy_id_for_target(self, target_id, policy_type='SERVICE_CONTROL_POLICY'):
+    def describe_policy_id_for_target(self, target_id, policy_name, policy_type='SERVICE_CONTROL_POLICY'):
         response = self.client.list_policies_for_target(
             TargetId=target_id,
             Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description']][0]['Id']
+            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description'] and p['Name'] == name][0]['Id']
         except IndexError:
             return []
 
