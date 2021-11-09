@@ -2,7 +2,6 @@ version: 0.2
 
 env:
   variables:
-    AWS_DEFAULT_REGION: eu-west-1 # ADF main region
     TF_VAR_TARGET_ACCOUNT_ROLE: adf-terraform-role # The IAM Role terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
     TF_CLI_ARGS: "-no-color"
