@@ -42,9 +42,9 @@ def get_accounts_from_ous():
     # Read organization root id
     root_ids = []
     for id in paginator(organizations.list_roots):
-            root_ids.append({
-                'AccountId': id['Id']
-            })
+        root_ids.append({
+            'AccountId': id['Id']
+        })
     root_id = root_ids[0]['AccountId'] 
     print("Target OUs")
     for path in ou_path.split(','):
