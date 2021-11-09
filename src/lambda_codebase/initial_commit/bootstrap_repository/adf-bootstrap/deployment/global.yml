@@ -1119,28 +1119,28 @@ Resources:
                     "Default": "EnableCrossAccountAccess"
                 },
                 "EnableCrossAccountAccessMap": {
-                      "Type": "Map",
-                      "Next": "UpdateDeploymentPipelines",
-                      "Iterator": {
-                        "StartAt": "EnableCrossAccountAccess",
-                        "States": {
-                          "EnableCrossAccountAccess": {
-                            "Type": "Task",
-                            "Resource": "${EnableCrossAccountAccess.Arn}",
-                            "TimeoutSeconds": 900,
-                            "End": true
-                          }
+                    "Type": "Map",
+                    "Next": "UpdateDeploymentPipelines",
+                    "Iterator": {
+                      "StartAt": "EnableCrossAccountAccess",
+                      "States": {
+                        "EnableCrossAccountAccess": {
+                          "Type": "Task",
+                          "Resource": "${EnableCrossAccountAccess.Arn}",
+                          "TimeoutSeconds": 900,
+                          "End": true
                         }
-                      },
-                      "ItemsPath": "$.account_ids",
-                      "Parameters": {
-                        "deployment_account_region.$": "$.deployment_account_region",
-                        "deployment_account_id.$": "$.deployment_account_id",
-                        "account_id.$": "$$.Map.Item.Value",
-                        "regions.$": "$.regions"
-                      },
-                      "ResultPath": null
-                    }
+                      }
+                    },
+                    "ItemsPath": "$.account_ids",
+                    "Parameters": {
+                      "deployment_account_region.$": "$.deployment_account_region",
+                      "deployment_account_id.$": "$.deployment_account_id",
+                      "account_id.$": "$$.Map.Item.Value",
+                      "regions.$": "$.regions"
+                    },
+                    "ResultPath": null
+                },
                 "UpdateDeploymentPipelines": {
                     "Type": "Task",
                     "Resource": "${CheckPipelineStatus.Arn}",

@@ -36,7 +36,6 @@ def update_iam(role, s3_bucket, kms_key_arn, role_policies):
 
 
 def lambda_handler(event, _):
-    LOGGER.debug(event)
     target_role_policies = {
         'adf-cloudformation-deployment-role': 'adf-cloudformation-deployment-role-policy-kms',
         'adf-cloudformation-role': 'adf-cloudformation-role-policy'
