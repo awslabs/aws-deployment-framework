@@ -367,7 +367,7 @@ The ADF also supports integrating pipeline notifications with Slack via the AWS 
 
 In order to use AWS ChatBot, first you must configure an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired Slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF. 
 
-Currently, there isn't the ability to dynamically create channel configurations, but each deployment map can have a unique channel configured via the notification endpoint param. 
+Currently, dynamically creating channel configurations is not supported. In the deployment map, you can configure a unique channel via the notification endpoint parameter for each pipeline separately. Add the `params` section if that is missing and add the following configuration to the pipeline:
 ```
 pipelines:
   - name: some-pipeline
