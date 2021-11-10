@@ -54,6 +54,7 @@ def lambda_handler(event, _):
         region=event.get('deployment_account_region'),
         role=boto3
     )
+    account_id = event.get("account_id")
     for region in list(set([event.get('deployment_account_region')] + event.get("regions", []))):
         kms_key_arn = parameter_store.fetch_parameter(
             "/cross_region/kms_arn/{0}".format(region)
@@ -62,16 +63,15 @@ def lambda_handler(event, _):
             "/cross_region/s3_regional_bucket/{0}".format(region)
         )
         update_iam(boto3, s3_bucket, kms_key_arn, role_policies)
-        for account_id in event.get('account_ids'):
-            try:
-                role = sts.assume_cross_account_role(
-                    f'arn:{partition}:iam::{account_id}:role/adf-cloudformation-deployment-role',
-                    'base_cfn_role'
-                )
-                LOGGER.debug("Role has been assumed for %s", account_id)
-                update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
-            except ClientError as err:
-                LOGGER.debug("%s could not be assumed (%s), continuing", account_id, err, exc_info=True)
-                continue
+        try:
+            role = sts.assume_cross_account_role(
+                f'arn:{partition}:iam::{account_id}:role/adf-cloudformation-deployment-role',
+                'base_cfn_role'
+            )
+            LOGGER.debug("Role has been assumed for %s", account_id)
+            update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
+        except ClientError as err:
+            LOGGER.debug("%s could not be assumed (%s), continuing", account_id, err, exc_info=True)
+            continue
 
     return event

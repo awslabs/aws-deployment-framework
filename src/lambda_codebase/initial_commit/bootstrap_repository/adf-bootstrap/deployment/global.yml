@@ -1118,11 +1118,28 @@ Resources:
                     ],
                     "Default": "EnableCrossAccountAccess"
                 },
-                "EnableCrossAccountAccess": {
-                    "Type": "Task",
-                    "Resource": "${EnableCrossAccountAccess.Arn}",
+                "EnableCrossAccountAccessMap": {
+                    "Type": "Map",
                     "Next": "UpdateDeploymentPipelines",
-                    "TimeoutSeconds": 900
+                    "Iterator": {
+                      "StartAt": "EnableCrossAccountAccess",
+                      "States": {
+                        "EnableCrossAccountAccess": {
+                          "Type": "Task",
+                          "Resource": "${EnableCrossAccountAccess.Arn}",
+                          "TimeoutSeconds": 900,
+                          "End": true
+                        }
+                      }
+                    },
+                    "ItemsPath": "$.account_ids",
+                    "Parameters": {
+                      "deployment_account_region.$": "$.deployment_account_region",
+                      "deployment_account_id.$": "$.deployment_account_id",
+                      "account_id.$": "$$.Map.Item.Value",
+                      "regions.$": "$.regions"
+                    },
+                    "ResultPath": null
                 },
                 "UpdateDeploymentPipelines": {
                     "Type": "Task",
