@@ -141,6 +141,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
 
     assert len(build_stage['Actions']) == 1
 
+
 def test_pipeline_creation_outputs_with_codeartifact_trigger():
     region_name = "eu-central-1"
     acount_id = "123456789012"
@@ -176,6 +177,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
     assert trigger["Properties"]["EventPattern"]["source"] == ["aws.codeartifact"]
     assert trigger["Properties"]["EventPattern"]["detail"] == {"repositoryName": "my_test_repo"}
 
+
 def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name():
     region_name = "eu-central-1"
     acount_id = "123456789012"
@@ -210,6 +212,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
     assert trigger["Properties"]["EventPattern"]["detail-type"] == ["CodeArtifact Package Version State Change"]
     assert trigger["Properties"]["EventPattern"]["source"] == ["aws.codeartifact"]
     assert trigger["Properties"]["EventPattern"]["detail"] == {"repositoryName": "my_test_repo", "packageName": "my_test_package"}
+
 
 def test_pipeline_creation_outputs_with_invalid_trigger_type():
     region_name = "eu-central-1"

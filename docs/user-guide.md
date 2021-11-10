@@ -207,7 +207,7 @@ The following are the available pipeline parameters:
 
 ### Completion Triggers
 
-Pipelines can also trigger other pipelines upon completion. To do this, use the *completion_trigger* key on the pipeline definition. For example:
+Pipelines can also trigger other pipelines upon completion. To do this, use the *on_complete* key on the triggers definition. For example:
 
 ```yaml
   - name: ami-builder
@@ -222,9 +222,10 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         size: medium
     params:
       schedule: rate(7 days)
-    completion_trigger: # What should happen when this pipeline completes
-      pipelines:
-        - my-web-app-pipeline # Start this pipeline
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+        on_complete:
+            pipelines:
+                - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -240,24 +241,16 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         name: web-app-testing
 ```
 
-Completion triggers can also be defined as part of the triggers expanded configuration. Take the above example for the ami-builder pipeline.
+Completion triggers can also be defined in a short handed fashion. Take the above example for the ami-builder pipeline.
 ```yaml
   - name: ami-builder
-    default_providers:
-      source:
-        provider: codecommit
-        properties:
-          account_id: 222222222222
-      build:
-        provider: codebuild
-        role: packer
-        size: medium
+    # Default providers and parameters are the same as defined above.
+    # Only difference: instead of using `triggers` it uses the `completion_triggers`
     params:
       schedule: rate(7 days)
-    triggers: # What should trigger this pipeline, and what should be triggered when it completes
-      on_complete:
+    completion_triggers: # What should trigger this pipeline, and what should be triggered when it completes
         pipelines:
-          - my-web-app-pipeline # Start this pipeline
+            - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     # Same configuration as defined above.
@@ -266,7 +259,7 @@ Completion triggers can also be defined as part of the triggers expanded configu
 
 ### Additional Triggers
 
-Pipelines can also be triggered by other events. For example, a new version of a package hosted on CodeArtifact being published:
+Pipelines can also be triggered by other events using the *triggered_by* key on the triggers definition. For example, a new version of a package hosted on CodeArtifact being published:
 
 ```yaml
   - name: ami-builder

@@ -6,7 +6,6 @@
 
 import os
 import json
-from typing import Tuple
 import boto3
 
 from aws_cdk import (
@@ -489,8 +488,7 @@ class Pipeline(core.Construct):
         return _output
 
 
-    def add_pipeline_trigger(self, trigger: Tuple):
-        (trigger_type, trigger_config) = trigger
+    def add_pipeline_trigger(self, trigger_type, trigger_config):
         if trigger_type in self._accepted_triggers.keys():
             trigger_type = self._accepted_triggers[trigger_type]
         else:
@@ -500,7 +498,7 @@ class Pipeline(core.Construct):
             details = {"repositoryName": trigger_config["repository"]}
             if trigger_config.get("package"):
                 details["packageName"] = trigger_config["package"]
-            trigger = _eventbridge.Rule(
+            _eventbridge.Rule(
                 self,
                 f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config['package'] if trigger_config.get('package') else 'all'}",
                 event_pattern=_eventbridge.EventPattern(

@@ -46,8 +46,8 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
 
     pipeline_triggers = stack_input["input"].get("triggers", {}).get("triggered_by", None)
     if pipeline_triggers:
-        for k, v in pipeline_triggers.items():
-            _pipeline.add_pipeline_trigger((k,v))
+        for trigger_type, trigger_config in pipeline_triggers.items():
+            _pipeline.add_pipeline_trigger(trigger_type=trigger_type, trigger_config=trigger_config)
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
     _source_name = stack_input["input"]["default_providers"]["source"][
