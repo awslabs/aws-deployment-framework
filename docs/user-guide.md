@@ -198,10 +198,12 @@ The following are the available pipeline parameters:
 - *notification_endpoint* *(String) | (Dict) * defaults to none.
   > Can either be a valid email address or a string that represents the name of a Slack Channel. 
   > A more complex configuration can be provided to integrate with Slack via AWS ChatBot. 
-  > ``` 
+  > ```yaml
   > notification_endpoint:
   >   type: chat_bot
-  >   target: example_slack_channel (This is the name of an existing slack channel configuration within AWS Chat Bot)
+  >   target: example_slack_channel  # This is the name of an slack channel configuration you created within the AWS Chat Bot service. This needs to be created before you apply the changes to the deployment map.
+  > ```
+  >
   > In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md#integrating-with-slack-with-aws-chatbot) in the admin guide. By default, notifications will be sent when pipelines Start, Complete, or Fail.
 
 - *schedule* *(String)* defaults to none.
