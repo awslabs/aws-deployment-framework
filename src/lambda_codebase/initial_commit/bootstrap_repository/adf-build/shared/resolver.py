@@ -10,6 +10,7 @@ import boto3
 from botocore.exceptions import ClientError
 from s3 import S3
 from parameter_store import ParameterStore
+from partition import get_partition
 from cloudformation import CloudFormation
 from cache import Cache
 from errors import ParameterNotFoundError
@@ -33,6 +34,7 @@ class Resolver:
         return value.endswith('?')
 
     def fetch_stack_output(self, value, key, optional=False): # pylint: disable=too-many-statements
+        partition = get_partition(DEFAULT_REGION)
         try:
             [_, account_id, region, stack_name, output_key] = str(value).split(':')
         except ValueError as error:
@@ -48,9 +50,7 @@ class Resolver:
         output_key = output_key[:-1] if optional else output_key
         try:
             role = self.sts.assume_cross_account_role(
-                'arn:aws:iam::{0}:role/{1}'.format(
-                    account_id,
-                    'adf-readonly-automation-role'),
+                f'arn:{partition}:iam::{account_id}:role/adf-readonly-automation-role',
                 'importer'
             )
             cloudformation = CloudFormation(
