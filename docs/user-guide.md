@@ -240,6 +240,40 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         name: web-app-testing
 ```
 
+Completion triggers can also be defined as part of the triggers expanded configuration. Take the above example for the ami-builder pipeline.
+```yaml
+  - name: ami-builder
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        role: packer
+        size: medium
+    params:
+      schedule: rate(7 days)
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      on_complete:
+          pipelines:
+            - my-web-app-pipeline # Start this pipeline
+
+  - name: my-web-app-pipeline
+    default_providers:
+      source:
+        provider: github
+        properties:
+          repository: my-web-app
+          owner: cool_coder
+          oauth_token_path: /adf/github_token
+          json_field: token
+    targets:
+      - path: /banking/testing
+        name: web-app-testing
+```
+
+
 ### Additional Triggers
 
 Pipelines can also be triggered by other events. For example, a new version of a package hosted on CodeArtifact being published:
@@ -255,7 +289,7 @@ Pipelines can also be triggered by other events. For example, a new version of a
         provider: codebuild
         role: packer
         size: medium
-    triggers: # What should happen when this pipeline completes
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
       triggered_by:
         code_artifact:
           repository: my_test_repository
