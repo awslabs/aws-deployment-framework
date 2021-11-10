@@ -295,7 +295,7 @@ Pipelines can also be triggered by other events. For example, a new version of a
           repository: my_test_repository
 ```
 
-In the above example, the *ami-builder* pipeline is triggered by everytime a new package version is published to the *my_test_repository* repo. 
+In the above example, the *ami-builder* pipeline is triggered when a new package version is published to the *my_test_repository* repository in CodeArtifact. 
 
 ### Additional Deployment Maps
 
