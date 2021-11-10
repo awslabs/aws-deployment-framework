@@ -256,8 +256,8 @@ Completion triggers can also be defined as part of the triggers expanded configu
       schedule: rate(7 days)
     triggers: # What should trigger this pipeline, and what should be triggered when it completes
       on_complete:
-          pipelines:
-            - my-web-app-pipeline # Start this pipeline
+        pipelines:
+          - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
