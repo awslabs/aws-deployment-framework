@@ -244,6 +244,3 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
 
     error_message = str(e_info.value)
     assert error_message.find("is not currently supported as a pipeline trigger") >= 0
-        
-    
-
