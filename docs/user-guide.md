@@ -260,17 +260,7 @@ Completion triggers can also be defined as part of the triggers expanded configu
           - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
-    default_providers:
-      source:
-        provider: github
-        properties:
-          repository: my-web-app
-          owner: cool_coder
-          oauth_token_path: /adf/github_token
-          json_field: token
-    targets:
-      - path: /banking/testing
-        name: web-app-testing
+    # Same configuration as defined above.
 ```
 
 
