@@ -322,7 +322,7 @@ pipelines:
 ## Service Control Policies
 Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit (or OU/AccountName path if you are wanting to apply an account-specific SCP) within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
 
-For example, assume you have an account with name `my_banking_account` under the `banking/dev` OU:
+For example, if you have an account named `my_banking_account` under the `banking/dev` OU that needs a specific SCP, and another SCP defined for the whole `deployment` OU, the folder structure would look like this:
 
 ```
 adf-bootstrap <-- This folder lives in the aws-deployment-framework-bootstrap repository on the master account.
