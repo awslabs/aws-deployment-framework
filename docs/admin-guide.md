@@ -325,7 +325,7 @@ Service control policies *(SCPs)* are one type of policy that you can use to man
 For example, assume you have an account with name `my_banking_account` under the `banking/dev` OU:
 
 ```
-adf-bootstrap <-- This folder lives in the bootstrap repo on master account
+adf-bootstrap <-- This folder lives in the aws-deployment-framework-bootstrap repository on the master account.
 │
 └─── deployment
 │    |
