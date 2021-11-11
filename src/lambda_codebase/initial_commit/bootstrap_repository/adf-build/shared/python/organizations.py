@@ -70,7 +70,7 @@ class Organizations: # pylint: disable=R0904
             Content=content
         )
 
-    def create_policy(self, content, ou_path, policy_name, policy_type="SERVICE_CONTROL_POLICY"):
+    def create_policy(self, content, policy_name, policy_type="SERVICE_CONTROL_POLICY"):
         response = self.client.create_policy(
             Content=content,
             Description='ADF Managed {0}'.format(policy_type),
