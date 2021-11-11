@@ -327,15 +327,16 @@ For example, assume you have an account with name `my_banking_account` under the
 ```
 adf-bootstrap <-- This folder lives in the bootstrap repo on master account
 │
-└───deployment
-│    ------│   scp.json
+└─── deployment
+│    |
+│    └─── scp.json
 │
 │───banking
 │   │
-│   │ ───dev
+│   └─── dev
 │         │
-│         │ ───my_banking_account
-│         ------│   scp.json
+│         └─── my_banking_account
+│               └─── scp.json
 │
 ```
 The file `adf-bootstrap/deployment/scp.json` applies the defined SCP to the `deployment` *OU*, while the file `adf-bootstrap/banking/dev/my_backing_account/scp.json` applies the defined SCP to the `my_banking_account` *account*.
