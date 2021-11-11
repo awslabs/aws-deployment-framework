@@ -161,6 +161,21 @@ class CodeBuild(core.Construct):
         )
 
     @staticmethod
+    def get_image_by_name(specific_image: str):
+        if hasattr(_codebuild.LinuxBuildImage,
+            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()):
+            return getattr(_codebuild.LinuxBuildImage,
+                (specific_image or DEFAULT_CODEBUILD_IMAGE).upper())
+        if specific_image.startswith('docker-hub://'):
+            specific_image = specific_image.split('docker-hub://')[-1]
+            return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
+        raise Exception(
+                "The CodeBuild image {0} could not be found.".format(
+                    specific_image
+                    ),
+                )
+
+    @staticmethod
     def determine_build_image(scope, target, map_params):
         specific_image = None
         if target:
@@ -184,10 +199,7 @@ class CodeBuild(core.Construct):
                 repo_arn,
                 specific_image.get('tag', 'latest'),
             )
-        return getattr(
-            _codebuild.LinuxBuildImage,
-            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper(),
-        )
+        return CodeBuild.get_image_by_name(specific_image)
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):

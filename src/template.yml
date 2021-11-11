@@ -364,6 +364,30 @@ Resources:
       ManagedPolicyArns:
         - !Ref "CodeBuildPolicy"
       RoleName: "adf-codebuild-role"
+  BootstrapCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref "CodeBuildPolicy"
+      Policies:
+        - PolicyName: bootstrap-only
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'support:CreateCase'
+                  - 'support:DescribeSeverityLevels'
+                Resource: '*'
   CodeBuildPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -494,7 +518,7 @@ Resources:
             Value: INFO
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
-      ServiceRole: !Ref CodeBuildRole
+      ServiceRole: !Ref BootstrapCodeBuildRole
       Source:
         BuildSpec: |
           version: 0.2
