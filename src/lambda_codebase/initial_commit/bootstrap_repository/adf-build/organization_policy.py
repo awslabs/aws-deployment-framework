@@ -78,7 +78,7 @@ class OrganizationPolicy:
     @staticmethod
     def return_policy_name(policy_type, target_path, policy_filename):
         _type = 'scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy'
-        if policy_filename != '{}.json':
+        if policy_filename != f'{_type}.json':
             return 'adf-{0}-{1}--{2}'.format(_type, target_path, policy_filename)
         else:
             # Added for backwards-compatibility with previous versions of ADF
