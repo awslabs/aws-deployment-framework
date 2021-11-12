@@ -4,17 +4,26 @@ import os
 import logging
 from paginator import paginator
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-sts = boto3.client('sts')
-
 management_acc_id = os.environ["MANAGEMENT_ACCOUNT_ID"]
 if("TARGET_OUS" in os.environ):
     ou_path = os.environ["TARGET_OUS"]
+sts = boto3.client('sts')
+
+def main():
+    
+    accounts = get_accounts()
+    with open('accounts.json', 'w') as outfile:
+        json.dump(accounts, outfile)
+
+    if("TARGET_OUS" in os.environ):
+        accounts_from_ous = get_accounts_from_ous()
+        with open('accounts_from_ous.json', 'w') as outfile:
+            json.dump(accounts_from_ous, outfile)
 
 
 def list_organizational_units_for_parent(parent_ou):
@@ -54,9 +63,7 @@ def get_accounts_from_ous():
             'AccountId': id['Id']
         })
     root_id = root_ids[0]['AccountId'] 
-    LOGGER.info("Target OUs")
     for path in ou_path.split(','):
-        LOGGER.info(path)
         # Set initial OU to start looking for given ou_path
         if parent_ou_id is None:
             parent_ou_id = root_id
@@ -120,12 +127,5 @@ def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> li
             })
     return account_list
 
-
-accounts = get_accounts()
-with open('accounts.json', 'w') as outfile:
-    json.dump(accounts, outfile)
-
-if("TARGET_OUS" in os.environ):
-    accounts_from_ous = get_accounts_from_ous()
-    with open('accounts_from_ous.json', 'w') as outfile:
-        json.dump(accounts_from_ous, outfile)
+if __name__ == "__main__":
+    main()
