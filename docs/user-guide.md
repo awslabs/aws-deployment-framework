@@ -29,7 +29,7 @@
 
 ## Deployment Map
 
-The `deployment_map.yml` file _(or [files](#additional-deployment-maps))_ lives in the repository named `aws-deployment-framework-pipelines` on the Deployment Account. These files are the general pipeline definitions that are responsible for mapping the specific pipelines to their deployment targets along with their respective parameters. The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) will synthesize during the CodeBuild step within the `aws-deployment-framework-pipelines` pipeline. Prior to the CDK creating these pipeline templates, a input generation step will run to parse the deployment_map.yml files, it will then assume a readonly role on the master account in the Organization that will have access to resolve the accounts in the AWS Organizations OU's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values into the input files that will go on to be main CDK applications inputs.
+The `deployment_map.yml` file *(or [files](#additional-deployment-maps))* lives in the repository named `aws-deployment-framework-pipelines` on the Deployment Account. These files are the general pipeline definitions that are responsible for mapping the specific pipelines to their deployment targets along with their respective parameters. The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) will synthesize during the CodeBuild step within the `aws-deployment-framework-pipelines` pipeline. Prior to the CDK creating these pipeline templates, a input generation step will run to parse the deployment_map.yml files, it will then assume a readonly role on the master account in the Organization that will have access to resolve the accounts in the AWS Organizations OU's specified in the mapping file. It will return the account name and ID for each of the accounts and pass those values into the input files that will go on to be main CDK applications inputs.
 
 The deployment map file defines the pipelines along with their inputs,
 providers to use and their configuration. It also defines the targets of the
@@ -53,7 +53,7 @@ pipelines:
         properties:
           account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
     params:
-      notification_endpoint: janes_team@doe.com # Optional
+        notification_endpoint: janes_team@doe.com # Optional
     tags:
       foo: bar # Pipelines support tagging
     targets:
@@ -72,17 +72,17 @@ pipelines:
           oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
           json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
-      notification_endpoint: joes_team@company.nl
+        notification_endpoint: joes_team@company.nl
     targets:
       - path: /banking/testing
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU _(in your default deployment account region)_ region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
-The second pipeline (_vpc_) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
+The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
 
-By default, the above pipelines will be created to deploy CloudFormation using a change in two actions _(Create then Execute)_.
+By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
 #### Targeting via Tags
 
@@ -91,12 +91,13 @@ Tags on AWS Accounts can also be used to define stages within a pipeline. For ex
 We do that with the following syntax:
 
 ```yaml
-- name: vpc-for-foo-team
-  default_providers: ...
-  targets:
-    - tags: # Using tags to define the stage rather than a path or account id
-        cost-center: foo-team
-      name: foo-team # You can optionally use the name key to give this stage some meaningful name
+  - name: vpc-for-foo-team
+    default_providers:
+      ...
+    targets:
+      - tags: # Using tags to define the stage rather than a path or account id
+          cost-center: foo-team
+        name: foo-team # You can optionally use the name key to give this stage some meaningful name
 ```
 
 Adding or Removing Tags to an AWS Account in AWS Organizations will automatically trigger a run of the bootstrap pipeline which will in turn execute the pipeline generation pipeline in the deployment account.
@@ -145,11 +146,11 @@ pipelines:
 
 The pipeline `sample-ec2-java-app-codedeploy` has a `default_providers` key
 that defines the high-level structure of the pipeline.
-It explicitly defines the source _(requirement for all pipelines)_ and also
+It explicitly defines the source *(requirement for all pipelines)* and also
 defines what type of build will occur along with any associated parameters.
 
 In this example, we're explicitly saying we want to use AWS CodeBuild
-_(which is also the default)_ and also to use a specific Docker Image for build
+*(which is also the default)* and also to use a specific Docker Image for build
 stage. The default deployment provider for this pipeline is configured to be
 `codedeploy` in this example. This means that any of the targets of the
 pipeline will use AWS CodeDeploy as their default
@@ -157,7 +158,7 @@ pipeline will use AWS CodeDeploy as their default
 
 In the targets section itself we have the opportunity to override the provider
 itself or pass in any additional properties to that provider. In this example
-we are passing in `application_name` and _deployment_group_name_ as properties
+we are passing in `application_name` and *deployment_group_name* as properties
 to CodeDeploy for this specific stage. The `properties` can either be defined
 by changing the `default_providers` configuration or get updated at the stage
 level. Stage level config overrides default provider config.
@@ -170,14 +171,14 @@ For detailed information on providers and their supported properties, see the
 
 ### Targets Syntax
 
-The Deployment Map has a shorthand syntax along with a more detailed version when you need extra configuration for the _targets_ key as detailed below:
+The Deployment Map has a shorthand syntax along with a more detailed version when you need extra configuration for the *targets* key as detailed below:
 
 **Shorthand:**
 
 ```yaml
 targets:
   - 9999999999 # Single Account, Deployment Account Region
-  - /my_ou/production # Group of Accounts, Deployment Account Region
+  - /my_ou/production  # Group of Accounts, Deployment Account Region
 ```
 
 **Detailed:**
@@ -203,62 +204,68 @@ Pipelines also have parameters that don't relate to a specific stage but rather 
 
 The following are the available pipeline parameters:
 
-- _notification_endpoint_ _(String)_ defaults to none.
+- *notification_endpoint* *(String) | (Dict) * defaults to none.
+  > Can either be a valid email address or a string that represents the name of a Slack Channel. 
+  > A more complex configuration can be provided to integrate with Slack via AWS ChatBot. 
+  > ```yaml
+  > notification_endpoint:
+  >   type: chat_bot
+  >   target: example_slack_channel  # This is the name of an slack channel configuration you created within the AWS Chat Bot service. This needs to be created before you apply the changes to the deployment map.
+  > ```
+  >
+  > In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md#integrating-with-slack-with-aws-chatbot) in the admin guide. By default, notifications will be sent when pipelines Start, Complete, or Fail.
 
-  > Can either be a valid email address or a string that represents the name of a Slack Channel. In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md) in the admin guide. By Default, Notifications will be sent when pipelines Start, Complete or Fail.
-
-- _schedule_ _(String)_ defaults to none.
-
+- *schedule* *(String)* defaults to none.
   > If the Pipeline should execute on a specific Schedule. Schedules are defined by using a Rate or an Expression. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions) for more information on how to define Rate or an Expression.
 
-- _restart_execution_on_update_ _(Boolean)_ default: `False`.
+- *restart_execution_on_update* *(Boolean)* default: `False`.
   > If the Pipeline should start a new execution if its structure is updated. Pipelines can often update their structure if targets of the pipeline are Organizational Unit paths. This setting allows pipelines to automatically run once an AWS Account has been moved in or out of a targeted OU.
 
 ### Completion Triggers
 
-Pipelines can also trigger other pipelines upon completion. To do this, use the _completion_trigger_ key on the pipeline definition. For example:
+Pipelines can also trigger other pipelines upon completion. To do this, use the *completion_trigger* key on the pipeline definition. For example:
 
 ```yaml
-- name: ami-builder
-  default_providers:
-    source:
-      provider: codecommit
-      properties:
-        account_id: 222222222222
-    build:
-      provider: codebuild
-      role: packer
-      size: medium
-  params:
-    schedule: rate(7 days)
-  completion_trigger: # What should happen when this pipeline completes
-    pipelines:
-      - my-web-app-pipeline # Start this pipeline
+  - name: ami-builder
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        role: packer
+        size: medium
+    params:
+      schedule: rate(7 days)
+    completion_trigger: # What should happen when this pipeline completes
+      pipelines:
+        - my-web-app-pipeline # Start this pipeline
 
-- name: my-web-app-pipeline
-  default_providers:
-    source:
-      provider: github
-      properties:
-        repository: my-web-app
-        owner: cool_coder
-        oauth_token_path: /adf/github_token
-        json_field: token
-  targets:
-    - path: /banking/testing
-      name: web-app-testing
+  - name: my-web-app-pipeline
+    default_providers:
+      source:
+        provider: github
+        properties:
+          repository: my-web-app
+          owner: cool_coder
+          oauth_token_path: /adf/github_token
+          json_field: token
+    targets:
+      - path: /banking/testing
+        name: web-app-testing
 ```
 
-In the above example, the _ami-builder_ pipeline runs every 7 days based on its schedule. When it completes, it executes the _my-web-app-pipeline_ pipeline as defined in its _completion_trigger_ property.
+In the above example, the *ami-builder* pipeline runs every 7 days based on its schedule. When it completes, it executes the *my-web-app-pipeline* pipeline as defined in its *completion_trigger* property.
 
 ### Additional Deployment Maps
 
 You can also create additional deployment map files.
-These can live in a folder in the pipelines repository called _deployment_maps_.
+These can live in a folder in the pipelines repository called *deployment_maps*.
 These are entirely optional, but can help split up complex environments with many pipelines.
 
 For example, you might have a map used for infrastructure type pipelines and one used for deploying applications.
-These additional deployment map files can have any name, as long as they end with _.yml_.
+These additional deployment map files can have any name, as long as they end with *.yml*.
 
 Taking it a step further, you can create a map per service.
 So you can organize these deployment map files inside your preferred directory structure
@@ -282,7 +289,7 @@ Source entities for pipelines can consist of AWS CodeCommit Repositories, Amazon
 
 ### Removing Pipelines
 
-If you decide you no longer require a specific pipeline you can remove it from the deployment*map.yml file and commit those changes back to the \_aws-deployment-framework-pipelines* repository _(on the deployment account)_ in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
+If you decide you no longer require a specific pipeline you can remove it from the deployment_map.yml file and commit those changes back to the *aws-deployment-framework-pipelines* repository *(on the deployment account)* in order for it to be cleaned up. The resources that were created as outputs from this pipeline will **not** be removed by this process.
 
 ## Deploying via Pipelines
 
@@ -302,24 +309,24 @@ phases:
       - pip install -r adf-build/requirements.txt -q # Install Requirements via requirements.txt
       - python adf-build/generate_params.py # Generate Parameter files dynamically
 artifacts:
-  files: "**/*" # Package up all outputs and pass them along to next stage
+  files: '**/*' # Package up all outputs and pass them along to next stage
 ```
 
-In the example we have three steps to our install phase in our build, the remaining phases and steps you add are up to you. In the above steps we simply bring in the shared modules we will need to run our main function in _generate_params.py_. The $S3_BUCKET_NAME variable is available in AWS CodeBuild as we pass this in from our initial creation of the that defines the CodeBuild Project. You do not need to change this.
+In the example we have three steps to our install phase in our build, the remaining phases and steps you add are up to you. In the above steps we simply bring in the shared modules we will need to run our main function in *generate_params.py*. The $S3_BUCKET_NAME variable is available in AWS CodeBuild as we pass this in from our initial creation of the that defines the CodeBuild Project. You do not need to change this.
 
-Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the _requirements.txt_ in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
+Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) can be installed in order to validate that our CloudFormation templates are up to standard and do not contain any obvious errors. If you wish to add in any extra packages you can add them to the *requirements.txt* in the `bootstrap_repository` which is brought down into AWS CodeBuild and installed. Otherwise you can add them into any pipelines specific buildspec.yml.
 
-If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the _buildspec.yml_ content itself into the pipeline by using the _spec_inline_ property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
+If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline by using the *spec_inline* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
 
 #### Custom Build Images
-
 You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild. This can be defined in the your deployment map files like so:
 
 ```yaml
 pipelines:
   - name: example-custom-image
     default_providers:
-      source: ...
+      source:
+        ...
       build:
         provider: codebuild
         image:
@@ -329,22 +336,38 @@ pipelines:
       - ...
 ```
 
+Public images from docker hub can be defined in your deployment map like so:
+
+```yaml
+pipelines:
+  - name: example-custom-image
+    default_providers:
+      source:
+        ...
+      build:
+        provider: codebuild
+        properties:
+          image: docker-hub://bitnami/mongodb
+    targets:
+      - ...
+```
+
 ### CloudFormation Parameters and Tagging
 
-When you define CloudFormation templates as artifacts to push through a pipeline you might want to have a set of parameters associated with the templates. You can utilize the `params` folder in your repository to add in parameters as you see fit. To avoid having to create a parameter file for each of the stacks you wish to deploy to, you can create a parameter file called `global.yml` _(or .json)_ any parameters defined in this file will be merged into the parameters for any specific account parameter file at build time. For example you might have a single parameter for a template called `CostCenter` the value of this will be the same across every deployment of your application however you might have another parameter called `InstanceType` that you want to be different per account. Using this example we can create a `global.yml` file that contains the following content:
+When you define CloudFormation templates as artifacts to push through a pipeline you might want to have a set of parameters associated with the templates. You can utilize the `params` folder in your repository to add in parameters as you see fit. To avoid having to create a parameter file for each of the stacks you wish to deploy to, you can create a parameter file called `global.yml` *(or .json)* any parameters defined in this file will be merged into the parameters for any specific account parameter file at build time. For example you might have a single parameter for a template called `CostCenter` the value of this will be the same across every deployment of your application however you might have another parameter called `InstanceType` that you want to be different per account. Using this example we can create a `global.yml` file that contains the following content:
 
 ```yaml
 Parameters:
-  CostCenter: department-abc
+    CostCenter: department-abc
 ```
 
-This can be represented in _json_ in the same way if desired.
+This can be represented in *json* in the same way if desired.
 
 ```json
 {
-  "Parameters": {
-    "CostCenter": "department-abc"
-  }
+    "Parameters": {
+        "CostCenter": "department-abc"
+    }
 }
 ```
 
@@ -352,20 +375,20 @@ Then we can have a more specific parameter for another account, this file should
 
 ```yaml
 Parameters:
-  InstanceType: m5.large
+    InstanceType: m5.large
 ```
 
 When the stack is executed it will be executed with the following parameters:
 
 ```yaml
 Parameters:
-  InstanceType: m5.large
-  CostCenter: department-abc
+    InstanceType: m5.large
+    CostCenter: department-abc
 ```
 
-This aggregation of parameters works for a few different levels, where the most specific level takes precedence. In the example above, if _CostCenter_ is defined in both `global.yml` and `account.yml` _("account" here represents the name of the account)_ then the value in the `account.yml` file will take precedence.
+This aggregation of parameters works for a few different levels, where the most specific level takes precedence. In the example above, if *CostCenter* is defined in both `global.yml` and `account.yml` *("account" here represents the name of the account)* then the value in the `account.yml` file will take precedence.
 
-The different types of parameter files and their order of precedence _(in the tree below, the lowest level has the highest precedence)_ can be used to simplify how parameters are specified. For example, a parameter such as `Environment` might be the same for all accounts under a certain OU, so placing it under a single `ou.yml` params file means you don't need to populate it for each account under that OU.
+The different types of parameter files and their order of precedence *(in the tree below, the lowest level has the highest precedence)* can be used to simplify how parameters are specified. For example, a parameter such as `Environment` might be the same for all accounts under a certain OU, so placing it under a single `ou.yml` params file means you don't need to populate it for each account under that OU.
 
 **Note:** When using OU parameter files, the OU must be specified in the deployment map as a target. If only the account number is in the deployment map the corresponding OU parameter file will not be referenced.
 
@@ -387,53 +410,53 @@ This concept also works for applying **Tags** to the resources within your stack
 
 ```yml
 Parameters:
-  CostCenter: "123"
-  Environment: testing
+    CostCenter: '123'
+    Environment: testing
 Tags:
-  TagKey: TagValue
-  MyKey: MyValue
+    TagKey: TagValue
+    MyKey: MyValue
 ```
 
-Again this example in _json_ would look like:
+Again this example in *json* would look like:
 
 ```json
 {
-  "Parameters": {
-    "CostCenter": "123",
-    "Environment": "testing"
-  },
-  "Tags": {
-    "TagKey": "TagValue",
-    "MyKey": "MyValue"
-  }
+    "Parameters": {
+        "CostCenter": "123",
+        "Environment": "testing"
+    },
+    "Tags": {
+        "TagKey": "TagValue",
+        "MyKey": "MyValue"
+    }
 }
 ```
 
 This means that all resources that support tags within your CloudFormation stack will be tagged as defined above.
 
-It is important to keep in mind that each Deployment Provider _(Code Deploy, CloudFormation, Service Catalog etc)_ have their [own parameter structure](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html) and configuration files. For example, Service catalog allows you to pass a configuration file as such:
+It is important to keep in mind that each Deployment Provider *(Code Deploy, CloudFormation, Service Catalog etc)* have their [own parameter structure](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html) and configuration files. For example, Service catalog allows you to pass a configuration file as such:
 
 ```json
 {
-  "SchemaVersion": "1.1",
-  "ProductVersionName": "test",
-  "ProductVersionDescription": "My awesome product",
-  "ProductType": "CLOUD_FORMATION_TEMPLATE",
-  "Properties": {
-    "TemplateFilePath": "/template.yml"
-  }
+    "SchemaVersion": "1.1",
+    "ProductVersionName": "test",
+    "ProductVersionDescription": "My awesome product",
+    "ProductType": "CLOUD_FORMATION_TEMPLATE",
+    "Properties": {
+        "TemplateFilePath": "/template.yml"
+    }
 }
 ```
 
-You can create the above parameter files if you are deploying products to your Service Catalog's in the same fashion as with CloudFormation _(global.yml etc)_.
+You can create the above parameter files if you are deploying products to your Service Catalog's in the same fashion as with CloudFormation *(global.yml etc)*.
 
 For more examples of parameters and their usage see the `samples` folder in the root of the repository.
 
-_Note:_ Currently only Strings type values are supported as parameters to CloudFormation templates when deploying via AWS CodePipeline.
+*Note:* Currently only Strings type values are supported as parameters to CloudFormation templates when deploying via AWS CodePipeline.
 
 ### Serverless Transforms
 
-If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will be deployed. This can be achieved by setting the `CONTAINS_TRANSFORM` environment variable to _True_ in your pipeline definition with a deployment map file. Once the environment variable has been set, within your _buildspec.yml_ file you will need to use the _package_transform.sh_ helper script (`bash adf-build/helpers/package_transform.sh`). This script will package your template to each region and transparently generate a region specific template for the pipeline deploy stages.
+If the template that is being deployed contains a transform, such as a Serverless Transform it needs to be packaged and uploaded to S3 in every region where it will be deployed. This can be achieved by setting the `CONTAINS_TRANSFORM` environment variable to *True* in your pipeline definition with a deployment map file. Once the environment variable has been set, within your *buildspec.yml* file you will need to use the *package_transform.sh* helper script (`bash adf-build/helpers/package_transform.sh`). This script will package your template to each region and transparently generate a region specific template for the pipeline deploy stages.
 
 ```yaml
 pipelines:
@@ -454,7 +477,7 @@ pipelines:
 
 ### Parameter Injection
 
-Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files _(eg global.json, account-name.json)_ and also importing of output values from CloudFormation stacks across accounts and regions.
+Parameter injection solves problems that occur with Cross Account parameter access. This concept allows the resolution of values directly from SSM Parameter Store within the Deployment account into Parameter files *(eg global.json, account-name.json)* and also importing of output values from CloudFormation stacks across accounts and regions.
 
 #### Retrieving parameter values
 
@@ -462,16 +485,16 @@ If you wish to resolve values from Parameter Store on the Deployment Account dir
 
 ```yaml
 Parameters:
-  Environment: development
-  InstanceType: m5.large
-  SomeValueFromSSM: resolve:/my/path/to/value
+    Environment: development
+    InstanceType: m5.large
+    SomeValueFromSSM: resolve:/my/path/to/value
 ```
 
-When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using any sensitive data, ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs. Resolving parameters across regions is also possible using the notation of _resolve:region:/my/path/to/value_. This allows you to fetch values from the deployment account in other regions other than the main deployment region.
+When you use the special keyword **"resolve:"**, the value in the specified path will be fetched from Parameter Store on the deployment account during the CodeBuild Containers execution and populated into the parameter file for each account you have defined. If you plan on using any sensitive data, ensure you are using the [NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) property to ensure it is kept out of the console and logs. Resolving parameters across regions is also possible using the notation of *resolve:region:/my/path/to/value*. This allows you to fetch values from the deployment account in other regions other than the main deployment region.
 
 To highlight an example of how Parameter Injection can work well, think of the following scenario: You have some value that you wish to rotate on a monthly basis. You have some automation in place that updates the value of a Parameter store parameter on a schedule. Each time this pipeline runs it will check for that value and update the resources accordingly, effectively detaching the parameters from the pipeline itself.
 
-There is also the concept of optionally resolving or importing values. This can be achieved by ending the import or resolve function with a **?**. For example, if you want to resolve a value from Parameter Store that might or might not yet exist you can use an optional resolve _(eg resolve:/my/path/to/myMagicKey?)_. If the key _myMagicKey_ does not exist in Parameter Store then an empty string will be returned as the value.
+There is also the concept of optionally resolving or importing values. This can be achieved by ending the import or resolve function with a **?**. For example, if you want to resolve a value from Parameter Store that might or might not yet exist you can use an optional resolve *(eg resolve:/my/path/to/myMagicKey?)*. If the key *myMagicKey* does not exist in Parameter Store then an empty string will be returned as the value.
 
 #### Importing output values
 
@@ -479,24 +502,24 @@ Parameter injection is also useful for importing output values from CloudFormati
 
 ```yaml
 Parameters:
-  BucketInLoggingAccount: "import:123456789101:eu-west-1:stack_name:output_key"
+    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:output_key'
 ```
 
-In the above example _123456789101_ is the AWS Account Id in which we want to pull a value from, _eu-west-1_ is the region, stack*name is the CloudFormation stack name and \_output_key* is the output key name _(not export name)_. Again, this concept works with the optional style syntax _(eg, import:123456789101:eu-west-1:stack_name:output_key?)_ if the key _output_key_ does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
 
 #### Uploading assets
 
-Another built-in function is **upload**, You can use _upload_ to perform an automated upload of a resource such as a template or file into Amazon S3 as part of the build process.
-Once the upload is complete, the Amazon S3 URL for the object will be put in place of the _upload_ string in the parameter file.
+Another built-in function is **upload**, You can use *upload* to perform an automated upload of a resource such as a template or file into Amazon S3 as part of the build process.
+Once the upload is complete, the Amazon S3 URL for the object will be put in place of the *upload* string in the parameter file.
 
-For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization _(see samples)_ you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point, since the file has not yet been uploaded to S3.
+For example, If you are deploying products that will be made available via Service Catalog to many teams throughout your organization *(see samples)* you will need to reference the AWS CloudFormation template URL of the product as part of the template that creates the product definition. The problem that the **upload** function is solving in this case is that the template URL of the product cannot exist at this point, since the file has not yet been uploaded to S3.
 
 ```yaml
 Parameters:
-  ProductYTemplateURL: "upload:path:productY/template.yml"
+    ProductYTemplateURL: 'upload:path:productY/template.yml'
 ```
 
-In the above example, we are calling the **upload** function on a file called `template.yml` that lives in the _productY_ folder within our repository and then returning the path style URL from S3 (indicated by the word _path_ in the string). The string _"upload:path:productY/template.yml"_ will be replaced by the URL of the object in S3 once it has been uploaded.
+In the above example, we are calling the **upload** function on a file called `template.yml` that lives in the *productY* folder within our repository and then returning the path style URL from S3 (indicated by the word *path* in the string). The string *"upload:path:productY/template.yml"* will be replaced by the URL of the object in S3 once it has been uploaded.
 
 Syntax:
 
@@ -510,25 +533,25 @@ upload:${region}:${style}:${local_path}
 
 There are five different styles that one could choose from.
 
-- `path` style, as shown in the example above, will return the S3 path to the object as.
+* `path` style, as shown in the example above, will return the S3 path to the object as.
   This is referred to as the classic [Path Style method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html).
-  - In case the bucket is stored in us-east-1, it will return:
+  * In case the bucket is stored in us-east-1, it will return:
     `https://s3.amazonaws.com/${bucket}/${key}`
-  - In case the bucket is stored in any other region, it will return:
+  * In case the bucket is stored in any other region, it will return:
     `https://s3-${region}.amazonaws.com/${bucket}/${key}`
-- `virtual-hosted` style, will return the S3 location using the virtual hosted bucket domain.
-  - In case the bucket is stored in us-east-1, it will return:
+* `virtual-hosted` style, will return the S3 location using the virtual hosted bucket domain.
+  * In case the bucket is stored in us-east-1, it will return:
     `https://${bucket}.s3.amazonaws.com/${key}`
-  - In case the bucket is stored in any other region, it will return:
+  * In case the bucket is stored in any other region, it will return:
     `https://${bucket}.s3-${region}.amazonaws.com/${key}`
-- `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
-  As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html).
-  - It returns: `s3://${bucket}/${key}`
-- `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
+* `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
+  As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html). 
+  * It returns: `s3://${bucket}/${key}`
+* `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
   As an example, this style is required for [CodeBuild project source locations](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-source.html#cfn-codebuild-project-source-location).
-  - It returns: `${bucket}/${key}`
-- `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
-  - It returns: `${key}`
+  * It returns: `${bucket}/${key}`
+* `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
+  * It returns: `${key}`
 
 The `region` is optional.
 This allows you to upload files to S3 Buckets within specific regions by
@@ -540,11 +563,11 @@ the location where `adf-build/generate-params.py` scripts gets executed from.
 As shown in the example shared above, the file to upload would be the
 `productY/template.yml` file that is stored in the root of the repository.
 
-The bucket being used to hold the uploaded object is the same Amazon S3 Bucket that holds deployment artifacts _(On the Deployment Account)_ for the specific region which they are intended to be deployed to. Files that are uploaded using this functionality will receive a random name each time they are uploaded.
+The bucket being used to hold the uploaded object is the same Amazon S3 Bucket that holds deployment artifacts *(On the Deployment Account)* for the specific region which they are intended to be deployed to. Files that are uploaded using this functionality will receive a random name each time they are uploaded.
 
 ### Nested CloudFormation Stacks
 
-AWS CloudFormation allows stacks to create other stacks via the [nested stacks](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html) feature. ADF supports a single entry template which defaults to `template.yml`, the stacks that you wish to nest will need to spawn from this template. Nested stacks allow users to pass a `TemplateURL` value that points directly to another CloudFormation template that is either in S3 or on the File System. If you reference a template on the file system you will need to use the `package_transform.sh` helper script during AWS CodeBuild execution _(during the build phase)_ in your pipeline to package up the contents of your templates into finalized artifacts.
+AWS CloudFormation allows stacks to create other stacks via the [nested stacks](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html) feature. ADF supports a single entry template which defaults to `template.yml`, the stacks that you wish to nest will need to spawn from this template. Nested stacks allow users to pass a `TemplateURL` value that points directly to another CloudFormation template that is either in S3 or on the File System. If you reference a template on the file system you will need to use the `package_transform.sh` helper script during AWS CodeBuild execution *(during the build phase)* in your pipeline to package up the contents of your templates into finalized artifacts.
 
 This can be achieved with a `buildspec.yml` like so:
 
@@ -561,25 +584,25 @@ phases:
     commands:
       - bash adf-build/helpers/package_transform.sh
 artifacts:
-  files: "**/*"
+  files: '**/*'
 ```
 
 This allows us to specify nested stacks that are in the same repository as our main `template.yml` in our like so:
 
 ```yaml
-MyStack:
-  Type: "AWS::CloudFormation::Stack"
-  Properties:
-    TemplateURL: another_template.yml # file path to the nested stack template
+  MyStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: another_template.yml # file path to the nested stack template
 ```
 
-When the `package_transform.sh` command is executed, the file will be packaged up and uploaded to Amazon S3. Its _TemplateURL_ key will be updated to point to the object in S3 and this will be a valid path when `template.yml` is executed in the deploy stages of your pipeline.
+When the `package_transform.sh` command is executed, the file will be packaged up and uploaded to Amazon S3. Its *TemplateURL* key will be updated to point to the object in S3 and this will be a valid path when `template.yml` is executed in the deploy stages of your pipeline.
 
 ### Deploying Serverless Applications with SAM
 
-Serverless Applications can also be deployed via ADF _(see samples)_. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
+Serverless Applications can also be deployed via ADF *(see samples)*. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
 
-For example, deploying a NodeJS Serverless Application from AWS CodeBuild with the _aws/codebuild/standard:2.0_ image can be done with a _buildspec.yml_ that looks like the following [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
+For example, deploying a NodeJS Serverless Application from AWS CodeBuild with the *aws/codebuild/standard:2.0* image can be done with a *buildspec.yml* that looks like the following [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 
 ```yaml
 version: 0.2
@@ -598,12 +621,12 @@ phases:
     commands:
       - bash adf-build/helpers/package_transform.sh
 artifacts:
-  files: "**/*"
+  files: '**/*'
 ```
 
 ### Using Anchors and Alias
 
-You can take advantage of YAML Anchors and Alias' in the deployment map files. As you can see from the example below, The &generic_params and &generic_targets are anchors. They can be added to any mapping, sequence or scalar. Once you create an anchor, you can reference it anywhere within the map again with its alias *(eg *generic_params)\* to reproduce their values, similar to variables.
+You can take advantage of YAML Anchors and Alias' in the deployment map files. As you can see from the example below, The &generic_params and &generic_targets are anchors. They can be added to any mapping, sequence or scalar. Once you create an anchor, you can reference it anywhere within the map again with its alias *(eg *generic_params)* to reproduce their values, similar to variables.
 
 ```yaml
 pipelines:
@@ -669,7 +692,7 @@ pipelines:
     targets: *generic_targets
 ```
 
-By passing in the Repository name _(repository)_ we are overriding the **name** property which normally is the name of our associated repository. This will tie both of these pipelines to the single _sample-vpc_ repository on the _111111111111_ AWS Account.
+By passing in the Repository name *(repository)* we are overriding the **name** property which normally is the name of our associated repository. This will tie both of these pipelines to the single *sample-vpc* repository on the *111111111111* AWS Account.
 
 ### Terraform pipeline
 
