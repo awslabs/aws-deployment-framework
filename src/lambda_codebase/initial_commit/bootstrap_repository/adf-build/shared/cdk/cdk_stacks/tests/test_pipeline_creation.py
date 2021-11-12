@@ -139,7 +139,10 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     assert build_stage_action['ActionTypeId']['Owner'] == "AWS"
     assert build_stage_action['ActionTypeId']['Provider'] == "CodeBuild"
 
+    assert "OutputArtifactFormat" not in source_stage_action['Configuration']
+
     assert len(build_stage['Actions']) == 1
+
 
 def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_codebuild_clone_ref_and_build_is_codebuild():
     region_name = "eu-central-1"
