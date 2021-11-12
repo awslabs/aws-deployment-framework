@@ -16,5 +16,3 @@ phases:
       - python adf-build/helpers/terraform/get_accounts.py
       - bash adf-build/helpers/terraform/adf_terraform.sh
 
-artifacts:
-  files: "**/*"
