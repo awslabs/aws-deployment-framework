@@ -37,7 +37,7 @@ def _read_config_file(filename):
         return accounts
     except Exception as error:
         LOGGER.error(
-            "Could not process %s do to an error: %s. ",
+            "Could not process %s due to an error: %s. ",
             filename,
             error
         )
