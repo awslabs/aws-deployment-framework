@@ -98,9 +98,7 @@ Resources:
       KeySchema:
         - AttributeName: LockID
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
       TableName: adf-tflocktable
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
