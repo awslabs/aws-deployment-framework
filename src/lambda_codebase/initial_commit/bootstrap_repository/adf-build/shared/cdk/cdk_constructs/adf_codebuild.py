@@ -22,19 +22,21 @@ DEFAULT_CODEBUILD_IMAGE = "UBUNTU_14_04_PYTHON_3_7_1"
 DEFAULT_BUILD_SPEC_FILENAME = 'buildspec.yml'
 DEFAULT_DEPLOY_SPEC_FILENAME = 'deployspec.yml'
 
+
 class CodeBuild(core.Construct):
     # pylint: disable=no-value-for-parameter
 
     def __init__(self, scope: core.Construct, id: str, shared_modules_bucket: str, deployment_region_kms: str, map_params: dict, target, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
-        ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/adf-codebuild-role'.format(ADF_DEPLOYMENT_ACCOUNT_ID)
+        stack = core.Stack.of(self)
+
+        ADF_DEFAULT_BUILD_ROLE = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/adf-codebuild-role'
         ADF_DEFAULT_BUILD_TIMEOUT = 20
+
         # if CodeBuild is being used as a deployment action we want to allow target specific values.
         if target:
-            _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
-                ADF_DEPLOYMENT_ACCOUNT_ID,
-                target.get('properties', {}).get('role')
-            ) if target.get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
+            _role_name = target.get('properties', {}).get('role')
+            _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('properties', {}).get('timeout') or map_params['default_providers']['deploy'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
                 build_image=CodeBuild.determine_build_image(scope, target, map_params),
@@ -74,10 +76,9 @@ class CodeBuild(core.Construct):
                 action_name="{0}".format(id)
             ).config
         else:
-            _build_role = 'arn:aws:iam::{0}:role/{1}'.format(
-                ADF_DEPLOYMENT_ACCOUNT_ID,
-                map_params['default_providers']['build'].get('properties', {}).get('role')
-            ) if map_params['default_providers']['build'].get('properties', {}).get('role') else ADF_DEFAULT_BUILD_ROLE
+            _role_name = map_params['default_providers']['build'].get(
+                'properties', {}).get('role')
+            _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
                 build_image=CodeBuild.determine_build_image(scope, target, map_params),
@@ -85,8 +86,8 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
             )
-            if map_params['default_providers']['build'].get('properties', {}).get('role'):
-                ADF_DEFAULT_BUILD_ROLE = 'arn:aws:iam::{0}:role/{1}'.format(ADF_DEPLOYMENT_ACCOUNT_ID, map_params['default_providers']['build'].get('properties', {}).get('role'))
+            if _role_name:
+                ADF_DEFAULT_BUILD_ROLE = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}'
             build_spec = CodeBuild.determine_build_spec(
                 id,
                 map_params['default_providers']['build'].get('properties', {})
@@ -160,6 +161,21 @@ class CodeBuild(core.Construct):
         )
 
     @staticmethod
+    def get_image_by_name(specific_image: str):
+        if hasattr(_codebuild.LinuxBuildImage,
+            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()):
+            return getattr(_codebuild.LinuxBuildImage,
+                (specific_image or DEFAULT_CODEBUILD_IMAGE).upper())
+        if specific_image.startswith('docker-hub://'):
+            specific_image = specific_image.split('docker-hub://')[-1]
+            return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
+        raise Exception(
+                "The CodeBuild image {0} could not be found.".format(
+                    specific_image
+                    ),
+                )
+
+    @staticmethod
     def determine_build_image(scope, target, map_params):
         specific_image = None
         if target:
@@ -183,10 +199,7 @@ class CodeBuild(core.Construct):
                 repo_arn,
                 specific_image.get('tag', 'latest'),
             )
-        return getattr(
-            _codebuild.LinuxBuildImage,
-            (specific_image or DEFAULT_CODEBUILD_IMAGE).upper(),
-        )
+        return CodeBuild.get_image_by_name(specific_image)
 
     @staticmethod
     def generate_build_env_variables(codebuild, shared_modules_bucket, map_params, target=None):

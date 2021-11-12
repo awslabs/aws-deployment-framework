@@ -6,6 +6,7 @@ aws-cdk.aws-autoscaling==1.114
 aws-cdk.aws-autoscaling_common==1.114
 aws-cdk.aws-autoscaling_hooktargets==1.114
 aws-cdk.aws-certificatemanager==1.114
+aws-cdk.aws-chatbot==1.114
 aws-cdk.aws-cloudformation==1.114
 aws-cdk.aws-cloudfront==1.114
 aws-cdk.aws-cloudwatch==1.114
