@@ -5,16 +5,21 @@
 """
 
 import json
+import os
+
 from time import sleep
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
 from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
 
 LOGGER = configure_logger(__name__)
+REGION_DEFAULT = os.getenv('AWS_REGION')
 
-class Organizations: # pylint: disable=R0904
+
+class Organizations:  # pylint: disable=R0904
     """Class used for modeling Organizations
     """
 
@@ -23,11 +28,13 @@ class Organizations: # pylint: disable=R0904
     def __init__(self, role, account_id=None):
         self.client = role.client(
             'organizations',
-            config=Organizations._config)
+            config=Organizations._config
+        )
         self.tags_client = role.client(
             'resourcegroupstaggingapi',
-            region_name='us-east-1',
-            config=Organizations._config)
+            region_name=REGION_DEFAULT,
+            config=Organizations._config
+        )
         self.account_id = account_id
         self.account_ids = []
         self.root_id = None
@@ -39,7 +46,7 @@ class Organizations: # pylint: disable=R0904
             "ou_parent_type": response.get('Type')
         }
 
-    def enable_organization_policies(self, policy_type='SERVICE_CONTROL_POLICY'): # or 'TAG_POLICY'
+    def enable_organization_policies(self, policy_type='SERVICE_CONTROL_POLICY'):  # or 'TAG_POLICY'
         try:
             self.client.enable_policy_type(
                 RootId=self.get_ou_root_id(),

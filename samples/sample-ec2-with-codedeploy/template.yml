@@ -166,7 +166,7 @@ Resources:
               Fn::Sub: ${Environment}-public-subnet-1b
           - Fn::ImportValue:
               Fn::Sub: ${Environment}-public-subnet-1c
-      SecurityGroups: 
+      SecurityGroups:
         - !Ref 'PublicLoadBalancerSG'
   ApplicationLoadBalancerHTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
