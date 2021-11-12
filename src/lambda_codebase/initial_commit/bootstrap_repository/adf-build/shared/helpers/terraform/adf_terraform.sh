@@ -8,7 +8,7 @@ echo "Terraform stage: $TF_STAGE"
 tfinit(){
     # retrieve regional S3 bucket name from parameter store
     S3_BUCKET_REGION_NAME=$(aws ssm get-parameter --name /cross_region/s3_regional_bucket/"$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
-    mkdir -p "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
+    mkdir -p "$CURRENT"/tmp/"$TF_VAR_TARGET_ACCOUNT_ID"-"$AWS_REGION"
     cd "$CURRENT"/tmp/"$TF_VAR_TARGET_ACCOUNT_ID"-"$AWS_REGION" || exit
     cp -R "$CURRENT"/tf/* "$CURRENT"/tmp/"$TF_VAR_TARGET_ACCOUNT_ID"-"$AWS_REGION"
     # if account related variables exist copy the folder in the work directory
@@ -21,18 +21,44 @@ tfinit(){
         -backend-config "region=$AWS_REGION" \
         -backend-config "key=$ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate" \
         -backend-config "dynamodb_table=adf-tflocktable"
-
+    
     echo "Bucket: $S3_BUCKET_REGION_NAME"
     echo "Region: $AWS_REGION"
     echo "Key:    $ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate"
     echo "DynamoDB table: adf-tflocktable"
 }
 tfplan(){  
+    DATE=$(date +%Y-%m-%d)
+    TS=$(date +%Y%m%d%H%M%S)
     bash "$CURRENT"/adf-build/helpers/sts.sh "$TF_VAR_TARGET_ACCOUNT_ID" "$TF_VAR_TARGET_ACCOUNT_ROLE"
-    terraform plan -out "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"
+    terraform plan -out "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID" 2>&1 | tee -a "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log        
+    # Save terraform plan to S3 bucket
+    aws s3 cp "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log s3://"$S3_BUCKET_REGION_NAME"/"$ADF_PROJECT_NAME"/tf-plan/"$DATE"/"$TF_VAR_TARGET_ACCOUNT_ID"/"$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log
+    echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
 }
 tfapply(){
     terraform apply "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"
+}
+tfrun(){
+    export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
+    echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
+    if [[ "$TF_STAGE" = "plan" ]]
+    then
+        set -e
+        tfinit
+        tfplan
+        set +e
+    elif [[ "$TF_STAGE" = "apply" ]]
+    then
+        set -e
+        tfinit
+        tfplan
+        tfapply
+        set +e
+    else 
+        echo "Invalid terraform command"
+        exit 1
+    fi
 }
 
 # if REGIONS is not defined as pipeline parameters use default region
@@ -51,40 +77,7 @@ do
         echo "Apply to all accounts" 
         for ACCOUNT_ID in $(jq '.[].AccountId' "$CURRENT"/accounts.json | sed 's/"//g' ) 
         do
-            export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
-            echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
-            if [[ "$TF_STAGE" = "plan" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            elif [[ "$TF_STAGE" = "apply" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfapply
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            else 
-                echo "Invalid terraform command"
-            fi
+            tfrun
         done
     fi
 
@@ -92,42 +85,10 @@ do
     then
         # apply only on a subset of accounts (TARGET_ACCOUNTS)
         echo "List of target account: $TARGET_ACCOUNTS"
+        #for i in "${account_list[@]}"
         for ACCOUNT_ID in $(echo $TARGET_ACCOUNTS | sed "s/,/ /g")
         do  
-            export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
-            echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
-            if [[ "$TF_STAGE" = "plan" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            elif [[ "$TF_STAGE" = "apply" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfapply
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            else 
-                echo "Invalid terraform command"
-            fi
+            tfrun
         done
     fi
 
@@ -136,40 +97,7 @@ do
         echo "List target OUs: $TARGET_OUS" 
         for ACCOUNT_ID in $(jq '.[].AccountId' "$CURRENT"/accounts_from_ous.json | sed 's/"//g' ) 
         do
-            export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
-            echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
-            if [[ "$TF_STAGE" = "plan" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            elif [[ "$TF_STAGE" = "apply" ]]
-            then
-                tfinit
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfplan
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-                tfapply
-                if [[ $? -ne 0 ]]
-                then
-                    exit 1
-                fi
-            else 
-                echo "Invalid terraform command"
-            fi
+            tfrun
         done
     fi
 done
