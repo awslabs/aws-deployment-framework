@@ -1,8 +1,14 @@
 import boto3
 import json
 import os
+import logging
 from paginator import paginator
 
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
 sts = boto3.client('sts')
 
@@ -12,7 +18,7 @@ if("TARGET_OUS" in os.environ):
 
 
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{management_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     organizational_units = [
         ou
         for org_units in organizations.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
@@ -23,10 +29,12 @@ def list_organizational_units_for_parent(parent_ou):
 def get_accounts():
     # Return an array of objects like this: [{'AccountId':'xxx','Email':''}]
     account_details = [] # [{'AccountId':'123','Email':''},{'AccountId':'456','Email':''}]
-
-    print("Master Account ID: " + master_acc_id)
-    # Assume a role into the Org Master role to get account ID's and emails
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    LOGGER.info(
+            "Management Account ID: %s",
+            management_acc_id
+        )
+    # Assume a role into the management accounts role to get account ID's and emails
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{management_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     for account in paginator(organizations.list_accounts):
         if account['Status'] == 'ACTIVE':
             account_details.append({
@@ -38,7 +46,7 @@ def get_accounts():
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{master_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{management_acc_id}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     # Read organization root id
     root_ids = []
     for id in paginator(organizations.list_roots):
@@ -46,9 +54,9 @@ def get_accounts_from_ous():
             'AccountId': id['Id']
         })
     root_id = root_ids[0]['AccountId'] 
-    print("Target OUs")
+    LOGGER.info("Target OUs")
     for path in ou_path.split(','):
-        print(path)
+        LOGGER.info(path)
         # Set initial OU to start looking for given ou_path
         if parent_ou_id is None:
             parent_ou_id = root_id
@@ -71,11 +79,6 @@ def get_accounts_from_ous():
 
             account_list.extend(get_account_recursive(organizations, parent_ou_id, '/'))
         parent_ou_id=None
-    print("Account list: ", end = '')
-    for i in account_list:
-        print(i['AccountId'] + " ", end = '')
-    print()
-    print("Number of target accounts: " + str(len(account_list)))
     return account_list
 
 
