@@ -14,6 +14,7 @@ import boto3
 
 from sts import STS
 from parameter_store import ParameterStore
+from partition import get_partition
 from logger import configure_logger
 from cloudformation import CloudFormation
 
@@ -23,9 +24,12 @@ S3_BUCKET = os.environ.get("S3_BUCKET_NAME")
 
 
 def worker_thread(sts, region, account_id, role, event):
+    partition = get_partition(REGION_DEFAULT)
+
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(account_id, role),
-        'remove_base')
+        f'arn:{partition}:iam::{account_id}:role/{role}',
+        'remove_base'
+    )
 
     parameter_store = ParameterStore(region, role)
     paginator = parameter_store.client.get_paginator('describe_parameters')

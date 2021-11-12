@@ -24,6 +24,23 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 LOGGER = configure_logger(__name__)
 
+
+def get_partition(region_name: str) -> str:
+    """Given the region, this function will return the appropriate partition.
+
+    :param region_name: The name of the region (us-east-1, us-gov-west-1)
+    :return: Returns the partition name as a string.
+    """
+
+    if region_name.startswith('us-gov'):
+        return 'aws-us-gov'
+
+    return 'aws'
+
+
+ADF_DEPLOYMENT_PARTITION = get_partition(ADF_DEPLOYMENT_REGION)
+
+
 class Action:
     _version = "1"
 
@@ -53,7 +70,7 @@ class Action:
         specific_role = self.target.get('properties', {}).get('role') or default_provider.get('properties', {}).get('role')
         if specific_role:
             account_id = self.account_id if self.provider == 'CodeBuild' else self.target['id']
-            return 'arn:aws:iam::{0}:role/{1}'.format(account_id, specific_role)
+            return f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/{specific_role}'
         return None
 
     def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
@@ -170,7 +187,7 @@ class Action:
                     region=self.region,
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
-                "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
+                "RoleArn": "arn:{0}:iam::{1}:role/adf-cloudformation-deployment-role".format(ADF_DEPLOYMENT_PARTITION, self.target['id']) if not self.role_arn else self.role_arn
             }
             if self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
                 _props["TemplatePath"] = "{input_artifact}::{path_prefix}template_{region}.yml".format(
@@ -227,7 +244,7 @@ class Action:
                     'properties', {}).get(
                         'product_id') or self.map_params['default_providers']['deploy'].get(
                             'properties', {}).get(
-                                'product_id') # product_id is required for Service Catalog, meaning the product must already exist.
+                                'product_id')  # product_id is required for Service Catalog, meaning the product must already exist.
             }
         if self.provider == "CodeDeploy":
             return {
@@ -261,9 +278,11 @@ class Action:
             return props
         raise Exception("{0} is not a valid provider".format(self.provider))
 
-    def _generate_codepipeline_access_role(self): #pylint: disable=R0911
+    def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
+        account_id = self.map_params['default_providers']['source']['properties']['account_id']
+
         if self.provider == "CodeCommit":
-            return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
         if self.provider == "GitHub":
             return None
         if self.provider == "CodeStarSourceConnection":
@@ -272,21 +291,21 @@ class Action:
             return None
         if self.provider == "S3" and self.category == "Source":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "CodeDeploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "Lambda":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return None
         if self.provider == "CloudFormation":
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "Manual":
             return None
         raise Exception('Invalid Provider {0}'.format(self.provider))
@@ -417,13 +436,11 @@ class Pipeline(core.Construct):
             **_pipeline_args
         )
         adf_events.Events(self, 'events', {
-            "pipeline": 'arn:aws:codepipeline:{0}:{1}:{2}'.format(
-                ADF_DEPLOYMENT_REGION,
-                ADF_DEPLOYMENT_ACCOUNT_ID,
-                "{0}{1}".format(
-                    os.environ.get(
-                        "ADF_PIPELINE_PREFIX"),
-                    map_params['name'])),
+            "pipeline": (
+                f'arn:{ADF_DEPLOYMENT_PARTITION}:codepipeline:{ADF_DEPLOYMENT_REGION}:'
+                f'{ADF_DEPLOYMENT_ACCOUNT_ID}:'
+                f'{os.getenv("ADF_PIPELINE_PREFIX")}{map_params["name"]}'
+            ),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
             "completion_trigger": map_params.get('completion_trigger'),

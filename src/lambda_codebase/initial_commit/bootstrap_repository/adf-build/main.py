@@ -20,12 +20,14 @@ from stepfunctions import StepFunctions
 from errors import GenericAccountConfigureError, ParameterNotFoundError
 from sts import STS
 from s3 import S3
+from partition import get_partition
 from config import Config
 from organization_policy import OrganizationPolicy
 
 
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
+PARTITION = get_partition(REGION_DEFAULT)
 ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
@@ -55,9 +57,8 @@ def ensure_generic_account_can_be_setup(sts, config, account_id):
     """
     try:
         return sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/{1}'.format(
-                account_id,
-                config.cross_account_access_role),
+            f'arn:{PARTITION}:iam::{account_id}:role/'
+            f'{config.cross_account_access_role}',
             'base_update'
         )
     except ClientError as error:
@@ -105,9 +106,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     to access the deployment account
     """
     deployment_account_role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(
-            deployment_account_id,
-            config.cross_account_access_role),
+        f'arn:{PARTITION}:iam::{deployment_account_id}:role/'
+        f'{config.cross_account_access_role}',
         'master'
     )
     for region in list(
@@ -141,8 +141,10 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
-        config.notification_endpoint = "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
-            config.deployment_account_region, deployment_account_id)
+        config.notification_endpoint = (
+            f"arn:{PARTITION}:lambda:{config.deployment_account_region}:"
+            f"{deployment_account_id}:function:SendSlackNotification"
+        )
     for item in (
             'cross_account_access_role',
             'notification_type',

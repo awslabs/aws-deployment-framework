@@ -7,7 +7,7 @@
 import json
 from time import sleep
 from logger import configure_logger
-
+from partition import get_partition
 
 LOGGER = configure_logger(__name__)
 
@@ -52,10 +52,13 @@ class StepFunctions:
         """Executes the Update Cross Account IAM StepFunction in the Deployment Account
         """
 
+        partition = get_partition(self.deployment_account_region)
+
         self.execution_arn = self.client.start_execution(
-            stateMachineArn="arn:aws:states:{0}:{1}:stateMachine:EnableCrossAccountAccess".format(
-                self.deployment_account_region,
-                self.deployment_account_id),
+            stateMachineArn=(
+                f"arn:{partition}:states:{self.deployment_account_region}:"
+                f"{self.deployment_account_id}:stateMachine:EnableCrossAccountAccess"
+            ),
             input=json.dumps({
                 "deployment_account_region": self.deployment_account_region,
                 "deployment_account_id": self.deployment_account_id,
