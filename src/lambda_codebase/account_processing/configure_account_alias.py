@@ -26,7 +26,6 @@ def create_account_alias(account, iam_client):
 
 
 def lambda_handler(event, _):
-
     if event.get("alias"):
         print(
             f"Ensuring Account: {event.get('account_full_name')} has alias {event.get('alias')}"

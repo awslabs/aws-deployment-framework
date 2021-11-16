@@ -17,7 +17,6 @@ from aws_xray_sdk.core import patch_all
 from organizations import Organizations
 
 patch_all()
-
 ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv("ACCOUNT_MANAGEMENT_STATEMACHINE_ARN")
 
 

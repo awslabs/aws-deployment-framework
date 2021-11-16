@@ -125,7 +125,7 @@ Resources:
       Handler: process_account_files.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account File Processing"
       Environment:
         Variables:
@@ -177,7 +177,7 @@ Resources:
       Handler: configure_account_alias.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account Alias Configuration"
       Environment:
         Variables:
@@ -220,8 +220,8 @@ Resources:
       Handler: configure_account_tags.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
-      Description: "ADF Lambda Function - Account OU Configuration"
+        - !Ref LambdaLayer
+      Description: "ADF Lambda Function - Account Tag Configuration"
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -241,7 +241,7 @@ Resources:
       Handler: configure_account_ou.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account OU Configuration"
       Environment:
         Variables:
@@ -283,7 +283,7 @@ Resources:
       Handler: get_account_regions.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Get Default Regions for an account"
       Environment:
         Variables:
@@ -317,7 +317,7 @@ Resources:
       Handler: delete_default_vpc.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Delete the default vpc for a region"
       Environment:
         Variables:
@@ -351,7 +351,7 @@ Resources:
       Handler: create_account.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Create an account"
       Environment:
         Variables:
@@ -395,7 +395,7 @@ Resources:
       Handler: register_account_for_support.lambda_handler
       CodeUri: lambda_codebase/account_processing
       Layers:
-          - !Ref LambdaLayer
+        - !Ref LambdaLayer
       Description: "ADF Lambda Function - Registers an account for enterprise support"
       Environment:
         Variables:
@@ -433,6 +433,7 @@ Resources:
   ADFAccountBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
@@ -445,7 +446,7 @@ Resources:
         BlockPublicAcls: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
-        RestrictPublicBuckets: true  
+        RestrictPublicBuckets: true
   AccountManagementStateMachine:
       Type: "AWS::StepFunctions::StateMachine"
       Properties:
