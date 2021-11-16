@@ -135,7 +135,14 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  - "*"                             
+                  - !GetAtt AccountAliasConfigFunctionRole.Arn                            
+                  - !GetAtt CreateAccountFunction.Arn                            
+                  - !GetAtt RegisterAccountForSupportFunction.Arn                            
+                  - !GetAtt AccountTagConfigFunction.Arn                            
+                  - !GetAtt AccountOUConfigFunction.Arn                            
+                  - !GetAtt GetAccountRegionsFunction.Arn                            
+                  - !GetAtt DeleteDefaultVPCFunction.Arn                            
+                          
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -171,7 +178,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-policy"
+        - PolicyName: "adf-lambda-create-account-alias-policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -207,7 +214,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-policy"
+        - PolicyName: "adf-lambda-tag-resource-policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -255,13 +262,18 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-policy"
+        - PolicyName: "adf-lambda-policy-move-ou"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - "organizations:*"
+                  - "organizations:ListRoots"
+                  - "organizations:ListParents"
+                  - "organizations:MoveAccount"
+                  - "organizations:ListOrganizationalUnitsForParent"
+                  - "organizations:ListChildren"
+                  - "organizations:ListAccounts*"
                 Resource: "*"                          
   GetAccountRegionsFunction:
     Type: 'AWS::Serverless::Function'
@@ -343,7 +355,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-policy"
+        - PolicyName: "adf-lambda-create-account-policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -378,7 +390,7 @@ Resources:
             Action: "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-policy"
+        - PolicyName: "adf-lambda-support-access-policy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
