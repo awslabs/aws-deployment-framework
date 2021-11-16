@@ -4,12 +4,27 @@ Description: ADF CloudFormation Stack pertaing to account processing / OU manage
 Parameters:
   OrganizationID:
     Type: String
+    MinLength : "1"    
   ADFVersion:
     Type: String
+    MinLength : "1"
   LambdaLayer:
     Type: String
+    MinLength : "1"
   CrossAccountAccessRoleName:
     Type: String 
+    MinLength : "1"
+
+Globals:
+  Function:
+      Architectures:
+        - arm64
+      CodeUri: lambda_codebase/account_processing
+      Runtime: python3.8
+      Timeout: 300   
+      Tracing: Active
+      Layers:
+          - !Ref LambdaLayer                      
 
 Resources:
   AccountProcessingLambdaRole:
@@ -113,19 +128,18 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "lambda:InvokeFunction"
                   - "xray:PutTelemetryRecords"     
                   - "xray:PutTraceSegments"  
-                Resource: "*"                          
+                Resource: "*" 
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  - "*"                             
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: process_account_files.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account File Processing"
       Environment:
         Variables:
@@ -136,9 +150,7 @@ Resources:
           ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountFileProcessorFunction
-      Role: !GetAtt AccountProcessingLambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 300        
+      Role: !GetAtt AccountProcessingLambdaRole.Arn     
       Events:
         S3Event:
           Type: S3
@@ -146,7 +158,6 @@ Resources:
             Bucket:
               Ref: ADFAccountBucket
             Events: s3:ObjectCreated:*
-      Tracing: Active
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -172,12 +183,7 @@ Resources:
   AccountAliasConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: configure_account_alias.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account Alias Configuration"
       Environment:
         Variables:
@@ -187,10 +193,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
       FunctionName: AccountAliasConfigurationFunction
-      Role: !GetAtt AccountAliasConfigFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300   
-      Tracing: Active                     
+      Role: !GetAtt AccountAliasConfigFunctionRole.Arn                   
   AccountTagConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -215,12 +218,7 @@ Resources:
   AccountTagConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: configure_account_tags.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account OU Configuration"
       Environment:
         Variables:
@@ -230,18 +228,10 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300          
-      Tracing: Active                                                    
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: configure_account_ou.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Account OU Configuration"
       Environment:
         Variables:
@@ -251,9 +241,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: AccountOUConfigurationFunction
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300 
-      Tracing: Active            
+          
   AccountOUConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -278,12 +266,8 @@ Resources:
   GetAccountRegionsFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: get_account_regions.lambda_handler
       CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Get Default Regions for an account"
       Environment:
         Variables:
@@ -293,10 +277,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
       FunctionName: GetAccountRegionsFunction
-      Role: !GetAtt GetAccountRegionsFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300 
-      Tracing: Active            
+      Role: !GetAtt GetAccountRegionsFunctionRole.Arn        
   GetAccountRegionsFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -312,12 +293,7 @@ Resources:
   DeleteDefaultVPCFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: delete_default_vpc.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Delete the default vpc for a region"
       Environment:
         Variables:
@@ -327,10 +303,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: DeleteDefaultVPCFunction
-      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300 
-      Tracing: Active            
+      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn         
   DeleteDefaultVPCFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -346,12 +319,7 @@ Resources:
   CreateAccountFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: create_account.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Create an account"
       Environment:
         Variables:
@@ -361,10 +329,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
       FunctionName: CreateAccountFunction
-      Role: !GetAtt CreateAccountFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300 
-      Tracing: Active            
+      Role: !GetAtt CreateAccountFunctionRole.Arn          
   CreateAccountFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -390,12 +355,7 @@ Resources:
   RegisterAccountForSupportFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Architectures:
-        - arm64
       Handler: register_account_for_support.lambda_handler
-      CodeUri: lambda_codebase/account_processing
-      Layers:
-          - !Ref LambdaLayer
       Description: "ADF Lambda Function - Registers an account for enterprise support"
       Environment:
         Variables:
@@ -404,10 +364,7 @@ Resources:
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: INFO
       FunctionName: RegisterAccountForSupportFunction
-      Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
-      Runtime: python3.8
-      Timeout: 300 
-      Tracing: Active            
+      Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn          
   RegisterAccountForSupportFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -450,146 +407,146 @@ Resources:
       Type: "AWS::StepFunctions::StateMachine"
       Properties:
         DefinitionString: !Sub |-
-              {
-                "Comment": "Create account?",
-                "StartAt": "CreateAccountChoice",
-                "States": {
-                  "CreateAccountChoice": {
-                    "Type": "Choice",
-                    "Choices": [
-                      {
-                        "Variable": "$.needs_created",
-                        "BooleanEquals": true,
-                        "Comment": "Create Account",
-                        "Next": "CreateAccount"
-                      }
-                    ],
-                    "Default": "ConfigureAccountAlias"
-                  },
-                  "ConfigureAccountAlias": {
-                    "Type": "Task",
-                    "Resource": "${AccountAliasConfigFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "ConfigureAccountTags"
-                  },
-                  "CreateAccount": {
-                    "Type": "Task",
-                    "Resource": "${CreateAccountFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "WaitFor10Seconds"
-                  },
-                  "WaitFor10Seconds": {
-                        "Type": "Wait",
-                        "Seconds": 10,
-                        "Next": "ConfigureAccountSupport"
-                  }, 
-                  "ConfigureAccountSupport": {
-                    "Type": "Task",
-                    "Resource": "${RegisterAccountForSupportFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "ConfigureAccountAlias"
-                  },                                                       
-                  "ConfigureAccountTags": {
-                    "Type": "Task",
-                    "Resource": "${AccountTagConfigFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "ConfigureAccountOU"
-                  },  
-                  "ConfigureAccountOU": {
-                    "Type": "Task",
-                    "Resource": "${AccountOUConfigFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "DeleteDefaultVPCChoice"
-                  },
-                  "DeleteDefaultVPCChoice": {
-                    "Type": "Choice",
-                    "Choices": [
-                      {
-                        "Variable": "$.delete_default_vpc",
-                        "BooleanEquals": true,
-                        "Next": "GetAccountDefaultRegionsFunction"
-                      }
-                    ],
-                    "Default": "Success"
-                  },                    
-                  "GetAccountDefaultRegionsFunction": {
-                    "Type": "Task",
-                    "Resource": "${GetAccountRegionsFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["States.TaskFailed"],
-                        "IntervalSeconds": 3,
-                        "BackoffRate": 1.5,
-                        "MaxAttempts": 30
-                    }],
-                    "Next": "DeleteDefaultVPCMap"
-                  },
-                  "DeleteDefaultVPCMap": {
-                    "Type": "Map",
-                    "Next": "Success",
-                  "Iterator": {
-                          "StartAt": "DeleteDefaultVPC",
-                          "States": {
-                            "DeleteDefaultVPC": {
-                              "Type": "Task",
-                              "Resource": "${DeleteDefaultVPCFunction.Arn}",
-                              "OutputPath": "$.Payload",
-                              "Parameters": {
-                                "Payload.$": "$"
-                              },
-                              "Retry": [
-                                {
-                                  "ErrorEquals": [
-                                    "Lambda.ServiceException",
-                                    "Lambda.AWSLambdaException",
-                                    "Lambda.SdkClientException"
-                                  ],
-                                  "IntervalSeconds": 2,
-                                  "MaxAttempts": 6,
-                                  "BackoffRate": 2
-                                }
-                              ],
-                              "End": true
-                            }
+            {
+              "Comment": "Create account?",
+              "StartAt": "CreateAccountChoice",
+              "States": {
+                "CreateAccountChoice": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.needs_created",
+                      "BooleanEquals": true,
+                      "Comment": "Create Account",
+                      "Next": "CreateAccount"
+                    }
+                  ],
+                  "Default": "ConfigureAccountAlias"
+                },
+                "ConfigureAccountAlias": {
+                  "Type": "Task",
+                  "Resource": "${AccountAliasConfigFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "ConfigureAccountTags"
+                },
+                "CreateAccount": {
+                  "Type": "Task",
+                  "Resource": "${CreateAccountFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "WaitFor10Seconds"
+                },
+                "WaitFor10Seconds": {
+                      "Type": "Wait",
+                      "Seconds": 10,
+                      "Next": "ConfigureAccountSupport"
+                }, 
+                "ConfigureAccountSupport": {
+                  "Type": "Task",
+                  "Resource": "${RegisterAccountForSupportFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "ConfigureAccountAlias"
+                },                                                       
+                "ConfigureAccountTags": {
+                  "Type": "Task",
+                  "Resource": "${AccountTagConfigFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "ConfigureAccountOU"
+                },  
+                "ConfigureAccountOU": {
+                  "Type": "Task",
+                  "Resource": "${AccountOUConfigFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "DeleteDefaultVPCChoice"
+                },
+                "DeleteDefaultVPCChoice": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.delete_default_vpc",
+                      "BooleanEquals": true,
+                      "Next": "GetAccountDefaultRegionsFunction"
+                    }
+                  ],
+                  "Default": "Success"
+                },                    
+                "GetAccountDefaultRegionsFunction": {
+                  "Type": "Task",
+                  "Resource": "${GetAccountRegionsFunction.Arn}",
+                  "Retry": [{
+                      "ErrorEquals": ["States.TaskFailed"],
+                      "IntervalSeconds": 3,
+                      "BackoffRate": 1.5,
+                      "MaxAttempts": 30
+                  }],
+                  "Next": "DeleteDefaultVPCMap"
+                },
+                "DeleteDefaultVPCMap": {
+                  "Type": "Map",
+                  "Next": "Success",
+                "Iterator": {
+                        "StartAt": "DeleteDefaultVPC",
+                        "States": {
+                          "DeleteDefaultVPC": {
+                            "Type": "Task",
+                            "Resource": "${DeleteDefaultVPCFunction.Arn}",
+                            "OutputPath": "$.Payload",
+                            "Parameters": {
+                              "Payload.$": "$"
+                            },
+                            "Retry": [
+                              {
+                                "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException"
+                                ],
+                                "IntervalSeconds": 2,
+                                "MaxAttempts": 6,
+                                "BackoffRate": 2
+                              }
+                            ],
+                            "End": true
                           }
-                        },
-                        "ItemsPath": "$.default_regions",
-                        "MaxConcurrency": 20,
-                        "Parameters": {
-                          "region.$": "$$.Map.Item.Value",
-                          "account.$": "$.Id"
-                        },
-                        "ResultPath": null                 
-                  },                                                                     
-                  "Success": {
-                    "Type": "Succeed"
-                  }
+                        }
+                      },
+                      "ItemsPath": "$.default_regions",
+                      "MaxConcurrency": 20,
+                      "Parameters": {
+                        "region.$": "$$.Map.Item.Value",
+                        "account.$": "$.Id"
+                      },
+                      "ResultPath": null                 
+                },                                                                     
+                "Success": {
+                  "Type": "Succeed"
                 }
               }
+            }
         RoleArn: !GetAtt StateMachineExecutionRole.Arn     
         TracingConfiguration:
           Enabled: True   
