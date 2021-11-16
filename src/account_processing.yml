@@ -33,29 +33,24 @@ Resources:
         Statement:
           - Effect: "Allow"
             Action:
-              - "sts:AssumeRole"
-              - "lambda:GetLayerVersion"
-              - "logs:CreateLogGroup"
-              - "logs:CreateLogStream"
-              - "logs:PutLogEvents"
               - "organizations:DescribeOrganizationalUnit"
               - "organizations:ListParents"
               - "organizations:ListAccounts"              
               - "organizations:DescribeOrganization"
               - "organizations:DescribeAccount"
-              - "states:StartExecution"
-              - "xray:Put*"
             Resource: "*"
           - Effect: "Allow"
             Action: "s3:ListBucket"
-            Resource: !GetAtt ADFAccountBucket.Arn
+            Resource: !GetAtt ADFAccountBucket.Arn       
+          - Effect: "Allow"
+            Action: "lambda:GetLayerVersion"
+            Resource: !Ref LambdaLayer    
+          - Effect: "Allow"
+            Action: "states:StartExecution"
+            Resource: !Ref AccountManagementStateMachine                       
           - Effect: "Allow"
             Action: "s3:GetObject"
-            Resource:
-              !Join
-                - ''
-                - - !GetAtt ADFAccountBucket.Arn
-                  - '/*'
+            Resource: !Sub "${ADFAccountBucket.Arn}/*"
       Roles:
         - !Ref AccountProcessingLambdaRole
   ADFAccountAccessRolePolicy:
