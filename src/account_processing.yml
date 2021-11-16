@@ -390,6 +390,7 @@ Resources:
   ADFAccountBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
@@ -402,7 +403,7 @@ Resources:
         BlockPublicAcls: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
-        RestrictPublicBuckets: true  
+        RestrictPublicBuckets: true
   AccountManagementStateMachine:
       Type: "AWS::StepFunctions::StateMachine"
       Properties:
