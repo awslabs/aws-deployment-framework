@@ -50,7 +50,7 @@ class Support:  # pylint: disable=R0904
         """
         try:
             severity_levels = self.client.describe_severity_levels()["severityLevels"]
-            available_support_codes = [level["code"] for level in severity_levels]
+            available_support_codes = list(map(lambda s: s["code"], severity_levels))
 
             # See: https://aws.amazon.com/premiumsupport/plans/ for insights into the interpretation of
             # the available support codes.
