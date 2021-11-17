@@ -503,7 +503,7 @@ class Pipeline(core.Construct):
                 details["packageName"] = trigger_config["package"]
             _eventbridge.Rule(
                 self,
-                f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config['package'] if trigger_config.get('package') else 'all'}",
+                f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config.get('package', 'all')}",
                 event_pattern=_eventbridge.EventPattern(
                     source=["aws.codeartifact"],
                     detail_type=["CodeArtifact Package Version State Change"],
