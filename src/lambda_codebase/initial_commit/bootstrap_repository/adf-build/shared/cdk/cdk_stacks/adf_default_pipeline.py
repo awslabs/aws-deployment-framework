@@ -54,6 +54,7 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     if isinstance(notification_config, dict) and notification_config.get('type', '') == 'chat_bot':
         adf_chatbot.PipelineNotifications(scope, "adf_chatbot_notifications", _pipeline.cfn, notification_config)
 
+
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
     _source_name = stack_input["input"]["default_providers"]["source"][
         "provider"
