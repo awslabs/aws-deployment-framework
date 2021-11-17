@@ -16,6 +16,7 @@ from cdk_constructs import adf_codestar
 from cdk_constructs import adf_s3
 from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
+from cdk_constructs import adf_chatbot
 from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -29,10 +30,10 @@ PIPELINE_TYPE = "default"
 def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     _stages = []
 
-    if stack_input["input"].get("params", {}).get("notification_endpoint"):
-        stack_input["input"]["topic_arn"] = adf_notifications.Notifications(
-            scope, "adf_notifications", stack_input["input"]
-        ).topic_arn
+    notification_config = stack_input["input"].get("params", {}).get("notification_endpoint", {})
+
+    if isinstance(notification_config, str) or notification_config.get('type', '') == "lambda":
+        stack_input["input"]["topic_arn"] = adf_notifications.Notifications(scope, "adf_notifications", stack_input["input"]).topic_arn
 
     _source_name = generate_source_stage_for_pipeline(_stages, scope, stack_input)
     generate_build_stage_for_pipeline(_stages, scope, stack_input)
@@ -41,9 +42,12 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     _pipeline = adf_codepipeline.Pipeline(
         scope, "code_pipeline", stack_input["input"], stack_input["ssm_params"], _stages
     )
+
     if "github" in _source_name:
         adf_github.GitHub.create_webhook_when_required(scope, _pipeline.cfn, stack_input["input"])
 
+    if isinstance(notification_config, dict) and notification_config.get('type', '') == 'chat_bot':
+        adf_chatbot.PipelineNotifications(scope, "adf_chatbot_notifications", _pipeline.cfn, notification_config)
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
     _source_name = stack_input["input"]["default_providers"]["source"][
