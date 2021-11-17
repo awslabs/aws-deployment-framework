@@ -443,7 +443,7 @@ class Pipeline(core.Construct):
             ),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
-            "completion_trigger": map_params.get('completion_trigger', None) or map_params.get("triggers", {}).get("on_complete", None),
+            "completion_trigger": map_params.get('triggers', {}).get('on_complete', map_params.get('completion_trigger')),
             "schedule": map_params.get('schedule'),
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
@@ -489,7 +489,7 @@ class Pipeline(core.Construct):
 
 
     def add_pipeline_trigger(self, trigger_type, trigger_config):
-        if trigger_type in self._accepted_triggers.keys():
+        if trigger_type in self._accepted_triggers:
             trigger_type = self._accepted_triggers[trigger_type]
         else:
             raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")

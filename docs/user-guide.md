@@ -223,9 +223,9 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
     params:
       schedule: rate(7 days)
     triggers: # What should trigger this pipeline, and what should be triggered when it completes
-        on_complete:
-            pipelines:
-                - my-web-app-pipeline # Start this pipeline
+      on_complete:
+        pipelines:
+          - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -249,8 +249,8 @@ Completion triggers can also be defined in a short handed fashion. Take the abov
     params:
       schedule: rate(7 days)
     completion_triggers: # What should trigger this pipeline, and what should be triggered when it completes
-        pipelines:
-            - my-web-app-pipeline # Start this pipeline
+      pipelines:
+        - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     # Same configuration as defined above.
