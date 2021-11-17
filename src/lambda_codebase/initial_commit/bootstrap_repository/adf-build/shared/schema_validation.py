@@ -10,9 +10,14 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 
+NOTIFICATION_PROPS = {
+    Optional("target"): str,
+    Optional("type") : Or("lambda", "chat_bot")
+}
+
 # Pipeline Params
 PARAM_SCHEMA = {
-    Optional("notification_endpoint"): str,
+    Optional("notification_endpoint"): Or(str, NOTIFICATION_PROPS),
     Optional("schedule"): str,
     Optional("restart_execution_on_update"): bool,
     Optional("pipeline_type", default="default"): Or("default"),
