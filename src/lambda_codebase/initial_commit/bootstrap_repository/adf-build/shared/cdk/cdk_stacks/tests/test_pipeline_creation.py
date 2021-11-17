@@ -139,7 +139,61 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     assert build_stage_action['ActionTypeId']['Owner'] == "AWS"
     assert build_stage_action['ActionTypeId']['Provider'] == "CodeBuild"
 
+    assert "OutputArtifactFormat" not in source_stage_action['Configuration']
+
     assert len(build_stage['Actions']) == 1
+
+
+def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_codebuild_clone_ref_and_build_is_codebuild():
+    region_name = "eu-central-1"
+    acount_id = "123456789012"
+
+    stack_input = {
+        "input": {"params": {}, "default_providers": {}, "regions": {}},
+        "ssm_params": {"fake-region": {}},
+    }
+
+    stack_input["input"]["name"] = "test-stack"
+
+    stack_input["input"]["default_providers"]["source"] = {
+        "provider": "codecommit",
+        "properties": {"account_id": "123456789012", "output_artifact_format": "CODEBUILD_CLONE_REF"},
+    }
+    stack_input["input"]["default_providers"]["build"] = {
+        "provider": "codebuild",
+        "properties": {"account_id": "123456789012"},
+    }
+
+    stack_input["ssm_params"][region_name] = {
+        "modules": "fake-bucket-name",
+        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+    }
+    app = core.App()
+    PipelineStack(app, stack_input)
+
+    cloud_assembly = app.synth()
+    resources = {k[0:-8]: v for k, v in cloud_assembly.stacks[0].template['Resources'].items()}
+    code_pipeline = resources['codepipeline']
+    assert code_pipeline['Type'] == "AWS::CodePipeline::Pipeline"
+    assert len(code_pipeline["Properties"]["Stages"]) == 2
+
+    source_stage = code_pipeline['Properties']["Stages"][0]
+    assert len(source_stage['Actions']) == 1
+
+    source_stage_action = source_stage['Actions'][0]
+    assert source_stage_action['ActionTypeId']['Category'] == "Source"
+    assert source_stage_action['ActionTypeId']['Owner'] == "AWS"
+    assert source_stage_action['ActionTypeId']['Provider'] == "CodeCommit"
+    assert source_stage_action['Configuration']['OutputArtifactFormat'] == "CODEBUILD_CLONE_REF"
+
+    build_stage = code_pipeline['Properties']["Stages"][1]
+    build_stage_action = build_stage['Actions'][0]
+    assert build_stage_action['ActionTypeId']['Category'] == "Build"
+    assert build_stage_action['ActionTypeId']['Owner'] == "AWS"
+    assert build_stage_action['ActionTypeId']['Provider'] == "CodeBuild"
+
+    assert len(build_stage['Actions']) == 1
+
 
 def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_chatbot():
     region_name = "eu-central-1"

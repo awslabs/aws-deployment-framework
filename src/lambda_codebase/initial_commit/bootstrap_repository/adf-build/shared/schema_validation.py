@@ -56,6 +56,7 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("owner"): str,
     Optional("role"): str,
     Optional("trigger_on_changes"): bool,
+    Optional("output_artifact_format", default=None): Or("CODEBUILD_CLONE_REF", "CODE_ZIP", None)
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
