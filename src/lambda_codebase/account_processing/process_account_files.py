@@ -11,28 +11,43 @@ import json
 import os
 from typing import Tuple
 import yaml
+from yaml.error import YAMLError
 
 import boto3
+from botocore.exceptions import ClientError
 from aws_xray_sdk.core import patch_all
 from organizations import Organizations
+from logger import configure_logger
 
 patch_all()
+
+LOGGER = configure_logger(__name__)
 ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv("ACCOUNT_MANAGEMENT_STATEMACHINE_ARN")
 
 
 def get_details_from_event(event: dict):
     s3_details = event.get("Records", [{}])[0].get("s3")
+    if not s3_details:
+        raise ValueError("No S3 Event details present in event trigger")
     bucket_name = s3_details.get("bucket", {}).get("name")
     object_key = s3_details.get("object", {}).get("key")
-    return bucket_name, object_key
+    return {"bucket_name":bucket_name, "object_key":object_key}
 
 
-def get_file_from_s3(s3_object: Tuple, s3_client: boto3.resource):
+def get_file_from_s3(s3_object: dict, s3_client: boto3.resource):
     bucket_name, object_key = s3_object
     s3_object = s3_client.Object(bucket_name, object_key)
-    s3_object.download_file(f"/tmp/{object_key}")
-    with open(f"/tmp/{object_key}", encoding="utf-8") as data_stream:
-        data = yaml.safe_load(data_stream)
+    try:
+        s3_object.download_file(f"/tmp/{object_key}")
+    except ClientError as e:
+        LOGGER.error(f"Failed to download {object_key} from {bucket_name}")
+        raise e
+    try:
+        with open(f"/tmp/{object_key}", encoding="utf-8") as data_stream:
+            data = yaml.safe_load(data_stream)
+    except YAMLError as p_e:
+        LOGGER.error("Failed to parse YAML file")
+        raise p_e
 
     return data
 
@@ -60,7 +75,9 @@ def process_account_list(all_accounts, accounts_in_file):
 
 
 def start_executions(sfn, processed_account_list):
+    LOGGER.info(f"Invoking Account Management State Machine ({ACCOUNT_MANAGEMENT_STATEMACHINE})")
     for account in processed_account_list:
+        LOGGER.debug(f"Payload: {account}")
         sfn.start_execution(
             stateMachineArn=ACCOUNT_MANAGEMENT_STATEMACHINE,
             input=f"{json.dumps(account)}",

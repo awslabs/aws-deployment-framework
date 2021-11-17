@@ -7,12 +7,15 @@ Moves an account to the specified OU.
 from organizations import Organizations
 import boto3
 from aws_xray_sdk.core import patch_all
+from logger import configure_logger
+
 
 patch_all()
+LOGGER = configure_logger(__name__)
 
 
 def lambda_handler(event, _):
-    print(
+    LOGGER.info(
         f"Ensuring Account: {event.get('account_full_name')} is in OU {event.get('organizational_unit_path')}"
     )
     organizations = Organizations(boto3)

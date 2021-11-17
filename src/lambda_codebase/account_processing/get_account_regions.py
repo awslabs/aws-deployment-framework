@@ -8,13 +8,16 @@ Gets all the default regions for an account.
 import os
 from sts import STS
 from aws_xray_sdk.core import patch_all
+from logger import configure_logger
 
 patch_all()
+
+LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 
 
 def lambda_handler(event, _):
-    print(f"Fetching Default regions {event.get('account_full_name')}")
+    LOGGER.info(f"Fetching Default regions {event.get('account_full_name')}")
     sts = STS()
     account_id = event.get("Id")
     role = sts.assume_cross_account_role(
@@ -37,6 +40,6 @@ def lambda_handler(event, _):
             ],
         )["Regions"]
     ]
-    print(default_regions)
+    LOGGER.debug(f"Default regions for {account_id}: {default_regions}")
     event["default_regions"] = default_regions
     return event
