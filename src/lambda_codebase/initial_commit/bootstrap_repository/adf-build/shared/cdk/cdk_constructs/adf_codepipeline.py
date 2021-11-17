@@ -24,6 +24,7 @@ ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
+
 LOGGER = configure_logger(__name__)
 
 
@@ -417,7 +418,9 @@ class Pipeline(core.Construct):
         'SendSlackNotificationLambdaArn'
     ]
 
-    _accepted_triggers = {"code_artifact": "CODEARTIFACT"}
+    CODEARTIFACT_TRIGGER = "CODEARTIFACT"
+
+    _accepted_triggers = {"code_artifact": CODEARTIFACT_TRIGGER}
 
     def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
@@ -492,9 +495,10 @@ class Pipeline(core.Construct):
         if trigger_type in self._accepted_triggers:
             trigger_type = self._accepted_triggers[trigger_type]
         else:
+            LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
             raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
 
-        if trigger_type == "CODEARTIFACT":
+        if trigger_type == self.CODEARTIFACT_TRIGGER:
             details = {"repositoryName": trigger_config["repository"]}
             if trigger_config.get("package"):
                 details["packageName"] = trigger_config["package"]
