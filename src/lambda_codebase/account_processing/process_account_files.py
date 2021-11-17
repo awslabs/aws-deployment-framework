@@ -9,7 +9,6 @@ invokes the account processing step function per account.
 
 import json
 import os
-from typing import Tuple
 import yaml
 from yaml.error import YAMLError
 
@@ -35,15 +34,14 @@ def get_details_from_event(event: dict):
 
 
 def get_file_from_s3(s3_object: dict, s3_client: boto3.resource):
-    bucket_name, object_key = s3_object
-    s3_object = s3_client.Object(bucket_name, object_key)
+    s3_object = s3_client.Object(**s3_object)
     try:
-        s3_object.download_file(f"/tmp/{object_key}")
+        s3_object.download_file(f"/tmp/{s3_object.get('object_key')}")
     except ClientError as e:
-        LOGGER.error(f"Failed to download {object_key} from {bucket_name}")
+        LOGGER.error(f"Failed to download {s3_object.get('object_key')} from {s3_object.get('bucket_name')}")
         raise e
     try:
-        with open(f"/tmp/{object_key}", encoding="utf-8") as data_stream:
+        with open(f"/tmp/{s3_object.get('object_key')}", encoding="utf-8") as data_stream:
             data = yaml.safe_load(data_stream)
     except YAMLError as p_e:
         LOGGER.error("Failed to parse YAML file")
