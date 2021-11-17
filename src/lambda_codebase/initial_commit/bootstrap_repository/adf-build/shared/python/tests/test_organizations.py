@@ -46,6 +46,12 @@ def test_describe_ou_name(cls):
     assert cls.describe_ou_name('some_ou_id') == 'some_ou_name'
 
 
+def test_describe_account_name(cls):
+    cls.client = Mock()
+    cls.client.describe_account.return_value = stub_organizations.describe_account
+    assert cls.describe_account_name('some_account_id') == 'some_account_name'
+
+
 def test_determine_ou_path(cls):
     assert cls.determine_ou_path(
         'some_path', 'some_ou_name'
