@@ -267,7 +267,7 @@ class Action:
                                         'deployment_group_name')
             }
         if self.provider == "CodeCommit":
-            return {
+            props =  {
                 "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "PollForSourceChanges": (
@@ -275,6 +275,10 @@ class Action:
                     and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
                 )
             }
+            output_artifact_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
+            if output_artifact_format:
+                props["OutputArtifactFormat"] = output_artifact_format
+            return props
         raise Exception("{0} is not a valid provider".format(self.provider))
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
