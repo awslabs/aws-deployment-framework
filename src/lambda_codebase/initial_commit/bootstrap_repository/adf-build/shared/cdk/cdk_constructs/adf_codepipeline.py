@@ -492,11 +492,10 @@ class Pipeline(core.Construct):
 
 
     def add_pipeline_trigger(self, trigger_type, trigger_config):
-        if trigger_type in self._accepted_triggers:
-            trigger_type = self._accepted_triggers[trigger_type]
-        else:
+        if trigger_type not in self._accepted_triggers:
             LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
             raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
+        trigger_type = self._accepted_triggers[trigger_type]
 
         if trigger_type == self.CODEARTIFACT_TRIGGER:
             details = {"repositoryName": trigger_config["repository"]}
