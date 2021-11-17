@@ -49,3 +49,16 @@ describe_organizational_unit = {
         'Name': 'some_ou_name'
     }
 }
+
+describe_account = {
+    'Account': {
+        'Id': 'some_account_id',
+        'Arn': 'string',
+        'Email': 'some_account_email',
+        'Name': 'some_account_name',
+        'Status': 'ACTIVE',
+        'JoinedMethod': 'INVITED'
+        # Excluding JoinedTimestamp to avoid
+        # adding dependency on datetime
+    }
+}

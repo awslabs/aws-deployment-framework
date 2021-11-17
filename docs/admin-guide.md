@@ -320,18 +320,37 @@ pipelines:
 ```
 
 ## Service Control Policies
-Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+Service control policies *(SCPs)* are one type of policy that you can use to manage your organization. SCPs offer central control over the maximum available permissions for all accounts in your organization, allowing you to ensure your accounts stay within your organization’s access control guidelines. ADF allows SCPs to be applied in a similar fashion as base stacks. You can define your SCP definition in a file named `scp.json` and place it in a folder that represents your Organizational Unit (or OU/AccountName path if you are wanting to apply an account-specific SCP) within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+
+For example, if you have an account named `my_banking_account` under the `banking/dev` OU that needs a specific SCP, and another SCP defined for the whole `deployment` OU, the folder structure would look like this:
+
+```
+adf-bootstrap <-- This folder lives in the aws-deployment-framework-bootstrap repository on the master account.
+│
+└─── deployment
+│    |
+│    └─── scp.json
+│
+│───banking
+│   │
+│   └─── dev
+│         │
+│         └─── my_banking_account
+│               └─── scp.json
+│
+```
+The file `adf-bootstrap/deployment/scp.json` applies the defined SCP to the `deployment` *OU*, while the file `adf-bootstrap/banking/dev/my_backing_account/scp.json` applies the defined SCP to the `my_banking_account` *account*.
 
 SCPs are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the SCPs.
 
 ## Tagging Policies
-Tag Policies are a feature that allows you to define rules on how tags can be used on AWS resources in your accounts in AWS Organizations. You can use Tag Policies to easily adopt a standardized approach for tagging AWS resources. You can define your Tagging Policy definition in a file named `tagging-policy.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account.
+Tag Policies are a feature that allows you to define rules on how tags can be used on AWS resources in your accounts in AWS Organizations. You can use Tag Policies to easily adopt a standardized approach for tagging AWS resources. You can define your Tagging Policy definition in a file named `tagging-policy.json` and place it in a folder that represents your Organizational Unit within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the Master Account. Tagging policies can also be applied to single account using the same approach described above for SCPs.
 
 Tag Policies are available only in an organization that has [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features within your Organization, ADF can manage and automate the application and updating process of the Tag Policies. For more information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
 
 ## Integrating Slack
-
+### Integrating with Slack using Lambda
 The ADF allows alternate *notification_endpoint* values that can be used to notify the status of a specific pipeline *(in deployment_map.yml)*. You can specify an email address in the deployment map and notifications will be emailed directly to that address. However, if you specify a slack channel name *(eg team-bugs)* as the value, the notifications will be forwarded to that channel. In order to setup this integration you will need to create a [Slack App](https://api.slack.com/apps). When you create your Slack app, you can create multiple Webhook URL's *(Incoming Webhook)* that are each associated with their own channel. Create a webhook for each channel you plan on using throughout your Organization. Once created, copy the webhook URL and create a new secret in Secrets Manager on the Deployment Account:
 
 1. In AWS Console, click _Store a new secret_ and select type 'Other type of secrets' *(eg API Key)*.
@@ -360,6 +379,22 @@ pipelines:
         name: testing
       - path: /banking/production
         name: omg_production
+```
+
+### Integrating with Slack with AWS ChatBot
+The ADF also supports integrating pipeline notifications with Slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent Slack notification across different AWS services. 
+
+In order to use AWS ChatBot, first you must configure an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired Slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF. 
+
+Currently, dynamically creating channel configurations is not supported. In the deployment map, you can configure a unique channel via the notification endpoint parameter for each pipeline separately. Add the `params` section if that is missing and add the following configuration to the pipeline:
+```
+pipelines:
+  - name: some-pipeline
+    # ...
+    params:
+      notification_endpoint: 
+        type: chat_bot
+        target: my_channel_config
 ```
 
 ## Check Current Version
