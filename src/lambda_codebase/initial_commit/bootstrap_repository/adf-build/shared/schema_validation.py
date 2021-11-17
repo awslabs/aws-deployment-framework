@@ -316,6 +316,16 @@ TARGET_SCHEMA = {
 COMPLETION_TRIGGERS_SCHEMA = {
     "pipelines": [str]
 }
+PIPELINE_TRIGGERS_SCHEMA = {
+    Optional("code_artifact"): {
+      "repository": str,
+      Optional("package"): str,
+    }
+}
+TRIGGERS_SCHEMA = {
+    Optional("on_complete"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggered_by"): [PIPELINE_TRIGGERS_SCHEMA],
+}
 PIPELINE_SCHEMA = {
     "name": And(str, len),
     "default_providers": PROVIDER_SCHEMA,
@@ -323,7 +333,8 @@ PIPELINE_SCHEMA = {
     Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
     Optional("regions"): REGION_SCHEMA,
-    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
+    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggers"): TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
     "pipelines": [PIPELINE_SCHEMA],

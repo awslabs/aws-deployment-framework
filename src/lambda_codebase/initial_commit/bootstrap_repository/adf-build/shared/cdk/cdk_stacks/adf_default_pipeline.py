@@ -46,8 +46,14 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     if "github" in _source_name:
         adf_github.GitHub.create_webhook_when_required(scope, _pipeline.cfn, stack_input["input"])
 
+    pipeline_triggers = stack_input["input"].get("triggers", {}).get("triggered_by")
+    if pipeline_triggers:
+        for trigger_type, trigger_config in pipeline_triggers.items():
+            _pipeline.add_pipeline_trigger(trigger_type=trigger_type, trigger_config=trigger_config)
+
     if isinstance(notification_config, dict) and notification_config.get('type', '') == 'chat_bot':
         adf_chatbot.PipelineNotifications(scope, "adf_chatbot_notifications", _pipeline.cfn, notification_config)
+
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
     _source_name = stack_input["input"]["default_providers"]["source"][
