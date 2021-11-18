@@ -39,7 +39,12 @@ class CodeBuild(core.Construct):
             _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('properties', {}).get('timeout') or map_params['default_providers']['deploy'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=CodeBuild.determine_build_image(scope, target, map_params),
+                build_image=CodeBuild.determine_build_image(
+                    codebuild_id=id,
+                    scope=scope,
+                    target=target,
+                    map_params=map_params,
+                ),
                 compute_type=target.get(
                     'properties', {}).get(
                         'size') or getattr(
@@ -86,7 +91,12 @@ class CodeBuild(core.Construct):
             _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=CodeBuild.determine_build_image(scope, target, map_params),
+                build_image=CodeBuild.determine_build_image(
+                    codebuild_id=id,
+                    scope=scope,
+                    target=target,
+                    map_params=map_params
+                ),
                 compute_type=getattr(_codebuild.ComputeType, map_params['default_providers']['build'].get('properties', {}).get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
@@ -177,7 +187,7 @@ class CodeBuild(core.Construct):
         )
 
     @staticmethod
-    def determine_build_image(scope, target, map_params):
+    def determine_build_image(codebuild_id, scope, target, map_params):
         specific_image = None
         if target:
             specific_image = (
@@ -193,7 +203,7 @@ class CodeBuild(core.Construct):
         if isinstance(specific_image, dict):
             repo_arn = _ecr.Repository.from_repository_arn(
                 scope,
-                'custom_repo',
+                f'custom_repo_{codebuild_id}',
                 specific_image.get('repository_arn', ''),
             )
             return _codebuild.LinuxBuildImage.from_ecr_repository(
