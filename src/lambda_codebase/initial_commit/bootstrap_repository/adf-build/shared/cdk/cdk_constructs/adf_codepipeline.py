@@ -23,6 +23,7 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 
 
 LOGGER = configure_logger(__name__)
@@ -63,6 +64,10 @@ class Action:
         self.account_id = self.map_params["default_providers"]["source"].get('properties', {}).get("account_id")
         self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
+        self.default_scm_branch = self.map_params.get(
+            "default_scm_branch",
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
@@ -130,13 +135,17 @@ class Action:
             return {
                 "ConnectionArn": connection_arn,
                 "FullRepositoryId": f"{owner}/{repo}",
-                "BranchName": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master'
+                "BranchName": self.map_params.get('default_providers', {}).get(
+                    'source', {}).get('properties', {}).get(
+                        'branch',
+                        self.default_scm_branch
+                    )
             }
         if self.provider == "GitHub":
             return {
                 "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
                 "Repo": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name'],
-                "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master',
+                "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
                 # pylint: disable=no-value-for-parameter
                 "OAuthToken": core.SecretValue.secrets_manager(
                     self.map_params['default_providers']['source'].get('properties', {}).get('oauth_token_path'),
@@ -268,7 +277,7 @@ class Action:
             }
         if self.provider == "CodeCommit":
             props =  {
-                "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
+                "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', self.default_scm_branch),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "PollForSourceChanges": (
                     self.map_params['default_providers']['source'].get('properties', {}).get('trigger_on_changes', True)
@@ -437,6 +446,10 @@ class Pipeline(core.Construct):
             "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
             "tags": Pipeline.restructure_tags(map_params.get('tags', {}))
         }
+        self.default_scm_branch = map_params.get(
+            "default_scm_branch",
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
         self.cfn = _codepipeline.CfnPipeline(
             self,
             'pipeline',
@@ -456,7 +469,7 @@ class Pipeline(core.Construct):
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
                 "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
-                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master'),
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
                 "poll_for_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('poll_for_changes', False),
                 "trigger_on_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }

@@ -36,7 +36,10 @@ The `src` folder contains a nesting of folders that go on to make two different 
 
 ## adfconfig
 
-The `adfconfig.yml` file resides on the [Master Account](#master-account) CodeCommit Repository *(in us-east-1)* and defines the general high level configuration for the AWS Deployment Framework. These values from the value are synced into AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization. Below is an example of its contents. When you install ADF via the Serverless Application Repository, some of the information entered in the parameters will be passed into the *adfconfig.yml* that is committed to the bootstrap repository as a starting point, you can always edit it and push it back into the bootstrap repository to update any values.
+The `adfconfig.yml` file resides on the [Master Account](#master-account) CodeCommit Repository *(in us-east-1)* and defines the general high-level configuration for the AWS Deployment Framework.
+The configuration properties are synced into AWS Systems Manager Parameter Store and are used for certain orchestration options throughout your Organization.
+
+Below is an example of an `adfconfig.yml file. When you install ADF via the Serverless Application Repository, some of the information entered at the time of deployment will be passed into the `adfconfig.yml` that is committed to the bootstrap repository as a starting point. You can always edit it and push it back into the bootstrap repository to update any values.
 
 ```yaml
 roles:
@@ -61,18 +64,37 @@ config:
     keep-default-scp: enabled # Optional
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
+    default-scm-branch: master        # Optional
 ```
 
-In the above example we have four main properties in `roles`, `regions` and `config`.
+In the above example the properties are categorized into `roles`, `regions`,
+and `config`. These are discussed in the similarly named sections below.
 
-#### Roles
+### Roles
 
-Currently, the only role type specification that the *adfconfig.yml* file requires is the role **name** you wish to use for cross account access. The AWS Deployment Framework requires an role that will be used to initiate bootstrapping and allow the [Master Account](#master-account) access to assume access in target accounts to facilitate bootstrapping and updating processes. When you create new accounts in your AWS Organization they will all need to be instantiated with a role of this same name. When creating a new account, by default, the role you choose as the [Organization Access role](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html) comes with Administrator Privileges in IAM.
+Currently, the only role type specification that the `adfconfig.yml` file requires is the role **name** you wish to use for cross-account access.
+The AWS Deployment Framework requires an role that will be used to initiate bootstrapping and allow the [Master Account](#master-account) access to assume access in target accounts to facilitate bootstrapping and updating processes.
 
-#### Regions
-The Regions specification plays an important role in how ADF is laid out. You should choose a single `deployment-account` region that you would consider your primary region of choice. You should also define target regions you would like to apply baselines to *and* have as deployment targets for your pipelines. If you decide to add more regions later that is also fine. If you add a new region to this list and push the *aws-deployment-framework-bootstrap* repository to the master account it will apply the bootstrapping process to all of your existing accounts for the new region added. You can **not** have AWS CodePipeline deployment pipelines deploy into regions that are not part of this list of bootstrapped regions. In the above example we want our main region to be the `eu-central-1` region, this region, along with `eu-west-1` will now be able to have resources bootstrapped and deployed into via AWS CodePipeline.
+When you create new accounts in your AWS Organization they will all need to be instantiated with a role with the same name.
+When creating a new account, by default, the role you choose as the [Organization Access role](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_create.html) comes with Administrator Privileges in IAM.
 
-#### Config
+### Regions
+
+The Regions specification plays an important role in how ADF is laid out.
+You should choose a single `deployment-account` region that you would consider your primary region of choice.
+For any pipeline that did not configure a region to target specifically, it will default to the primary region only.
+This region is also used as the region where the deployment pipelines will be located.
+
+If you want to deploy to other regions next to the primary region, you should also define these as `target` regions.
+These target regions will get the baselines applied to *and* can function as deployment targets for your pipelines.
+If you decide to add more regions later that is also possible.
+
+You can add a new region to this list and push the *aws-deployment-framework-bootstrap* repository to the master account it will apply the bootstrapping process to all of your existing accounts for the new region added.
+
+**Please note:** You can **not** have AWS CodePipeline deployment pipelines deploy into regions that are not part of this list of bootstrapped regions.
+In the above example we want our main region to be the `eu-central-1` region, this region, along with `eu-west-1` will be able to have resources bootstrapped and deployed into via AWS CodePipeline.
+
+### Config
 
 Config has five components in `main-notification-endpoint`, `scp`, `scm`, `moves` and `protected`.
 
@@ -80,7 +102,16 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`, `moves
 - **moves** is configuration related to moving accounts within your AWS Organization. Currently the only configuration options for `moves` is named *to-root* and allows either `safe` or `remove_base`. If you specify *safe* you are telling the framework that when an AWS Account is moved from whichever OU it currently is in, back into the root of the Organization it will not make any direct changes to the account. It will however update any AWS CodePipeline pipelines that the account belonged to so that it is no longer a valid target. If you specify `remove_base` for this option and move an account to the root of your organization it will attempt to remove the base CloudFormation stacks *(regional and global)* from the account and then update any associated pipeline.
 - **protected** is a configuration that allows you to specify a list of OUs that are not configured by the AWS Deployment Framework bootstrapping process. You can move accounts to the protected OUs which will skip the standard bootstrapping process. This is useful for migrating existing accounts into being managed by The ADF.
 - **scp** allows the definition of configuration options that relate to Service Control Policies. Currently the only option for *scp* is *keep-default-scp* which can either be *enabled* or *disabled*. This option determines if the default FullAWSAccess Service Control Policy should stay attached to OUs that are managed by an *scp.json* or if it should be removed to make way for a more specific SCP, by default this is *enabled*. Its important to understand how SCPs work before setting this setting to disabled. Please read [How SCPs work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_about-scps.html) for more information.
-- **scm** enables the automation aspect of creating AWS CodeCommit repositories automatically when creating a new Pipeline via ADF. This option is only relevant if you are using the *source_account_id* parameter in your Pipeline Parameters, if so, and this value is *enabled* ADF will automatically create the AWS CodeCommit Repository on the Source Account with the same name of the associated pipeline. If the Repository already exists on the source account this process will continue silently. If you wish to update/alter the CloudFormation template used to create this repository it can be found at */src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/repo_templates/codecommit.yml*.
+- **scm** tracks all source code management configuration.
+  - **auto-create-repositories** enables the automation aspect of creating AWS CodeCommit repositories automatically when creating a new Pipeline via ADF.
+    This option is only relevant if you are using the *source_account_id* parameter in your Pipeline Parameters.
+    If this value is `enabled`, ADF will automatically create the AWS CodeCommit Repository on the Source Account with the same name of the associated pipeline.
+    If the Repository already exists on the source account this process will continue silently.
+    If you wish to update/alter the CloudFormation template used to create this repository it can be found at */src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/repo_templates/codecommit.yml*.
+  - **default-scm-branch** allows you to configure the default branch that should be used with all source-code management platforms that ADF supports.
+    For any new installation of the AWS Deployment Framework, this will defaul to `main`, as this is the default branch used by CodeCommit.
+    If you have a pre-existing installation of ADF and did not specifically configure this property, for backward compatibility it will default to `master` instead.
+    We recommend configuring the main scm branch name to `main`. As new repositories will most likely use this branch name as their default branch.
 
 ## Accounts
 
@@ -201,7 +232,7 @@ The name you specify in the *deployment_map.yml* *(or other map files)* will be 
 
 The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the AWS Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **source_account_id** value.
 
-When you enter the *source_account_id* in the *deployment_map.yml**, you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to master)*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source. Another common parameter used in pipelines is `restart_execution_on_update`, when this is set to *True* it will automatically trigger a run of the pipeline whenever its structure is updated. This is useful when you want a pipeline to automatically execute when a new account is moved into an Organizational Unit that a pipeline deploys into, such as foundational resources (eg VPC, IAM CloudFormation resources).
+When you enter the *source_account_id* in the *deployment_map.yml**, you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to [adfconfig.yml - config/scm/default-scm-branch](#adfconfig.yml))*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source. Another common parameter used in pipelines is `restart_execution_on_update`, when this is set to *True* it will automatically trigger a run of the pipeline whenever its structure is updated. This is useful when you want a pipeline to automatically execute when a new account is moved into an Organizational Unit that a pipeline deploys into, such as foundational resources (eg VPC, IAM CloudFormation resources).
 
 
 ```yaml
