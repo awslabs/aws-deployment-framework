@@ -14,6 +14,7 @@ from botocore.config import Config
 from logger import configure_logger
 from aws_xray_sdk.core import patch_all
 
+
 LOGGER = configure_logger(__name__)
 patch_all()
 
@@ -171,5 +172,8 @@ class Support:  # pylint: disable=R0904
 
 def lambda_handler(event, _):
     support = Support(boto3)
-    support.set_support_level_for_account(event, event.get("Id"))
+    support.set_support_level_for_account(
+        account=event,
+        account_id=event.get("Id"),
+    )
     return event

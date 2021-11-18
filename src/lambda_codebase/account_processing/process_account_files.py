@@ -18,8 +18,8 @@ from aws_xray_sdk.core import patch_all
 from organizations import Organizations
 from logger import configure_logger
 
-patch_all()
 
+patch_all()
 LOGGER = configure_logger(__name__)
 ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv("ACCOUNT_MANAGEMENT_STATEMACHINE_ARN")
 
@@ -30,7 +30,10 @@ def get_details_from_event(event: dict):
         raise ValueError("No S3 Event details present in event trigger")
     bucket_name = s3_details.get("bucket", {}).get("name")
     object_key = s3_details.get("object", {}).get("key")
-    return {"bucket_name":bucket_name, "object_key":object_key}
+    return {
+        "bucket_name": bucket_name,
+        "object_key": object_key,
+    }
 
 
 def get_file_from_s3(s3_object: dict, s3_client: boto3.resource):
@@ -67,8 +70,13 @@ def process_account(account_lookup, account):
 
 def process_account_list(all_accounts, accounts_in_file):
     account_lookup = {account["Name"]: account["Id"] for account in all_accounts}
-    processed_accounts = list(map(lambda account: process_account(account_lookup=account_lookup, account=account), accounts_in_file))
-    # processed_accounts = [process_account(account_lookup, account) for account in accounts_in_file]
+    processed_accounts = list(map(
+        lambda account: process_account(
+            account_lookup=account_lookup,
+            account=account,
+        ),
+        accounts_in_file
+    ))
     return processed_accounts
 
 
@@ -80,6 +88,7 @@ def start_executions(sfn, processed_account_list):
             stateMachineArn=ACCOUNT_MANAGEMENT_STATEMACHINE,
             input=f"{json.dumps(account)}",
         )
+
 
 def lambda_handler(event, _):
     """Main Lambda Entry point"""

@@ -59,9 +59,11 @@ class SuccessTestCase(unittest.TestCase):
         )
 
         stubber.activate()
+
         response = create_account(
             test_account, "OrganizationAccountAccessRole", iam_client
         )
+
         self.assertDictEqual(response, test_account)
 
 
@@ -113,5 +115,7 @@ class FailuteTestCase(unittest.TestCase):
         )
 
         stubber.activate()
+        role = "OrganizationAccountAccessRole"
+
         with self.assertRaises(Exception):
-            create_account(test_account, "OrganizationAccountAccessRole", iam_client)
+            create_account(test_account, role, iam_client)

@@ -1,30 +1,34 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Stack pertaing to account processing / OU management.
+
 Parameters:
   OrganizationID:
     Type: String
-    MinLength : "1"    
+    MinLength : "1"
+
   ADFVersion:
     Type: String
     MinLength : "1"
+
   LambdaLayer:
     Type: String
     MinLength : "1"
+
   CrossAccountAccessRoleName:
-    Type: String 
+    Type: String
     MinLength : "1"
 
 Globals:
   Function:
-      Architectures:
-        - arm64
-      CodeUri: lambda_codebase/account_processing
-      Runtime: python3.8
-      Timeout: 300   
-      Tracing: Active
-      Layers:
-        - !Ref LambdaLayer
+    Architectures:
+      - arm64
+    CodeUri: lambda_codebase/account_processing
+    Runtime: python3.8
+    Timeout: 300
+    Tracing: Active
+    Layers:
+      - !Ref LambdaLayer
 
 Resources:
   AccountProcessingLambdaRole:
@@ -39,6 +43,7 @@ Resources:
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+
   AccountProcessingLambdaRolePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -50,24 +55,25 @@ Resources:
             Action:
               - "organizations:DescribeOrganizationalUnit"
               - "organizations:ListParents"
-              - "organizations:ListAccounts"              
+              - "organizations:ListAccounts"
               - "organizations:DescribeOrganization"
               - "organizations:DescribeAccount"
             Resource: "*"
           - Effect: "Allow"
             Action: "s3:ListBucket"
-            Resource: !GetAtt ADFAccountBucket.Arn       
+            Resource: !GetAtt ADFAccountBucket.Arn
           - Effect: "Allow"
             Action: "lambda:GetLayerVersion"
-            Resource: !Ref LambdaLayer    
+            Resource: !Ref LambdaLayer
           - Effect: "Allow"
             Action: "states:StartExecution"
-            Resource: !Ref AccountManagementStateMachine                       
+            Resource: !Ref AccountManagementStateMachine
           - Effect: "Allow"
             Action: "s3:GetObject"
             Resource: !Sub "${ADFAccountBucket.Arn}/*"
       Roles:
         - !Ref AccountProcessingLambdaRole
+
   ADFAccountAccessRolePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -77,13 +83,14 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - "sts:AssumeRole"               
-            Resource: !Sub "arn:aws:iam::*:role/${CrossAccountAccessRoleName}" 
+              - "sts:AssumeRole"
+            Resource: !Sub "arn:aws:iam::*:role/${CrossAccountAccessRoleName}"
       Roles:
-        - !Ref AccountProcessingLambdaRole   
-        - !Ref GetAccountRegionsFunctionRole    
-        - !Ref DeleteDefaultVPCFunctionRole   
+        - !Ref AccountProcessingLambdaRole
+        - !Ref GetAccountRegionsFunctionRole
+        - !Ref DeleteDefaultVPCFunctionRole
         - !Ref AccountAliasConfigFunctionRole
+
   ADFAccountProcessingLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -95,17 +102,17 @@ Resources:
             Action:
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
-              - "logs:PutLogEvents"       
-              - "xray:PutTelemetryRecords"     
-              - "xray:PutTraceSegments"     
-            Resource: "*" 
+              - "logs:PutLogEvents"
+              - "xray:PutTelemetryRecords"
+              - "xray:PutTraceSegments"
+            Resource: "*"
       Roles:
-        - !Ref AccountProcessingLambdaRole   
-        - !Ref GetAccountRegionsFunctionRole    
-        - !Ref DeleteDefaultVPCFunctionRole    
-        - !Ref AccountAliasConfigFunctionRole  
-        - !Ref AccountTagConfigFunctionRole 
-        - !Ref AccountOUConfigFunctionRole    
+        - !Ref AccountProcessingLambdaRole
+        - !Ref GetAccountRegionsFunctionRole
+        - !Ref DeleteDefaultVPCFunctionRole
+        - !Ref AccountAliasConfigFunctionRole
+        - !Ref AccountTagConfigFunctionRole
+        - !Ref AccountOUConfigFunctionRole
         - !Ref CreateAccountFunctionRole
         - !Ref RegisterAccountForSupportFunctionRole
 
@@ -128,21 +135,21 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "xray:PutTelemetryRecords"     
-                  - "xray:PutTraceSegments"  
-                Resource: "*" 
+                  - "xray:PutTelemetryRecords"
+                  - "xray:PutTraceSegments"
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  - !GetAtt AccountAliasConfigFunctionRole.Arn                            
-                  - !GetAtt CreateAccountFunction.Arn                            
-                  - !GetAtt RegisterAccountForSupportFunction.Arn                            
-                  - !GetAtt AccountTagConfigFunction.Arn                            
-                  - !GetAtt AccountOUConfigFunction.Arn                            
-                  - !GetAtt GetAccountRegionsFunction.Arn                            
-                  - !GetAtt DeleteDefaultVPCFunction.Arn                            
-                          
+                  - !GetAtt AccountAliasConfigFunctionRole.Arn
+                  - !GetAtt CreateAccountFunction.Arn
+                  - !GetAtt RegisterAccountForSupportFunction.Arn
+                  - !GetAtt AccountTagConfigFunction.Arn
+                  - !GetAtt AccountOUConfigFunction.Arn
+                  - !GetAtt GetAccountRegionsFunction.Arn
+                  - !GetAtt DeleteDefaultVPCFunction.Arn
+
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -157,7 +164,7 @@ Resources:
           ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountFileProcessorFunction
-      Role: !GetAtt AccountProcessingLambdaRole.Arn     
+      Role: !GetAtt AccountProcessingLambdaRole.Arn
       Events:
         S3Event:
           Type: S3
@@ -165,6 +172,7 @@ Resources:
             Bucket:
               Ref: ADFAccountBucket
             Events: s3:ObjectCreated:*
+
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -186,7 +194,7 @@ Resources:
                 Action:
                   - "iam:CreateAcountAlias"
                 Resource: "*"
-                                          
+
   AccountAliasConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -198,9 +206,10 @@ Resources:
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: INFO
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountAliasConfigurationFunction
-      Role: !GetAtt AccountAliasConfigFunctionRole.Arn                   
+      Role: !GetAtt AccountAliasConfigFunctionRole.Arn
+
   AccountTagConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -222,6 +231,7 @@ Resources:
                 Action:
                   - "organizations:TagResource"
                 Resource: "*"
+
   AccountTagConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -235,6 +245,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
+
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -248,7 +259,7 @@ Resources:
           ADF_LOG_LEVEL: INFO
       FunctionName: AccountOUConfigurationFunction
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
-          
+
   AccountOUConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -274,7 +285,8 @@ Resources:
                   - "organizations:ListOrganizationalUnitsForParent"
                   - "organizations:ListChildren"
                   - "organizations:ListAccounts*"
-                Resource: "*"                          
+                Resource: "*"
+
   GetAccountRegionsFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -287,9 +299,10 @@ Resources:
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: INFO
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: GetAccountRegionsFunction
-      Role: !GetAtt GetAccountRegionsFunctionRole.Arn        
+      Role: !GetAtt GetAccountRegionsFunctionRole.Arn
+
   GetAccountRegionsFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -301,7 +314,8 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"             
+      Path: "/"
+
   DeleteDefaultVPCFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -315,7 +329,8 @@ Resources:
           ADF_LOG_LEVEL: INFO
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: DeleteDefaultVPCFunction
-      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn         
+      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
+
   DeleteDefaultVPCFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -327,7 +342,8 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"            
+      Path: "/"
+
   CreateAccountFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -339,9 +355,10 @@ Resources:
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: INFO
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName          
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: CreateAccountFunction
-      Role: !GetAtt CreateAccountFunctionRole.Arn          
+      Role: !GetAtt CreateAccountFunctionRole.Arn
+
   CreateAccountFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -363,7 +380,8 @@ Resources:
                 Action:
                   - "organizations:CreateAccount"
                   - "organizations:DescribeCreateAccountStatus"
-                Resource: "*" 
+                Resource: "*"
+
   RegisterAccountForSupportFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -376,7 +394,8 @@ Resources:
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: INFO
       FunctionName: RegisterAccountForSupportFunction
-      Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn          
+      Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
+
   RegisterAccountForSupportFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -397,8 +416,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - "support:DescribeSeverityLevels"
-                  - "support:CreateCase"             
-                Resource: "*"                                                           
+                  - "support:CreateCase"
+                Resource: "*"
+
   ADFAccountBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -416,6 +436,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   AccountManagementStateMachine:
       Type: "AWS::StepFunctions::StateMachine"
       Properties:
@@ -462,7 +483,7 @@ Resources:
                   "Type": "Wait",
                   "Seconds": 10,
                   "Next": "ConfigureAccountSupport"
-                }, 
+                },
                 "ConfigureAccountSupport": {
                   "Type": "Task",
                   "Resource": "${RegisterAccountForSupportFunction.Arn}",
@@ -473,7 +494,7 @@ Resources:
                     "MaxAttempts": 30
                   }],
                   "Next": "ConfigureAccountAlias"
-                },                                                       
+                },
                 "ConfigureAccountTags": {
                   "Type": "Task",
                   "Resource": "${AccountTagConfigFunction.Arn}",
@@ -484,7 +505,7 @@ Resources:
                     "MaxAttempts": 30
                   }],
                   "Next": "ConfigureAccountOU"
-                },  
+                },
                 "ConfigureAccountOU": {
                   "Type": "Task",
                   "Resource": "${AccountOUConfigFunction.Arn}",
@@ -506,7 +527,7 @@ Resources:
                     }
                   ],
                   "Default": "Success"
-                },                    
+                },
                 "GetAccountDefaultRegionsFunction": {
                   "Type": "Task",
                   "Resource": "${GetAccountRegionsFunction.Arn}",
@@ -521,10 +542,10 @@ Resources:
                 "DeleteDefaultVPCMap": {
                   "Type": "Map",
                   "Next": "Success",
-                "Iterator": {
-                  "StartAt": "DeleteDefaultVPC",
-                    "States": {
-                      "DeleteDefaultVPC": {
+                  "Iterator": {
+                    "StartAt": "DeleteDefaultVPC",
+                      "States": {
+                        "DeleteDefaultVPC": {
                           "Type": "Task",
                           "Resource": "${DeleteDefaultVPCFunction.Arn}",
                           "OutputPath": "$.Payload",
@@ -544,25 +565,26 @@ Resources:
                             }
                           ],
                           "End": true
+                        }
                       }
-                    }
+                    },
+                    "ItemsPath": "$.default_regions",
+                    "MaxConcurrency": 20,
+                    "Parameters": {
+                      "region.$": "$$.Map.Item.Value",
+                      "account.$": "$.Id"
+                    },
+                    "ResultPath": null
                   },
-                  "ItemsPath": "$.default_regions",
-                  "MaxConcurrency": 20,
-                  "Parameters": {
-                    "region.$": "$$.Map.Item.Value",
-                    "account.$": "$.Id"
-                  },
-                  "ResultPath": null                 
-                },                                                                     
-                "Success": {
-                  "Type": "Succeed"
+                  "Success": {
+                    "Type": "Succeed"
+                  }
                 }
               }
-            }
-        RoleArn: !GetAtt StateMachineExecutionRole.Arn     
+        RoleArn: !GetAtt StateMachineExecutionRole.Arn
         TracingConfiguration:
-          Enabled: True   
+          Enabled: True
+
 Outputs:
   Bucket:
     Value: !Ref ADFAccountBucket

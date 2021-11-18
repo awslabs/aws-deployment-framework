@@ -15,7 +15,6 @@ from aws_xray_sdk.core import patch_all
 from logger import configure_logger
 
 patch_all()
-
 LOGGER = configure_logger(__name__)
 
 
@@ -29,7 +28,11 @@ def create_account_tags(account_id, tags, org_session: Organizations):
 def lambda_handler(event, _):
     if event.get("tags"):
         organizations = Organizations(boto3)
-        create_account_tags(event.get("Id"), event.get("tags"), organizations)
+        create_account_tags(
+            event.get("Id"),
+            event.get("tags"),
+            organizations,
+        )
     else:
         LOGGER.info(
             f"Account: {event.get('account_full_name')} does not need tags configured"
