@@ -18,10 +18,17 @@ class SuccessTestCase(unittest.TestCase):
             "account_full_name": "ADF Test Creation Account",
             "email": "test+account@domain.com",
         }
-        iam_client = boto3.client("organizations")
-        stubber = Stubber(iam_client)
+        test_account_result = {
+            **test_account,
+            "account_id": "9087564231",
+        }
+        org_client = boto3.client("organizations")
+        stubber = Stubber(org_client)
         create_account_response = {
-            "CreateAccountStatus": {"State": "IN_PROGRESS", "Id": "1234567890"}
+            "CreateAccountStatus": {
+                "State": "IN_PROGRESS",
+                "Id": "1234567890",
+            }
         }
         describe_account_response = {
             "CreateAccountStatus": {
@@ -61,10 +68,10 @@ class SuccessTestCase(unittest.TestCase):
         stubber.activate()
 
         response = create_account(
-            test_account, "OrganizationAccountAccessRole", iam_client
+            test_account, "OrganizationAccountAccessRole", org_client
         )
 
-        self.assertDictEqual(response, test_account)
+        self.assertDictEqual(response, test_account_result)
 
 
 class FailuteTestCase(unittest.TestCase):
@@ -73,8 +80,8 @@ class FailuteTestCase(unittest.TestCase):
             "account_full_name": "ADF Test Creation Account",
             "email": "test+account@domain.com",
         }
-        iam_client = boto3.client("organizations")
-        stubber = Stubber(iam_client)
+        org_client = boto3.client("organizations")
+        stubber = Stubber(org_client)
         create_account_response = {
             "CreateAccountStatus": {"State": "IN_PROGRESS", "Id": "1234567890"}
         }
@@ -118,4 +125,4 @@ class FailuteTestCase(unittest.TestCase):
         role = "OrganizationAccountAccessRole"
 
         with self.assertRaises(Exception):
-            create_account(test_account, role, iam_client)
+            create_account(test_account, role, org_client)

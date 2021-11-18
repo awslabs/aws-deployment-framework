@@ -71,7 +71,7 @@ def process_account(account_lookup, account):
     processed_account["needs_created"] = True
     account_id = account_lookup.get(account["account_full_name"])
     if account_id:
-        processed_account["Id"] = account_id
+        processed_account["account_id"] = account_id
         processed_account["needs_created"] = False
     return processed_account
 

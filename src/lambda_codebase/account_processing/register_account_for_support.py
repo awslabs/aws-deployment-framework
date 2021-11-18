@@ -174,6 +174,6 @@ def lambda_handler(event, _):
     support = Support(boto3)
     support.set_support_level_for_account(
         account=event,
-        account_id=event.get("Id"),
+        account_id=event.get("account_id"),
     )
     return event

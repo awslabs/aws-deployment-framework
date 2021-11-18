@@ -65,7 +65,7 @@ def lambda_handler(event, _):
     event = event.get("Payload")
     LOGGER.info(f"Checking for default VPC: {event.get('account_full_name')}")
 
-    role = assume_role(account_id=event.get("account"))
+    role = assume_role(account_id=event.get("account_id"))
     ec2_client = role.client("ec2", region_name=event.get("region"))
 
     default_vpc_id = find_default_vpc(ec2_client)

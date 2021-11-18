@@ -29,7 +29,7 @@ def lambda_handler(event, _):
     if event.get("tags"):
         organizations = Organizations(boto3)
         create_account_tags(
-            event.get("Id"),
+            event.get("account_id"),
             event.get("tags"),
             organizations,
         )

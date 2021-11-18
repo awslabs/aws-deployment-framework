@@ -18,7 +18,7 @@ class SuccessTestCase(unittest.TestCase):
             {
                 "alias": "MyCoolAlias",
                 "account_full_name":"mytestaccountname",
-                "Id": 1234567890,
+                "account_id": 1234567890,
                 "needs_created": False,
             }
         )
@@ -50,7 +50,7 @@ class SuccessTestCase(unittest.TestCase):
             {
                 "account_full_name":"mytestaccountname",
                 "needs_created": False,
-                "Id": 1234567890,
+                "account_id": 1234567890,
             },
             {
                 "account_full_name":"mynewaccountname",

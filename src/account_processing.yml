@@ -572,7 +572,7 @@ Resources:
                     "MaxConcurrency": 20,
                     "Parameters": {
                       "region.$": "$$.Map.Item.Value",
-                      "account.$": "$.Id"
+                      "account_id.$": "$.account_id"
                     },
                     "ResultPath": null
                   },

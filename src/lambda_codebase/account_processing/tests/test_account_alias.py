@@ -11,7 +11,7 @@ global_sdk_config.set_sdk_enabled(False)
 
 # pylint: disable=W0106
 def test_account_alias():
-    test_account = {"Id": 1234567890, "alias": "MyCoolAlias"}
+    test_account = {"account_id": 1234567890, "alias": "MyCoolAlias"}
     iam_client = boto3.client("iam")
     stubber = Stubber(iam_client)
     create_alias_response = {}

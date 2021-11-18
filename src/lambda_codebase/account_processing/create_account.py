@@ -35,7 +35,7 @@ def create_account(account, adf_role_name, org_client):
             )
     return {
         **account,
-        "Id": response["AccountId"],
+        "account_id": response["AccountId"],
     }
 
 

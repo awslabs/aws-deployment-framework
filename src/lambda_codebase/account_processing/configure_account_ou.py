@@ -21,7 +21,7 @@ def lambda_handler(event, _):
     )
     organizations = Organizations(boto3)
     organizations.move_account(
-        event.get("Id"),
+        event.get("account_id"),
         event.get("organizational_unit_path"),
     )
     return event
