@@ -236,7 +236,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: configure_account_tags.lambda_handler
-      Description: "ADF Lambda Function - Account OU Configuration"
+      Description: "ADF Lambda Function - Account Tag Configuration"
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -320,7 +320,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: delete_default_vpc.lambda_handler
-      Description: "ADF Lambda Function - Delete the default vpc for a region"
+      Description: "ADF Lambda Function - Delete the default VPC for a region"
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
