@@ -41,5 +41,7 @@ def lambda_handler(event, _):
         )["Regions"]
     ]
     LOGGER.debug(f"Default regions for {account_id}: {default_regions}")
-    event["default_regions"] = default_regions
-    return event
+    return {
+        **event,
+        "default_regions": default_regions,
+    }

@@ -33,9 +33,10 @@ def create_account(account, adf_role_name, org_client):
             raise IOError(
                 f"Failed to create account {account.get('account_full_name')}: {response['FailureReason']}"
             )
-    account_id = response["AccountId"]
-    account["Id"] = account_id
-    return account
+    return {
+        **account,
+        "Id": response["AccountId"],
+    }
 
 
 def lambda_handler(event, _):
