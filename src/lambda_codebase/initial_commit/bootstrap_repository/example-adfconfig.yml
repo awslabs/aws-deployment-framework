@@ -1,20 +1,20 @@
-roles: 
-  cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access 
+roles:
+  cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access
 
-regions: 
-  deployment-account: eu-central-1 # The region you define as your main deployment region 
+regions:
+  deployment-account: eu-central-1 # The region you define as your main deployment region
   targets: # A list of regions you wish to bootstrap and also deploy into via pipelines (Other than the Deployment Account region)
     - eu-west-1
 
 config:
-  main-notification-endpoint: 
+  main-notification-endpoint:
     - type: email # slack or email
       target: jon.doe@email.com # Email/Slack channel who receives notifications for the main bootstrapping pipeline
   moves:
     - name: to-root
       action: safe  # Can be safe or remove-base (see docs)
   scp:
-    keep-default-scp: enabled  # determines if the default AWSFullAccess SCP stays attached to all OU's 
+    keep-default-scp: enabled  # determines if the default AWSFullAccess SCP stays attached to all OU's
   scm: # Source control management
     auto-create-repositories: enabled # if true and using codecommit as source the repository will be automatically created
-    default-scm-branch: master        # allow to specify custom defualt branch if pipeline specific is not provided. If parameter is not specified -  "master" branch will be used.
+    default-scm-branch: master        # allow to specify custom default branch if a pipeline specific configuration is not provided. If the parameter is not specified it defaults to the "master" branch.

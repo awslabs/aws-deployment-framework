@@ -32,6 +32,7 @@ ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 LOGGER = configure_logger(__name__)
 
 
@@ -134,8 +135,11 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
     )
     deployment_account_parameter_store.put_parameter(
-        'default_scm_branch', config.config.get(
-        'scm', {}).get('default-scm-branch', 'master')
+        'default_scm_branch',
+        config.config.get('scm', {}).get(
+            'default-scm-branch',
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
     )
     auto_create_repositories = config.config.get(
         'scm', {}).get('auto-create-repositories')
