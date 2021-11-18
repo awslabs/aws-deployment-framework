@@ -440,10 +440,10 @@ Resources:
                   "Type": "Task",
                   "Resource": "${AccountAliasConfigFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "ConfigureAccountTags"
                 },
@@ -451,26 +451,26 @@ Resources:
                   "Type": "Task",
                   "Resource": "${CreateAccountFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "WaitFor10Seconds"
                 },
                 "WaitFor10Seconds": {
-                      "Type": "Wait",
-                      "Seconds": 10,
-                      "Next": "ConfigureAccountSupport"
+                  "Type": "Wait",
+                  "Seconds": 10,
+                  "Next": "ConfigureAccountSupport"
                 }, 
                 "ConfigureAccountSupport": {
                   "Type": "Task",
                   "Resource": "${RegisterAccountForSupportFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "ConfigureAccountAlias"
                 },                                                       
@@ -478,10 +478,10 @@ Resources:
                   "Type": "Task",
                   "Resource": "${AccountTagConfigFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "ConfigureAccountOU"
                 },  
@@ -489,10 +489,10 @@ Resources:
                   "Type": "Task",
                   "Resource": "${AccountOUConfigFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "DeleteDefaultVPCChoice"
                 },
@@ -511,10 +511,10 @@ Resources:
                   "Type": "Task",
                   "Resource": "${GetAccountRegionsFunction.Arn}",
                   "Retry": [{
-                      "ErrorEquals": ["States.TaskFailed"],
-                      "IntervalSeconds": 3,
-                      "BackoffRate": 1.5,
-                      "MaxAttempts": 30
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 3,
+                    "BackoffRate": 1.5,
+                    "MaxAttempts": 30
                   }],
                   "Next": "DeleteDefaultVPCMap"
                 },
@@ -522,38 +522,38 @@ Resources:
                   "Type": "Map",
                   "Next": "Success",
                 "Iterator": {
-                        "StartAt": "DeleteDefaultVPC",
-                        "States": {
-                          "DeleteDefaultVPC": {
-                            "Type": "Task",
-                            "Resource": "${DeleteDefaultVPCFunction.Arn}",
-                            "OutputPath": "$.Payload",
-                            "Parameters": {
-                              "Payload.$": "$"
-                            },
-                            "Retry": [
-                              {
-                                "ErrorEquals": [
-                                  "Lambda.ServiceException",
-                                  "Lambda.AWSLambdaException",
-                                  "Lambda.SdkClientException"
-                                ],
-                                "IntervalSeconds": 2,
-                                "MaxAttempts": 6,
-                                "BackoffRate": 2
-                              }
-                            ],
-                            "End": true
-                          }
-                        }
-                      },
-                      "ItemsPath": "$.default_regions",
-                      "MaxConcurrency": 20,
-                      "Parameters": {
-                        "region.$": "$$.Map.Item.Value",
-                        "account.$": "$.Id"
-                      },
-                      "ResultPath": null                 
+                  "StartAt": "DeleteDefaultVPC",
+                    "States": {
+                      "DeleteDefaultVPC": {
+                          "Type": "Task",
+                          "Resource": "${DeleteDefaultVPCFunction.Arn}",
+                          "OutputPath": "$.Payload",
+                          "Parameters": {
+                            "Payload.$": "$"
+                          },
+                          "Retry": [
+                            {
+                              "ErrorEquals": [
+                                "Lambda.ServiceException",
+                                "Lambda.AWSLambdaException",
+                                "Lambda.SdkClientException"
+                              ],
+                              "IntervalSeconds": 2,
+                              "MaxAttempts": 6,
+                              "BackoffRate": 2
+                            }
+                          ],
+                          "End": true
+                      }
+                    }
+                  },
+                  "ItemsPath": "$.default_regions",
+                  "MaxConcurrency": 20,
+                  "Parameters": {
+                    "region.$": "$$.Map.Item.Value",
+                    "account.$": "$.Id"
+                  },
+                  "ResultPath": null                 
                 },                                                                     
                 "Success": {
                   "Type": "Succeed"

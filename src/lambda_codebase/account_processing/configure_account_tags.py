@@ -21,7 +21,7 @@ LOGGER = configure_logger(__name__)
 
 def create_account_tags(account_id, tags, org_session: Organizations):
     LOGGER.info(
-    f"Ensuring Account: {account_id} has tags: {tags}"
+        f"Ensuring Account: {account_id} has tags: {tags}"
     )
     org_session.create_account_tags(account_id, tags)
 
