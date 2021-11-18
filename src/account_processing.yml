@@ -24,7 +24,7 @@ Globals:
       Timeout: 300   
       Tracing: Active
       Layers:
-          - !Ref LambdaLayer                      
+        - !Ref LambdaLayer
 
 Resources:
   AccountProcessingLambdaRole:
