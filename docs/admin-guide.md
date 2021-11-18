@@ -477,10 +477,14 @@ the files that live within the *bootstrap* repository in your AWS management acc
 
 To ease this process, the AWS CloudFormation stack will run the *InitialCommit*
 Custom CloudFormation resource when updating via the SAR. This resource will
-open a pull request against the current *master* branch on the *bootstrap*
+open a pull request against the default branch (i.e. `main`) on the *bootstrap*
 repository with a set of changes that you can optionally choose to merge.
-If those changes are merged into master, the bootstrap pipeline will run to
-finalize the update to the latest version.
+If those changes are merged into the default branch, the bootstrap pipeline will
+run to finalize the update to the latest version.
+
+Which branch is used is determined by:
+1. Describing the CodeCommit repository, it will use the default branch of the repository.
+1. Follow [these instructions](#update-the-default-branch-of-the-bootstrap-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
 
 In the management account in us-east-1:
 1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
@@ -499,6 +503,34 @@ Once finished, it will trigger the aws-deployment-framework-_pipelines_ pipeline
 1. This should progress and turn up as green. If any of these steps fail, it could be that one of your pipelines could not be updated. You can click on the `Details` link to get more insights into the failure. Please report the step where it failed by opening an issue [here](https://github.com/awslabs/aws-deployment-framework/issues) and include a copy of the logs when it fails here.
 
 If this last pipeline turned green, to be sure that all went well, you can release changes in a pipeline of your choice to test them.
+
+### Update the default branch of the bootstrap repository
+
+ADF will automatically detect the default branch that is configured for the CodeCommit repository.
+
+If you want to switch from one branch to another,
+you need to create a new branch from the current default branch.
+
+For example, switching from `master` to `main`:
+Simply running these commands from inside the
+`aws-deployment-framework-bootstrap` repository that is cloned locally
+should do it:
+
+```bash
+# Please note: this assumes that the aws-deployment-framework-bootstrap
+# repository is configured as the origin remote in your local git
+# environment.
+
+git fetch
+git checkout origin/master
+git push HEAD:origin/main
+```
+
+Navigate to the CodeCommit repository and update the default branch of the
+repository to the new branch. Make sure to click the `Save` button underneath
+the default branch setting to save it.
+
+Alternatively, you can also perform the update using the AWS CLI.
 
 ## Removing ADF
 
@@ -542,7 +574,7 @@ The main components to look at are:
 1. In the AWS Management Account in `us-east-1`:
   1. The [CloudFormation aws-deployment-framework stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=aws-deployment-framework&viewNested=true&hideStacks=false).
   1. The [CloudWatch Logs for the Lambda functions deployed by ADF](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=true&n0=false&op=and&v0=ADF).
-  1. Check if the [CodeCommit pull request](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN) to install the latest version changes of ADF has been merged into your main branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
+  1. Check if the [CodeCommit pull request](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN) to install the latest version changes of ADF is merged into your default branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
   1. The [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
   1. The [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines).
     * Look at the previous executions of the State Machine.

@@ -5,6 +5,7 @@ test:
 	# Run unit tests
 	pytest src/lambda_codebase/account -vvv -s -c src/lambda_codebase/account/pytest.ini
 	pytest src/lambda_codebase/account_processing -vvv -s -c src/lambda_codebase/account_processing/pytest.ini
+	pytest src/lambda_codebase/determine_default_branch -vvv -s -c src/lambda_codebase/determine_default_branch/pytest.ini
 	pytest src/lambda_codebase/initial_commit -vvv -s -c src/lambda_codebase/initial_commit/pytest.ini
 	pytest src/lambda_codebase/initial_commit/bootstrap_repository -vvv -s -c src/lambda_codebase/initial_commit/bootstrap_repository/pytest.ini
 	pytest src/lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase -vvv -s -c src/lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/pytest.ini
