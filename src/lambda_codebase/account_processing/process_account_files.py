@@ -9,6 +9,7 @@ invokes the account processing step function per account.
 
 import json
 import os
+import tempfile
 import yaml
 from yaml.error import YAMLError
 
@@ -36,21 +37,28 @@ def get_details_from_event(event: dict):
     }
 
 
-def get_file_from_s3(s3_object: dict, s3_client: boto3.resource):
-    s3_object = s3_client.Object(**s3_object)
+def get_file_from_s3(s3_object: dict, s3_resource: boto3.resource):
     try:
-        s3_object.download_file(f"/tmp/{s3_object.get('object_key')}")
-    except ClientError as e:
-        LOGGER.error(f"Failed to download {s3_object.get('object_key')} from {s3_object.get('bucket_name')}")
-        raise e
-    try:
-        with open(f"/tmp/{s3_object.get('object_key')}", encoding="utf-8") as data_stream:
-            data = yaml.safe_load(data_stream)
-    except YAMLError as p_e:
-        LOGGER.error("Failed to parse YAML file")
-        raise p_e
+        s3_object = s3_resource.Object(**s3_object)
+        with tempfile.TemporaryFile(encoding='utf-8') as file_pointer:
+            s3_object.download_fileobj(file_pointer)
 
-    return data
+            # Move pointer to the start of the file
+            file_pointer.seek(0)
+
+            return yaml.safe_load(file_pointer)
+    except ClientError as error:
+        LOGGER.error(
+            f"Failed to download {s3_object.get('object_key')} "
+            f"from {s3_object.get('bucket_name')}, due to {error}"
+        )
+        raise
+    except YAMLError as yaml_error:
+        LOGGER.error(
+            f"Failed to parse YAML file: {s3_object.get('object_key')} "
+            f"from {s3_object.get('bucket_name')}, due to {yaml_error}"
+        )
+        raise
 
 
 def get_all_accounts():
@@ -80,11 +88,11 @@ def process_account_list(all_accounts, accounts_in_file):
     return processed_accounts
 
 
-def start_executions(sfn, processed_account_list):
+def start_executions(sfn_client, processed_account_list):
     LOGGER.info(f"Invoking Account Management State Machine ({ACCOUNT_MANAGEMENT_STATEMACHINE})")
     for account in processed_account_list:
         LOGGER.debug(f"Payload: {account}")
-        sfn.start_execution(
+        sfn_client.start_execution(
             stateMachineArn=ACCOUNT_MANAGEMENT_STATEMACHINE,
             input=f"{json.dumps(account)}",
         )
@@ -92,11 +100,16 @@ def start_executions(sfn, processed_account_list):
 
 def lambda_handler(event, _):
     """Main Lambda Entry point"""
-    sfn = boto3.client("stepfunctions")
-    all_accounts = get_all_accounts()
-    account_file = get_file_from_s3(get_details_from_event(event), boto3.resource("s3"))
-    accounts = account_file.get("accounts")
-    processed_account_list = process_account_list(all_accounts=all_accounts, accounts_in_file=accounts)
+    sfn_client = boto3.client("stepfunctions")
+    s3_resource = boto3.resource("s3")
 
-    start_executions(sfn, processed_account_list)
+    all_accounts = get_all_accounts()
+    account_file = get_file_from_s3(get_details_from_event(event), s3_resource)
+
+    processed_account_list = process_account_list(
+        all_accounts=all_accounts,
+        accounts_in_file=account_file.get("accounts"),
+    )
+
+    start_executions(sfn_client, processed_account_list)
     return event
