@@ -10,6 +10,8 @@ import boto3
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
+    aws_events as _eventbridge,
+    aws_events_targets as _eventbridge_targets,
     core
 )
 
@@ -21,6 +23,7 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+
 
 LOGGER = configure_logger(__name__)
 
@@ -264,7 +267,7 @@ class Action:
                                         'deployment_group_name')
             }
         if self.provider == "CodeCommit":
-            return {
+            props =  {
                 "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "PollForSourceChanges": (
@@ -272,6 +275,10 @@ class Action:
                     and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
                 )
             }
+            output_artifact_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
+            if output_artifact_format:
+                props["OutputArtifactFormat"] = output_artifact_format
+            return props
         raise Exception("{0} is not a valid provider".format(self.provider))
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
@@ -415,6 +422,10 @@ class Pipeline(core.Construct):
         'SendSlackNotificationLambdaArn'
     ]
 
+    CODEARTIFACT_TRIGGER = "CODEARTIFACT"
+
+    _accepted_triggers = {"code_artifact": CODEARTIFACT_TRIGGER}
+
     def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns() #pylint: disable=W0632
@@ -439,7 +450,7 @@ class Pipeline(core.Construct):
             ),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
-            "completion_trigger": map_params.get('completion_trigger'),
+            "completion_trigger": map_params.get('triggers', {}).get('on_complete', map_params.get('completion_trigger')),
             "schedule": map_params.get('schedule'),
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
@@ -482,3 +493,25 @@ class Pipeline(core.Construct):
             # pylint: disable=no-value-for-parameter
             _output.append(core.Fn.import_value(arn))
         return _output
+
+
+    def add_pipeline_trigger(self, trigger_type, trigger_config):
+        if trigger_type not in self._accepted_triggers:
+            LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
+            raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
+        trigger_type = self._accepted_triggers[trigger_type]
+
+        if trigger_type == self.CODEARTIFACT_TRIGGER:
+            details = {"repositoryName": trigger_config["repository"]}
+            if trigger_config.get("package"):
+                details["packageName"] = trigger_config["package"]
+            _eventbridge.Rule(
+                self,
+                f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config.get('package', 'all')}",
+                event_pattern=_eventbridge.EventPattern(
+                    source=["aws.codeartifact"],
+                    detail_type=["CodeArtifact Package Version State Change"],
+                    detail=details,
+                ),
+                targets=[_eventbridge_targets.CodePipeline(pipeline=_codepipeline.Pipeline.from_pipeline_arn(self, "imported", pipeline_arn=self.cfn.ref))],
+            )
