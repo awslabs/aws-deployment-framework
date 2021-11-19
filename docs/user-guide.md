@@ -719,10 +719,10 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 
 **Parameters**
 
-- TERRAFORM_VERSION: the terraform version used to deploy the resource
-- TARGET_ACCOUNTS: comma separated list of target accounts
-- TARGET_OUS: comma separated list of target leaf OUs (parent OUs are supported)
-- REGIONS: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
+- `TERRAFORM_VERSION`: the terraform version used to deploy the resource.
+- `TARGET_ACCOUNTS`: comma separated list of target accounts.
+- `TARGET_OUS`: comma separated list of target leaf OUs (parent OUs are supported).
+- `REGIONS`: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
 
 **Deployment procedure**
 
