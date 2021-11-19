@@ -94,10 +94,10 @@ def get_accounts_from_ous():
 
 def get_boto3_client(service, role, session_name):
     role = sts.assume_role(
-            RoleArn=role,
-            RoleSessionName=session_name,
-            DurationSeconds=900
-        )
+        RoleArn=role,
+        RoleSessionName=session_name,
+        DurationSeconds=900
+    )
     session = boto3.Session(
         aws_access_key_id=role['Credentials']['AccessKeyId'],
         aws_secret_access_key=role['Credentials']['SecretAccessKey'],
