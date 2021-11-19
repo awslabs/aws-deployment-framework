@@ -54,6 +54,7 @@ def get_accounts():
         )
     )
 
+
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
