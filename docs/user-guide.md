@@ -764,7 +764,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 
 2. Add the project name in params/global.yml file
 3. Add terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf`.
-4. Add variable definition to tf\variables.tf file and variable values to tfvars/global.auto.tfvars
+4. Add variable definition to `tf/variables.tf` file and variable values to `tfvars/global.auto.tfvars`.
 
    - Local variables (per account) can be configured using the following naming convention
 
