@@ -44,13 +44,15 @@ def get_accounts():
         )
     # Assume a role into the management accounts role to get account ID's and emails
     organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
-    for account in paginator(organizations.list_accounts):
-        if account['Status'] == 'ACTIVE':
-            account_details.append({
-                'AccountId': account['Id'],
-                'Email': account['Email']
-            })
-    return account_details
+    return list(
+        map(
+            lambda account: {'AccountId': account['Id'], 'Email': account['Email']},
+            filter(
+                lambda account: account['Status'] == 'ACTIVE',
+                paginator(organizations.list_accounts)
+            )
+        )
+    )
 
 def get_accounts_from_ous():
     parent_ou_id = None
