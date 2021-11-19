@@ -780,7 +780,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
          └──────│   local.auto.tfvars <-- this file contains variables related to account 222222222222
      ```
 
-5. Push to your sample-terraform ADF repository
+5. Push to your terraform ADF repository, for example the sample-terraform one.
 6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
