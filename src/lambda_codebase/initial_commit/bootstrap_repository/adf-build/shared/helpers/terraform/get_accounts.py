@@ -59,11 +59,12 @@ def get_accounts_from_ous():
     account_list = []
     organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     # Read organization root id
-    root_ids = []
-    for id in paginator(organizations.list_roots):
-        root_ids.append({
-            'AccountId': id['Id']
-        })
+    root_ids = list(
+        map(
+            lambda root: {'AccountId': root['Id']]},
+            paginator(organizations.list_roots)
+        )
+    )
     root_id = root_ids[0]['AccountId'] 
     for path in OU_PATH.split(','):
         # Set initial OU to start looking for given OU_PATH
