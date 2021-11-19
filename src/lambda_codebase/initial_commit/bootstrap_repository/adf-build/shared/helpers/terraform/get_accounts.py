@@ -99,10 +99,10 @@ def get_boto3_client(service, role, session_name):
             DurationSeconds=900
         )
     session = boto3.Session(
-            aws_access_key_id=role['Credentials']['AccessKeyId'],
-            aws_secret_access_key=role['Credentials']['SecretAccessKey'],
-            aws_session_token=role['Credentials']['SessionToken']
-        )
+        aws_access_key_id=role['Credentials']['AccessKeyId'],
+        aws_secret_access_key=role['Credentials']['SecretAccessKey'],
+        aws_session_token=role['Credentials']['SessionToken']
+    )
     return session.client(service)
 
 
