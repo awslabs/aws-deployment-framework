@@ -706,7 +706,7 @@ NOTE: ADFTerraformPolicy IAM policy is a sample. This policies should NOT be use
 **Overview**
 
 ADF support the deployment of terraform code to multiple accounts and regions through terraform pipelines.
-The module consists of four build stages defined in the following file:
+The module consists of four build stages defined in the following CodeBuild build specification:
 
 - `buildspec.yml`: install the version of terraform specified in the pipeline configuration
 - `tf_scan.yml`: (optional) scans for vulnerabilities in the terraform code using the terrascan application. If vulnerabilities are found, it will fail and block further execution in the pipeline. It is recommended to enable this step in all ADF terraform pipelines.
