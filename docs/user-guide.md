@@ -715,7 +715,7 @@ The module consists of four build stages defined in the following CodeBuild buil
 
 An optional approval step could be added between plan and apply as shown in the pipeline definition below.
 
-Refer to sample-terraform repository in samples for an example of terraform pipeline.
+Please look into the [sample-terraform](../samples/sample-terraform) pipeline for more details in the setup and integration.
 
 **Parameters**
 
