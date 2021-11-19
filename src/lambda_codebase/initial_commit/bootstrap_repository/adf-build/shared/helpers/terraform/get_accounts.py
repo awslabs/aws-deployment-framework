@@ -130,5 +130,6 @@ def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> li
             })
     return account_list
 
+
 if __name__ == "__main__":
     main()
