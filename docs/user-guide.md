@@ -781,7 +781,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
      ```
 
 5. Push to your terraform ADF repository, for example the sample-terraform one.
-6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
+6. Pipeline contains a manual approval step between terraform plan and terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
 
