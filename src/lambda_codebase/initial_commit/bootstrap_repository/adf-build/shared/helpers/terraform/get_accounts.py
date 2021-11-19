@@ -35,6 +35,7 @@ def list_organizational_units_for_parent(parent_ou):
     ]
     return organizational_units
 
+
 def get_accounts():
     # Return an array of objects like this: [{'AccountId':'xxx','Email':''}]
     account_details = []
