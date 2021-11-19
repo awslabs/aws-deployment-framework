@@ -69,8 +69,8 @@ fi
 echo "List of target regions: $REGIONS"
 for REGION in $(echo $REGIONS | sed "s/,/ /g")
 do  
-    AWS_REGION=$REGION
-    export TF_VAR_TARGET_REGION=$REGION
+    AWS_REGION=$(echo -n $REGION | sed 's/^[ \t]*//;s/[ \t]*$//')  # sed trims whitespaces
+    export TF_VAR_TARGET_REGION=$AWS_REGION
     # if TARGET_ACCOUNTS and TARGET_OUS are not defined apply to all accounts
     if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]]
     then
