@@ -14,8 +14,8 @@ if("TARGET_OUS" in os.environ):
     OU_PATH = os.environ["TARGET_OUS"]
 sts = boto3.client('sts')
 
+
 def main():
-    
     accounts = get_accounts()
     with open('accounts.json', 'w') as outfile:
         json.dump(accounts, outfile)
