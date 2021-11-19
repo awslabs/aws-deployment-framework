@@ -37,7 +37,7 @@ def list_organizational_units_for_parent(parent_ou):
 
 def get_accounts():
     # Return an array of objects like this: [{'AccountId':'xxx','Email':''}]
-    account_details = [] # [{'AccountId':'123','Email':''},{'AccountId':'456','Email':''}]
+    account_details = []
     LOGGER.info(
         "Management Account ID: %s",
         MANAGEMENT_ACC_ID
