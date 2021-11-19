@@ -39,9 +39,9 @@ def get_accounts():
     # Return an array of objects like this: [{'AccountId':'xxx','Email':''}]
     account_details = [] # [{'AccountId':'123','Email':''},{'AccountId':'456','Email':''}]
     LOGGER.info(
-            "Management Account ID: %s",
-            MANAGEMENT_ACC_ID
-        )
+        "Management Account ID: %s",
+        MANAGEMENT_ACC_ID
+    )
     # Assume a role into the management accounts role to get account ID's and emails
     organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
     return list(
