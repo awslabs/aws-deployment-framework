@@ -1,6 +1,5 @@
 # User Guide
 
-- [User Guide](#user-guide)
   - [Deployment Map](#deployment-map)
       - [Targeting via Tags](#targeting-via-tags)
     - [Important Notes](#important-notes)
@@ -737,9 +736,6 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
         account_id: 111111111111 # source account id
     build:
       provider: codebuild
-      properties:
-        environment_variables:
-          TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0.
     deploy:
       provider: codebuild
       properties:
@@ -780,8 +776,9 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
          └──────│   local.auto.tfvars <-- this file contains variables related to account 222222222222
      ```
 
-5. Push to your terraform ADF repository, for example the sample-terraform one.
-6. Pipeline contains a manual approval step between terraform plan and terraform apply. Confirm to proceed.
+5. Define the desired `TERRAFORM_VERSION` in the buildspec.yml file  as shown in the sample-terraform example
+6. Push to your terraform ADF repository, for example the sample-terraform one.
+7. Pipeline contains a manual approval step between terraform plan and terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
 

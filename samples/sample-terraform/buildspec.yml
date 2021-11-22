@@ -1,5 +1,8 @@
 version: 0.2
 
+env:
+  variables:
+    TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0.
 phases:
   install:
     commands:

@@ -32,9 +32,6 @@ An optional approval step could be added between plan and apply as shown in the 
         account_id: 111111111111 # source account id
     build:
       provider: codebuild
-      properties:
-        environment_variables:
-          TERRAFORM_VERSION: "1.0.10" # terraform version. The module support terraform version greater than 0.13.0.
     deploy:
       provider: codebuild
       properties:
@@ -75,8 +72,9 @@ An optional approval step could be added between plan and apply as shown in the 
          └──────│   local.auto.tfvars <-- this file contains variables related to account 222222222222
      ```
 
-5. Push to your sample-terraform ADF repository
-6. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
+5. Define the desired `TERRAFORM_VERSION` in the buildspec.yml file 
+6. Push to your sample-terraform ADF repository
+7. Pipeline contains a manual step approval between terraform plan and terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
 
