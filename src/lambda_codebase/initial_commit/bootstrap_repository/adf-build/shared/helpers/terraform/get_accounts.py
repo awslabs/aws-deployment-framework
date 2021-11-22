@@ -27,7 +27,7 @@ def main():
 
 
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getOrganizationUnits')
     organizational_units = [
         ou
         for org_units in organizations.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
@@ -44,7 +44,7 @@ def get_accounts():
         MANAGEMENT_ACC_ID
     )
     # Assume a role into the management accounts role to get account ID's and emails
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountIDs')
     return list(
         map(
             lambda account: {'AccountId': account['Id'], 'Email': account['Email']},
@@ -59,7 +59,7 @@ def get_accounts():
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountID')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getRootAccountIDs')
     # Read organization root id
     root_ids = list(
         map(
