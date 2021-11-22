@@ -19,7 +19,7 @@ def main():
     with open('accounts.json', 'w') as outfile:
         json.dump(accounts, outfile)
 
-    if("TARGET_OUS" in os.environ):
+    if OU_PATH:
         accounts_from_ous = get_accounts_from_ous()
         with open('accounts_from_ous.json', 'w') as outfile:
             json.dump(accounts_from_ous, outfile)
