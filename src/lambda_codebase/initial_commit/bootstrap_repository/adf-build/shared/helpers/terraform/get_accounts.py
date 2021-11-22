@@ -9,8 +9,8 @@ logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-MANAGEMENT_ACC_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
-OU_PATH = os.environ.get("TARGET_OUS"])
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
+TARGET_OUS = os.environ.get("TARGET_OUS")
 sts = boto3.client('sts')
 
 
@@ -19,14 +19,14 @@ def main():
     with open('accounts.json', 'w') as outfile:
         json.dump(accounts, outfile)
 
-    if OU_PATH:
+    if TARGET_OUS:
         accounts_from_ous = get_accounts_from_ous()
         with open('accounts_from_ous.json', 'w') as outfile:
             json.dump(accounts_from_ous, outfile)
 
 
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getOrganizationUnits')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getOrganizationUnits')
     organizational_units = [
         ou
         for org_units in organizations.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
@@ -40,10 +40,10 @@ def get_accounts():
     account_details = []
     LOGGER.info(
         "Management Account ID: %s",
-        MANAGEMENT_ACC_ID
+        MANAGEMENT_ACCOUNT_ID
     )
     # Assume a role into the management accounts role to get account ID's and emails
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountIDs')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountIDs')
     return list(
         map(
             lambda account: {'AccountId': account['Id'], 'Email': account['Email']},
@@ -58,7 +58,7 @@ def get_accounts():
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
-    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACC_ID}:role/OrganizationAccountAccessRole-readonly', 'getRootAccountIDs')
+    organizations = get_boto3_client('organizations', f'arn:aws:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getRootAccountIDs')
     # Read organization root id
     root_ids = list(
         map(
@@ -67,12 +67,12 @@ def get_accounts_from_ous():
         )
     )
     root_id = root_ids[0]['AccountId'] 
-    for path in OU_PATH.split(','):
-        # Set initial OU to start looking for given OU_PATH
+    for path in TARGET_OUS.split(','):
+        # Set initial OU to start looking for given TARGET_OUS
         if parent_ou_id is None:
             parent_ou_id = root_id
 
-        # Parse OU_PATH and find the ID
+        # Parse TARGET_OUS and find the ID
         ou_hierarchy = path.strip('/').split('/')
         hierarchy_index = 0
         if(path.strip() == '/'):
