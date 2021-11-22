@@ -10,8 +10,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 MANAGEMENT_ACC_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
-if("TARGET_OUS" in os.environ):
-    OU_PATH = os.environ["TARGET_OUS"]
+OU_PATH = os.environ.get("TARGET_OUS"])
 sts = boto3.client('sts')
 
 
