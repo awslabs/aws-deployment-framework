@@ -63,7 +63,7 @@ def get_accounts_from_ous():
     # Read organization root id
     root_ids = list(
         map(
-            lambda root: {'AccountId': root['Id']]},
+            lambda root: {'AccountId': root['Id']},
             paginator(organizations.list_roots)
         )
     )
