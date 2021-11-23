@@ -75,7 +75,7 @@ do
     if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]]
     then
         echo "Apply to all accounts" 
-        for ACCOUNT_ID in $(jq '.[].AccountId' "$CURRENT"/accounts.json | sed 's/"//g' ) 
+        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts.json" | sed 's/"//g' ) 
         do
             tfrun
         done
