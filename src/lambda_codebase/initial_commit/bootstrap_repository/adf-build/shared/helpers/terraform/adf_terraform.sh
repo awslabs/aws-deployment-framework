@@ -37,7 +37,7 @@ tfplan(){
     echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
 }
 tfapply(){
-    terraform apply "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"
+    terraform apply "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}"
 }
 tfrun(){
     export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
