@@ -117,7 +117,7 @@ def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> li
     )
     for page in pages:
         for child in page['Children']:
-            account_list.extend(get_account_recursive(org_client, child['Id'], path+ou_id+'/'))
+            account_list.extend(get_account_recursive(org_client, child['Id'], f"{path}{ou_id}/"))
 
     # Get Accounts
     pages = paginator.paginate(
