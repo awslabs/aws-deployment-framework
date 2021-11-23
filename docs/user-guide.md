@@ -198,6 +198,16 @@ targets:
     properties: ...    
 ```
 
+CodePipeline has a limit of 50 actions per stage.
+A stage is identified in the above list of targets with a new entry in the array, using `-`.
+
+To workaround this limit, ADF will split the accounts x regions that are selected as part of one stage over multiple stages when required.
+A new stage is introduced for every 50 accounts/region deployments by default. The default of 50 will make sense for most pipelines.
+However, in some situations, you would like to limit the rate at which an update is rolled out to the list of accounts/regions.
+This can be configured using the `wave_config/size` target property. Setting these to `30` as shown above, will introduce a new stage for every 30 accounts/regions.
+If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26, but account `9999999999` is excluded by the setup above), multiplied by the two regions it targets in the last step, the total of account/region deployment actions required would be 50.
+Since the configuration is set to 30, the first 30 accounts will be deployed to in the first stage. If all of these successfully deploy, the pipeline will continue to the next stage, deploying to the remaining 20 account/regions.
+
 ### Params
 
 Pipelines also have parameters that don't relate to a specific stage but rather the pipeline as a whole. For example, a pipeline might have an single notification endpoint in which it would send a notification when it completes or fails. It also might have things such as a schedule for how often it runs.
