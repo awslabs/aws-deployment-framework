@@ -15,7 +15,7 @@ tfinit(){
     if [ -d "$CURRENT/tfvars/$TF_VAR_TARGET_ACCOUNT_ID" ]; then
         cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}/*" "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     fi
-    cp -R "$CURRENT"/tfvars/global.auto.tfvars "$CURRENT"/tmp/"$TF_VAR_TARGET_ACCOUNT_ID"-"$AWS_REGION"
+    cp -R "${CURRENT}/tfvars/global.auto.tfvars" "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     terraform init \
         -backend-config "bucket=$S3_BUCKET_REGION_NAME" \
         -backend-config "region=$AWS_REGION" \
