@@ -718,10 +718,11 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 
 **Parameters**
 
-- `TERRAFORM_VERSION`: the terraform version used to deploy the resource.
+- `TERRAFORM_VERSION`: the terraform version used to deploy the resource. This parameter must be defined in the `buildspec.yml` file of the repository.
 - `TARGET_ACCOUNTS`: comma separated list of target accounts.
 - `TARGET_OUS`: comma separated list of target leaf OUs (parent OUs are supported).
 - `REGIONS`: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
+- `MANAGEMENT_ACCOUNT_ID`: id of the AWS Organizations management account.
 
 **Deployment procedure**
 
@@ -759,7 +760,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 ```
 
 2. Add the project name in `params/global.yml` file.
-3. Add terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf`.
+3. Add terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf` which contain the definition of the remote state file location, terraform provider definition. Any change to these files could affect the standard functionalities of this module.
 4. Add variable definition to `tf/variables.tf` file and variable values to `tfvars/global.auto.tfvars`.
 
    - Local variables (per account) can be configured using the following naming convention
