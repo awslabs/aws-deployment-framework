@@ -72,10 +72,8 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
 
 
 def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_waves_and_1_wave():
-
     region_name = "eu-central-1"
     acount_id = "123456789012"
-
 
     stack_input = {
         "input": {
