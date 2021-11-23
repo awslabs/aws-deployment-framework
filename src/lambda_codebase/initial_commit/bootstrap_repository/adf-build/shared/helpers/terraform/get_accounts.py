@@ -1,7 +1,7 @@
-import boto3
 import json
-import os
 import logging
+import os
+import boto3
 from paginator import paginator
 
 # Configure logging
