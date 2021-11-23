@@ -95,7 +95,7 @@ do
     if ! [[ -z "$TARGET_OUS" ]]
     then
         echo "List target OUs: $TARGET_OUS" 
-        for ACCOUNT_ID in $(jq '.[].AccountId' "$CURRENT"/accounts_from_ous.json | sed 's/"//g' ) 
+        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_ous.json" | sed 's/"//g' ) 
         do
             tfrun
         done
