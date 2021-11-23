@@ -85,7 +85,6 @@ do
     then
         # apply only on a subset of accounts (TARGET_ACCOUNTS)
         echo "List of target account: $TARGET_ACCOUNTS"
-        #for i in "${account_list[@]}"
         for ACCOUNT_ID in $(echo $TARGET_ACCOUNTS | sed "s/,/ /g")
         do  
             tfrun
