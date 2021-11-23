@@ -59,7 +59,7 @@ An optional approval step could be added between plan and apply as shown in the 
 3. Add Terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf` which contain the definition of the remote state file location, Terraform provider definition. Any change to these files could affect the standard functionalities of this module.
 4. Add variable definition to `tf/variables.tf` file and variable values to `tfvars/global.auto.tfvars`.
 
-   - Local variables (per account) can be configured using the following naming convention
+   - Local variables (per account) can be configured using the following naming convention:
 
      ```
      tfvars <-- This folder contains the structure to define Terraform variables
