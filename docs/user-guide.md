@@ -718,7 +718,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 
 **Parameters**
 
-- `TERRAFORM_VERSION`: the terraform version used to deploy the resource. This parameter must be defined in the `buildspec.yml` file of the repository.
+- `TERRAFORM_VERSION`: the Terraform version used to deploy the resource. This parameter must be defined in the `buildspec.yml` file of the repository.
 - `TARGET_ACCOUNTS`: comma separated list of target accounts.
 - `TARGET_OUS`: comma separated list of target leaf OUs (parent OUs are supported).
 - `REGIONS`: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
@@ -749,24 +749,24 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
   targets:
     - name: terraform-scan # optional
       properties:
-        spec_filename: tf_scan.yml # terraform scan
+        spec_filename: tf_scan.yml # Terraform scan
     - name: terraform-plan
       properties:
-        spec_filename: tf_plan.yml # terraform plan
+        spec_filename: tf_plan.yml # Terraform plan
     - approval # manual approval
     - name: terraform-apply
       properties:
-        spec_filename: tf_apply.yml # terraform apply
+        spec_filename: tf_apply.yml # Terraform apply
 ```
 
 2. Add the project name in `params/global.yml` file.
-3. Add terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf` which contain the definition of the remote state file location, terraform provider definition. Any change to these files could affect the standard functionalities of this module.
+3. Add Terraform code to the `tf` folder. Do not make changes to `backend.tf` file and `main.tf` which contain the definition of the remote state file location, Terraform provider definition. Any change to these files could affect the standard functionalities of this module.
 4. Add variable definition to `tf/variables.tf` file and variable values to `tfvars/global.auto.tfvars`.
 
    - Local variables (per account) can be configured using the following naming convention
 
      ```
-     tfvars <-- This folder contains the structure to define terraform variables
+     tfvars <-- This folder contains the structure to define Terraform variables
      │
      └───global.auto.tfvars <-- this file contains global variables applied to all the target accounts
      │
@@ -778,8 +778,8 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
      ```
 
 5. Define the desired `TERRAFORM_VERSION` in the `buildspec.yml` file as shown in the sample-terraform example. ADF supports Terraform version v0.13.0 and later.
-6. Push to your terraform ADF repository, for example the sample-terraform one.
-7. Pipeline contains a manual approval step between terraform plan and terraform apply. Confirm to proceed.
+6. Push to your Terraform ADF repository, for example the sample-terraform one.
+7. Pipeline contains a manual approval step between Terraform plan and Terraform apply. Confirm to proceed.
 
 Terraform state files are stored in the regional S3 buckets in the deployment account. One state file per account/region/module is created.
 
