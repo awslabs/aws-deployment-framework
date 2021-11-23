@@ -7,8 +7,8 @@ The module consists of four build stages defined in the following file:
 
 - `buildspec.yml`: install the version of Terraform specified in the pipeline configuration.
 - `tf_scan.yml`: (optional) scans for vulnerabilities in the terraform code using the terrascan application. If vulnerabilities are found, it will fail and block further execution in the pipeline. It is recommended to enable this step in all ADF terraform pipelines.
-- `tf_plan.yml`: get the list of accounts from the organization and run a terraform plan
-- `tf_apply.yml`: get the list of accounts from the organization and run a terraform plan and apply
+- `tf_plan.yml`: get the list of accounts from the organization and run a Terraform plan.
+- `tf_apply.yml`: get the list of accounts from the organization and run a Terraform plan and apply.
 
 An optional approval step could be added between plan and apply as shown in the pipeline definition below.
 
