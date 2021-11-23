@@ -30,10 +30,10 @@ tfinit(){
 tfplan(){  
     DATE=$(date +%Y-%m-%d)
     TS=$(date +%Y%m%d%H%M%S)
-    bash "$CURRENT"/adf-build/helpers/sts.sh "$TF_VAR_TARGET_ACCOUNT_ID" "$TF_VAR_TARGET_ACCOUNT_ROLE"
-    terraform plan -out "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID" 2>&1 | tee -a "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log        
-    # Save terraform plan to S3 bucket
-    aws s3 cp "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log s3://"$S3_BUCKET_REGION_NAME"/"$ADF_PROJECT_NAME"/tf-plan/"$DATE"/"$TF_VAR_TARGET_ACCOUNT_ID"/"$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-"$TS".log
+    bash "$CURRENT/adf-build/helpers/sts.sh" "$TF_VAR_TARGET_ACCOUNT_ID" "$TF_VAR_TARGET_ACCOUNT_ROLE"
+    terraform plan -out "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}" 2>&1 | tee -a "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"        
+    # Save Terraform plan results to the S3 bucket
+    aws s3 cp "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" "s3://${S3_BUCKET_REGION_NAME}/${ADF_PROJECT_NAME}/tf-plan/${DATE}/${TF_VAR_TARGET_ACCOUNT_ID}/${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"
     echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
 }
 tfapply(){
