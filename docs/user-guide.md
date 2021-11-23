@@ -776,7 +776,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
          └──────│   local.auto.tfvars <-- this file contains variables related to account 222222222222
      ```
 
-5. Define the desired `TERRAFORM_VERSION` in the buildspec.yml file  as shown in the sample-terraform example
+5. Define the desired `TERRAFORM_VERSION` in the `buildspec.yml` file as shown in the sample-terraform example. ADF supports Terraform version v0.13.0 and later.
 6. Push to your terraform ADF repository, for example the sample-terraform one.
 7. Pipeline contains a manual approval step between terraform plan and terraform apply. Confirm to proceed.
 
