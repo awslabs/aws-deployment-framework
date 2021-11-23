@@ -704,7 +704,7 @@ Important note: `ADFTerraformPolicy` IAM policy is a sample. This policies shoul
 
 **Overview**
 
-ADF support the deployment of terraform code to multiple accounts and regions through terraform pipelines.
+ADF support the deployment of Terraform code to multiple accounts and regions through Terraform pipelines.
 The module consists of four build stages defined in the following CodeBuild build specification:
 
 - `buildspec.yml`: install the version of terraform specified in the pipeline configuration
