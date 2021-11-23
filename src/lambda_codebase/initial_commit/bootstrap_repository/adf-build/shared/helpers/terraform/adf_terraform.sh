@@ -56,7 +56,7 @@ tfrun(){
         tfapply
         set +e
     else 
-        echo "Invalid terraform command"
+        echo "Invalid Terraform stage: TF_STAGE = $TF_STAGE"
         exit 1
     fi
 }
