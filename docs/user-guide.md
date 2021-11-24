@@ -191,7 +191,7 @@ targets:
   - path: /my_ou/production/some_path
     regions: [eu-central-1, us-west-1]
     name: another_step
-    wave_config:
+    wave:
       size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
     exclude: 
       - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids 
@@ -204,7 +204,7 @@ A stage is identified in the above list of targets with a new entry in the array
 To workaround this limit, ADF will split the accounts x regions that are selected as part of one stage over multiple stages when required.
 A new stage is introduced for every 50 accounts/region deployments by default. The default of 50 will make sense for most pipelines.
 However, in some situations, you would like to limit the rate at which an update is rolled out to the list of accounts/regions.
-This can be configured using the `wave_config/size` target property. Setting these to `30` as shown above, will introduce a new stage for every 30 accounts/regions.
+This can be configured using the `wave/size` target property. Setting these to `30` as shown above, will introduce a new stage for every 30 accounts/regions.
 If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26, but account `9999999999` is excluded by the setup above), multiplied by the two regions it targets in the last step, the total of account/region deployment actions required would be 50.
 Since the configuration is set to 30, the first 30 accounts will be deployed to in the first stage. If all of these successfully deploy, the pipeline will continue to the next stage, deploying to the remaining 20 account/regions.
 

@@ -302,7 +302,7 @@ TARGET_LIST_SCHEMA = [Or(
     int
 )]
 
-TARGET_WAVE_CONFIG_SCHEME = {
+TARGET_wave_SCHEME = {
     Optional("size", default=50): int,
 }
 
@@ -317,7 +317,7 @@ TARGET_SCHEMA = {
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
     Optional("regions"): REGION_SCHEMA,
     Optional("exclude", default=[]): [str],
-    Optional("wave_config", default={"size": 50}): TARGET_WAVE_CONFIG_SCHEME
+    Optional("wave", default={"size": 50}): TARGET_wave_SCHEME
 }
 COMPLETION_TRIGGERS_SCHEMA = {
     "pipelines": [str]

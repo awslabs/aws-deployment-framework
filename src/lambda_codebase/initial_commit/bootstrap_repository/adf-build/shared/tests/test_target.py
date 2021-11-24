@@ -119,8 +119,8 @@ def test_fetch_account_error_invalid_account_id():
         cls.fetch_accounts_for_target()
 
 
-def test_target_scructure_respects_wave_config():
-    test_target_config = {"path": "/some/random/ou", "wave_config": {"size": 2}}
+def test_target_scructure_respects_wave():
+    test_target_config = {"path": "/some/random/ou", "wave": {"size": 2}}
     target_structure = TargetStructure(
         target=test_target_config,
     )
@@ -205,7 +205,7 @@ def test_target_scructure_respects_wave_config():
 def test_target_wave_scructure_respects_exclude_config():
     test_target_config = {
         "path": "/some/random/ou",
-        "wave_config": {"size": 2},
+        "wave": {"size": 2},
         "exclude": ["5"],
     }
     target_structure = TargetStructure(

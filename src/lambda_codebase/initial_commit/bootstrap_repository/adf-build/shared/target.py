@@ -23,7 +23,7 @@ class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
         self.account_list = []
-        self.wave_config = target.get('wave_config', {}) if isinstance(target, dict) else {}
+        self.wave = target.get('wave', {}) if isinstance(target, dict) else {}
         self.exclude = target.get('exclude', []) if isinstance(target, dict) else []
 
     @staticmethod
@@ -49,7 +49,7 @@ class TargetStructure:
 
     def generate_waves(self):
         waves = []
-        wave_size = self.wave_config.get('size', 50)
+        wave_size = self.wave.get('size', 50)
         length = len(self.account_list)
         for index in range(0, length, wave_size):
             yield self.account_list[index:min(index + wave_size, length)]
