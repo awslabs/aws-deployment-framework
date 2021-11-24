@@ -12,7 +12,7 @@ The module consists of four build stages defined in the following CodeBuild buil
 
 An optional approval step could be added between plan and apply as shown in the pipeline definition below.
 
-**Parameters**
+## Parameters
 
 - `TERRAFORM_VERSION`: the Terraform version used to deploy the resource. This parameter must be defined in the `buildspec.yml` file of the repository.
 - `TARGET_ACCOUNTS`: comma separated list of target accounts.
