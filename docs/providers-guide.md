@@ -87,6 +87,10 @@ Provider type: `codecommit`.
   >
   > By default, it will trigger on changes using the event triggered by
   > CodeCommit when an update to the repository took place.
+- *output_artifact_format* - *(String)* default: `CODE_ZIP`
+  > The output artifact format. Values can be either CODEBUILD_CLONE_REF or CODE_ZIP. If unspecified, the default is CODE_ZIP.
+  > If you are using CODEBUILD_CLONE_REF, you need to ensure that the IAM role passed in via the *role* property has the CodeCommit:GitPull permission. 
+  > NB: The CODEBUILD_CLONE_REF value can only be used by CodeBuild downstream actions. 
 
 ### GitHub
 
@@ -231,6 +235,14 @@ Provider type: `codebuild`.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
   > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
+  > 
+  > Image can also take an object that contains a reference to a
+  > public docker hub image with a prefix of `docker-hub://`, such as
+  > `docker-hub://bitnami/mongodb`. This allows your pipeline
+  > to consume a public docker hub image if required.
+  > Along with the docker hub image name, we also support using a tag which can
+  > be provided after the docker hub image name such as `docker-hub://bitnami/mongodb:3.6.23`
+  > in order to define which image should be used (defaults to `latest`).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).

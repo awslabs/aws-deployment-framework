@@ -5,35 +5,35 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Service Catalog Product
 Metadata:
   License: Apache-2.0
-Parameters: 
+Parameters:
   Environment:
     Type: String
     Default: testing
-    AllowedValues: 
+    AllowedValues:
       - testing
     Description: The environment to use, IDE are only supported in testing
-  InstanceType: 
+  InstanceType:
     Type: String
     Default: t3.micro
-    AllowedValues: 
+    AllowedValues:
       - t3.micro
       - m5.large
     Description: Enter t3.micro or m5.large. Default is t3.micro.
-  AutomaticStopTimeInMinutes: 
+  AutomaticStopTimeInMinutes:
     Type: Number
     Default: 480
     AllowedValues:
       - 480
       - 960
     Description: The amount of minutes that this Cloud9 Instance should stop after (8 or 16 hours).
-  InstanceDescription: 
+  InstanceDescription:
     Type: String
     Default: "Development environment used during office hours"
     Description: The Description of the Cloud9 Instance.
-  InstanceName: 
+  InstanceName:
     Type: String
     Description: The name of the Cloud9 Instance.
-  UserName: 
+  UserName:
     Type: String
     Description: Your IAM UserName that will be used as the OwnerArn in the Cloud9 Instance.
 Resources:
@@ -44,7 +44,7 @@ Resources:
       Description: !Ref InstanceDescription
       InstanceType: !Ref InstanceType
       Name: !Ref InstanceName
-      OwnerArn: !Sub "arn:aws:iam::${AWS::AccountId}:user/${UserName}" #In this sample case 'sample-developer' from the IAM stack can be used here
+      OwnerArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UserName}" #In this sample case 'sample-developer' from the IAM stack can be used here
       SubnetId:
           Fn::ImportValue:
               Fn::Sub: ${Environment}-public-subnet-1a # Imported from sample-vpc

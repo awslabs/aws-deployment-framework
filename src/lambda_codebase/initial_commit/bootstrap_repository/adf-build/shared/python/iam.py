@@ -5,13 +5,18 @@
 """
 
 import json
+import os
+
 from logger import configure_logger
+from partition import get_partition
 
 LOGGER = configure_logger(__name__)
+REGION_DEFAULT = os.getenv('AWS_REGION')
+PARTITION = get_partition(REGION_DEFAULT)
+
 
 class IAM:
-    """Class used for modeling IAM
-    """
+    """Class used for modeling IAM."""
 
     def __init__(self, role):
         self.client = role.client('iam')
@@ -70,13 +75,10 @@ class IAM:
         for statement in _policy.get('Statement', None):
             if statement['Sid'] == 'S3':
                 LOGGER.debug('calling _update_iam_policy_bucket for bucket_name %s', bucket_name)
-                if "arn:aws:s3:::{0}".format(
-                        bucket_name) not in statement['Resource']:
+                if f"arn:{PARTITION}:s3:::{bucket_name}" not in statement['Resource']:
                     LOGGER.info('Updating Role %s to access %s', self.role_name, bucket_name)
-                    statement['Resource'].append(
-                        "arn:aws:s3:::{0}".format(bucket_name))
-                    statement['Resource'].append(
-                        "arn:aws:s3:::{0}/*".format(bucket_name))
+                    statement['Resource'].append(f"arn:{PARTITION}:s3:::{bucket_name}")
+                    statement['Resource'].append(f"arn:{PARTITION}:s3:::{bucket_name}/*")
 
         self._set_policy(_policy)
 

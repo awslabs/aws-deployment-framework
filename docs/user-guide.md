@@ -8,6 +8,7 @@
   - [Targets Syntax](#targets-syntax)
   - [Params](#params)
   - [Completion Triggers](#completion-triggers)
+  - [Additional Triggers](#additional-triggers)
   - [Additional Deployment Maps](#additional-deployment-maps)
   - [Repositories](#repositories)
   - [Removing Pipelines](#removing-pipelines)
@@ -195,7 +196,25 @@ targets:
     name: production_step
     provider: ...
     properties: ...
+  - path: /my_ou/production/some_path
+    regions: [eu-central-1, us-west-1]
+    name: another_step
+    wave:
+      size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
+    exclude: 
+      - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids 
+    properties: ...    
 ```
+
+CodePipeline has a limit of 50 actions per stage.
+A stage is identified in the above list of targets with a new entry in the array, using `-`.
+
+To workaround this limit, ADF will split the accounts x regions that are selected as part of one stage over multiple stages when required.
+A new stage is introduced for every 50 accounts/region deployments by default. The default of 50 will make sense for most pipelines.
+However, in some situations, you would like to limit the rate at which an update is rolled out to the list of accounts/regions.
+This can be configured using the `wave/size` target property. Setting these to `30` as shown above, will introduce a new stage for every 30 accounts/regions.
+If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26, but account `9999999999` is excluded by the setup above), multiplied by the two regions it targets in the last step, the total of account/region deployment actions required would be 50.
+Since the configuration is set to 30, the first 30 accounts will be deployed to in the first stage. If all of these successfully deploy, the pipeline will continue to the next stage, deploying to the remaining 20 account/regions.
 
 ### Params
 
@@ -222,7 +241,7 @@ The following are the available pipeline parameters:
 
 ### Completion Triggers
 
-Pipelines can also trigger other pipelines upon completion. To do this, use the *completion_trigger* key on the pipeline definition. For example:
+Pipelines can also trigger other pipelines upon completion. To do this, use the *on_complete* key on the triggers definition. For example:
 
 ```yaml
   - name: ami-builder
@@ -237,9 +256,10 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         size: medium
     params:
       schedule: rate(7 days)
-    completion_trigger: # What should happen when this pipeline completes
-      pipelines:
-        - my-web-app-pipeline # Start this pipeline
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      on_complete:
+        pipelines:
+          - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -255,7 +275,44 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         name: web-app-testing
 ```
 
-In the above example, the *ami-builder* pipeline runs every 7 days based on its schedule. When it completes, it executes the *my-web-app-pipeline* pipeline as defined in its *completion_trigger* property.
+Completion triggers can also be defined in a short handed fashion. Take the above example for the ami-builder pipeline.
+```yaml
+  - name: ami-builder
+    # Default providers and parameters are the same as defined above.
+    # Only difference: instead of using `triggers` it uses the `completion_triggers`
+    params:
+      schedule: rate(7 days)
+    completion_triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      pipelines:
+        - my-web-app-pipeline # Start this pipeline
+
+  - name: my-web-app-pipeline
+    # Same configuration as defined above.
+```
+
+
+### Additional Triggers
+
+Pipelines can also be triggered by other events using the *triggered_by* key on the triggers definition. For example, a new version of a package hosted on CodeArtifact being published:
+
+```yaml
+  - name: ami-builder
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        role: packer
+        size: medium
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      triggered_by:
+        code_artifact:
+          repository: my_test_repository
+```
+
+In the above example, the *ami-builder* pipeline is triggered when a new package version is published to the *my_test_repository* repository in CodeArtifact. 
 
 ### Additional Deployment Maps
 

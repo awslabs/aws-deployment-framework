@@ -6,11 +6,14 @@
 
 import glob
 import ast
+import os
+
 from organizations import Organizations
 from errors import ParameterNotFoundError
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
+REGION_DEFAULT = os.getenv('AWS_REGION')
 
 
 class OrganizationPolicy:
@@ -41,6 +44,15 @@ class OrganizationPolicy:
     @staticmethod
     def _trim_tagging_policy_file_name(policy):
         return policy[1:][:-19] if policy[1:][:-19] == '/' else policy[2:][:-20]
+
+    @staticmethod
+    def _is_govcloud(region: str) -> bool:
+        """Evaluates the region to determine if it is part of GovCloud.
+
+        :param region: a region (us-east-1, us-gov-west-1)
+        :return: Returns True if the region is GovCloud, False otherwise.
+        """
+        return region.startswith('us-gov')
 
     @staticmethod
     def set_scp_attachment(
@@ -97,7 +109,16 @@ class OrganizationPolicy:
             'Determining if Organization Policy changes are required. (Tagging or Service Controls)')
         organization_mapping = organizations.get_organization_map(
             {'/': organizations.get_ou_root_id()})
-        for policy in ['scp', 'tagging-policy']:
+
+        supported_policies = [
+            'scp',
+            'tagging-policy'
+        ]
+
+        if self._is_govcloud(REGION_DEFAULT):
+            supported_policies = ['scp']
+
+        for policy in supported_policies:
             _type = 'SERVICE_CONTROL_POLICY' if policy == 'scp' else 'TAG_POLICY'
             organizations.enable_organization_policies(_type)
             _policies = OrganizationPolicy._find_all(policy)

@@ -10,9 +10,14 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 
+NOTIFICATION_PROPS = {
+    Optional("target"): str,
+    Optional("type") : Or("lambda", "chat_bot")
+}
+
 # Pipeline Params
 PARAM_SCHEMA = {
-    Optional("notification_endpoint"): str,
+    Optional("notification_endpoint"): Or(str, NOTIFICATION_PROPS),
     Optional("schedule"): str,
     Optional("restart_execution_on_update"): bool,
     Optional("pipeline_type", default="default"): Or("default"),
@@ -51,6 +56,7 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("owner"): str,
     Optional("role"): str,
     Optional("trigger_on_changes"): bool,
+    Optional("output_artifact_format", default=None): Or("CODEBUILD_CLONE_REF", "CODE_ZIP", None)
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -296,6 +302,10 @@ TARGET_LIST_SCHEMA = [Or(
     int
 )]
 
+TARGET_WAVE_SCHEME = {
+    Optional("size", default=50): int,
+}
+
 # Pipeline Params
 
 TARGET_SCHEMA = {
@@ -305,10 +315,22 @@ TARGET_SCHEMA = {
     Optional("name"): str,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
-    Optional("regions"): REGION_SCHEMA
+    Optional("regions"): REGION_SCHEMA,
+    Optional("exclude", default=[]): [str],
+    Optional("wave", default={"size": 50}): TARGET_WAVE_SCHEME
 }
 COMPLETION_TRIGGERS_SCHEMA = {
     "pipelines": [str]
+}
+PIPELINE_TRIGGERS_SCHEMA = {
+    Optional("code_artifact"): {
+      "repository": str,
+      Optional("package"): str,
+    }
+}
+TRIGGERS_SCHEMA = {
+    Optional("on_complete"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggered_by"): [PIPELINE_TRIGGERS_SCHEMA],
 }
 PIPELINE_SCHEMA = {
     "name": And(str, len),
@@ -317,7 +339,8 @@ PIPELINE_SCHEMA = {
     Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
     Optional("regions"): REGION_SCHEMA,
-    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
+    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggers"): TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
     "pipelines": [PIPELINE_SCHEMA],

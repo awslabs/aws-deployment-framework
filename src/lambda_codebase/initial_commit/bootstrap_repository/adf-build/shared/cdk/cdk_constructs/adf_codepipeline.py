@@ -10,6 +10,8 @@ import boto3
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
+    aws_events as _eventbridge,
+    aws_events_targets as _eventbridge_targets,
     core
 )
 
@@ -21,8 +23,27 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+
 
 LOGGER = configure_logger(__name__)
+
+
+def get_partition(region_name: str) -> str:
+    """Given the region, this function will return the appropriate partition.
+
+    :param region_name: The name of the region (us-east-1, us-gov-west-1)
+    :return: Returns the partition name as a string.
+    """
+
+    if region_name.startswith('us-gov'):
+        return 'aws-us-gov'
+
+    return 'aws'
+
+
+ADF_DEPLOYMENT_PARTITION = get_partition(ADF_DEPLOYMENT_REGION)
+
 
 class Action:
     _version = "1"
@@ -43,6 +64,10 @@ class Action:
         self.account_id = self.map_params["default_providers"]["source"].get('properties', {}).get("account_id")
         self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
+        self.default_scm_branch = self.map_params.get(
+            "default_scm_branch",
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
@@ -53,7 +78,7 @@ class Action:
         specific_role = self.target.get('properties', {}).get('role') or default_provider.get('properties', {}).get('role')
         if specific_role:
             account_id = self.account_id if self.provider == 'CodeBuild' else self.target['id']
-            return 'arn:aws:iam::{0}:role/{1}'.format(account_id, specific_role)
+            return f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/{specific_role}'
         return None
 
     def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
@@ -110,13 +135,17 @@ class Action:
             return {
                 "ConnectionArn": connection_arn,
                 "FullRepositoryId": f"{owner}/{repo}",
-                "BranchName": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master'
+                "BranchName": self.map_params.get('default_providers', {}).get(
+                    'source', {}).get('properties', {}).get(
+                        'branch',
+                        self.default_scm_branch
+                    )
             }
         if self.provider == "GitHub":
             return {
                 "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
                 "Repo": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name'],
-                "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master',
+                "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
                 # pylint: disable=no-value-for-parameter
                 "OAuthToken": core.SecretValue.secrets_manager(
                     self.map_params['default_providers']['source'].get('properties', {}).get('oauth_token_path'),
@@ -170,7 +199,7 @@ class Action:
                     region=self.region,
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
-                "RoleArn": "arn:aws:iam::{0}:role/adf-cloudformation-deployment-role".format(self.target['id']) if not self.role_arn else self.role_arn
+                "RoleArn": "arn:{0}:iam::{1}:role/adf-cloudformation-deployment-role".format(ADF_DEPLOYMENT_PARTITION, self.target['id']) if not self.role_arn else self.role_arn
             }
             if self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
                 _props["TemplatePath"] = "{input_artifact}::{path_prefix}template_{region}.yml".format(
@@ -227,7 +256,7 @@ class Action:
                     'properties', {}).get(
                         'product_id') or self.map_params['default_providers']['deploy'].get(
                             'properties', {}).get(
-                                'product_id') # product_id is required for Service Catalog, meaning the product must already exist.
+                                'product_id')  # product_id is required for Service Catalog, meaning the product must already exist.
             }
         if self.provider == "CodeDeploy":
             return {
@@ -247,19 +276,25 @@ class Action:
                                         'deployment_group_name')
             }
         if self.provider == "CodeCommit":
-            return {
-                "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', 'master'),
+            props =  {
+                "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', self.default_scm_branch),
                 "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
                 "PollForSourceChanges": (
                     self.map_params['default_providers']['source'].get('properties', {}).get('trigger_on_changes', True)
                     and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
                 )
             }
+            output_artifact_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
+            if output_artifact_format:
+                props["OutputArtifactFormat"] = output_artifact_format
+            return props
         raise Exception("{0} is not a valid provider".format(self.provider))
 
-    def _generate_codepipeline_access_role(self): #pylint: disable=R0911
+    def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
+        account_id = self.map_params['default_providers']['source']['properties']['account_id']
+
         if self.provider == "CodeCommit":
-            return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
         if self.provider == "GitHub":
             return None
         if self.provider == "CodeStarSourceConnection":
@@ -268,21 +303,21 @@ class Action:
             return None
         if self.provider == "S3" and self.category == "Source":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-codecommit-role".format(self.map_params['default_providers']['source']['properties']['account_id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "ServiceCatalog":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "CodeDeploy":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "Lambda":
             # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
             return None
         if self.provider == "CloudFormation":
-            return "arn:aws:iam::{0}:role/adf-cloudformation-role".format(self.target['id'])
+            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "Manual":
             return None
         raise Exception('Invalid Provider {0}'.format(self.provider))
@@ -396,6 +431,10 @@ class Pipeline(core.Construct):
         'SendSlackNotificationLambdaArn'
     ]
 
+    CODEARTIFACT_TRIGGER = "CODEARTIFACT"
+
+    _accepted_triggers = {"code_artifact": CODEARTIFACT_TRIGGER}
+
     def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns() #pylint: disable=W0632
@@ -407,28 +446,30 @@ class Pipeline(core.Construct):
             "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
             "tags": Pipeline.restructure_tags(map_params.get('tags', {}))
         }
+        self.default_scm_branch = map_params.get(
+            "default_scm_branch",
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
         self.cfn = _codepipeline.CfnPipeline(
             self,
             'pipeline',
             **_pipeline_args
         )
         adf_events.Events(self, 'events', {
-            "pipeline": 'arn:aws:codepipeline:{0}:{1}:{2}'.format(
-                ADF_DEPLOYMENT_REGION,
-                ADF_DEPLOYMENT_ACCOUNT_ID,
-                "{0}{1}".format(
-                    os.environ.get(
-                        "ADF_PIPELINE_PREFIX"),
-                    map_params['name'])),
+            "pipeline": (
+                f'arn:{ADF_DEPLOYMENT_PARTITION}:codepipeline:{ADF_DEPLOYMENT_REGION}:'
+                f'{ADF_DEPLOYMENT_ACCOUNT_ID}:'
+                f'{os.getenv("ADF_PIPELINE_PREFIX")}{map_params["name"]}'
+            ),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
-            "completion_trigger": map_params.get('completion_trigger'),
+            "completion_trigger": map_params.get('triggers', {}).get('on_complete', map_params.get('completion_trigger')),
             "schedule": map_params.get('schedule'),
             "source": {
                 "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
                 "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
                 "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
-                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', 'master'),
+                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
                 "poll_for_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('poll_for_changes', False),
                 "trigger_on_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
             }
@@ -465,3 +506,25 @@ class Pipeline(core.Construct):
             # pylint: disable=no-value-for-parameter
             _output.append(core.Fn.import_value(arn))
         return _output
+
+
+    def add_pipeline_trigger(self, trigger_type, trigger_config):
+        if trigger_type not in self._accepted_triggers:
+            LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
+            raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
+        trigger_type = self._accepted_triggers[trigger_type]
+
+        if trigger_type == self.CODEARTIFACT_TRIGGER:
+            details = {"repositoryName": trigger_config["repository"]}
+            if trigger_config.get("package"):
+                details["packageName"] = trigger_config["package"]
+            _eventbridge.Rule(
+                self,
+                f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config.get('package', 'all')}",
+                event_pattern=_eventbridge.EventPattern(
+                    source=["aws.codeartifact"],
+                    detail_type=["CodeArtifact Package Version State Change"],
+                    detail=details,
+                ),
+                targets=[_eventbridge_targets.CodePipeline(pipeline=_codepipeline.Pipeline.from_pipeline_arn(self, "imported", pipeline_arn=self.cfn.ref))],
+            )

@@ -23,9 +23,9 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-codebuild-role"
-                - !Sub "arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role"
-                - !Sub "arn:aws:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
             Action:
               - sts:AssumeRole
       Path: /
@@ -58,7 +58,7 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Sub "arn:aws:iam::${AWS::AccountId}:root" # To update the master account
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" # To update the master account
             Action:
               - sts:AssumeRole
       Path: /
@@ -86,7 +86,7 @@ Resources:
               - cloudformation:UpdateStack
               - cloudformation:UpdateTerminationProtection
             Resource:
-              - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*"
           - Effect: Allow
             Action:
               - cloudformation:ValidateTemplate
@@ -107,12 +107,12 @@ Resources:
               - iam:PutRolePolicy
               - iam:DeleteRolePolicy
             Resource:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-cloudformation-role"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-codecommit-role"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-automation-role"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
       Roles:
         - !Ref OrganizationsRole

@@ -29,7 +29,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
           - Effect: Allow
@@ -63,8 +63,8 @@ Resources:
               - "s3:List*"
               - "s3:Put*"
             Resource:
-              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
-              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
           - Effect: Allow
             Action:
               - "kms:Decrypt"
@@ -104,8 +104,8 @@ Resources:
               - s3:List*
               - s3:Put*
             Resource:
-              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}
-              - !Sub arn:aws:s3:::${DeploymentAccountBucketName}/*
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -127,8 +127,8 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-cloudformation-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -172,19 +172,19 @@ Resources:
             Sid: "AssumeRoleLambda"
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-lambda-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-lambda-role
             Action:
               - sts:AssumeRole
           - Effect: Allow
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
             Action:
               - sts:AssumeRole
             Condition:
               ArnEquals:
-                "aws:SourceArn": !Sub "arn:aws:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
       Path: /
   AdfAutomationRole:
     # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
@@ -199,7 +199,7 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -216,7 +216,7 @@ Resources:
               - s3:Get*
               - s3:List*
             Resource:
-              - !Sub "arn:aws:s3:::${DeploymentAccountBucketName}/adf-build/templates/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/adf-build/templates/*"
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
@@ -234,8 +234,8 @@ Resources:
               - "cloudformation:UpdateStack"
               - "cloudformation:UpdateTerminationProtection"
             Resource:
-              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
-              - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-codecommit-*/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-event-rule-${AWS::AccountId}-*/*"
           - Effect: Allow
             Sid: "CodeCommit"
             Action:
@@ -263,9 +263,9 @@ Resources:
               - "ssm:GetParameters"
               - "ssm:GetParameter"
             Resource:
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/bucket_name"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kms_arn"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/bucket_name"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kms_arn"
           - Effect: Allow
             Sid: "IAM"
             Action:
@@ -278,7 +278,7 @@ Resources:
               - "iam:PassRole"
               - "iam:PutRolePolicy"
             Resource:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
       Roles:
         - !Ref AdfAutomationRole
   ReadOnlyAutomationRole:
@@ -295,7 +295,7 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${DeploymentAccountId}:role/adf-codebuild-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role
             Action:
               - sts:AssumeRole
       Path: /
