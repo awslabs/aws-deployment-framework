@@ -1272,17 +1272,6 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
-  TerraformLockTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: LockID
-          AttributeType: S
-      KeySchema:
-        - AttributeName: LockID
-          KeyType: HASH
-      BillingMode: PAY_PER_REQUEST
-      TableName: adf-tflocktable
 
 Outputs:
   ADFVersionNumber:
