@@ -724,7 +724,7 @@ Please look into the [sample-terraform](../samples/sample-terraform) pipeline fo
 - `REGIONS`: comma separated list of target regions. If this parameter is empty, the main ADF region is used.
 - `MANAGEMENT_ACCOUNT_ID`: id of the AWS Organizations management account.
 
-**Deployment procedure**
+#### Deployment procedure
 
 1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as in the example:
 
