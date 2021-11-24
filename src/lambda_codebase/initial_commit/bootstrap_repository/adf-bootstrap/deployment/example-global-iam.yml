@@ -30,7 +30,7 @@ Resources:
   #   # the target account. You should scope this policy depending on what you would 
   #   # like to deploy within certain Organizational Units.
   #   # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
-  #   # Uncomment this line if you want to enable the terraform extentions
+  #   # Uncomment the `ADFTerraformRole` and `ADFTerraformPolicy` resources if you want to enable Terraform support in ADF.
   #   Type: AWS::IAM::Role
   #   Properties:
   #     RoleName: "adf-terraform-role"
