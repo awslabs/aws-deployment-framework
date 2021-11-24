@@ -716,7 +716,7 @@ An optional approval step could be added between plan and apply as shown in the 
 
 Please look into the [sample-terraform](../samples/sample-terraform) pipeline for more details in the setup and integration.
 
-**Parameters**
+#### Parameters
 
 - `TERRAFORM_VERSION`: the Terraform version used to deploy the resource. This parameter must be defined in the `buildspec.yml` file of the repository.
 - `TARGET_ACCOUNTS`: comma separated list of target accounts.
