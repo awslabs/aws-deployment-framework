@@ -702,7 +702,7 @@ To enable ADF Terraform extension the following steps are required:
 
 Important note: `ADFTerraformPolicy` IAM policy is a sample. This policies should **NOT** be used for purposes other than testing. You should scope this policy depending on what you would like to deploy using Terraform within the selected Organizational Units.
 
-**Overview**
+#### Overview
 
 ADF support the deployment of Terraform code to multiple accounts and regions through Terraform pipelines.
 The module consists of four build stages defined in the following CodeBuild build specification:
