@@ -107,7 +107,7 @@ def is_inter_ou_account_move(event):
     )
 
 
-def lambda_handler(event, _):
+def lambda_handler(event, context):
     sts = STS()
 
     account_id = event["account_id"]
@@ -136,9 +136,19 @@ def lambda_handler(event, _):
             + event["regions"]
         )
     )
+    LOGGER.debug(
+        "Looping through regions to deploy the base stack in %s, regions: %s",
+        event["account_id"],
+        regions,
+    )
     for region in regions:
         if not event["is_deployment_account"]:
             configure_generic_account(sts, event, region, role)
+        LOGGER.info(
+            "Creating/updating base stack in %s %s",
+            event["account_id"],
+            region,
+        )
         cloudformation = CloudFormation(
             region=region,
             deployment_account_region=event["deployment_account_region"],
