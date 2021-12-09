@@ -514,7 +514,7 @@ Between Versions](#updating-between-versions) to check if your latest
 installation was installed successfully before you continue.
 
 When you need to troubleshoot the installation or upgrade of ADF, please set
-set the `Log Level` parameter of the ADF Stack to `DEBUG.
+set the `Log Level` parameter of the ADF Stack to `DEBUG`.
 
 There are two ways to enable this:
 
