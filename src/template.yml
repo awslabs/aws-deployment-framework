@@ -57,6 +57,16 @@ Parameters:
     Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
+  LogLevel:
+    Description: "At what Log Level the ADF should operate, default is INFO. Valid options are: DEBUG, INFO, WARN, ERROR, and CRITICAL."
+    Type: String
+    Default: "INFO"
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+      - CRITICAL
 Resources:
   BootstrapTemplatesBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -207,7 +217,7 @@ Resources:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -228,7 +238,7 @@ Resources:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -249,7 +259,7 @@ Resources:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -268,7 +278,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -287,7 +297,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -306,7 +316,7 @@ Resources:
           TERMINATION_PROTECTION: false
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
@@ -529,7 +539,7 @@ Resources:
           - Name: ORGANIZATION_ID
             Value: !GetAtt Organization.OrganizationId
           - Name: ADF_LOG_LEVEL
-            Value: INFO
+            Value: !Ref LogLevel
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
@@ -906,7 +916,7 @@ Resources:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
       Name: adf_log_level
       Type: String
-      Value: INFO
+      Value: !Ref LogLevel
   CrossRegionBucketHandler:
     Type: AWS::Serverless::Function
     Properties:
