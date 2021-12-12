@@ -79,5 +79,4 @@ def lambda_handler(event, _):
 
     update_iam(boto3, s3_buckets, kms_key_arns, role_policies)
 
-
     return event

@@ -45,6 +45,7 @@ def test_update_iam_cfn(cls):
         if policy["Sid"] == "KMS":
             assert 'kms::12345678910::some_arn' in policy["Resource"]
 
+
 def test_update_iam_roles_with_lists(cls):
     cls.update_iam_roles(["bucket1", "bucket2"], ["kms::12345678910::kms_key_1", "kms::12345678910::kms_key_2"], {'some_role_name':'some_policy_name'})
     for policy in cls.policy.get('Statement'):
@@ -56,6 +57,7 @@ def test_update_iam_roles_with_lists(cls):
             assert 'arn:aws:s3:::bucket2/*' in policy["Resource"]
             assert 'arn:aws:s3:::bucket1' in policy["Resource"]
             assert 'arn:aws:s3:::bucket1/*' in policy["Resource"]
+
 
 def test_update_iam_roles_is_backwards_compatible(cls):
     cls.update_iam_roles("bucket1", "kms::12345678910::kms_key_1", {'some_role_name':'some_policy_name'})
