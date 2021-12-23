@@ -35,7 +35,7 @@ def main():
     if TARGET_OUS:
         accounts_from_ous = get_accounts_from_ous()
         with open('accounts_from_ous.json', 'w') as outfile:
-            json.dump(accounts_from_ous, outfile) 
+            json.dump(accounts_from_ous, outfile)
 
 def list_organizational_units_for_parent(parent_ou):
     organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getOrganizationUnits')
