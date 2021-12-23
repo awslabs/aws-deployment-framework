@@ -42,7 +42,12 @@ tfapply(){
 tfrun(){
     export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
     echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
-    if [[ "$TF_STAGE" = "plan" ]]
+    if [[ "$TF_STAGE" = "init" ]]
+    then
+        set -e
+        tfinit
+        set +e
+    elif [[ "$TF_STAGE" = "plan" ]]
     then
         set -e
         tfinit
@@ -67,9 +72,9 @@ then
     REGIONS=$AWS_DEFAULT_REGION
 fi
 echo "List of target regions: $REGIONS"
-for REGION in $(echo $REGIONS | sed "s/,/ /g")
+for REGION in $(echo "$REGIONS" | sed "s/,/ /g")
 do  
-    AWS_REGION=$(echo -n $REGION | sed 's/^[ \t]*//;s/[ \t]*$//')  # sed trims whitespaces
+    AWS_REGION=$(echo -n "$REGION" | sed 's/^[ \t]*//;s/[ \t]*$//')  # sed trims whitespaces
     export TF_VAR_TARGET_REGION=$AWS_REGION
     # if TARGET_ACCOUNTS and TARGET_OUS are not defined apply to all accounts
     if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]]
@@ -85,7 +90,7 @@ do
     then
         # apply only on a subset of accounts (TARGET_ACCOUNTS)
         echo "List of target account: $TARGET_ACCOUNTS"
-        for ACCOUNT_ID in $(echo $TARGET_ACCOUNTS | sed "s/,/ /g")
+        for ACCOUNT_ID in $(echo "$TARGET_ACCOUNTS" | sed "s/,/ /g")
         do  
             tfrun
         done
