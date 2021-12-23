@@ -1233,12 +1233,12 @@ Resources:
             "States": {
                 "DetermineEvent": {
                     "Type": "Choice",
-                    "Choices": [{
+                    "Choices": [
+                        {
                             "Variable": "$.update_only",
                             "NumericEquals": 1,
                             "Next": "UpdateDeploymentPipelines"
-                        },
-                        {
+                        }, {
                             "Not": {
                                 "Variable": "$.error",
                                 "NumericEquals": 0
@@ -1267,6 +1267,17 @@ Resources:
                               "BackoffRate": 1.1,
                               "IntervalSeconds": 1,
                               "MaxAttempts": 10
+                            }, {
+                              "ErrorEquals": [
+                                "Lambda.Unknown",
+                                "Lambda.ServiceException",
+                                "Lambda.AWSLambdaException",
+                                "Lambda.SdkClientException"
+                                "Lambda.TooManyRequestsException"
+                              ],
+                              "IntervalSeconds": 2,
+                              "MaxAttempts": 6,
+                              "BackoffRate": 2
                             }
                           ]
                         }
@@ -1285,6 +1296,27 @@ Resources:
                     "Type": "Task",
                     "Resource": "${CheckPipelineStatus.Arn}",
                     "TimeoutSeconds": 60,
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "States.TaskFailed"
+                        ],
+                        "BackoffRate": 1.1,
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 10
+                      }, {
+                        "ErrorEquals": [
+                          "Lambda.Unknown",
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException"
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 2,
+                        "MaxAttempts": 6,
+                        "BackoffRate": 2
+                      }
+                    ],
                     "Next": "NeedToNotifySuccess?"
                 },
                 "NeedToNotifySuccess?": {

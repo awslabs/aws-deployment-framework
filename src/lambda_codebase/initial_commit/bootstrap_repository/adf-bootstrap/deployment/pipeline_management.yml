@@ -375,45 +375,105 @@ Resources:
             "CreateOrUpdateRule": {
               "Type": "Task",
               "Resource": "${CreateOrUpdateRuleFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 1,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 10
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
               "Next": "CreateRepository"
             },
             "CreateRepository": {
               "Type": "Task",
               "Resource": "${CreateRepositoryFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 1,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 10
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
               "Next": "GeneratePipelineInputs"
             },
             "GeneratePipelineInputs": {
               "Type": "Task",
               "Resource": "${GeneratePipelineInputsFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 1,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 10
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
               "Next": "StorePipelineDefinition"
             },
             "StorePipelineDefinition": {
               "Type": "Task",
               "Resource": "${StoreDefinitionFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 1,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 10
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
               "Next": "RunCDK"
             },
             "RunCDK": {
@@ -429,12 +489,27 @@ Resources:
             "IdentifyOutOfDatePipelines": {
               "Type": "Task",
               "Resource": "${IdentifyOutOfDatePipelinesFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 1,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 10
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
               "Next": "AnyPipelineToBeDeleted?"
             },
             "AnyPipelineToBeDeleted?": {
@@ -457,10 +532,14 @@ Resources:
                 "Name.$": "$.hash",
                 "TraceHeader.$": "$.traceroot"
               },
-              "Catch": [ {
-                "ErrorEquals": [ "Sfn.ExecutionAlreadyExistsException" ],
-                "Next": "Success"
-              } ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "Sfn.ExecutionAlreadyExistsException"
+                  ],
+                  "Next": "Success"
+                }
+              ],
               "Next": "Success"
             },
             "Success": {
