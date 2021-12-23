@@ -22,6 +22,9 @@ TARGET_OUS = os.environ.get("TARGET_OUS")
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 sts = boto3.client('sts')
+ssm = boto3.client('ssm')
+response = ssm.get_parameter(Name='cross_account_access_role')
+CROSS_ACCOUNT_ACCESS_ROLE = response['Parameter']['Value']
 
 
 def main():
@@ -32,11 +35,10 @@ def main():
     if TARGET_OUS:
         accounts_from_ous = get_accounts_from_ous()
         with open('accounts_from_ous.json', 'w') as outfile:
-            json.dump(accounts_from_ous, outfile)
-
+            json.dump(accounts_from_ous, outfile) 
 
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getOrganizationUnits')
+    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getOrganizationUnits')
     organizational_units = [
         ou
         for org_units in organizations.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
@@ -47,13 +49,12 @@ def list_organizational_units_for_parent(parent_ou):
 
 def get_accounts():
     # Return an array of objects like this: [{'AccountId':'xxx','Email':''}]
-    account_details = []
     LOGGER.info(
         "Management Account ID: %s",
         MANAGEMENT_ACCOUNT_ID
     )
     # Assume a role into the management accounts role to get account ID's and emails
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getaccountIDs')
+    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getaccountIDs')
     return list(
         map(
             lambda account: {'AccountId': account['Id'], 'Email': account['Email']},
@@ -68,7 +69,7 @@ def get_accounts():
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/OrganizationAccountAccessRole-readonly', 'getRootAccountIDs')
+    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getRootAccountIDs')
     # Read organization root id
     root_ids = list(
         map(
