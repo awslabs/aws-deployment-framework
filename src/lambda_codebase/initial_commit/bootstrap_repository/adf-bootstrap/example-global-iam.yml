@@ -70,8 +70,18 @@ Resources:
   #       Statement:
   #         - Effect: Allow
   #           Action:
-  #             - "ec2:*"
-  #             - "s3:*"
+  #             - "events:PutRule"
+  #             - "events:PutTargets"
+  #             - "events:DeleteRule"
+  #             - "events:DescribeRule"
+  #             - "events:ListTagsForResource"
+  #             - "events:ListTargetsByRule"
+  #             - "events:RemoveTargets"
+  #             - "sns:CreateTopic"
+  #             - "sns:GetTopicAttributes"
+  #             - "sns:SetTopicAttributes"
+  #             - "sns:ListTagsForResource"
+  #             - "sns:DeleteTopic"
   #           Resource:
   #             - "*"
   #     Roles:
