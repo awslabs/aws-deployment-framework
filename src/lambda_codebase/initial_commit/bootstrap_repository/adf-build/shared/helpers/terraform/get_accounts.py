@@ -1,3 +1,10 @@
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+"""
+Module used to get accounts list from target OUs.
+"""
+
 import json
 import logging
 import os
@@ -69,7 +76,7 @@ def get_accounts_from_ous():
             paginator(organizations.list_roots)
         )
     )
-    root_id = root_ids[0]['AccountId'] 
+    root_id = root_ids[0]['AccountId']
     for path in TARGET_OUS.split(','):
         # Set initial OU to start looking for given TARGET_OUS
         if parent_ou_id is None:
@@ -78,7 +85,7 @@ def get_accounts_from_ous():
         # Parse TARGET_OUS and find the ID
         ou_hierarchy = path.strip('/').split('/')
         hierarchy_index = 0
-        if(path.strip() == '/'):
+        if path.strip() == '/':
             account_list.extend(get_account_recursive(organizations, parent_ou_id, '/'))
         else:
             while hierarchy_index < len(ou_hierarchy):
