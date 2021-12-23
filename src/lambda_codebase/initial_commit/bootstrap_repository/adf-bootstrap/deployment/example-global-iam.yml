@@ -30,7 +30,9 @@ Resources:
   #   # the target account. You should scope this policy depending on what you would 
   #   # like to deploy within certain Organizational Units.
   #   # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
-  #   # Uncomment the `ADFTerraformRole` and `ADFTerraformPolicy` resources if you want to enable Terraform support in ADF.
+  #   # Uncomment the `ADFTerraformRole` and `ADFTerraformPolicy` resources if you want to enable Terraform support in ADF
+  #   # and deploy resources in Deployment account using Terraform. If you need to push to other account, you don't need to 
+  #   # add this policy
   #   Type: AWS::IAM::Role
   #   Properties:
   #     RoleName: "adf-terraform-role"
