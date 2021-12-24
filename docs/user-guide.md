@@ -26,6 +26,10 @@
   - [Using Anchors and Alias](#using-anchors-and-alias)
   - [One to many relationships](#one-to-many-relationships)
   - [Terraform pipeline](#terraform-pipeline)
+    - [Prerequisites](#prerequisites)
+    - [Overview](#overview)
+    - [Parameters](#parameters)
+    - [Deployment procedure](#deployment-procedure)
 
 ## Deployment Map
 
@@ -754,6 +758,7 @@ By passing in the Repository name *(repository)* we are overriding the **name** 
 
 #### Prerequisites
 To enable ADF Terraform extension the following steps are required:
+- Enable ADF Terraform extension. Set the parameter extensions > terraform > enabled to True to deploy all the necessary resources
 - Rename file `example-global-iam.yml` to `global-iam.yml` in the following path `aws-deployment-framework-bootstrap/adf-bootstrap/` and ensure the CloudFormation resources `ADFTerraformRole` and `ADFTerraformPolicy` are no longer commented out.
 - Rename file `example-global-iam.yml` to `global-iam.yml` in the following path `aws-deployment-framework-bootstrap/adf-bootstrap/deployment` (please note: `deployment` at the end) and ensure the CloudFormation resources `ADFTerraformRole` and `ADFTerraformPolicy` are no longer commented out.
 
