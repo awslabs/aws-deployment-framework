@@ -38,6 +38,7 @@ class Config:
         self.protected = None
         self.target_regions = []
         self.cross_account_access_role = None
+        self.extensions = None
         self._load_config_file()
 
     def store_config(self):
@@ -108,6 +109,7 @@ class Config:
         self.notification_endpoint = self.config.get(
             'main-notification-endpoint')[0].get('target')
         self.notification_channel = None if self.notification_type == 'email' else self.notification_endpoint
+        self.extensions = self.config_contents.get('extensions', None)
 
         self._validate()
 
@@ -143,6 +145,10 @@ class Config:
                     "config_contents",
                     "config_path",
                     "notification_endpoint",
-                    "notification_type"
+                    "notification_type",
+                    "extensions"
             ):
                 self.parameters_client.put_parameter(key, str(value))
+        for extension, attributes in self.extensions.items():
+            for attribute in attributes:
+                self.parameters_client.put_parameter(f"/adf/extensions/{extension}/{attribute}", str(attributes[attribute]))
