@@ -49,7 +49,7 @@ You can create as many *.yml* files as required and split them up into groups as
 accounts:
   - account_full_name: company-prod-1
     organizational_unit_path: /business-unit1/prod
-    email: prod-team-1@company.com
+    email: prod-team-1@example.com
     allow_billing: False
     delete_default_vpc: True
     support_level: enterprise
@@ -65,7 +65,7 @@ accounts:
 accounts:
   - account_full_name: company-test-1
     organizational_unit_path: /business-unit1/test
-    email: test-team-1@company.com
+    email: test-team-1@example.com
     allow_billing: True
     delete_default_vpc: False
     support_level: basic
@@ -77,7 +77,7 @@ accounts:
 
   - account_full_name: company-test-2
     organizational_unit_path: /business-unit1/test
-    email: test-team-2@company.com
+    email: test-team-2@example.com
     allow_billing: True
     delete_default_vpc: False
     alias: test-company-12
