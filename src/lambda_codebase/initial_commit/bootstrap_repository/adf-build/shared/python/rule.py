@@ -29,7 +29,7 @@ s3 = S3(
 class Rule:
     def __init__(self, source_account_id):
         self.source_account_id = source_account_id
-        self.stack_name = 'adf-event-rule-{0}-{1}'.format(source_account_id, DEPLOYMENT_ACCOUNT_ID)
+        self.stack_name = f'adf-event-rule-{source_account_id}-{DEPLOYMENT_ACCOUNT_ID}'
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         # Requirement adf-automation-role to exist on target
         self.role = sts.assume_cross_account_role(
@@ -40,7 +40,7 @@ class Rule:
     def create_update(self):
         s3_object_path = s3.put_object(
             "adf-build/templates/events.yml",
-            "{0}/templates/events.yml".format(TARGET_DIR)
+            f"{TARGET_DIR}/templates/events.yml"
         )
         cloudformation = CloudFormation(
             region=SOURCE_ACCOUNT_REGION,

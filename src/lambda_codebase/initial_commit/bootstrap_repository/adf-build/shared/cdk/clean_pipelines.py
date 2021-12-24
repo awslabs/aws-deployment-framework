@@ -52,10 +52,7 @@ def clean(parameter_store, deployment_map):
             stacks_to_remove.append(name)
 
     for stack in list(set(stacks_to_remove)):
-        cloudformation.delete_stack("{0}{1}".format(
-            ADF_PIPELINE_PREFIX,
-            stack
-        ))
+        cloudformation.delete_stack(f"{ADF_PIPELINE_PREFIX}{stack}")
 
 
 def main():

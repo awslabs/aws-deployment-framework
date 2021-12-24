@@ -159,7 +159,7 @@ def wait_on_account_creation(request_id: str) -> Tuple[AccountId, bool]:
         )
         if account_status["CreateAccountStatus"]["State"] == "FAILED":
             reason = account_status["CreateAccountStatus"]["FailureReason"]
-            raise Exception("Failed to create account because %s" % reason)
+            raise Exception(f"Failed to create account because {reason}")
         if account_status["CreateAccountStatus"]["State"] == "IN_PROGRESS":
             LOGGER.info(
                 "Account creation still in progress, waiting.. "

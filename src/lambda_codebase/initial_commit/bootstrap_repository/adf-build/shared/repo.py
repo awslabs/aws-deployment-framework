@@ -31,12 +31,12 @@ class Repo:
         if not description:
             description = 'Created by ADF'
         self.description = description
-        self.stack_name = "{0}-{1}".format('adf-codecommit', self.name)
+        self.stack_name = f"adf-codecommit-{self.name}"
         self.account_id = account_id
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         self.session = sts.assume_cross_account_role(
             f'arn:{self.partition}:iam::{account_id}:role/adf-automation-role',
-            'create_repo_{0}'.format(account_id)
+            f'create_repo_{account_id}'
         )
 
     def repo_exists(self):
@@ -61,7 +61,7 @@ class Repo:
     def create_update(self):
         s3_object_path = s3.put_object(
             "adf-build/templates/codecommit.yml",
-            "{0}/adf-build/templates/codecommit.yml".format(TARGET_DIR)
+            f"{TARGET_DIR}/adf-build/templates/codecommit.yml",
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,
@@ -75,11 +75,16 @@ class Repo:
             s3_key_path=None,
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
-        # Update the stack if the repo and the adf contolled stack exist, return if the repo exists but no stack (previously made)
+        # Update the stack if the repo and the ADF controlled stack exist,
+        # return if the repo exists but no stack (previously made)
         _repo_exists = self.repo_exists()
         _stack_exists = cloudformation.get_stack_status()
         if _repo_exists and not _stack_exists:
             return
         if not _repo_exists and not _stack_exists:
-            LOGGER.info('Ensuring State for Codecommit Repository Stack %s on Account %s', self.name, self.account_id)
+            LOGGER.info(
+                'Ensuring State for CodeCommit Repository Stack %s on Account %s',
+                self.name,
+                self.account_id,
+            )
             cloudformation.create_stack()

@@ -59,21 +59,21 @@ class CodeBuild(core.Construct):
                 'project',
                 environment=_env,
                 encryption_key=_kms.Key.from_key_arn(self, 'default_deployment_account_key', key_arn=deployment_region_kms),
-                description="ADF CodeBuild Project for {0}".format(id),
-                project_name="adf-deploy-{0}".format(id),
+                description=f"ADF CodeBuild Project for {id}",
+                project_name=f"adf-deploy-{id}",
                 timeout=core.Duration.minutes(_timeout),
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role, mutable=False),
                 build_spec=build_spec,
             )
             self.deploy = Action(
-                name="{0}".format(id),
+                name=id,
                 provider="CodeBuild",
                 category="Build",
-                project_name="adf-deploy-{0}".format(id),
+                project_name=f"adf-deploy-{id}",
                 run_order=1,
                 target=target,
                 map_params=map_params,
-                action_name="{0}".format(id)
+                action_name=id,
             ).config
         else:
             _role_name = map_params['default_providers']['build'].get(
@@ -97,8 +97,8 @@ class CodeBuild(core.Construct):
                 'project',
                 environment=_env,
                 encryption_key=_kms.Key.from_key_arn(self, 'DefaultDeploymentAccountKey', key_arn=deployment_region_kms),
-                description="ADF CodeBuild Project for {0}".format(map_params['name']),
-                project_name="adf-build-{0}".format(map_params['name']),
+                description=f"ADF CodeBuild Project for {map_params['name']}",
+                project_name=f"adf-build-{map_params['name']}",
                 timeout=core.Duration.minutes(_timeout),
                 build_spec=build_spec,
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role, mutable=False)
@@ -124,11 +124,8 @@ class CodeBuild(core.Construct):
         if filename and spec_inline:
             raise Exception(
                 "The spec_filename and spec_inline are both present "
-                "inside the {0} stage definition of {1}. "
-                "Whereas only one of these two is allowed.".format(
-                    stage_name,
-                    codebuild_id,
-                ),
+                f"inside the {stage_name} stage definition of {codebuild_id}. "
+                "Whereas only one of these two is allowed."
             )
 
         if spec_inline:
@@ -149,10 +146,11 @@ class CodeBuild(core.Construct):
                     stage_name='deploy target',
                     default_filename=DEFAULT_DEPLOY_SPEC_FILENAME,
                 )
+        stage_type = 'deploy' if target else 'build'
         return CodeBuild._determine_stage_build_spec(
             codebuild_id=codebuild_id,
             props=default_props,
-            stage_name='default {}'.format('deploy' if target else 'build'),
+            stage_name=f'default {stage_type}',
             default_filename=(
                 DEFAULT_DEPLOY_SPEC_FILENAME
                 if target
@@ -170,10 +168,8 @@ class CodeBuild(core.Construct):
             specific_image = specific_image.split('docker-hub://')[-1]
             return _codebuild.LinuxBuildImage.from_docker_registry(specific_image)
         raise Exception(
-                "The CodeBuild image {0} could not be found.".format(
-                    specific_image
-                    ),
-                )
+            f"The CodeBuild image {specific_image} could not be found."
+        )
 
     @staticmethod
     def determine_build_image(scope, target, map_params):

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the parameters for cloudformation stacks based on
+   and used to build the parameters for CloudFormation stacks based on
    param files in the params folder
 """
 
@@ -40,18 +40,16 @@ class Parameters:
     def _fetch_initial_parameter(self):
         return [
             ast.literal_eval(
-                self.s3.read_object("adf-parameters/deployment/{0}/account_ous.json".format(self.build_name))
+                self.s3.read_object(f"adf-parameters/deployment/{self.build_name}/account_ous.json")
             ),
             ast.literal_eval(
-                self.parameter_store.fetch_parameter(
-                    "/deployment/{0}/regions".format(self.build_name)
-                )
+                self.parameter_store.fetch_parameter(f"/deployment/{self.build_name}/regions")
             )
         ]
 
     def _create_params_folder(self):
         try:
-            return os.mkdir('{0}/params'.format(self.cwd))
+            return os.mkdir(f'{self.cwd}/params')
         except FileExistsError:
             return None
 
@@ -64,27 +62,27 @@ class Parameters:
             for region in self.regions:
                 compare_params = {'Parameters': {}, 'Tags': {}}
                 compare_params = self._param_updater(
-                    Parameters._parse("{0}/params/{1}".format(self.cwd, "{0}_{1}".format(account, region))),
+                    Parameters._parse(f"{self.cwd}/params/{account}_{region}"),
                     compare_params,
                 )
                 compare_params = self._param_updater(
-                    Parameters._parse("{0}/params/{1}".format(self.cwd, account)),
+                    Parameters._parse(f"{self.cwd}/params/{account}"),
                     compare_params,
                 )
                 if not Parameters._is_account_id(ou):
                     # Compare account_region final to ou_region
                     compare_params = self._param_updater(
-                        Parameters._parse("{0}/params/{1}_{2}".format(self.cwd, ou, region)),
+                        Parameters._parse(f"{self.cwd}/params/{ou}_{region}"),
                         compare_params
                     )
                     # Compare account_region final to ou
                     compare_params = self._param_updater(
-                        Parameters._parse("{0}/params/{1}".format(self.cwd, ou)),
+                        Parameters._parse(f"{self.cwd}/params/{ou}"),
                         compare_params
                     )
                 # Compare account_region final to deployment_account_region
                 compare_params = self._param_updater(
-                    Parameters._parse("{0}/params/global_{1}".format(self.cwd, region)),
+                    Parameters._parse(f"{self.cwd}/params/global_{region}"),
                     compare_params
                 )
                 # Compare account_region final to global
@@ -93,7 +91,7 @@ class Parameters:
                     compare_params
                 )
                 if compare_params is not None:
-                    self._update_params(compare_params, "{0}_{1}".format(account, region))
+                    self._update_params(compare_params, f"{account}_{region}")
 
     @staticmethod
     def _parse(filename):
@@ -105,11 +103,11 @@ class Parameters:
         and thus this would not fail.
         """
         try:
-            with open("{0}.json".format(filename)) as file:
+            with open(f"{filename}.json", encoding='utf-8') as file:
                 return json.load(file)
         except FileNotFoundError:
             try:
-                with open("{0}.yml".format(filename)) as file:
+                with open(f"{filename}.yml", encoding='utf-8') as file:
                     return yaml.load(file, Loader=yaml.FullLoader)
             except yaml.scanner.ScannerError:
                 LOGGER.exception('Invalid Yaml for %s.yml', filename)
@@ -119,9 +117,9 @@ class Parameters:
 
     def _update_params(self, new_params, filename):
         """
-        Responsible for updating the parameters within the files themself
+        Responsible for updating the parameters within the files themselves
         """
-        with open("{0}/params/{1}.json".format(self.cwd, filename), 'w') as outfile:
+        with open(f"{self.cwd}/params/{filename}.json", mode='w', encoding='utf-8') as outfile:
             json.dump(new_params, outfile)
 
     def _determine_intrinsic_function(self, resolver, value, key):

@@ -200,7 +200,7 @@ def _get_member_accounts(billing_account_id, options):
     )
     org_client = billing_account_session.client('organizations')
     list_accounts_paginator = org_client.get_paginator('list_accounts')
-    accounts = list()
+    accounts = []
     for page in list_accounts_paginator.paginate():
         accounts.extend(
             page['Accounts']
@@ -237,7 +237,7 @@ def _flush_out(accounts, options):
         )
         return
 
-    with open(options['--output-file'], 'w') as output_file:
+    with open(options['--output-file'], mode='w', encoding='utf-8') as output_file:
         output_file.write(json_accounts)
 
 
