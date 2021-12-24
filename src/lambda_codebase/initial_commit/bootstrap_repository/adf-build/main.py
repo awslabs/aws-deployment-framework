@@ -170,8 +170,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             )
     if hasattr(config, 'extensions'):
         for extension, attributes in config.extensions.items():
-                for attribute in attributes:
-                    deployment_account_parameter_store.put_parameter(f"/adf/extensions/{extension}/{attribute}", str(attributes[attribute]))
+            for attribute in attributes:
+                deployment_account_parameter_store.put_parameter(f"/adf/extensions/{extension}/{attribute}", str(attributes[attribute]))
 
     return deployment_account_role
 
