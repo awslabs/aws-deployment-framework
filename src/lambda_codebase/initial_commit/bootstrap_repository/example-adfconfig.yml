@@ -18,3 +18,7 @@ config:
   scm: # Source control management
     auto-create-repositories: enabled # if true and using codecommit as source the repository will be automatically created
     default-scm-branch: master        # allow to specify custom default branch if a pipeline specific configuration is not provided. If the parameter is not specified it defaults to the "master" branch.
+
+extensions: 
+  terraform:
+    enabled: False # if true resources needed to run terraform template will be deployed
