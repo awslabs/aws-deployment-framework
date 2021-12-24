@@ -7,6 +7,13 @@ Parameters:
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
+  ADFTerraformExtension:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /adf/extensions/terraform/enabled
+Conditions:
+  ADFTerraformExtensionEnabled: !Equals
+    - !Ref ADFTerraformExtension
+    - True
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
     Type: AWS::S3::Bucket
@@ -90,6 +97,7 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
   TerraformLockTable:
+    Condition: ADFTerraformExtensionEnabled
     Type: "AWS::DynamoDB::Table"
     Properties:
       AttributeDefinitions:
