@@ -67,6 +67,13 @@ Parameters:
       - WARN
       - ERROR
       - CRITICAL
+
+Globals:
+  Function:
+    CodeUri: lambda_codebase
+    Runtime: python3.9
+    Timeout: 300
+
 Resources:
   BootstrapTemplatesBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -136,7 +143,7 @@ Resources:
       Parameters:
         LambdaLayer: !Ref LambdaLayerVersion
         ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
-        OrganizationID: !GetAtt Organization.OrganizationId    
+        OrganizationID: !GetAtt Organization.OrganizationId
         CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -145,6 +152,7 @@ Resources:
       CompatibleRuntimes:
         - python3.7
         - python3.8
+        - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
   LambdaLayerVersionPermission:
@@ -206,7 +214,6 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: wait_until_complete.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - StackWaiterFunction"
@@ -220,13 +227,10 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 300
   DetermineEventFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: determine_event.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - DetermineEvent"
@@ -241,13 +245,10 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 300
   CrossAccountExecuteFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: account_bootstrap.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - CrossAccountExecuteFunction"
@@ -262,13 +263,11 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 600
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: deployment_account_config.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - RoleStackDeploymentFunction"
@@ -281,13 +280,10 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 300
   MovedToRootActionFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: moved_to_root.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - MovedToRootActionFunction"
@@ -300,13 +296,11 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 900
   UpdateResourcePoliciesFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: generic_account_config.lambda_handler
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
@@ -319,8 +313,6 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 300
   CloudWatchEventsRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -549,7 +541,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.8
+                python: 3.9
             pre_build:
               commands:
                 - pip install -r adf-build/requirements.txt --quiet
@@ -881,8 +873,6 @@ Resources:
                 - codecommit:GetDifferences
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: BootstrapCreateInitialCommitFunction
-      Runtime: python3.8
-      Timeout: 300
   SharedModulesBucket:
     Type: Custom::CrossRegionBucket
     Properties:
@@ -947,8 +937,6 @@ Resources:
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
       FunctionName: CrossRegionBucketHandler
-      Runtime: python3.8
-      Timeout: 300
   Organization:
     Type: Custom::Organization
     Properties:
@@ -973,8 +961,6 @@ Resources:
               Action: "iam:CreateServiceLinkedRole"
               Resource: !Sub "arn:${AWS::Partition}:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
-      Runtime: python3.8
-      Timeout: 300
   DeploymentOrganizationUnit:
     Type: Custom::OrganizationUnit
     Properties:
@@ -997,8 +983,6 @@ Resources:
                 - "organizations:ListOrganizationalUnitsForParent"
               Resource: "*"
       FunctionName: OrganizationUnitHandler
-      Runtime: python3.8
-      Timeout: 300
   DeploymentAccount:
     Type: Custom::Account
     DependsOn: Organization
@@ -1026,8 +1010,6 @@ Resources:
               Action: ssm:GetParameter
               Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
       FunctionName: AccountHandler
-      Runtime: python3.8
-      Timeout: 300
   PipelineCloudWatchEventRole:
     Type: AWS::IAM::Role
     Properties:

@@ -49,6 +49,12 @@ Parameters:
     Description: The Prefix that will be attached to stacks deployed via ADF.
     Type: String
     Default: "adf-"
+
+Globals:
+  Function:
+    CodeUri: lambda_codebase
+    Runtime: python3.9
+
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -57,6 +63,7 @@ Resources:
       CompatibleRuntimes:
         - python3.7
         - python3.8
+        - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
   LambdaLayerVersionPermission:
@@ -668,7 +675,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.8
+                python: 3.9
                 nodejs: 12
             pre_build:
               commands:
@@ -943,7 +950,6 @@ Resources:
   SendSlackNotification:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - Send Slack Notification"
@@ -954,12 +960,10 @@ Resources:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
           ADF_LOG_LEVEL: !Ref ADFLogLevel
-      Runtime: python3.8
       Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - EnableCrossAccountAccess"
@@ -972,12 +976,10 @@ Resources:
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - CheckPipelineStatus"
@@ -989,7 +991,6 @@ Resources:
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 120
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -1223,7 +1224,6 @@ Resources:
                 - codecommit:DeleteBranch
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
-      Runtime: python3.8
       Timeout: 300
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"

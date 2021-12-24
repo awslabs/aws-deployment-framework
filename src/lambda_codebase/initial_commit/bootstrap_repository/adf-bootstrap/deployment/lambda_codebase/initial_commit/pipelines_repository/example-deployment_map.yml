@@ -15,7 +15,7 @@ pipelines:
     targets:  # Deployment stages
       - /banking/testing # will use action from type defined above,
       - path: /banking/production
-        properties: 
+        properties:
           stack_name: my-cool-iam-stack # Since no deploy type is defined above this target is assumed type of CloudFormation
           change_set_approval: True # override deploy action above and insert a approval in between create + execute change set
       - provider: lambda
@@ -33,7 +33,7 @@ pipelines:
         provider: codebuild
         properties:
           role: packer
-          size: medium # Resource allocation for the build stage -> small | medium | large 
+          size: medium # Resource allocation for the build stage -> small | medium | large
     params:
       schedule: rate(7 days) # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
     completion_trigger: # What should happen when this pipeline completes
@@ -101,14 +101,14 @@ pipelines:
 
   - name: sample-ec2-java-app-codedeploy
     default_providers:
-      source: 
+      source:
         provider: codecommit
         properties:
           account_id: 333333333333
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_3_0" # Use a specific docker image (defaults to Python 3.8) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+          image: "STANDARD_5_0" # Use a specific docker image (to use Python 3.9) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
         provider: codedeploy
     params:

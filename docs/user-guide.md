@@ -126,7 +126,7 @@ pipelines:
           account_id: 111112233332
       build:
         provider: codebuild
-        image: "STANDARD_4_0" # Use a specific docker image (supports Python 3.7 and Python 3.8) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+        image: "STANDARD_5_0" # Use a specific docker image (supports Python 3.7, 3.8, and 3.9) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
         provider: codedeploy
     targets:
@@ -658,7 +658,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.8
+      python: 3.9
       nodejs: 12
   pre_build:
     commands:
