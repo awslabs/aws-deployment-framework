@@ -772,79 +772,24 @@ Resources:
                         "Choices": [{
                             "Variable": "$.is_deployment_account",
                             "NumericEquals": 1,
-                            "Next": "MovedToRootAction"
-                        }
-                    ],
-                    "Default": "CreateOrUpdateBaseStack"
-                },
-                "CreateOrUpdateBaseStack": {
-                    "Type": "Task",
-                    "Resource": "${CrossAccountExecuteFunction.Arn}",
-                    "Next": "WaitUntilBootstrapComplete",
-                    "Catch": [{
-                        "ErrorEquals": ["States.ALL"],
-                        "Next": "ExecuteDeploymentAccountStateMachine",
-                        "ResultPath": "$.error"
-                    }],
-                    "TimeoutSeconds": 600
-                },
-                "MovedToRootAction": {
-                    "Type": "Task",
-                    "Resource": "${MovedToRootActionFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 20
-                    }],
-                    "Catch": [{
-                        "ErrorEquals": ["States.ALL"],
-                        "Next": "ExecuteDeploymentAccountStateMachine",
-                        "ResultPath": "$.error"
-                    }],
-                    "Next": "ExecuteDeploymentAccountStateMachine",
-                    "TimeoutSeconds": 900
-                },
-                "WaitUntilBootstrapComplete": {
-                    "Type": "Task",
-                    "Resource": "${StackWaiterFunction.Arn}",
-                    "Retry": [{
-                        "ErrorEquals": ["RetryError"],
-                        "IntervalSeconds": 10,
-                        "BackoffRate": 1.0,
-                        "MaxAttempts": 500
-                    }],
-                    "Catch": [{
-                        "ErrorEquals": ["States.ALL"],
-                        "Next": "ExecuteDeploymentAccountStateMachine",
-                        "ResultPath": "$.error"
-                    }],
-                    "Next": "DeploymentAccount?",
-                    "TimeoutSeconds": 900
-                },
-                "DeploymentAccount?": {
-                    "Type": "Choice",
-                    "Choices": [{
-                        "Variable": "$.is_deployment_account",
-                        "NumericEquals": 1,
-                        "Next": "DeploymentAccountConfig"
-                    }],
-                    "Default": "ExecuteDeploymentAccountStateMachine"
-                },
-                "DeploymentAccountConfig": {
-                    "Type": "Task",
-                    "Resource": "${RoleStackDeploymentFunction.Arn}",
-                    "End": true,
-                    "TimeoutSeconds": 900
-                },
-                "ExecuteDeploymentAccountStateMachine": {
-                    "Type": "Task",
-                    "Resource": "${UpdateResourcePoliciesFunction.Arn}",
-                    "End": true,
-                    "TimeoutSeconds": 900
+                            "Next": "DeploymentAccountConfig"
+                        }],
+                        "Default": "ExecuteDeploymentAccountStateMachine"
+                    },
+                    "DeploymentAccountConfig": {
+                        "Type": "Task",
+                        "Resource": "${RoleStackDeploymentFunction.Arn}",
+                        "End": true,
+                        "TimeoutSeconds": 900
+                    },
+                    "ExecuteDeploymentAccountStateMachine": {
+                        "Type": "Task",
+                        "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+                        "End": true,
+                        "TimeoutSeconds": 900
+                    }
                 }
             }
-        }
       RoleArn: !GetAtt StatesExecutionRole.Arn
   InitialCommit:
     Type: Custom::InitialCommit
