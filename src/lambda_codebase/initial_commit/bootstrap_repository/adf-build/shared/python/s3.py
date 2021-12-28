@@ -154,8 +154,10 @@ class S3:
                 self.region,
             )
             with open(file_path, 'rb') as file_handler:
-                self.resource.Object(self.bucket, key).put(ACL=object_acl,
-                                                            Body=file_handler)
+                self.resource.Object(self.bucket, key).put(
+                    ACL=object_acl,
+                    Body=file_handler,
+                )
                 LOGGER.debug("Upload of %s was successful.", key)
         except BaseException:
             LOGGER.error("Failed to upload %s", key, exc_info=True)

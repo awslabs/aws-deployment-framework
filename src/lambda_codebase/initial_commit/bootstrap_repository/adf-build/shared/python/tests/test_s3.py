@@ -301,7 +301,7 @@ def test_perform_put_object_success(logger, boto3_resource):
         )
         mock_file.assert_called_with(file_path, 'rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
-        s3_object.put.assert_called_once_with(ACL='private',Body=mock_file.return_value)
+        s3_object.put.assert_called_once_with(ACL='private', Body=mock_file.return_value)
 
     logger.info.assert_called_once_with(
         "Uploading %s as %s to S3 Bucket %s in %s",
@@ -393,7 +393,7 @@ def test_perform_put_object_failed(logger, boto3_resource):
 
         mock_file.assert_called_with(file_path, 'rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
-        s3_object.put.assert_called_once_with(ACL='private',Body=mock_file.return_value)
+        s3_object.put.assert_called_once_with(ACL='private', Body=mock_file.return_value)
 
     logger.info.assert_called_once_with(
         "Uploading %s as %s to S3 Bucket %s in %s",
