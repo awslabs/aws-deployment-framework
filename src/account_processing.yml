@@ -1,36 +1,3 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: 'AWS::Serverless-2016-10-31'
-Description: ADF CloudFormation Stack pertaing to account processing / OU management.
-
-Parameters:
-  OrganizationID:
-    Type: String
-    MinLength: "1"
-
-  ADFVersion:
-    Type: String
-    MinLength: "1"
-
-  LambdaLayer:
-    Type: String
-    MinLength: "1"
-
-  CrossAccountAccessRoleName:
-    Type: String
-    MinLength: "1"
-
-Globals:
-  Function:
-    Architectures:
-      - arm64
-    CodeUri: lambda_codebase/account_processing
-    Runtime: python3.9
-    Timeout: 300
-    Tracing: Active
-    Layers:
-      - !Ref LambdaLayer
-
-Resources:
   AccountProcessingLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -64,7 +31,7 @@ Resources:
             Resource: !GetAtt ADFAccountBucket.Arn
           - Effect: "Allow"
             Action: "lambda:GetLayerVersion"
-            Resource: !Ref LambdaLayer
+            Resource: !Ref LambdaLayerVersion
           - Effect: "Allow"
             Action: "states:StartExecution"
             Resource: !Ref AccountManagementStateMachine
@@ -155,12 +122,18 @@ Resources:
     Properties:
       Handler: process_account_files.lambda_handler
       Description: "ADF Lambda Function - Account File Processing"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
           ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountFileProcessorFunction
@@ -215,12 +188,18 @@ Resources:
     Properties:
       Handler: configure_account_alias.lambda_handler
       Description: "ADF Lambda Function - Account Alias Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountAliasConfigurationFunction
       Role: !GetAtt AccountAliasConfigFunctionRole.Arn
@@ -252,12 +231,18 @@ Resources:
     Properties:
       Handler: configure_account_tags.lambda_handler
       Description: "ADF Lambda Function - Account Tag Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
 
@@ -266,12 +251,18 @@ Resources:
     Properties:
       Handler: configure_account_ou.lambda_handler
       Description: "ADF Lambda Function - Account OU Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountOUConfigurationFunction
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
 
@@ -306,14 +297,19 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: get_account_regions.lambda_handler
-      CodeUri: lambda_codebase/account_processing
       Description: "ADF Lambda Function - Get Default Regions for an account"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: GetAccountRegionsFunction
       Role: !GetAtt GetAccountRegionsFunctionRole.Arn
@@ -336,12 +332,18 @@ Resources:
     Properties:
       Handler: delete_default_vpc.lambda_handler
       Description: "ADF Lambda Function - Delete the default VPC for a region"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: DeleteDefaultVPCFunction
       Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
@@ -364,12 +366,18 @@ Resources:
     Properties:
       Handler: create_account.lambda_handler
       Description: "ADF Lambda Function - Create an account"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: CreateAccountFunction
       Role: !GetAtt CreateAccountFunctionRole.Arn
@@ -402,12 +410,18 @@ Resources:
     Properties:
       Handler: register_account_for_support.lambda_handler
       Description: "ADF Lambda Function - Registers an account for enterprise support"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
-          ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ORGANIZATION_ID: !Ref Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RegisterAccountForSupportFunction
       Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
 
@@ -599,7 +613,3 @@ Resources:
       RoleArn: !GetAtt StateMachineExecutionRole.Arn
       TracingConfiguration:
         Enabled: true
-
-Outputs:
-  Bucket:
-    Value: !Ref ADFAccountBucket

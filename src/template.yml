@@ -157,17 +157,624 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  AccountProcessingApplication:
-    Type: AWS::Serverless::Application
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
+  ### Account processing begin
+  AccountProcessingLambdaRole:
+    Type: "AWS::IAM::Role"
     Properties:
-      Location: account_processing.yml
-      Parameters:
-        LambdaLayer: !Ref LambdaLayerVersion
-        ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
-        OrganizationID: !GetAtt Organization.OrganizationId
-        CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  AccountProcessingLambdaRolePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow the account file processing Lambda to perform actions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "organizations:DescribeOrganizationalUnit"
+              - "organizations:ListParents"
+              - "organizations:ListAccounts"
+              - "organizations:DescribeOrganization"
+              - "organizations:DescribeAccount"
+            Resource: "*"
+          - Effect: "Allow"
+            Action: "s3:ListBucket"
+            Resource: !GetAtt ADFAccountBucket.Arn
+          - Effect: "Allow"
+            Action: "lambda:GetLayerVersion"
+            Resource: !Ref LambdaLayerVersion
+          - Effect: "Allow"
+            Action: "states:StartExecution"
+            Resource: !Ref AccountManagementStateMachine
+          - Effect: "Allow"
+            Action: "s3:GetObject"
+            Resource: !Sub "${ADFAccountBucket.Arn}/*"
+      Roles:
+        - !Ref AccountProcessingLambdaRole
+
+  ADFAccountAccessRolePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Additional policy that allows a lambda to assume the cross account access role"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource: !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
+      Roles:
+        - !Ref AccountProcessingLambdaRole
+        - !Ref GetAccountRegionsFunctionRole
+        - !Ref DeleteDefaultVPCFunctionRole
+        - !Ref AccountAliasConfigFunctionRole
+
+  ADFAccountProcessingLambdaBasePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Base policy for all ADF account processing lambdas"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "xray:PutTelemetryRecords"
+              - "xray:PutTraceSegments"
+            Resource: "*"
+      Roles:
+        - !Ref AccountProcessingLambdaRole
+        - !Ref GetAccountRegionsFunctionRole
+        - !Ref DeleteDefaultVPCFunctionRole
+        - !Ref AccountAliasConfigFunctionRole
+        - !Ref AccountTagConfigFunctionRole
+        - !Ref AccountOUConfigFunctionRole
+        - !Ref CreateAccountFunctionRole
+        - !Ref RegisterAccountForSupportFunctionRole
+
+  StateMachineExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-state-machine-role-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "xray:PutTelemetryRecords"
+                  - "xray:PutTraceSegments"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  - !GetAtt AccountAliasConfigFunction.Arn
+                  - !GetAtt CreateAccountFunction.Arn
+                  - !GetAtt RegisterAccountForSupportFunction.Arn
+                  - !GetAtt AccountTagConfigFunction.Arn
+                  - !GetAtt AccountOUConfigFunction.Arn
+                  - !GetAtt GetAccountRegionsFunction.Arn
+                  - !GetAtt DeleteDefaultVPCFunction.Arn
+
+  AccountFileProcessingFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: process_account_files.lambda_handler
+      Description: "ADF Lambda Function - Account File Processing"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+          ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: AccountFileProcessorFunction
+      Role: !GetAtt AccountProcessingLambdaRole.Arn
+      Events:
+        S3YmlSuffixEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ADFAccountBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: yml
+        S3YamlSuffixEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ADFAccountBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: yaml
+
+  AccountAliasConfigFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-lambda-create-account-alias-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:CreateAcountAlias"
+                Resource: "*"
+
+  AccountAliasConfigFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: configure_account_alias.lambda_handler
+      Description: "ADF Lambda Function - Account Alias Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: AccountAliasConfigurationFunction
+      Role: !GetAtt AccountAliasConfigFunctionRole.Arn
+
+  AccountTagConfigFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-lambda-tag-resource-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "organizations:TagResource"
+                Resource: "*"
+
+  AccountTagConfigFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: configure_account_tags.lambda_handler
+      Description: "ADF Lambda Function - Account Tag Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+      FunctionName: AccountTagConfigurationFunction
+      Role: !GetAtt AccountTagConfigFunctionRole.Arn
+
+  AccountOUConfigFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: configure_account_ou.lambda_handler
+      Description: "ADF Lambda Function - Account OU Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+      FunctionName: AccountOUConfigurationFunction
+      Role: !GetAtt AccountOUConfigFunctionRole.Arn
+
+  AccountOUConfigFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-lambda-policy-move-ou"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "organizations:ListRoots"
+                  - "organizations:ListParents"
+                  - "organizations:MoveAccount"
+                  - "organizations:ListOrganizationalUnitsForParent"
+                  - "organizations:ListChildren"
+                  - "organizations:ListAccounts*"
+                Resource: "*"
+
+  GetAccountRegionsFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: get_account_regions.lambda_handler
+      Description: "ADF Lambda Function - Get Default Regions for an account"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: GetAccountRegionsFunction
+      Role: !GetAtt GetAccountRegionsFunctionRole.Arn
+
+  GetAccountRegionsFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+
+  DeleteDefaultVPCFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: delete_default_vpc.lambda_handler
+      Description: "ADF Lambda Function - Delete the default VPC for a region"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: DeleteDefaultVPCFunction
+      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
+
+  DeleteDefaultVPCFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+
+  CreateAccountFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: create_account.lambda_handler
+      Description: "ADF Lambda Function - Create an account"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: CreateAccountFunction
+      Role: !GetAtt CreateAccountFunctionRole.Arn
+
+  CreateAccountFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-lambda-create-account-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "organizations:CreateAccount"
+                  - "organizations:DescribeCreateAccountStatus"
+                Resource: "*"
+
+  RegisterAccountForSupportFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: register_account_for_support.lambda_handler
+      Description: "ADF Lambda Function - Registers an account for enterprise support"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+      FunctionName: RegisterAccountForSupportFunction
+      Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
+
+  RegisterAccountForSupportFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-lambda-support-access-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "support:DescribeSeverityLevels"
+                  - "support:CreateCase"
+                Resource: "*"
+
+  ADFAccountBucket:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  AccountManagementStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      RoleArn: !GetAtt StateMachineExecutionRole.Arn
+      TracingConfiguration:
+        Enabled: true
+      DefinitionString: !Sub |-
+        {
+          "Comment": "Create account?",
+          "StartAt": "CreateAccountChoice",
+          "States": {
+            "CreateAccountChoice": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.needs_created",
+                  "BooleanEquals": true,
+                  "Comment": "Create Account",
+                  "Next": "CreateAccount"
+                }
+              ],
+              "Default": "ConfigureAccountAlias"
+            },
+            "ConfigureAccountAlias": {
+              "Type": "Task",
+              "Resource": "${AccountAliasConfigFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "ConfigureAccountTags"
+            },
+            "CreateAccount": {
+              "Type": "Task",
+              "Resource": "${CreateAccountFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "WaitFor10Seconds"
+            },
+            "WaitFor10Seconds": {
+              "Type": "Wait",
+              "Seconds": 10,
+              "Next": "ConfigureAccountSupport"
+            },
+            "ConfigureAccountSupport": {
+              "Type": "Task",
+              "Resource": "${RegisterAccountForSupportFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "ConfigureAccountAlias"
+            },
+            "ConfigureAccountTags": {
+              "Type": "Task",
+              "Resource": "${AccountTagConfigFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "ConfigureAccountOU"
+            },
+            "ConfigureAccountOU": {
+              "Type": "Task",
+              "Resource": "${AccountOUConfigFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "DeleteDefaultVPCChoice"
+            },
+            "DeleteDefaultVPCChoice": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.delete_default_vpc",
+                  "BooleanEquals": true,
+                  "Next": "GetAccountDefaultRegionsFunction"
+                }
+              ],
+              "Default": "Success"
+            },
+            "GetAccountDefaultRegionsFunction": {
+              "Type": "Task",
+              "Resource": "${GetAccountRegionsFunction.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 3,
+                "BackoffRate": 1.5,
+                "MaxAttempts": 30
+              }],
+              "Next": "DeleteDefaultVPCMap"
+            },
+            "DeleteDefaultVPCMap": {
+              "Type": "Map",
+              "Next": "Success",
+              "Iterator": {
+                "StartAt": "DeleteDefaultVPC",
+                  "States": {
+                    "DeleteDefaultVPC": {
+                      "Type": "Task",
+                      "Resource": "${DeleteDefaultVPCFunction.Arn}",
+                      "OutputPath": "$.Payload",
+                      "Parameters": {
+                        "Payload.$": "$"
+                      },
+                      "Retry": [
+                        {
+                          "ErrorEquals": [
+                            "Lambda.ServiceException",
+                            "Lambda.AWSLambdaException",
+                            "Lambda.SdkClientException"
+                          ],
+                          "IntervalSeconds": 2,
+                          "MaxAttempts": 6,
+                          "BackoffRate": 2
+                        }
+                      ],
+                      "End": true
+                    }
+                  }
+                },
+                "ItemsPath": "$.default_regions",
+                "MaxConcurrency": 20,
+                "Parameters": {
+                  "region.$": "$$.Map.Item.Value",
+                  "account_id.$": "$.account_id"
+                },
+                "ResultPath": null
+              },
+              "Success": {
+                "Type": "Succeed"
+              }
+            }
+          }
+  ### Account processing end
 
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -514,8 +1121,8 @@ Resources:
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}/*"
-              - !Sub "arn:${AWS::Partition}:s3:::${AccountProcessingApplication.Outputs.Bucket}"
-              - !Sub "arn:${AWS::Partition}:s3:::${AccountProcessingApplication.Outputs.Bucket}/*"
+              - !GetAtt ADFAccountBucket.Arn
+              - !Sub "${ADFAccountBucket.Arn}/*"
           - Effect: "Allow"
             Action:
               - "codebuild:*"
@@ -563,7 +1170,7 @@ Resources:
           - Name: S3_BUCKET
             Value: !Ref BootstrapTemplatesBucket
           - Name: ACCOUNT_BUCKET
-            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket
+            Value: !Ref ADFAccountBucket
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET
