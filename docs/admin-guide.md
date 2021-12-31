@@ -65,7 +65,7 @@ config:
     keep-default-scp: enabled # Optional
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
-    default-scm-branch: master        # Optional
+    default-scm-branch: main          # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
