@@ -121,8 +121,8 @@ def get_boto3_client(service, role, session_name):
 def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> list:
     account_list = []
     # Get OUs
-    paginator = org_client.get_paginator('list_children')
-    pages = paginator.paginate(
+    paginator_item = org_client.get_paginator('list_children')
+    pages = paginator_item.paginate(
         ParentId=ou_id,
         ChildType='ORGANIZATIONAL_UNIT'
     )
@@ -131,7 +131,7 @@ def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> li
             account_list.extend(get_account_recursive(org_client, child['Id'], f"{path}{ou_id}/"))
 
     # Get Accounts
-    pages = paginator.paginate(
+    pages = paginator_item.paginate(
         ParentId=ou_id,
         ChildType='ACCOUNT'
     )
