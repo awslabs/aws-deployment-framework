@@ -1125,7 +1125,7 @@ Resources:
                             "Next": "NotifyFailure"
                         }
                     ],
-                    "Default": "EnableCrossAccountAccess"
+                    "Default": "EnableCrossAccountAccessMap"
                 },
                 "EnableCrossAccountAccessMap": {
                     "Type": "Map",
@@ -1137,7 +1137,17 @@ Resources:
                           "Type": "Task",
                           "Resource": "${EnableCrossAccountAccess.Arn}",
                           "TimeoutSeconds": 900,
-                          "End": true
+                          "End": true,
+                          "Retry": [
+                            {
+                              "ErrorEquals": [
+                                "States.TaskFailed"
+                              ],
+                              "BackoffRate": 1.1,
+                              "IntervalSeconds": 1,
+                              "MaxAttempts": 10
+                            }
+                          ]                          
                         }
                       }
                     },
