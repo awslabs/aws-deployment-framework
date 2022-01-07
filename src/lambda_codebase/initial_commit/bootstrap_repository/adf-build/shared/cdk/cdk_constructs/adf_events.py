@@ -43,7 +43,7 @@ class Events(core.Construct):
         if _add_trigger_on_changes:
             _event = _events.Rule(
                 self,
-                'trigger_{0}'.format(name),
+                f'trigger_{name}',
                 description=f'Triggers {name} on changes in source CodeCommit repository',
                 event_pattern=_events.EventPattern(
                     resources=[
@@ -77,8 +77,8 @@ class Events(core.Construct):
             _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])
             _event = _events.Rule(
                 self,
-                'pipeline_state_{0}'.format(name),
-                description="{0} | Trigger notifications based on pipeline state changes".format(name),
+                f'pipeline_state_{name}',
+                description=f"{name} | Trigger notifications based on pipeline state changes",
                 enabled=True,
                 event_pattern=_events.EventPattern(
                     detail={
@@ -88,7 +88,7 @@ class Events(core.Construct):
                             "SUCCEEDED"
                         ],
                         "pipeline": [
-                            "{0}{1}".format(ADF_PIPELINE_PREFIX, name)
+                            f"{ADF_PIPELINE_PREFIX}{name}",
                         ]
                     },
                     detail_type=[
@@ -101,12 +101,11 @@ class Events(core.Construct):
                 _targets.SnsTopic(
                     topic=_topic,
                     message=_events.RuleTargetInput.from_text(
-                        "The pipeline {0} from account {1} has {2} at {3}.".format(
-                            _events.EventField.from_path('$.detail.pipeline'),  # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
-                            _events.EventField.account,
-                            _events.EventField.from_path('$.detail.state'),
-                            _events.EventField.time
-                        )
+                        # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
+                        f"The pipeline {_events.EventField.from_path('$.detail.pipeline')} "
+                        f"from account {_events.EventField.account} "
+                        f"has {_events.EventField.from_path('$.detail.state')} "
+                        f"at {_events.EventField.time}."
                     )
                 )
             )
@@ -115,8 +114,8 @@ class Events(core.Construct):
             for index, pipeline in enumerate(params['completion_trigger'].get('pipelines', [])):
                 _event = _events.Rule(
                     self,
-                    'completion_{0}'.format(pipeline),
-                    description="Triggers {0} on completion of {1}".format(pipeline, params['pipeline']),
+                    f'completion_{pipeline}',
+                    description="Triggers {pipeline} on completion of {params['pipeline']}",
                     enabled=True,
                     event_pattern=_events.EventPattern(
                         detail={
@@ -124,7 +123,7 @@ class Events(core.Construct):
                                 "SUCCEEDED"
                             ],
                             "pipeline": [
-                                "{0}{1}".format(ADF_PIPELINE_PREFIX, name)
+                                f"{ADF_PIPELINE_PREFIX}{name}",
                             ]
                         },
                         detail_type=[
@@ -136,7 +135,7 @@ class Events(core.Construct):
                 # pylint: disable=no-value-for-parameter
                 _completion_pipeline = _codepipeline.Pipeline.from_pipeline_arn(
                     self,
-                    'pipeline-{0}'.format(index),
+                    f'pipeline-{index}',
                     f'arn:{stack.partition}:codepipeline:'
                     f'{ADF_DEPLOYMENT_REGION}:{ADF_DEPLOYMENT_ACCOUNT_ID}:'
                     f'{ADF_PIPELINE_PREFIX}{pipeline}'
@@ -149,8 +148,8 @@ class Events(core.Construct):
         if params.get('schedule'):
             _event = _events.Rule(
                 self,
-                'schedule_{0}'.format(params['name']),
-                description="Triggers {0} on a schedule of {1}".format(params['name'], params['schedule']),
+                f'schedule_{params["name"]}',
+                description=f"Triggers {params['name']} on a schedule of {params['schedule']}",
                 enabled=True,
                 # pylint: disable=no-value-for-parameter
                 schedule=_events.Schedule.expression(params['schedule'])

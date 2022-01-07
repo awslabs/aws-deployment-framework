@@ -49,23 +49,24 @@ roles:
 regions:
   deployment-account:
     - eu-central-1
-  targets: # No need to also include 'eu-central-1' in targets as the deployment-account region is also considered a target region by default.
+  targets:  # No need to also include 'eu-central-1' in targets as the deployment-account region is also considered a target region by default.
     - eu-west-1
 
 config:
   main-notification-endpoint:
     - type: email
-      target: john@doe.com
+      target: jane@example.com
   moves:
     - name: to-root
       action: safe
-  protected: # Optional
+  protected:  # Optional
     - ou-123
+
   scp: # Service Control Policy
     keep-default-scp: enabled # Optional
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
-    default-scm-branch: master        # Optional
+    default-scm-branch: main          # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
@@ -238,14 +239,14 @@ When you enter the *source_account_id* in the *deployment_map.yml**, you are say
 
 ```yaml
 pipelines:
-  - name: vpc # <-- The CodeCommit repository on the source account would need to have this name
+  - name: vpc  # <-- The CodeCommit repository on the source account would need to have this name
     default_providers:
       source:
         provider: codecommit
         properties:
-          account_id: 11111111111111 # <-- This teams AWS account is the only one able to push into this pipeline
+          account_id: 111111111111  # <-- This teams AWS account is the only one able to push into this pipeline
     targets:
-      - /security # Shorthand target example
+      - /security  # Shorthand target example
 ```
 
 Here is an example of passing in a parameter to a pipeline to override the default branch that is used to trigger the pipeline from, this time using Github as a source *(No need for source_account_id)*.
@@ -253,18 +254,18 @@ Here is an example of passing in a parameter to a pipeline to override the defau
 
 ```yaml
 pipelines:
-  - name: vpc # The Github repo would have this name
+  - name: vpc  # The Github repo would have this name
     default_providers:
       source:
         provider: github
         properties:
           branch: dev/feature
-          repository: example-vpc # Optional, above name property will be used if this is not specified
+          repository: example-vpc  # Optional, above name property will be used if this is not specified
           owner: bundyfx
-          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+          oauth_token_path: /adf/github_token  # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token  # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     targets:
-      - /security # Shorthand example
+      - /security  # Shorthand example
 ```
 
 **Note** If you find yourself specifying the same set of parameters over and over through-out the deployment map consider using [Yaml Anchors and Alias](./user-guide.md).
@@ -311,10 +312,10 @@ pipelines:
       source:
         provider: github
         properties:
-          repository: example-vpc-adf # Optional, above name property will be used if this is not specified
-          owner: bundyfx # Who owns this repository
+          repository: example-vpc-adf  # Optional, above name property will be used if this is not specified
+          owner: awslabs  # Who owns this repository
           oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token. example: if we stored {"token": "123secret"} - 'token' would be the json_field value.
+          json_field: token  # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token. example: if we stored {"token": "123secret"} - 'token' would be the json_field value.
     targets:
       - /security
 ```
@@ -331,24 +332,24 @@ pipelines:
         provider: codecommit
         properties:
           account_id: 111111111111
-    completion_trigger: # <--- When this pipeline finishes it will automatically start sample-iam and sample-ecs-cluster at the same time
+    completion_trigger:  # <--- When this pipeline finishes it will automatically start sample-iam and sample-ecs-cluster at the same time
         pipelines:
           - sample-iam
           - sample-ecs-cluster
-    targets: &generic_targets # using YAML Anchor
+    targets: &generic_targets  # Using a YAML Anchor, *generic_targets will paste the same value as defined in `targets` here.
       - /banking/testing
       - approval
       - /banking/production
 
   - name: sample-iam
     default_providers:
-      source: *generic_source # using YAML Alias
-    targets: *generic_targets # using YAML Alias
+      source: *generic_source  # Using YAML Alias
+    targets: *generic_targets  # Using YAML Alias
 
   - name: sample-ecs-cluster
     default_providers:
-      source: *generic_source # using YAML Alias
-    targets: *generic_targets # using YAML Alias
+      source: *generic_source  # Using YAML Alias
+    targets: *generic_targets  # Using YAML Alias
 ```
 
 ## Service Control Policies
@@ -402,9 +403,9 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111112233332
+          account_id: 111111111111
     params:
-      notification_endpoint: team-bugs # This channel will receive pipeline events (success/failures/approvals)
+      notification_endpoint: team-bugs  # This channel will receive pipeline events (success/failures/approvals)
       restart_execution_on_update: True
     targets:
       - path: /banking/testing
@@ -539,15 +540,15 @@ Please trace the failed component and dive into/report the debug information.
 The main components to look at are:
 
 1. In the AWS Management Account in `us-east-1`:
-  1. the [CloudFormation aws-deployment-framework stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=aws-deployment-framework&viewNested=true&hideStacks=false).
-  1. the [CloudWatch Logs for the Lambda functions deployed by ADF](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=true&n0=false&op=and&v0=ADF).
-  1. check if the [CodeCommit pull request](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN) to install the latest version changes of ADF has been merged into your main branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
-  1. the [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
-  1. the [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines).
+  1. The [CloudFormation aws-deployment-framework stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=aws-deployment-framework&viewNested=true&hideStacks=false).
+  1. The [CloudWatch Logs for the Lambda functions deployed by ADF](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=true&n0=false&op=and&v0=ADF).
+  1. Check if the [CodeCommit pull request](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN) to install the latest version changes of ADF has been merged into your main branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
+  1. The [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
+  1. The [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines).
     * Look at the previous executions of the State Machine.
     * When you find one that has a failed execution, check the components that are marked orange/red in the diagram.
 1. In the AWS Deployment Account in the deployment region:
-  1. the [CodePipeline execution of the `aws-deployment-framework-pipelines` (ADF pipelines) repository](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1) <- link points to `eu-west-1`, please change that to your own deployment region.
+  1. The [CodePipeline execution of the `aws-deployment-framework-pipelines` (ADF pipelines) repository](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1) <- link points to `eu-west-1`, please change that to your own deployment region.
 
 ### How to share debug information
 

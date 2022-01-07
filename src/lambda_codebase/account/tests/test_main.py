@@ -32,7 +32,7 @@ def test_deployment_account_given(logger, concur_mod_fn, wait_on_fn,
                                   ssm_client, org_client):
     account_id = "123456789012"
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     ssm_client.exceptions.ParameterNotFound = ParameterNotFound
     org_client.exceptions.ConcurrentModificationException = \
@@ -64,7 +64,7 @@ def test_deployment_account_found_with_ssm(logger, concur_mod_fn, wait_on_fn,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     ssm_client.exceptions.ParameterNotFound = ParameterNotFound
     org_client.exceptions.ConcurrentModificationException = \
@@ -106,7 +106,7 @@ def test_deployment_account_create_success(logger, concur_mod_fn, wait_on_fn,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     ssm_client.exceptions.ParameterNotFound = ParameterNotFound
     org_client.exceptions.ConcurrentModificationException = \
@@ -159,7 +159,7 @@ def test_deployment_account_create_failed_concur(logger, concur_mod_fn,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     ssm_client.exceptions.ParameterNotFound = ParameterNotFound
     org_client.exceptions.ConcurrentModificationException = \
@@ -216,7 +216,7 @@ def test_deployment_account_create_failed_other(logger, concur_mod_fn,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     correct_error_message = "Some other exception"
     ssm_client.exceptions.ParameterNotFound = ParameterNotFound
@@ -359,7 +359,7 @@ def test_deployment_account_handle_concurrent_last_try(logger, time_mock,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     no_retries = MAX_RETRIES
     org_client.exceptions.ConcurrentModificationException = \
@@ -406,7 +406,7 @@ def test_deployment_account_handle_concurrent_too_many_tries(logger,
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
-    account_email = "test-deployment@fake-test.domain"
+    account_email = "test@amazon.com"
     cross_account_access_role_name = "some-role"
     no_retries = MAX_RETRIES + 1
     org_client.exceptions.ConcurrentModificationException = \
