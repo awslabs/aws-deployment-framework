@@ -8,13 +8,13 @@ regions:
     - us-west-2
 
 config:
-  main-notification-endpoint: 
+  main-notification-endpoint:
     - type: email
-      target: jon@doe.com
+      target: john@example.com
   moves:
     - name: to-root
       action: remove-base
   protected:
     - ou-a9ny-123test
   scp:
-    keep-default-scp: enabled 
+    keep-default-scp: enabled

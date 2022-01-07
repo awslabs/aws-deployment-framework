@@ -28,7 +28,7 @@ Parameters:
   MainNotificationEndpoint:
     Type: String
     Default: ""
-    Description: "Example -> jon@smith.com"
+    Description: "Example -> jane@example.com"
   DeploymentAccountName:
     Type: String
     Default: ""
@@ -44,7 +44,7 @@ Parameters:
   DeploymentAccountId:
     Type: String
     Default: ""
-    Description: "Example -> 123456789101 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)"
+    Description: "Example -> 123456789012 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)"
   DeploymentAccountMainRegion:
     Type: String
     Default: ""

@@ -58,7 +58,7 @@ def test_fetch_accounts_for_target_ou_path():
 
 def test_fetch_accounts_for_target_account_id():
     cls = Target(
-        path="123456789102",
+        path="111111111111",
         regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
@@ -109,7 +109,7 @@ def test_fetch_account_error():
 
 def test_fetch_account_error_invalid_account_id():
     cls = Target(
-        path="12345678910",  # 11 digits rather than 12 (invalid account id)
+        path="12345678901",  # 11 digits rather than 12 (invalid account id)
         regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=Mock(),
