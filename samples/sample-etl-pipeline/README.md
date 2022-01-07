@@ -1,6 +1,6 @@
-## Sample ETL type Pipeline
+# Sample ETL type Pipeline
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-etl-pipeline

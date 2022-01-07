@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-Executes as part of Step Functions when
-an AWS Account is moved to the root of the
-Organization
+Executes as part of Step Functions when an AWS Account
+is moved to the root of the Organization.
 """
 
 import ast
@@ -36,7 +35,13 @@ def worker_thread(sts, region, account_id, role, event):
     page_iterator = paginator.paginate()
     for page in page_iterator:
         for parameter in page['Parameters']:
-            if 'Used by The AWS Deployment Framework' in parameter.get('Description', ''):
+            is_adf_param = (
+                'Used by The AWS Deployment Framework' in parameter.get(
+                    'Description',
+                    '',
+                )
+            )
+            if is_adf_param:
                 parameter_store.delete_parameter(parameter.get('Name'))
 
     cloudformation = CloudFormation(
@@ -64,7 +69,9 @@ def remove_base(account_id, regions, role, event):
                 region,
                 account_id,
                 role,
-                event))
+                event,
+            ),
+        )
         t.start()
         threads.append(t)
 
@@ -75,9 +82,12 @@ def remove_base(account_id, regions, role, event):
 def execute_move_action(action, account_id, parameter_store, event):
     LOGGER.info('Move to root action is %s for account %s', action, account_id)
     if action in ['remove_base', 'remove-base']:
-        regions = ast.literal_eval(
-            parameter_store.fetch_parameter('target_regions')
-        ) or []
+        regions = (
+            ast.literal_eval(
+                parameter_store.fetch_parameter('target_regions')
+            )
+            or []
+        )
 
         role = parameter_store.fetch_parameter('cross_account_access_role')
         return remove_base(account_id, regions, role, event)

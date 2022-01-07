@@ -146,17 +146,17 @@ PARAM_OVERRIDE_SCHEMA = {
     "key_name": str
 }
 CLOUDFORMATION_ACTIONS = Or(
-        'CHANGE_SET_EXECUTE',
-        'CHANGE_SET_REPLACE',
-        'CREATE_UPDATE',
-        'DELETE_ONLY',
-        'REPLACE_ON_FAILURE',
-        'change_set_execute',
-        'change_set_replace',
-        'create_update',
-        'delete_only',
-        'replace_on_failure'
-    )
+    'CHANGE_SET_EXECUTE',
+    'CHANGE_SET_REPLACE',
+    'CREATE_UPDATE',
+    'DELETE_ONLY',
+    'REPLACE_ON_FAILURE',
+    'change_set_execute',
+    'change_set_replace',
+    'create_update',
+    'delete_only',
+    'replace_on_failure'
+)
 
 CLOUDFORMATION_PROPS = {
     Optional("stack_name"): str,
@@ -349,6 +349,7 @@ TOP_LEVEL_SCHEMA = {
     # ADF will ignore these, but users can use them to define anchors in one place.
     Optional(Regex('^[x][-_].*')): object
 }
+
 
 class SchemaValidation:
     def __init__(self, map_input: dict):

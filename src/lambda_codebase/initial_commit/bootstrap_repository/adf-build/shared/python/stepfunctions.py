@@ -19,16 +19,16 @@ class StepFunctions:
     """
 
     def __init__(
-            self,
-            role,
-            deployment_account_id,
-            deployment_account_region,
-            regions,
-            account_ids=None,
-            full_path=None,
-            update_pipelines_only=0,
-            error=0
-        ):
+        self,
+        role,
+        deployment_account_id,
+        deployment_account_region,
+        regions,
+        account_ids=None,
+        full_path=None,
+        update_pipelines_only=0,
+        error=0
+    ):
         self.deployment_account_region = deployment_account_region
         self.client = role.client(
             'stepfunctions',

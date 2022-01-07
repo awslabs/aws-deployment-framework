@@ -67,7 +67,6 @@ def test_determine_build_spec_with_file_and_inline_specified_in_target(buildspec
             },
         )
 
-
     error_message = str(excinfo.value)
     assert error_message.find(correct_error_message) >= 0
 
@@ -101,7 +100,6 @@ def test_determine_build_spec_with_file_and_inline_specified_in_deploy(buildspec
                 'properties': {},
             }
         )
-
 
     error_message = str(excinfo.value)
     assert error_message.find(correct_error_message) >= 0

@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Cross Region S3 Bucket Handler that is called when ADF is installed to create the bucket in the master account in the deployment region
+The Cross Region S3 Bucket Handler that is called when ADF is installed to
+create the bucket in the master account in the deployment region
 """
 
 try:
@@ -19,7 +20,10 @@ except Exception as err: # pylint: disable=broad-except
     def lambda_handler(event, _context, prior_error=err):
         payload = dict(
             LogicalResourceId=event["LogicalResourceId"],
-            PhysicalResourceId=event.get("PhysicalResourceId", "NOT_YET_CREATED"),
+            PhysicalResourceId=event.get(
+                "PhysicalResourceId",
+                "NOT_YET_CREATED",
+            ),
             Status="FAILED",
             RequestId=event["RequestId"],
             StackId=event["StackId"],

@@ -17,6 +17,7 @@ from cloudformation import CloudFormation
 from sts import STS
 from resolver import Resolver
 
+
 @fixture
 def cls():
     parameter_store = Mock()
@@ -27,9 +28,17 @@ def cls():
         build_name='some_name',
         parameter_store=parameter_store,
         s3=s3,
-        directory=os.path.abspath(os.path.join(os.path.dirname(__file__), 'stubs'))
+        directory=os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                'stubs'
+            )
+        )
     )
-    parameters.account_ous = {'account_name1': '/banking/testing', 'account_name2': '/banking/production'}
+    parameters.account_ous = {
+        'account_name1': '/banking/testing',
+        'account_name2': '/banking/production',
+    }
     parameters.regions = ['eu-west-1', 'eu-central-1', 'us-west-2']
     yield parameters
     shutil.rmtree('{0}/params'.format(parameters.cwd))
@@ -48,7 +57,17 @@ def test_parse(cls):
         '{0}/stub_cfn_global'.format(cls.cwd)
     )
     # Unresolved Intrinsic at this stage
-    assert parse == {'Parameters': {'CostCenter': '123', 'Environment': 'testing', 'MySpecialValue': 'resolve:/values/some_value'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+    assert parse == {
+        'Parameters': {
+            'CostCenter': '123',
+            'Environment': 'testing',
+            'MySpecialValue': 'resolve:/values/some_value'
+        },
+        'Tags': {
+            'TagKey': '123',
+            'MyKey': 'new_value',
+        },
+    }
 
 
 def test_parse_not_found(cls):
@@ -67,9 +86,17 @@ def test_param_updater(cls):
             parse,
             {'Parameters': {}, 'Tags': {}}
         )
-        assert compare == {'Parameters': {'CostCenter': '123', 'Environment': 'testing', 'MySpecialValue': 'something'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
-
-    #assert compare == {'Parameters': {'CostCenter': 'not_free', 'Environment': 'testing', 'MySpecialValue': 'something'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+        assert compare == {
+            'Parameters': {
+                'CostCenter': '123',
+                'Environment': 'testing',
+                'MySpecialValue': 'something',
+            },
+            'Tags': {
+                'TagKey': '123',
+                'MyKey': 'new_value',
+            }
+        }
 
 
 def test_create_parameter_files(cls):
@@ -92,7 +119,17 @@ def test_ensure_parameter_default_contents(cls):
         parse = cls._parse(
             "{0}/params/account_name1_us-west-2".format(cls.cwd)
         )
-        assert parse == {'Parameters': {'CostCenter': '123', 'Environment': 'testing', 'MySpecialValue': 'something'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+        assert parse == {
+            'Parameters': {
+                'CostCenter': '123',
+                'Environment': 'testing',
+                'MySpecialValue': 'something',
+            },
+            'Tags': {
+                'TagKey': '123',
+                'MyKey': 'new_value',
+            }
+        }
 
 
 def test_ensure_parameter_specific_contents(cls):
@@ -116,5 +153,25 @@ def test_ensure_parameter_specific_contents(cls):
                 parse_yml = cls._parse(
                     "{0}/params/account_name1_eu-central-1".format(cls.cwd)
                 )
-                assert parse_json == {'Parameters': {'CostCenter': 'free', 'MySpecialValue': 'something', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
-                assert parse_yml == {'Parameters': {'CostCenter': 'not_free', 'MySpecialValue': 'something', 'Environment': 'testing'}, 'Tags': {'TagKey': '123', 'MyKey': 'new_value'}}
+                assert parse_json == {
+                    'Parameters': {
+                        'CostCenter': 'free',
+                        'MySpecialValue': 'something',
+                        'Environment': 'testing',
+                    },
+                    'Tags': {
+                        'TagKey': '123',
+                        'MyKey': 'new_value',
+                    }
+                }
+                assert parse_yml == {
+                    'Parameters': {
+                        'CostCenter': 'not_free',
+                        'MySpecialValue': 'something',
+                        'Environment': 'testing',
+                    },
+                    'Tags': {
+                        'TagKey': '123',
+                        'MyKey': 'new_value',
+                    }
+                }

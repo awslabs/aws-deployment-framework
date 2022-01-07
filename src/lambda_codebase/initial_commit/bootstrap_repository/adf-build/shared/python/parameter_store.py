@@ -17,6 +17,7 @@ SSM_CONFIG = Config(
     )
 )
 
+
 class ParameterStore:
     """Class used for modeling Parameters
     """
@@ -56,11 +57,12 @@ class ParameterStore:
         """
         try:
             LOGGER.debug('Fetching Parameters from path %s', path)
-            return paginator(self.client.get_parameters_by_path,
-                             Path=path,
-                             Recursive=True,
-                             WithDecryption=False
-                            )
+            return paginator(
+                self.client.get_parameters_by_path,
+                Path=path,
+                Recursive=True,
+                WithDecryption=False
+            )
         except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(f'Parameter Path {path} Not Found') from error
 

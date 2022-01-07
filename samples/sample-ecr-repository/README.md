@@ -1,6 +1,6 @@
-## Sample ECR Repository to showcase ADF Pipelines
+# Sample ECR Repository to showcase ADF Pipelines
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-ecr-repository

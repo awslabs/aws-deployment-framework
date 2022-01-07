@@ -9,16 +9,16 @@ allows you to create or update a new account.
 
 class Account:
     def __init__(
-            self,
-            full_name,
-            email,
-            ou_path,
-            alias=None,
-            delete_default_vpc=False,
-            allow_direct_move_between_ou=False,
-            allow_billing=True,
-            support_level='basic',
-            tags=None
+        self,
+        full_name,
+        email,
+        ou_path,
+        alias=None,
+        delete_default_vpc=False,
+        allow_direct_move_between_ou=False,
+        allow_billing=True,
+        support_level='basic',
+        tags=None
     ):
         self.full_name = full_name
         self.email = email
@@ -28,11 +28,7 @@ class Account:
         self.allow_billing = allow_billing
         self.alias = alias
         self.support_level = support_level
-
-        if tags is None:
-            self.tags = {}
-        else:
-            self.tags = tags
+        self.tags = tags or {}
 
     @classmethod
     def load_from_config(cls, config):
@@ -41,21 +37,12 @@ class Account:
             config["account_full_name"],
             config["email"],
             config["organizational_unit_path"],
-            alias=config.get(
-                "alias",
-                None),
-            delete_default_vpc=config.get(
-                "delete_default_vpc",
-                False),
-            allow_direct_move_between_ou=config.get(
-                "allow_direct_move_between_ou",
-                False),
-            allow_billing=config.get(
-                "allow_billing",
-                True),
-            support_level=config.get(
-                "support_level",
-                'basic'),
-            tags=config.get(
-                "tags",
-                {}))
+            alias=config.get("alias", None),
+            delete_default_vpc=config.get("delete_default_vpc", False),
+            allow_direct_move_between_ou=(
+                config.get("allow_direct_move_between_ou", False)
+            ),
+            allow_billing=config.get("allow_billing", True),
+            support_level=config.get("support_level", 'basic'),
+            tags=config.get("tags", {}),
+        )

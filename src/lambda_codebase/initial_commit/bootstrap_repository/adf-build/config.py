@@ -18,7 +18,8 @@ LOGGER = configure_logger(__name__)
 
 
 class Config:
-    """Class used for modeling dfconfig and its properties
+    """
+    Class used for modeling adfconfig and its properties.
     """
 
     def __init__(self, parameter_store=None, config_path=None):
@@ -68,7 +69,8 @@ class Config:
                     'keep-default-scp') in ['enabled', 'disabled']
         except AssertionError:
             raise InvalidConfigError(
-                'Configuration settings for organizations should be either enabled or disabled'
+                'Configuration settings for organizations should be either '
+                'enabled or disabled'
             ) from None
 
         if isinstance(self.deployment_account_region, list):
@@ -94,20 +96,36 @@ class Config:
         """
         Parses the adfconfig.yml file and executes _validate
         """
-        regions = self.config_contents.get(
-            'regions', {}).get('targets', [])
-        self.deployment_account_region = self.config_contents.get(
-            'regions', None).get('deployment-account', None)
-        self.target_regions = [] if regions[0] is None else regions
-        self.cross_account_access_role = self.config_contents.get(
-            'roles', None).get('cross-account-access', None)
-        self.config = self.config_contents.get('config', None)
+        regions = self.config_contents.get('regions', {}).get('targets', [])
+        self.deployment_account_region = (
+            self.config_contents.get('regions', {}).get('deployment-account')
+        )
+        self.target_regions = (
+            [] if regions[0] is None
+            else regions
+        )
+        self.cross_account_access_role = (
+            self.config_contents.get('roles', {}).get('cross-account-access')
+        )
+        self.config = self.config_contents.get('config')
         self.protected = self.config.get('protected', [])
-        self.notification_type = 'lambda' if self.config.get(
-            'main-notification-endpoint')[0].get('type') == 'slack' else 'email'
-        self.notification_endpoint = self.config.get(
-            'main-notification-endpoint')[0].get('target')
-        self.notification_channel = None if self.notification_type == 'email' else self.notification_endpoint
+
+        # TODO Investigate why this only considers the first notification
+        # endpoint. Seems like a bug, it should support multiple.
+        adf_config_notification_type = (
+            self.config.get('main-notification-endpoint')[0].get('type')
+        )
+        self.notification_type = (
+            'lambda' if adf_config_notification_type == 'slack'
+            else 'email'
+        )
+        self.notification_endpoint = (
+            self.config.get('main-notification-endpoint')[0].get('target')
+        )
+        self.notification_channel = (
+            None if self.notification_type == 'email'
+            else self.notification_endpoint
+        )
 
         self._validate()
 
@@ -137,12 +155,12 @@ class Config:
         """
         for key, value in self.__dict__.items():
             if key not in (
-                    "client",
-                    "client_deployment_region",
-                    "parameters_client",
-                    "config_contents",
-                    "config_path",
-                    "notification_endpoint",
-                    "notification_type"
+                "client",
+                "client_deployment_region",
+                "parameters_client",
+                "config_contents",
+                "config_path",
+                "notification_endpoint",
+                "notification_type"
             ):
                 self.parameters_client.put_parameter(key, str(value))

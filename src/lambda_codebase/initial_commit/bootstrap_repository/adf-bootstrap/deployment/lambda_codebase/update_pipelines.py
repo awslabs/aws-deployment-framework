@@ -17,8 +17,9 @@ LOGGER = configure_logger(__name__)
 
 def generate_notify_message(event):
     """
-    The message we want to pass into the next step (Notify) of the state machine
-    if the current account in execution has been bootstrapped
+    The message we want to pass into the next step (Notify) of the
+    state machine if the current account in execution has been
+    bootstrapped.
     """
     update_status = event.get('update_only', 1)
     if len(event.get('account_ids')) > 1:

@@ -1,6 +1,6 @@
-## Sample Serverless Python based Application
+# Sample Serverless Python based Application
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-serverless-app

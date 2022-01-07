@@ -24,7 +24,9 @@ from logger import configure_logger
 
 patch_all()
 LOGGER = configure_logger(__name__)
-ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv("ACCOUNT_MANAGEMENT_STATEMACHINE_ARN")
+ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv(
+    "ACCOUNT_MANAGEMENT_STATEMACHINE_ARN",
+)
 
 
 def get_details_from_event(event: dict):
@@ -55,14 +57,18 @@ def get_file_from_s3(s3_object: dict, s3_resource: boto3.resource):
             return yaml.safe_load(file_pointer)
     except ClientError as error:
         LOGGER.error(
-            f"Failed to download {s3_object.get('object_key')} "
-            f"from {s3_object.get('bucket_name')}, due to {error}"
+            "Failed to download %s from %s, due to %s",
+            s3_object.get('object_key'),
+            s3_object.get('bucket_name'),
+            error,
         )
         raise
     except YAMLError as yaml_error:
         LOGGER.error(
-            f"Failed to parse YAML file: {s3_object.get('object_key')} "
-            f"from {s3_object.get('bucket_name')}, due to {yaml_error}"
+            "Failed to parse YAML file: %s from %s, due to %s",
+            s3_object.get('object_key'),
+            s3_object.get('bucket_name'),
+            yaml_error,
         )
         raise
 
@@ -95,7 +101,10 @@ def process_account_list(all_accounts, accounts_in_file):
 
 
 def start_executions(sfn_client, processed_account_list):
-    LOGGER.info(f"Invoking Account Management State Machine ({ACCOUNT_MANAGEMENT_STATEMACHINE})")
+    LOGGER.info(
+        "Invoking Account Management State Machine (%s)",
+        ACCOUNT_MANAGEMENT_STATEMACHINE,
+    )
     for account in processed_account_list:
         LOGGER.debug(f"Payload: {account}")
         sfn_client.start_execution(

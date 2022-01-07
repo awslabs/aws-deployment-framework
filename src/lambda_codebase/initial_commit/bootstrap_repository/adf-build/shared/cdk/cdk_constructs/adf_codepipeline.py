@@ -493,7 +493,6 @@ class Pipeline(core.Construct):
             _output.append(core.Fn.import_value(arn))
         return _output
 
-
     def add_pipeline_trigger(self, trigger_type, trigger_config):
         if trigger_type not in self._accepted_triggers:
             LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
