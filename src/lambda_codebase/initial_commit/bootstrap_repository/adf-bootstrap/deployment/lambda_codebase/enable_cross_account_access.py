@@ -59,11 +59,11 @@ def lambda_handler(event, _):
     s3_buckets = []
     for region in list(set([event.get('deployment_account_region')] + event.get("regions", []))):
         kms_key_arn = parameter_store.fetch_parameter(
-            "/cross_region/kms_arn/{0}".format(region)
+            f"/cross_region/kms_arn/{region}"
         )
         kms_key_arns.append(kms_key_arn)
         s3_bucket = parameter_store.fetch_parameter(
-            "/cross_region/s3_regional_bucket/{0}".format(region)
+            f"/cross_region/s3_regional_bucket/{region}"
         )
         s3_buckets.append(s3_bucket)
         try:

@@ -1,7 +1,8 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""S3 module used throughout the ADF
+"""
+S3 module used throughout the ADF
 """
 
 import boto3
@@ -13,7 +14,8 @@ LOGGER = configure_logger(__name__)
 
 
 class S3:
-    """Class used for modeling S3
+    """
+    Class used for modeling S3
     """
 
     def __init__(self, region, bucket):
@@ -39,39 +41,42 @@ class S3:
         ]
 
     def build_pathing_style(self, style, key):
+        """
+        Return the requested path for the S3 bucket and key.
+
+        Args:
+            style (str): The path style. Valid options are:
+                's3-url' returns: 's3://{bucket}/{key}'
+                's3-uri' returns: '{bucket}/{key}'
+                's3-key-only' return: '{key}'
+                'path': returns: 'https://{s3-region}.amazonaws.com/{bucket}/{key}'
+                'virtual-hosted' returns: 'https://{buycket}.{s3-region}.amazonaws.com/{key}'
+
+            key (str): The object key to include in the path.
+
+        Returns:
+            str: The path to the bucket and/or key in the style requested.
+        """
         if style == 's3-url':
-            return "s3://{bucket}/{key}".format(
-                bucket=self.bucket,
-                key=key
-            )
+            return f"s3://{self.bucket}/{key}"
         if style == 's3-uri':
-            return "{bucket}/{key}".format(
-                bucket=self.bucket,
-                key=key
-            )
+            return f"{self.bucket}/{key}"
         if style == 's3-key-only':
-            return "{key}".format(
-                key=key
-            )
+            return key
+
         s3_region_name = "s3"
         if self.region != 'us-east-1':
-            s3_region_name = "s3-{region}".format(region=self.region)
+            s3_region_name = f"s3-{self.region}"
+
         if style == 'path':
-            return "https://{s3_region}.amazonaws.com/{bucket}/{key}".format(
-                s3_region=s3_region_name,
-                bucket=self.bucket,
-                key=key
-            )
+            return f"https://{s3_region_name}.amazonaws.com/{self.bucket}/{key}"
         if style == 'virtual-hosted':
-            return "https://{bucket}.{s3_region}.amazonaws.com/{key}".format(
-                s3_region=s3_region_name,
-                bucket=self.bucket,
-                key=key
-            )
+            return f"https://{self.bucket}.{s3_region_name}.amazonaws.com/{key}"
+
         raise Exception(
-            "Unknown upload style syntax: {style}. "
+            f"Unknown upload style syntax: {style}. "
             "Valid options include: s3-uri, path, or "
-            "virtual-hosted.".format(style=style)
+            "virtual-hosted."
         )
 
     def put_object(self, key, file_path, style="path", pre_check=False):
@@ -145,7 +150,7 @@ class S3:
                 self.bucket,
                 self.region,
             )
-            with open(file_path, 'rb') as file_handler:
+            with open(file_path, mode='rb') as file_handler:
                 self.resource.Object(self.bucket, key).put(Body=file_handler)
                 LOGGER.debug("Upload of %s was successful.", key)
         except BaseException:
@@ -153,26 +158,29 @@ class S3:
             raise
 
     def read_object(self, key):
+        """
+        Read the object from S3.
+
+        Args:
+            key (str): The object key.
+
+        Returns:
+            str: The content of the object decoded using utf-8.
+        """
         s3_object = self.resource.Object(self.bucket, key)
         return s3_object.get()['Body'].read().decode('utf-8')
 
     def fetch_s3_url(self, key):
-        """Recursively search for an object in S3 and return its URL
+        """
+        Recursively search for an object in S3 and return its URL
         """
         try:
             s3_object = self.resource.Object(self.bucket, key)
             s3_object.get()
             LOGGER.debug('Found Template at: %s', s3_object.key)
             if self.region == 'us-east-1':
-                return "https://s3.amazonaws.com/{bucket}/{key}".format(
-                    bucket=self.bucket,
-                    key=key
-                )
-            return "https://s3-{region}.amazonaws.com/{bucket}/{key}".format(
-                region=self.region,
-                bucket=self.bucket,
-                key=key
-            )
+                return f"https://s3.amazonaws.com/{self.bucket}/{key}"
+            return f"https://s3-{self.region}.amazonaws.com/{self.bucket}/{key}"
         except self.client.exceptions.NoSuchKey:
             # Split the path to remove the last key entry from the string
             key_level_up = key.split('/')

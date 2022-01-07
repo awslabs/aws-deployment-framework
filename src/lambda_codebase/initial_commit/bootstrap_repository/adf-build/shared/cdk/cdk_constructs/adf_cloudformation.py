@@ -27,7 +27,7 @@ class CloudFormation(core.Construct):
         for target in targets:
             _actions.append(
                 adf_codepipeline.Action(
-                    name="{0}-{1}-create".format(target['name'], region),
+                    name=f"{target['name']}-{region}-create",
                     provider="CloudFormation",
                     category="Deploy",
                     region=region,
@@ -35,33 +35,33 @@ class CloudFormation(core.Construct):
                     run_order=1,
                     action_mode="CHANGE_SET_REPLACE",
                     map_params=map_params,
-                    action_name="{0}-{1}-create".format(target['name'], region)
+                    action_name=f"{target['name']}-{region}-create",
                 ).config,
             )
             if target_approval_mode:
                 _actions.append(
                     adf_codepipeline.Action(
-                        name="{0}-{1}".format(target['name'], region),
+                        name=f"{target['name']}-{region}",
                         provider="Manual",
                         category="Approval",
                         region=region,
                         target=target,
                         run_order=2,
                         map_params=map_params,
-                        action_name="{0}-{1}".format(target['name'], region)
+                        action_name=f"{target['name']}-{region}",
                     ).config
                 )
             _actions.append(
                 adf_codepipeline.Action(
-                    name="{0}-{1}-execute".format(target['name'], region),
+                    name=f"{target['name']}-{region}-execute",
                     provider="CloudFormation",
                     category="Deploy",
                     region=region,
                     target=target,
-                    run_order=3 if target.get('properties', {}).get('change_set_approval') else 2,
+                    run_order=3 if target_approval_mode else 2,
                     action_mode="CHANGE_SET_EXECUTE",
                     map_params=map_params,
-                    action_name="{0}-{1}-execute".format(target['name'], region)
+                    action_name=f"{target['name']}-{region}-execute",
                 ).config
             )
         return _actions

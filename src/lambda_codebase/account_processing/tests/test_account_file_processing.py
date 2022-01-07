@@ -10,53 +10,54 @@ class SuccessTestCase(unittest.TestCase):
     def test_process_account_when_account_exists(self):
         test_account = {
             "alias": "MyCoolAlias",
-            "account_full_name":"mytestaccountname",
+            "account_full_name": "mytestaccountname",
         }
-        account_lookup = {"mytestaccountname":1234567890}
+        account_lookup = {"mytestaccountname": 123456789012}
         self.assertDictEqual(
             process_account(account_lookup, test_account),
             {
                 "alias": "MyCoolAlias",
-                "account_full_name":"mytestaccountname",
-                "account_id": 1234567890,
+                "account_full_name": "mytestaccountname",
+                "account_id": 123456789012,
                 "needs_created": False,
             }
         )
-
 
     def test_process_account_when_account_doesnt_exist(self):
         test_account = {
             "alias": "MyCoolAlias",
-            "account_full_name":"mytestaccountname",
+            "account_full_name": "mytestaccountname",
         }
-        account_lookup = {"mydifferentaccount":1234567890}
+        account_lookup = {"mydifferentaccount": 123456789012}
         self.assertDictEqual(
             process_account(account_lookup, test_account),
             {
                 "alias": "MyCoolAlias",
-                "account_full_name":"mytestaccountname",
+                "account_full_name": "mytestaccountname",
                 "needs_created": True,
             }
         )
 
-
     def test_process_account_list(self):
-        all_accounts = [{"Name":"mytestaccountname", "Id":1234567890}]
+        all_accounts = [{"Name": "mytestaccountname", "Id": 123456789012}]
         accounts_in_file = [
             {"account_full_name": "mytestaccountname"},
             {"account_full_name": "mynewaccountname"},
         ]
-        self.assertListEqual(process_account_list(all_accounts, accounts_in_file), [
-            {
-                "account_full_name":"mytestaccountname",
-                "needs_created": False,
-                "account_id": 1234567890,
-            },
-            {
-                "account_full_name":"mynewaccountname",
-                "needs_created": True,
-            }
-        ])
+        self.assertListEqual(
+            process_account_list(all_accounts, accounts_in_file),
+            [
+                {
+                    "account_full_name": "mytestaccountname",
+                    "needs_created": False,
+                    "account_id": 123456789012,
+                },
+                {
+                    "account_full_name": "mynewaccountname",
+                    "needs_created": True,
+                }
+            ]
+        )
 
 
 class FailureTestCase(unittest.TestCase):

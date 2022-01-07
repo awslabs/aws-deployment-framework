@@ -56,6 +56,7 @@ class TargetStructure:
             waves.append(self.account_list[index:min(index + wave_size, length)])
         return waves
 
+
 class Target:
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
@@ -101,7 +102,7 @@ class Target:
                     )
                 )
         if _entities == 0:
-            raise NoAccountsFoundError("No Accounts found in {0}".format(self.path))
+            raise NoAccountsFoundError(f"No Accounts found in {self.path}")
 
     def _target_is_account_id(self):
         responses = self.organizations.client.describe_account(
@@ -168,5 +169,5 @@ class Target:
             # No path/target has been passed, path will default to /deployment
             return self._target_is_null_path()
         raise InvalidDeploymentMapError(
-            "Unknown definition for target: {0}".format(self.path)
+            f"Unknown definition for target: {self.path}"
         )
