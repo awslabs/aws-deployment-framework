@@ -23,7 +23,7 @@ class OrganizationPolicy:
     @staticmethod
     def _find_all(policy):
         _files = list(glob.iglob(
-            './adf-bootstrap/**/{0}.json'.format(policy),
+            f'./adf-bootstrap/**/{policy}.json',
             recursive=True,
         ))
         return [f.replace('./adf-bootstrap', '.') for f in _files]
@@ -193,7 +193,7 @@ class OrganizationPolicy:
                         policy,
                         organization_mapping[path])
                     policy_id = organizations.list_policies(
-                        'adf-{0}-{1}'.format(policy, path), _type)
+                        f'adf-{policy}-{path}', _type)
                     organizations.attach_policy(
                         policy_id, organization_mapping[path])
             parameter_store.put_parameter(policy, str(_policies))

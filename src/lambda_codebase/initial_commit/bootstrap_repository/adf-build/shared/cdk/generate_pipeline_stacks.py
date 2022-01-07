@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """This file is pulled into CodeBuild containers
-   and used to build the pipeline cloudformation stacks via the AWS CDK
+   and used to build the pipeline CloudFormation stacks via the AWS CDK
 """
 
 import glob
@@ -27,7 +27,7 @@ def main():
     _threads = []
     _templates = glob.glob("cdk_inputs/*.json")
     for template_path in _templates:
-        with open(template_path) as template:
+        with open(template_path, encoding='utf-8') as template:
             stack_input = json.load(template)
             app = core.App()
             PipelineStack(app, stack_input)

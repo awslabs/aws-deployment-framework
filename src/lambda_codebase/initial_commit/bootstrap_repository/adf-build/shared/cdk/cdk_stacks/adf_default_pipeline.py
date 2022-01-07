@@ -198,7 +198,7 @@ def generate_deployment_action_per_region(_actions,
                 _actions.extend(
                     [
                         adf_codepipeline.Action(
-                            name="{0}-{1}".format(target["name"], region),
+                            name=f"{target['name']}-{region}",
                             provider="CloudFormation",
                             category="Deploy",
                             region=region,
@@ -206,7 +206,7 @@ def generate_deployment_action_per_region(_actions,
                             action_mode=action_mode,
                             run_order=1,
                             map_params=stack_input["input"],
-                            action_name="{0}-{1}".format(target["name"], region),
+                            action_name=f"{target['name']}-{region}",
                         ).config
                     ]
                 )
@@ -220,7 +220,7 @@ def generate_deployment_action_per_region(_actions,
             _actions.extend(
                 [
                     adf_codepipeline.Action(
-                        name="{0}-{1}".format(target["name"], region),
+                        name=f"{target['name']}-{region}",
                         provider="CodeDeploy",
                         category="Deploy",
                         region=region,
@@ -228,7 +228,7 @@ def generate_deployment_action_per_region(_actions,
                         action_mode=top_level_action,
                         run_order=1,
                         map_params=stack_input["input"],
-                        action_name="{0}-{1}".format(target["name"], region),
+                        action_name=f"{target['name']}-{region}",
                     ).config
                 ]
             )
@@ -236,7 +236,7 @@ def generate_deployment_action_per_region(_actions,
             _actions.extend(
                 [
                     adf_codepipeline.Action(
-                        name="{0}-{1}".format(target["name"], region),
+                        name=f"{target['name']}-{region}",
                         provider="S3",
                         category="Deploy",
                         region=region,
@@ -244,7 +244,7 @@ def generate_deployment_action_per_region(_actions,
                         action_mode=top_level_action,
                         run_order=1,
                         map_params=stack_input["input"],
-                        action_name="{0}-{1}".format(target["name"], region),
+                        action_name=f"{target['name']}-{region}",
                     ).config
                 ]
             )
@@ -252,7 +252,7 @@ def generate_deployment_action_per_region(_actions,
             _actions.extend(
                 [
                     adf_codepipeline.Action(
-                        name="{0}-{1}".format(target["name"], region),
+                        name=f"{target['name']}-{region}",
                         provider="Lambda",
                         category="Invoke",
                         region=region,
@@ -260,7 +260,7 @@ def generate_deployment_action_per_region(_actions,
                         action_mode=top_level_action,
                         run_order=1,
                         map_params=stack_input["input"],
-                        action_name="{0}-{1}".format(target["name"], region),
+                        action_name=f"{target['name']}-{region}",
                     ).config
                 ]
             )
@@ -268,7 +268,7 @@ def generate_deployment_action_per_region(_actions,
             _actions.extend(
                 [
                     adf_codepipeline.Action(
-                        name="{0}-{1}".format(target["name"], region),
+                        name=f"{target['name']}-{region}",
                         provider="ServiceCatalog",
                         category="Deploy",
                         region=region,
@@ -276,7 +276,7 @@ def generate_deployment_action_per_region(_actions,
                         action_mode=top_level_action,
                         run_order=1,
                         map_params=stack_input["input"],
-                        action_name="{0}-{1}".format(target["name"], region),
+                        action_name=f"{target['name']}-{region}",
                     ).config
                 ]
             )

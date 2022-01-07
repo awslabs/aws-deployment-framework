@@ -299,7 +299,7 @@ def test_perform_put_object_success(logger, boto3_resource):
             key=object_key,
             file_path=file_path,
         )
-        mock_file.assert_called_with(file_path, 'rb')
+        mock_file.assert_called_with(file_path, mode='rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
         s3_object.put.assert_called_once_with(Body=mock_file.return_value)
 
@@ -344,7 +344,7 @@ def test_perform_put_object_no_such_file(logger, boto3_resource):
         error_message = str(excinfo.value)
         assert error_message.find(correct_error_message) >= 0
 
-        mock_file.assert_called_with(file_path, 'rb')
+        mock_file.assert_called_with(file_path, mode='rb')
         s3_resource.Object.assert_not_called()
         s3_object.put.assert_not_called()
 
@@ -391,7 +391,7 @@ def test_perform_put_object_failed(logger, boto3_resource):
         error_message = str(excinfo.value)
         assert error_message.find(correct_error_message) >= 0
 
-        mock_file.assert_called_with(file_path, 'rb')
+        mock_file.assert_called_with(file_path, mode='rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
         s3_object.put.assert_called_once_with(Body=mock_file.return_value)
 

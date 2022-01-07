@@ -30,7 +30,7 @@ class Pipeline:
 
     @staticmethod
     def flatten_list(input_list):
-        result = list()
+        result = []
         for item in input_list:
             if isinstance(item, list):
                 result.extend(Pipeline.flatten_list(item))
@@ -40,13 +40,13 @@ class Pipeline:
 
     def _create_pipelines_folder(self):
         try:
-            return os.makedirs("pipelines/{0}".format(self.name))
+            return os.makedirs(f"pipelines/{self.name}")
         except FileExistsError:
             return None
 
     def _write_output(self, output_template):
-        output_path = "pipelines/{0}/global.yml".format(self.name)
-        with open(output_path, 'w') as file_handler:
+        output_path = f"pipelines/{self.name}/global.yml"
+        with open(output_path, mode='w', encoding='utf-8') as file_handler:
             file_handler.write(output_template)
 
     def _input_type_validation(self, params): #pylint: disable=R0201
