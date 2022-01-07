@@ -21,6 +21,7 @@ reported the issue. Please try to include as much information as you can. Detail
 
 
 ## Contributing via Pull Requests
+
 Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
 
 1. You are working against the latest source on the *master* branch.
@@ -41,16 +42,47 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 
 ## Finding contributions to work on
+
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/aws-deployment-framework/labels/help%20wanted) issues is a great place to start. 
 
 
+## Use of examples
+
+To ensure that email addresses or account ids are not exposed by accident,
+it is recommended to use one of the following examples instead:
+
+In case you want to specify an example email address, please make use of one of
+the following email addresses:
+
+* `jane@example.com`
+* `john@example.com`
+* `janes_team@example.com`
+* Or another `@example.com`
+* For tests that could potentially create accounts (if mocks failed to work),
+  please use `test@amazon.com` instead.
+
+When you want to write documentation/tests and need an example account id, the
+following account ids may be used:
+
+* `111111111111`
+* `222222222222`
+* ... to ...
+* `999999999999`
+* or to show the length more easily:
+* `012345678910`
+* `012345671234`
+* `123456789012`
+
+
 ## Code of Conduct
+
 This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct). 
 For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact 
 opensource-codeofconduct@amazon.com with any additional questions or comments.
 
 
 ## Security issue notifications
+
 If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 

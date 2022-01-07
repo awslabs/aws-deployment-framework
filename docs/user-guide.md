@@ -43,16 +43,16 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
+          account_id: 111111111111  # The AWS Account where the source code will be in a CodeCommit Repository
     params:
-        notification_endpoint: janes_team@doe.com # Optional
+      notification_endpoint: janes_team@example.com  # Optional
     tags:
       foo: bar # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1
-      - approval # This is a shorthand example of an approval step within a pipeline
-      - /banking/testing # This is a shorthand example of a step within a pipeline targeting an OU
+      - approval  # This is a shorthand example of an approval step within a pipeline
+      - /banking/testing  # This is a shorthand example of a step within a pipeline targeting an OU
 
   - name: vpc
     default_providers:
@@ -64,13 +64,13 @@ pipelines:
           oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
           json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
-        notification_endpoint: joes_team@company.nl
+      notification_endpoint: joes_team@example.com
     targets:
       - path: /banking/testing
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account `111111111111`. This CodeCommit Repository will automatically be created by default in the `111111111111` AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
 The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
 
@@ -83,9 +83,10 @@ Tags on AWS Accounts can also be used to define stages within a pipeline. For ex
 We do that with the following syntax:
 
 ```yaml
+pipelines:
   - name: vpc-for-foo-team
     default_providers:
-      ...
+      # ...
     targets:
       - tags: # Using tags to define the stage rather than a path or account id
           cost-center: foo-team
@@ -100,7 +101,7 @@ Adding or Removing Tags to an AWS Account in AWS Organizations will automaticall
 
 In most cases, you can target accounts directly by passing the AWS Account Id
 as an integer, as shown in the example above. However, in case the AWS Account
-Id starts with a zero, for example `011112233332`, you will need to pass the
+Id starts with a zero, for example `012345678910`, you will need to pass the
 AWS Account Id as a string instead.
 
 Due to the way the YAML file is read, it will automatically transform
@@ -123,7 +124,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111112233332
+          account_id: 111111111111
       build:
         provider: codebuild
         image: "STANDARD_4_0" # Use a specific docker image (supports Python 3.7 and Python 3.8) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
@@ -236,6 +237,7 @@ The following are the available pipeline parameters:
 Pipelines can also trigger other pipelines upon completion. To do this, use the *on_complete* key on the triggers definition. For example:
 
 ```yaml
+pipelines:
   - name: ami-builder
     default_providers:
       source:
@@ -269,6 +271,7 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
 
 Completion triggers can also be defined in a short handed fashion. Take the above example for the ami-builder pipeline.
 ```yaml
+pipelines:
   - name: ami-builder
     # Default providers and parameters are the same as defined above.
     # Only difference: instead of using `triggers` it uses the `completion_triggers`
@@ -288,6 +291,7 @@ Completion triggers can also be defined in a short handed fashion. Take the abov
 Pipelines can also be triggered by other events using the *triggered_by* key on the triggers definition. For example, a new version of a package hosted on CodeArtifact being published:
 
 ```yaml
+pipelines:
   - name: ami-builder
     default_providers:
       source:
@@ -374,14 +378,14 @@ pipelines:
   - name: example-custom-image
     default_providers:
       source:
-        ...
+        # ...
       build:
         provider: codebuild
         image:
-          repository_arn: arn:aws:ecr:region:012345678910:repository/test
+          repository_arn: arn:aws:ecr:region:111111111111:repository/test
           tag: latest # optional (defaults to latest)
     targets:
-      - ...
+      - # ...
 ```
 
 Public images from docker hub can be defined in your deployment map like so:
@@ -391,13 +395,13 @@ pipelines:
   - name: example-custom-image
     default_providers:
       source:
-        ...
+        # ...
       build:
         provider: codebuild
         properties:
           image: docker-hub://bitnami/mongodb
     targets:
-      - ...
+      - # ...
 ```
 
 ### CloudFormation Parameters and Tagging
@@ -513,7 +517,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 22222222222
+          account_id: 222222222222
       build:
         provider: codebuild
         properties:
@@ -550,10 +554,10 @@ Parameter injection is also useful for importing output values from CloudFormati
 
 ```yaml
 Parameters:
-    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:output_key'
+    BucketInLoggingAccount: 'import:111111111111:eu-west-1:stack_name:output_key'
 ```
 
-In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+In the above example *111111111111* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:111111111111:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
 
 #### Uploading assets
 
