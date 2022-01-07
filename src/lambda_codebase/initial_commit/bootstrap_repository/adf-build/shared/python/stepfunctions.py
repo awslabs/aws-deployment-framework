@@ -1,7 +1,8 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""Step Functions module used throughout the ADF
+"""
+Step Functions module used throughout the ADF
 """
 
 import json
@@ -13,7 +14,8 @@ LOGGER = configure_logger(__name__)
 
 
 class StepFunctions:
-    """Class used for modeling StepFunctions
+    """
+    Class used for modeling Step Functions
     """
 
     def __init__(
@@ -49,9 +51,9 @@ class StepFunctions:
         self._wait_state_machine_execution()
 
     def _start_statemachine(self):
-        """Executes the Update Cross Account IAM StepFunction in the Deployment Account
         """
-
+        Executes the Update Cross Account IAM Step Function in the Deployment Account
+        """
         partition = get_partition(self.deployment_account_region)
 
         self.execution_arn = self.client.start_execution(
@@ -87,7 +89,8 @@ class StepFunctions:
         self._execution_status = execution_status
 
     def _fetch_statemachine_status(self):
-        """Get the current status of the state machine
+        """
+        Get the current status of the state machine
         """
         execution = self.client.describe_execution(
             executionArn=self.execution_arn
@@ -97,7 +100,7 @@ class StepFunctions:
     # Is there a legit waiter for this?
     def _wait_state_machine_execution(self):
         """
-        Waits until the statemachine is complete
+        Waits until the state machine is complete
         """
         while self.execution_status == 'RUNNING':
             self._fetch_statemachine_status()
@@ -105,7 +108,6 @@ class StepFunctions:
 
         if self.execution_status in ('FAILED', 'ABORTED', 'TIMED_OUT'):
             raise Exception(
-                'State Machine on Deployment account {0} has status: {1}, see logs'.format(
-                    self.deployment_account_id,
-                    self.execution_status)
-                )
+                f'State Machine on Deployment account {self.deployment_account_id} '
+                f'has status: {self.execution_status}, see logs'
+            )

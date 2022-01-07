@@ -87,7 +87,7 @@ class Config:
         """
         Loads the adfconfig.yml file and executes _parse_config
         """
-        with open(self.config_path) as config:
+        with open(self.config_path, encoding='utf-8') as config:
             self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
             self._parse_config()
 

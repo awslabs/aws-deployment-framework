@@ -35,6 +35,7 @@ def lambda_handler(event, _):
                     "Name": "opt-in-status",
                     "Values": [
                         "opt-in-not-required",
+                        "opted-in"
                     ],
                 }
             ],

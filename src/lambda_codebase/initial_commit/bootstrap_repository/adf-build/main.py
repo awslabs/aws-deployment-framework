@@ -1,7 +1,8 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""Main entry point for main.py execution which
+"""
+Main entry point for main.py execution which
 is executed from within AWS CodeBuild in the Master Account
 """
 
@@ -46,8 +47,7 @@ def is_account_in_invalid_state(ou_id, config):
 
     protected = config.get('protected', [])
     if ou_id in protected:
-        return "Is in a protected Organizational Unit {0}, it will be skipped.".format(
-            ou_id)
+        return f"Is in a protected Organizational Unit {ou_id}, it will be skipped."
 
     return False
 
@@ -89,11 +89,11 @@ def update_deployment_account_output_parameters(
     kms_and_bucket_dict[region]['s3_regional_bucket'] = outputs['s3_regional_bucket']
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
         parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
 
@@ -239,9 +239,12 @@ def worker_thread(
             except GenericAccountConfigureError as error:
                 if 'Unable to fetch parameters' in str(error):
                     LOGGER.error(
-                        '%s - Failed to update its base stack due to missing parameters (deployment_account_id or kms_arn), '
-                        'ensure this account has been bootstrapped correctly by being moved from the root '
-                        'into an Organizational Unit within AWS Organizations.', account_id)
+                        '%s - Failed to update its base stack due to missing parameters '
+                        '(deployment_account_id or kms_arn), ensure this account has been '
+                        'bootstrapped correctly by being moved from the root into an '
+                        'Organizational Unit within AWS Organizations.',
+                        account_id,
+                    )
                 raise Exception from error
 
     except GenericAccountConfigureError as generic_account_error:

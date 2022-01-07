@@ -55,7 +55,7 @@ Provider type: `codecommit`.
   > action to trigger the pipeline.
 - *repository* - *(String)* defaults to name of the pipeline.
   > The AWS CodeCommit repository name.
-- *branch* - *(String)* default: `master`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
   > The Branch on the CodeCommit repository to use to trigger this specific
   > pipeline.
 - *poll_for_changes* - *(Boolean)* default: `False`.
@@ -105,7 +105,7 @@ Provider type: `github`.
   > The GitHub repository name.
   > For example, for the ADF repository it would be:
   > `aws-deployment-framework`.
-- *branch* - *(String)* - default: `master`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
   > The Branch on the GitHub repository to use to trigger this specific
   > pipeline.
 - *owner* - *(String)* **(required)**
@@ -181,7 +181,7 @@ Provider type: `codestar`.
   > The CodeStar repository name.
   > For example, for the ADF repository it would be:
   > `aws-deployment-framework`.
-- *branch* - *(String)* - default: `master`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
   > The Branch on the third-party repository to use to trigger this specific
   > pipeline.
 - *owner* - *(String)* **(required)**
