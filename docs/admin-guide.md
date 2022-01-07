@@ -61,11 +61,12 @@ config:
       action: safe
   protected:  # Optional
     - ou-123
-  scp:  # Service Control Policy
-    keep-default-scp: enabled  # Optional
-  scm:  # Source Control Management
-    auto-create-repositories: enabled  # Optional
-    default-scm-branch: master         # Optional
+
+  scp: # Service Control Policy
+    keep-default-scp: enabled # Optional
+  scm: # Source Control Management
+    auto-create-repositories: enabled # Optional
+    default-scm-branch: main          # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
