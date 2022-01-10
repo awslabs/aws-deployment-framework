@@ -28,6 +28,7 @@ S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
+CLOUDFORMATION_ROLE_ARN = os.environ["CLOUDFORMATION_ROLE_ARN"]
 
 
 def upload_pipeline(template_path, name, s3):
@@ -53,7 +54,8 @@ def worker_thread(template_path, name, s3):
         stack_name=f"{ADF_PIPELINE_PREFIX}{name}",
         s3=None,
         s3_key_path=None,
-        account_id=DEPLOYMENT_ACCOUNT_ID
+        account_id=DEPLOYMENT_ACCOUNT_ID,
+        role_arn=CLOUDFORMATION_ROLE_ARN,
     )
     cloudformation.create_stack()
 

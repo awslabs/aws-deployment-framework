@@ -14,7 +14,6 @@ from logger import configure_logger
 from partition import get_partition
 
 LOGGER = configure_logger(__name__)
-TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
@@ -23,8 +22,6 @@ s3 = S3(
     DEPLOYMENT_ACCOUNT_REGION,
     S3_BUCKET_NAME
 )
-
-
 class Repo:
     def __init__(self, account_id, name, description=''):
         self.name = name
@@ -61,7 +58,7 @@ class Repo:
     def create_update(self):
         s3_object_path = s3.put_object(
             "adf-build/templates/codecommit.yml",
-            f"{TARGET_DIR}/adf-build/templates/codecommit.yml",
+            "templates/codecommit.yml"
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,

@@ -1,0 +1,109 @@
+"""
+Pipeline Management Lambda Function
+Generates Pipeline Inputs
+
+"""
+
+import os
+import boto3
+
+from pipeline import Pipeline
+from target import Target, TargetStructure
+from organizations import Organizations
+from parameter_store import ParameterStore
+from sts import STS
+from logger import configure_logger
+from partition import get_partition
+
+
+LOGGER = configure_logger(__name__)
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
+DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
+
+
+def store_regional_parameter_config(pipeline, parameter_store):
+    """
+    Responsible for storing the region information for specific
+    pipelines. These regions are defined in the deployment_map
+    either as top level regions for a pipeline or stage specific regions
+    """
+    if pipeline.top_level_regions:
+        parameter_store.put_parameter(
+            f"/deployment/{pipeline.name}/regions",
+            str(list(set(pipeline.top_level_regions))),
+        )
+        return
+
+    parameter_store.put_parameter(
+        f"/deployment/{pipeline.name}/regions",
+        str(list(set(Pipeline.flatten_list(pipeline.stage_regions)))),
+    )
+
+
+def fetch_required_ssm_params(regions):
+    output = {}
+    for region in regions:
+        parameter_store = ParameterStore(region, boto3)
+        output[region] = {
+            "s3": parameter_store.fetch_parameter(
+                f"/cross_region/s3_regional_bucket/{region}"
+            ),
+            "kms": parameter_store.fetch_parameter(f"/cross_region/kms_arn/{region}"),
+        }
+        if region == DEPLOYMENT_ACCOUNT_REGION:
+            output[region]["modules"] = parameter_store.fetch_parameter(
+                "deployment_account_bucket"
+            )
+    return output
+
+
+def generate_pipeline_inputs(pipeline, organizations, parameter_store):
+    data = {}
+    pipeline_object = Pipeline(pipeline)
+    regions = []
+    for target in pipeline.get("targets", []):
+        target_structure = TargetStructure(target)
+        for step in target_structure.target:
+            regions = step.get(
+                "regions", pipeline.get("regions", DEPLOYMENT_ACCOUNT_REGION)
+            )
+            paths_tags = []
+            for path in step.get("path", []):
+                paths_tags.append(path)
+            if step.get("tags") is not None:
+                paths_tags.append(step.get("tags", {}))
+            for path_or_tag in paths_tags:
+                pipeline_object.stage_regions.append(regions)
+                pipeline_target = Target(
+                    path_or_tag, target_structure, organizations, step, regions
+                )
+                pipeline_target.fetch_accounts_for_target()
+        pipeline_object.template_dictionary["targets"].append(
+            target_structure.account_list
+        )
+
+    if DEPLOYMENT_ACCOUNT_REGION not in regions:
+        pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
+    pipeline_object.generate_input()
+    data["ssm_params"] = fetch_required_ssm_params(
+        pipeline_object.input["regions"] or [DEPLOYMENT_ACCOUNT_REGION]
+    )
+    data["input"] = pipeline_object.input
+    store_regional_parameter_config(pipeline_object, parameter_store)
+    return data
+
+
+def lambda_handler(pipeline, _):
+    """Main Lambda Entry point"""
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+    sts = STS()
+    role = sts.assume_cross_account_role(
+        f'arn:{get_partition(DEPLOYMENT_ACCOUNT_REGION)}:iam::{ROOT_ACCOUNT_ID}:role/{parameter_store.fetch_parameter("cross_account_access_role")}-readonly',
+        "pipeline",
+    )
+    organizations = Organizations(role)
+
+    output = generate_pipeline_inputs(pipeline, organizations, parameter_store)
+
+    return output

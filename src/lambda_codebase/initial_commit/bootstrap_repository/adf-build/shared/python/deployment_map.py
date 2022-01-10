@@ -23,10 +23,11 @@ class DeploymentMap:
             parameter_store,
             s3,
             pipeline_name_prefix,
-            map_path=None
+            map_path=None,
+            map_dir_path=None,
     ):
         self.map_path = map_path or 'deployment_map.yml'
-        self.map_dir_path = map_path or 'deployment_maps'
+        self.map_dir_path = map_dir_path or 'deployment_maps'
         self.parameter_store = parameter_store
         self.s3 = s3
         self._get_all()
@@ -46,7 +47,7 @@ class DeploymentMap:
             json.dump(self.account_ou_names, outfile)
         self.s3.put_object(
             f"adf-parameters/deployment/{pipeline.name}/account_ous.json",
-            f"{pipeline.name}.json",
+            f'{pipeline.name}.json'
         )
         if pipeline.notification_endpoint:
             self.parameter_store.put_parameter(
@@ -63,7 +64,7 @@ class DeploymentMap:
                 _input = yaml.load(stream, Loader=yaml.FullLoader)
                 return SchemaValidation(_input).validated
         except FileNotFoundError:
-            LOGGER.info('No default map file found at %s, continuing', file_path)
+            LOGGER.warning('No default map file found at %s, continuing', file_path)
             return {}
         except SchemaError as err:
             LOGGER.error(err.code)
@@ -83,10 +84,8 @@ class DeploymentMap:
         )
         if not self.map_contents['pipelines']:
             LOGGER.error(
-                "No Deployment Map files found, create a deployment_map.yml "
-                "file in the root of the repository to create pipelines. "
-                "You can create additional deployment maps if required in a "
-                "folder named deployment_maps with any name (ending in .yml)"
+                "No Deployment Map files found, create a deployment_map.yml file in the root of the repository to create pipelines. "
+                "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
             )
             raise InvalidDeploymentMapError("No Deployment Map files found..") from None
 
@@ -101,4 +100,4 @@ class DeploymentMap:
                     self._read(filename)
                 )
             else:
-                LOGGER.warning("%s is not a directory and doesn't end in.yml", filename)
+                LOGGER.warning(f"{filename} is not a directory and doesn't end in.yml")
