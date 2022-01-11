@@ -59,7 +59,7 @@ def store_regional_parameter_config(pipeline, parameter_store):
     """
     if pipeline.top_level_regions:
         parameter_store.put_parameter(
-            f"/deployment/{pipeline.nam}/regions",
+            f"/deployment/{pipeline.name}/regions",
             str(list(set(pipeline.top_level_regions)))
         )
         return
@@ -115,7 +115,15 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
                 pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
                 pipeline_target.fetch_accounts_for_target()
 
-            pipeline.template_dictionary["targets"].append(target_structure.generate_waves())
+        # Targets should be a list of lists.
+
+        # Note: This is a big shift away from how ADF handles targets natively.
+        # Previously this would be a list of [accountId(s)] it now returns a list of [[account_ids], [account_ids]]
+        # for the sake of consistency we should probably think of a target consisting of multiple "waves". So if you see
+        # any reference to a wave going forward it will be the individual batch of account ids
+        pipeline.template_dictionary["targets"].append(
+            list(target_structure.generate_waves()),
+        )
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)

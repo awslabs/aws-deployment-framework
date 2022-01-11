@@ -48,13 +48,10 @@ class TargetStructure:
         return target
 
     def generate_waves(self):
-        waves = []
         wave_size = self.wave.get('size', 50)
         length = len(self.account_list)
         for index in range(0, length, wave_size):
             yield self.account_list[index:min(index + wave_size, length)]
-            waves.append(self.account_list[index:min(index + wave_size, length)])
-        return waves
 
 
 class Target:
