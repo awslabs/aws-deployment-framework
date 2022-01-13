@@ -280,6 +280,15 @@ Resources:
               - "ecr:PutImage"
             Resource:
               - "*"
+          - Effect: Allow
+            Action:
+              - "codebuild:CreateReportGroup"
+              - "codebuild:CreateReport"
+              - "codebuild:UpdateReport"
+              - "codebuild:BatchPutTestCases"
+              - "codebuild:BatchPutCodeCoverages"
+            Resource:
+              - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/*
       Roles:
         - !Ref CodeBuildRole
   PipelineProvisionerCodeBuildRole:
@@ -1137,7 +1146,7 @@ Resources:
                               "IntervalSeconds": 1,
                               "MaxAttempts": 10
                             }
-                          ]                          
+                          ]
                         }
                       }
                     },
