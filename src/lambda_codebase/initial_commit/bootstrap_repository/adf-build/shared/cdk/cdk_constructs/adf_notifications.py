@@ -35,8 +35,8 @@ class Notifications(core.Construct):
             f'arn:{stack.partition}:lambda:{ADF_DEPLOYMENT_REGION}:'
             f'{ADF_DEPLOYMENT_ACCOUNT_ID}:function:SendSlackNotification'
         )
-        kms_alias = _kms.Alias.from_alias_name(self, 'KMSAlias', f"alias/codepipeline-{ADF_DEPLOYMENT_ACCOUNT_ID}")
-        _topic = _sns.Topic(self, 'PipelineTopic', master_key=kms_alias)
+        kms_alias = _kms.Alias.from_alias_name(self, "KMSAlias", f"alias/codepipeline-{ADF_DEPLOYMENT_ACCOUNT_ID}")
+        _topic = _sns.Topic(self, "PipelineTopic", master_key=kms_alias)
         _statement = _iam.PolicyStatement(
             actions=["sns:Publish"],
             effect=_iam.Effect.ALLOW,
