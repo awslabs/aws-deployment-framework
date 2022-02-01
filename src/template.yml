@@ -341,7 +341,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "iam:CreateAcountAlias"
+                  - "iam:CreateAccountAlias"
                 Resource: "*"
 
   AccountAliasConfigFunction:
