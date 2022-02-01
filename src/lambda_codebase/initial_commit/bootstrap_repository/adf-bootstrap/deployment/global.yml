@@ -119,7 +119,7 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
           - Action:
               - kms:Decrypt
-              - kms:GenerateDataKey
+              - kms:GenerateDataKey*
             Effect: Allow
             Principal:
               Service:
