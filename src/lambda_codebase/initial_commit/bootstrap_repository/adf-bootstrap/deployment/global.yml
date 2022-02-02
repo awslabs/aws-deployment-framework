@@ -117,6 +117,16 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+          - Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Principal:
+              Service:
+                - sns.amazonaws.com
+                - events.amazonaws.com
+                - codecommit.amazonaws.com
+            Resource: "*"
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -1137,7 +1147,7 @@ Resources:
                               "IntervalSeconds": 1,
                               "MaxAttempts": 10
                             }
-                          ]                          
+                          ]
                         }
                       }
                     },
