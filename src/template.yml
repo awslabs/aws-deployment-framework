@@ -521,7 +521,7 @@ Resources:
           - Name: S3_BUCKET
             Value: !Ref BootstrapTemplatesBucket
           - Name: ACCOUNT_BUCKET
-            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket            
+            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET
@@ -548,6 +548,7 @@ Resources:
               commands:
                 - sam build -t adf-bootstrap/deployment/global.yml
                 - sam package --output-template-file adf-bootstrap/deployment/global.yml --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - aws s3 sync ./adf-bootstrap/deployment/global-params.json s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-bootstrap/deployment --quiet
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet # Shared Modules to be used with AWS CodeBuild
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
                 - aws s3 sync ./adf-accounts s3://$ACCOUNT_BUCKET --quiet
