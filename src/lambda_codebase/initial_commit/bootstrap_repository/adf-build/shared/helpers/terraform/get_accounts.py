@@ -29,12 +29,12 @@ CROSS_ACCOUNT_ACCESS_ROLE = response['Parameter']['Value']
 
 def main():
     accounts = get_accounts()
-    with open('accounts.json', 'w') as outfile:
+    with open('accounts.json', 'w', encoding='utf-8') as outfile:
         json.dump(accounts, outfile)
 
     if TARGET_OUS:
         accounts_from_ous = get_accounts_from_ous()
-        with open('accounts_from_ous.json', 'w') as outfile:
+        with open('accounts_from_ous.json', 'w', encoding='utf-8') as outfile:
             json.dump(accounts_from_ous, outfile)
 
 def list_organizational_units_for_parent(parent_ou):
