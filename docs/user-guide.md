@@ -1,7 +1,7 @@
 # User Guide
 
 - [Deployment Map](#deployment-map)
-    - [Targeting via Tags](#targeting-via-tags)
+  - [Targeting via Tags](#targeting-via-tags)
   - [Important Notes](#important-notes)
     - [Zero-prefixed AWS Account Ids](#zero-prefixed-aws-account-ids)
   - [Providers](#providers)
@@ -88,7 +88,7 @@ The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. Yo
 
 By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
-#### Targeting via Tags
+### Targeting via Tags
 
 Tags on AWS Accounts can also be used to define stages within a pipeline. For example, we might want to create a pipeline that targets all AWS Accounts with the tag `cost-center` and value of `foo-team`. You cannot use a combination of `path/target` and `tags`.
 
