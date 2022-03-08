@@ -1,7 +1,8 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""Main entry point for main.py execution which
+"""
+Main entry point for main.py execution which
 is executed from within AWS CodeBuild in the Master Account
 """
 
@@ -20,16 +21,19 @@ from stepfunctions import StepFunctions
 from errors import GenericAccountConfigureError, ParameterNotFoundError
 from sts import STS
 from s3 import S3
+from partition import get_partition
 from config import Config
 from organization_policy import OrganizationPolicy
 
 
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
+PARTITION = get_partition(REGION_DEFAULT)
 ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 LOGGER = configure_logger(__name__)
 
 
@@ -43,8 +47,7 @@ def is_account_in_invalid_state(ou_id, config):
 
     protected = config.get('protected', [])
     if ou_id in protected:
-        return "Is a in a protected Organizational Unit {0}, it will be skipped.".format(
-            ou_id)
+        return f"Is in a protected Organizational Unit {ou_id}, it will be skipped."
 
     return False
 
@@ -55,9 +58,8 @@ def ensure_generic_account_can_be_setup(sts, config, account_id):
     """
     try:
         return sts.assume_cross_account_role(
-            'arn:aws:iam::{0}:role/{1}'.format(
-                account_id,
-                config.cross_account_access_role),
+            f'arn:{PARTITION}:iam::{account_id}:role/'
+            f'{config.cross_account_access_role}',
             'base_update'
         )
     except ClientError as error:
@@ -87,11 +89,11 @@ def update_deployment_account_output_parameters(
     kms_and_bucket_dict[region]['s3_regional_bucket'] = outputs['s3_regional_bucket']
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
         parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
 
@@ -105,9 +107,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     to access the deployment account
     """
     deployment_account_role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(
-            deployment_account_id,
-            config.cross_account_access_role),
+        f'arn:{PARTITION}:iam::{deployment_account_id}:role/'
+        f'{config.cross_account_access_role}',
         'master'
     )
     for region in list(
@@ -133,6 +134,13 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_parameter_store.put_parameter(
         'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
     )
+    deployment_account_parameter_store.put_parameter(
+        'default_scm_branch',
+        config.config.get('scm', {}).get(
+            'default-scm-branch',
+            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
+    )
     auto_create_repositories = config.config.get(
         'scm', {}).get('auto-create-repositories')
     if auto_create_repositories is not None:
@@ -141,8 +149,10 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
-        config.notification_endpoint = "arn:aws:lambda:{0}:{1}:function:SendSlackNotification".format(
-            config.deployment_account_region, deployment_account_id)
+        config.notification_endpoint = (
+            f"arn:{PARTITION}:lambda:{config.deployment_account_region}:"
+            f"{deployment_account_id}:function:SendSlackNotification"
+        )
     for item in (
             'cross_account_access_role',
             'notification_type',
@@ -221,9 +231,12 @@ def worker_thread(
             except GenericAccountConfigureError as error:
                 if 'Unable to fetch parameters' in str(error):
                     LOGGER.error(
-                        '%s - Failed to update its base stack due to missing parameters (deployment_account_id or kms_arn), '
-                        'ensure this account has been bootstrapped correctly by being moved from the root '
-                        'into an Organizational Unit within AWS Organizations.', account_id)
+                        '%s - Failed to update its base stack due to missing parameters '
+                        '(deployment_account_id or kms_arn), ensure this account has been '
+                        'bootstrapped correctly by being moved from the root into an '
+                        'Organizational Unit within AWS Organizations.',
+                        account_id,
+                    )
                 raise Exception from error
 
     except GenericAccountConfigureError as generic_account_error:

@@ -13,6 +13,7 @@ import boto3
 
 from parameter_store import ParameterStore
 
+
 def extract_pipeline(message):
     """
     Try extract the pipeline name from the message (approval/success/failure)
@@ -22,18 +23,21 @@ def extract_pipeline(message):
     try:
         name = message.get('approval', {}).get('pipelineName', None) or message.get("detail", {}).get("pipeline", None)
         return {
-            "name": name.split("{0}".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
+            "name": name.split(str(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
             "state": message.get("detail", {}).get("state"),
             "time": message.get("time"),
             "account_id": message.get("account")
         }
     except AttributeError:
         return {
-            "name": message.split("{0}".format(os.environ.get("ADF_PIPELINE_PREFIX")))[-1].split(' from account')[0],
+            "name": message.split(
+                str(os.environ.get("ADF_PIPELINE_PREFIX"))
+            )[-1].split(' from account')[0],
             "state": message.split('has ')[-1].split(' at')[0],
             "time": message.split('at ')[-1],
             "account_id": message.split('account ')[-1].split(' has')[0]
         }
+
 
 def is_approval(message):
     """
@@ -42,6 +46,7 @@ def is_approval(message):
     if isinstance(message, str):
         return False
     return message.get('approval', None)
+
 
 def is_bootstrap(event):
     """
@@ -58,6 +63,7 @@ def is_bootstrap(event):
     except ValueError:
         return True
 
+
 def extract_message(event):
     """
     Takes the message out of the incoming event and attempts to load it into JSON
@@ -70,29 +76,31 @@ def extract_message(event):
     except ValueError:
         return message
 
+
 def create_approval(channel, message):
     """
     Creates a dict that will be sent to send_message for approvals
     """
     return {
-        "text": ":clock1: Pipeline {0} in {1} requires approval".format(
-            message["approval"]["pipelineName"],
-            message["approval"]["customData"]
+        "text": (
+            f":clock1: Pipeline {message['approval']['pipelineName']} "
+            f"in {message['approval']['customData']} requires approval"
         ),
         "channel": channel,
         "attachments": [
             {
-                "fallback": "Approve or Deny Deployment at {0}".format(message["consoleLink"]),
+                "fallback": f"Approve or Deny Deployment at {message['consoleLink']}",
                 "actions": [
                     {
                         "type": "button",
                         "text": "Approve or Deny Deployment",
-                        "url": "{0}".format(message["consoleLink"])
+                        "url": str(message["consoleLink"])
                     }
                 ]
             }
         ]
-        }
+    }
+
 
 def create_pipeline_message_text(channel, pipeline):
     """
@@ -101,13 +109,12 @@ def create_pipeline_message_text(channel, pipeline):
     emote = ":red_circle:" if pipeline.get("state") == "FAILED" else ":white_check_mark:"
     return {
         "channel": channel,
-        "text": "{0} Pipeline {1} on {2} has {3}".format(
-            emote,
-            pipeline["name"],
-            pipeline["account_id"],
-            pipeline["state"]
-            )
+        "text": (
+            f"{emote} Pipeline {pipeline['name']} on {pipeline['account_id']} "
+            f"has {pipeline['state']}"
+        ),
     }
+
 
 def create_bootstrap_message_text(channel, message):
     """
@@ -120,8 +127,9 @@ def create_bootstrap_message_text(channel, message):
     emote = ":red_circle:" if any(x in message for x in ['error', 'Failed']) else ":white_check_mark:"
     return {
         "channel": channel,
-        "text": "{0} {1}".format(emote, message)
+        "text": f"{emote} {message}"
     }
+
 
 def send_message(url, payload):
     """
@@ -133,7 +141,9 @@ def send_message(url, payload):
         data=params,
         headers={'content-type': 'application/json'}
     )
-    return urllib.request.urlopen(req)
+    with urllib.request.urlopen(req) as response:
+        return response.read()
+
 
 def lambda_handler(event, _):
     message = extract_message(event)
@@ -141,11 +151,14 @@ def lambda_handler(event, _):
     parameter_store = ParameterStore(os.environ["AWS_REGION"], boto3)
     secrets_manager = boto3.client('secretsmanager', region_name=os.environ["AWS_REGION"])
     channel = parameter_store.fetch_parameter(
-        name='/notification_endpoint/{0}'.format(pipeline["name"]),
-        with_decryption=False
+        name=f'/notification_endpoint/{pipeline["name"]}',
+        with_decryption=False,
     )
-    # All slack url's must be stored in /adf/slack/channel_name since ADF only has access to the /adf/ prefix by default
-    url = json.loads(secrets_manager.get_secret_value(SecretId='/adf/slack/{0}'.format(channel))['SecretString'])
+    # All slack url's must be stored in /adf/slack/channel_name since ADF only
+    # has access to the /adf/ prefix by default
+    url = json.loads(secrets_manager.get_secret_value(
+        SecretId=f'/adf/slack/{channel}'
+    )['SecretString'])
     if is_approval(message):
         send_message(url[channel], create_approval(channel, message))
         return

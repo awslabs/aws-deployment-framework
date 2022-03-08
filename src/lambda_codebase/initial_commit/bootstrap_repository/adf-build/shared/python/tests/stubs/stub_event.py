@@ -10,5 +10,5 @@ class StubEvent():
     def __init__(self):
         self.deployment_account_region = 'us-east-1'
         self.target_regions = ['region-1', 'region-2']
-        self.account_id = '12345678910'
-        self.deployment_account_id = '9999911111'
+        self.account_id = '123456789012'
+        self.deployment_account_id = '111111111111'

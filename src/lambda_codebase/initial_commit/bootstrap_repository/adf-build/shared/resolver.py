@@ -1,8 +1,9 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to resolve values from Parameter Store and CloudFormation
+"""
+This file is pulled into CodeBuild containers
+and used to resolve values from Parameter Store and CloudFormation
 """
 import os
 import boto3
@@ -10,6 +11,7 @@ import boto3
 from botocore.exceptions import ClientError
 from s3 import S3
 from parameter_store import ParameterStore
+from partition import get_partition
 from cloudformation import CloudFormation
 from cache import Cache
 from errors import ParameterNotFoundError
@@ -33,14 +35,13 @@ class Resolver:
         return value.endswith('?')
 
     def fetch_stack_output(self, value, key, optional=False): # pylint: disable=too-many-statements
+        partition = get_partition(DEFAULT_REGION)
         try:
             [_, account_id, region, stack_name, output_key] = str(value).split(':')
         except ValueError as error:
             raise ValueError(
-                "{0} is not a valid import string. Syntax should be "
-                "import:account_id:region:stack_name:output_key".format(
-                    str(value),
-                )
+                f"{value} is not a valid import string. Syntax should be "
+                "import:account_id:region:stack_name:output_key"
             ) from error
         if Resolver._is_optional(output_key):
             LOGGER.info("Parameter %s is considered optional", output_key)
@@ -48,9 +49,7 @@ class Resolver:
         output_key = output_key[:-1] if optional else output_key
         try:
             role = self.sts.assume_cross_account_role(
-                'arn:aws:iam::{0}:role/{1}'.format(
-                    account_id,
-                    'adf-readonly-automation-role'),
+                f'arn:{partition}:iam::{account_id}:role/adf-readonly-automation-role',
                 'importer'
             )
             cloudformation = CloudFormation(
@@ -68,7 +67,6 @@ class Resolver:
             if not optional:
                 raise
             stack_output = ""
-            pass
         try:
             parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
             if optional:
@@ -76,14 +74,9 @@ class Resolver:
             else:
                 if not stack_output:
                     raise Exception(
-                        "No Stack Output found on {account_id} in {region} "
-                        "with stack name {stack} and output key "
-                        "{output_key}".format(
-                            account_id=account_id,
-                            region=region,
-                            stack=stack_name,
-                            output_key=output_key,
-                        )
+                        f"No Stack Output found on {account_id} in {region} "
+                        f"with stack name {stack_name} and "
+                        f"output key {output_key}"
                     )
                 self.stage_parameters[parent_key][key] = stack_output
         except IndexError as error:
@@ -102,9 +95,7 @@ class Resolver:
             raise Exception(
                 'When uploading to S3 you need to specify a path style'
                 'to use for the returned value to be used. '
-                'Supported path styles include: {supported_list}'.format(
-                    supported_list=S3.supported_path_styles(),
-                )
+                f'Supported path styles include: {S3.supported_path_styles()}'
             ) from None
         if str(value).count(':') > 2:
             [_, region, style, value] = value.split(':')
@@ -112,7 +103,7 @@ class Resolver:
             [_, style, value] = value.split(':')
             region = DEFAULT_REGION
         bucket_name = self.parameter_store.fetch_parameter(
-            '/cross_region/s3_regional_bucket/{0}'.format(region)
+            f'/cross_region/s3_regional_bucket/{region}'
         )
         client = S3(region, bucket_name)
         try:
@@ -120,17 +111,17 @@ class Resolver:
         except IndexError:
             if self.stage_parameters.get(key):
                 self.stage_parameters[key] = client.put_object(
-                    "adf-upload/{0}/{1}".format(value, file_name),
-                    "{0}".format(value),
+                    f"adf-upload/{value}/{file_name}".format(value, file_name),
+                    str(value),
                     style,
-                    True #pre-check
+                    True  # pre-check
                 )
             return True
         self.stage_parameters[parent_key][key] = client.put_object(
-            "adf-upload/{0}/{1}".format(value, file_name),
-            "{0}".format(value),
+            f"adf-upload/{value}/{file_name}",
+            str(value),
             style,
-            True #pre-check
+            True  # pre-check
         )
         return True
 
@@ -155,7 +146,7 @@ class Resolver:
         value = value[:-1] if optional else value
         client = ParameterStore(region, boto3)
         try:
-            parameter = self.cache.check('{0}/{1}'.format(region, value)) or client.fetch_parameter(value)
+            parameter = self.cache.check(f'{region}/{value}') or client.fetch_parameter(value)
         except ParameterNotFoundError:
             if optional:
                 LOGGER.info("Parameter %s not found, returning empty string", value)
@@ -165,7 +156,7 @@ class Resolver:
         try:
             parent_key = list(Resolver.determine_parent_key(self.comparison_parameters, key))[0]
             if parameter:
-                self.cache.add('{0}/{1}'.format(region, value), parameter)
+                self.cache.add(f'{region}/{value}', parameter)
                 self.stage_parameters[parent_key][key] = parameter
         except IndexError as error:
             if parameter:

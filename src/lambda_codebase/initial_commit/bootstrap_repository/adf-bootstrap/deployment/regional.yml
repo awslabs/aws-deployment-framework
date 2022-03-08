@@ -1,11 +1,11 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Regional) for Deployment Account
 Parameters:
   OrganizationId:
-    Type : 'AWS::SSM::Parameter::Value<String>'
+    Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
@@ -18,6 +18,11 @@ Resources:
               SSEAlgorithm: AES256
       VersioningConfiguration:
         Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
   DeploymentFrameworkRegionalPipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -34,8 +39,8 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
             Resource:
-              - !Sub arn:aws:s3:::${DeploymentFrameworkRegionalS3Bucket}
-              - !Sub arn:aws:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
             Principal:
               AWS: "*"
   DeploymentFrameworkRegionalKMSKey:
@@ -50,7 +55,7 @@ Resources:
           - Sid: Allows admin of the key
             Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
             Action:
               - "kms:CancelKeyDeletion"
               - "kms:Create*"

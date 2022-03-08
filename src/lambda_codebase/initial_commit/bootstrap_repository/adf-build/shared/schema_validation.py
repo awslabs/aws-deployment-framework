@@ -10,11 +10,17 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 
+NOTIFICATION_PROPS = {
+    Optional("target"): str,
+    Optional("type") : Or("lambda", "chat_bot")
+}
+
 # Pipeline Params
 PARAM_SCHEMA = {
-    Optional("notification_endpoint"): str,
+    Optional("notification_endpoint"): Or(str, NOTIFICATION_PROPS),
     Optional("schedule"): str,
-    Optional("restart_execution_on_update"): bool
+    Optional("restart_execution_on_update"): bool,
+    Optional("pipeline_type", default="default"): Or("default"),
 }
 
 AWS_ACCOUNT_ID_REGEX_STR = r"\A[0-9]{12}\Z"
@@ -48,7 +54,9 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
     Optional("owner"): str,
-    Optional("role"): str
+    Optional("role"): str,
+    Optional("trigger_on_changes"): bool,
+    Optional("output_artifact_format", default=None): Or("CODEBUILD_CLONE_REF", "CODE_ZIP", None)
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -61,18 +69,33 @@ GITHUB_SOURCE_PROPS = {
     Optional("branch"): str,
     "owner": str,
     "oauth_token_path": str,
-    "json_field": str
+    "json_field": str,
+    Optional("trigger_on_changes"): bool,
 }
 GITHUB_SOURCE = {
     "provider": 'github',
     "properties": GITHUB_SOURCE_PROPS
 }
 
+# CodeStar Source
+CODESTAR_SOURCE_PROPS = {
+    Optional("repository"): str,
+    Optional("branch"): str,
+    "owner": str,
+    "codestar_connection_path": str
+}
+
+CODESTAR_SOURCE = {
+    "provider": 'codestar',
+    "properties": CODESTAR_SOURCE_PROPS
+}
+
 # S3 Source
 S3_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
     "bucket_name": str,
-    "object_key": str
+    "object_key": str,
+    Optional("trigger_on_changes"): bool,
 }
 S3_SOURCE = {
     "provider": 's3',
@@ -81,8 +104,8 @@ S3_SOURCE = {
 
 # CodeBuild
 CODEBUILD_IMAGE_PROPS = {
-    "repository_arn": str, # arn:aws:ecr:region:012345678910:repository/test
-    Optional("tags"): dict,
+    "repository_arn": str,  # arn:aws:ecr:region:111111111111:repository/test
+    Optional("tag"): str,   # defaults to latest
 }
 CODEBUILD_PROPS = {
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
@@ -227,6 +250,7 @@ PROVIDER_SOURCE_SCHEMAS = {
     'codecommit': Schema(CODECOMMIT_SOURCE),
     'github': Schema(GITHUB_SOURCE),
     's3': Schema(S3_SOURCE),
+    'codestar': Schema(CODESTAR_SOURCE),
 }
 PROVIDER_BUILD_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
@@ -243,7 +267,7 @@ PROVIDER_DEPLOY_SCHEMAS = {
 PROVIDER_SCHEMA = {
     'source': And(
         {
-            'provider': Or('codecommit', 'github', 's3'),
+            'provider': Or('codecommit', 'github', 's3', 'codestar'),
             'properties': dict,
         },
         lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
@@ -278,6 +302,10 @@ TARGET_LIST_SCHEMA = [Or(
     int
 )]
 
+TARGET_WAVE_SCHEME = {
+    Optional("size", default=50): int,
+}
+
 # Pipeline Params
 
 TARGET_SCHEMA = {
@@ -287,10 +315,22 @@ TARGET_SCHEMA = {
     Optional("name"): str,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
-    Optional("regions"): REGION_SCHEMA
+    Optional("regions"): REGION_SCHEMA,
+    Optional("exclude", default=[]): [str],
+    Optional("wave", default={"size": 50}): TARGET_WAVE_SCHEME
 }
 COMPLETION_TRIGGERS_SCHEMA = {
     "pipelines": [str]
+}
+PIPELINE_TRIGGERS_SCHEMA = {
+    Optional("code_artifact"): {
+      "repository": str,
+      Optional("package"): str,
+    }
+}
+TRIGGERS_SCHEMA = {
+    Optional("on_complete"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggered_by"): [PIPELINE_TRIGGERS_SCHEMA],
 }
 PIPELINE_SCHEMA = {
     "name": And(str, len),
@@ -299,10 +339,14 @@ PIPELINE_SCHEMA = {
     Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
     Optional("regions"): REGION_SCHEMA,
-    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA
+    Optional("completion_trigger"): COMPLETION_TRIGGERS_SCHEMA,
+    Optional("triggers"): TRIGGERS_SCHEMA
 }
 TOP_LEVEL_SCHEMA = {
-    "pipelines": [PIPELINE_SCHEMA]
+    "pipelines": [PIPELINE_SCHEMA],
+    # Allow any toplevel key starting with "x-" or "x_".
+    # ADF will ignore these, but users can use them to define anchors in one place.
+    Optional(Regex('^[x][-_].*')): object
 }
 
 class SchemaValidation:

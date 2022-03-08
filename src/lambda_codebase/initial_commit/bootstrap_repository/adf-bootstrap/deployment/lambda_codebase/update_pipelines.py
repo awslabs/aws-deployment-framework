@@ -25,8 +25,12 @@ def generate_notify_message(event):
         update_status = 1
     return {
         "update_only": update_status,
-        "message": "Account {0} has now been bootstrapped into {1}".format(event["account_ids"][0], event["full_path"])
+        "message": (
+            f"Account {event['account_ids'][0]} has now been bootstrapped "
+            f"into {event['full_path']}"
+        )
     }
+
 
 def lambda_handler(event, _):
     """

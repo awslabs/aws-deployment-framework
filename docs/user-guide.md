@@ -6,6 +6,7 @@
   - [Params](#params)
   - [Repositories](#repositories)
   - [Completion Triggers](#completion-triggers)
+  - [Additional Triggers](#additional-triggers)
   - [Additional Deployment Maps](#additional-deployment-maps)
   - [Removing Pipelines](#removing-pipelines)
 - [Deploying via Pipelines](#deploying-via-pipelines)
@@ -42,16 +43,16 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
+          account_id: 111111111111  # The AWS Account where the source code will be in a CodeCommit Repository
     params:
-        notification_endpoint: janes_team@doe.com # Optional
+      notification_endpoint: janes_team@example.com  # Optional
     tags:
       foo: bar # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1
-      - approval # This is a shorthand example of an approval step within a pipeline
-      - /banking/testing # This is a shorthand example of a step within a pipeline targeting an OU
+      - approval  # This is a shorthand example of an approval step within a pipeline
+      - /banking/testing  # This is a shorthand example of a step within a pipeline targeting an OU
 
   - name: vpc
     default_providers:
@@ -63,13 +64,13 @@ pipelines:
           oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
           json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
     params:
-        notification_endpoint: joes_team@company.nl
+      notification_endpoint: joes_team@example.com
     targets:
       - path: /banking/testing
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account `111111111111`. This CodeCommit Repository will automatically be created by default in the `111111111111` AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
 
 The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
 
@@ -82,9 +83,10 @@ Tags on AWS Accounts can also be used to define stages within a pipeline. For ex
 We do that with the following syntax:
 
 ```yaml
+pipelines:
   - name: vpc-for-foo-team
     default_providers:
-      ...
+      # ...
     targets:
       - tags: # Using tags to define the stage rather than a path or account id
           cost-center: foo-team
@@ -99,7 +101,7 @@ Adding or Removing Tags to an AWS Account in AWS Organizations will automaticall
 
 In most cases, you can target accounts directly by passing the AWS Account Id
 as an integer, as shown in the example above. However, in case the AWS Account
-Id starts with a zero, for example `011112233332`, you will need to pass the
+Id starts with a zero, for example `012345678910`, you will need to pass the
 AWS Account Id as a string instead.
 
 Due to the way the YAML file is read, it will automatically transform
@@ -122,10 +124,10 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 111112233332
+          account_id: 111111111111
       build:
         provider: codebuild
-        image: "STANDARD_4_0" # Use a specific docker image (supports Python 3.7 and Python 3.8) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+        image: "STANDARD_5_0" # Use a specific docker image (supports Python 3.7, 3.8, and 3.9) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
       deploy:
         provider: codedeploy
     targets:
@@ -187,7 +189,25 @@ targets:
     name: production_step
     provider: ...
     properties: ...
+  - path: /my_ou/production/some_path
+    regions: [eu-central-1, us-west-1]
+    name: another_step
+    wave:
+      size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
+    exclude: 
+      - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids 
+    properties: ...    
 ```
+
+CodePipeline has a limit of 50 actions per stage.
+A stage is identified in the above list of targets with a new entry in the array, using `-`.
+
+To workaround this limit, ADF will split the accounts x regions that are selected as part of one stage over multiple stages when required.
+A new stage is introduced for every 50 accounts/region deployments by default. The default of 50 will make sense for most pipelines.
+However, in some situations, you would like to limit the rate at which an update is rolled out to the list of accounts/regions.
+This can be configured using the `wave/size` target property. Setting these to `30` as shown above, will introduce a new stage for every 30 accounts/regions.
+If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26, but account `9999999999` is excluded by the setup above), multiplied by the two regions it targets in the last step, the total of account/region deployment actions required would be 50.
+Since the configuration is set to 30, the first 30 accounts will be deployed to in the first stage. If all of these successfully deploy, the pipeline will continue to the next stage, deploying to the remaining 20 account/regions.
 
 ### Params
 
@@ -195,8 +215,16 @@ Pipelines also have parameters that don't relate to a specific stage but rather 
 
 The following are the available pipeline parameters:
 
-- *notification_endpoint* *(String)* defaults to none.
-  > Can either be a valid email address or a string that represents the name of a Slack Channel. In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md) in the admin guide. By Default, Notifications will be sent when pipelines Start, Complete or Fail.
+- *notification_endpoint* *(String) | (Dict) * defaults to none.
+  > Can either be a valid email address or a string that represents the name of a Slack Channel. 
+  > A more complex configuration can be provided to integrate with Slack via AWS ChatBot. 
+  > ```yaml
+  > notification_endpoint:
+  >   type: chat_bot
+  >   target: example_slack_channel  # This is the name of an slack channel configuration you created within the AWS Chat Bot service. This needs to be created before you apply the changes to the deployment map.
+  > ```
+  >
+  > In order to integrate ADF with Slack see [Integrating with Slack](./admin-guide.md#integrating-with-slack-with-aws-chatbot) in the admin guide. By default, notifications will be sent when pipelines Start, Complete, or Fail.
 
 - *schedule* *(String)* defaults to none.
   > If the Pipeline should execute on a specific Schedule. Schedules are defined by using a Rate or an Expression. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions) for more information on how to define Rate or an Expression.
@@ -206,9 +234,10 @@ The following are the available pipeline parameters:
 
 ### Completion Triggers
 
-Pipelines can also trigger other pipelines upon completion. To do this, use the *completion_trigger* key on the pipeline definition. For example:
+Pipelines can also trigger other pipelines upon completion. To do this, use the *on_complete* key on the triggers definition. For example:
 
 ```yaml
+pipelines:
   - name: ami-builder
     default_providers:
       source:
@@ -221,9 +250,10 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         size: medium
     params:
       schedule: rate(7 days)
-    completion_trigger: # What should happen when this pipeline completes
-      pipelines:
-        - my-web-app-pipeline # Start this pipeline
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      on_complete:
+        pipelines:
+          - my-web-app-pipeline # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -239,7 +269,46 @@ Pipelines can also trigger other pipelines upon completion. To do this, use the 
         name: web-app-testing
 ```
 
-In the above example, the *ami-builder* pipeline runs every 7 days based on its schedule. When it completes, it executes the *my-web-app-pipeline* pipeline as defined in its *completion_trigger* property.
+Completion triggers can also be defined in a short handed fashion. Take the above example for the ami-builder pipeline.
+```yaml
+pipelines:
+  - name: ami-builder
+    # Default providers and parameters are the same as defined above.
+    # Only difference: instead of using `triggers` it uses the `completion_triggers`
+    params:
+      schedule: rate(7 days)
+    completion_triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      pipelines:
+        - my-web-app-pipeline # Start this pipeline
+
+  - name: my-web-app-pipeline
+    # Same configuration as defined above.
+```
+
+
+### Additional Triggers
+
+Pipelines can also be triggered by other events using the *triggered_by* key on the triggers definition. For example, a new version of a package hosted on CodeArtifact being published:
+
+```yaml
+pipelines:
+  - name: ami-builder
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 222222222222
+      build:
+        provider: codebuild
+        role: packer
+        size: medium
+    triggers: # What should trigger this pipeline, and what should be triggered when it completes
+      triggered_by:
+        code_artifact:
+          repository: my_test_repository
+```
+
+In the above example, the *ami-builder* pipeline is triggered when a new package version is published to the *my_test_repository* repository in CodeArtifact. 
 
 ### Additional Deployment Maps
 
@@ -309,14 +378,30 @@ pipelines:
   - name: example-custom-image
     default_providers:
       source:
-        ...
+        # ...
       build:
         provider: codebuild
         image:
-          repository_arn: arn:aws:ecr:region:012345678910:repository/test
-          tag: latest #optional (and also defaults to latest)
+          repository_arn: arn:aws:ecr:region:111111111111:repository/test
+          tag: latest # optional (defaults to latest)
     targets:
-      - ...
+      - # ...
+```
+
+Public images from docker hub can be defined in your deployment map like so:
+
+```yaml
+pipelines:
+  - name: example-custom-image
+    default_providers:
+      source:
+        # ...
+      build:
+        provider: codebuild
+        properties:
+          image: docker-hub://bitnami/mongodb
+    targets:
+      - # ...
 ```
 
 ### CloudFormation Parameters and Tagging
@@ -432,7 +517,7 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 22222222222
+          account_id: 222222222222
       build:
         provider: codebuild
         properties:
@@ -469,10 +554,10 @@ Parameter injection is also useful for importing output values from CloudFormati
 
 ```yaml
 Parameters:
-    BucketInLoggingAccount: 'import:123456789101:eu-west-1:stack_name:output_key'
+    BucketInLoggingAccount: 'import:111111111111:eu-west-1:stack_name:output_key'
 ```
 
-In the above example *123456789101* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:123456789101:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
+In the above example *111111111111* is the AWS Account Id in which we want to pull a value from, *eu-west-1* is the region, stack_name is the CloudFormation stack name and *output_key* is the output key name *(not export name)*. Again, this concept works with the optional style syntax *(eg, import:111111111111:eu-west-1:stack_name:output_key?)* if the key *output_key* does not exist at the point in time when this specific import is executed, it will return an empty string as the parameter value rather than an error since it is considered optional.
 
 #### Uploading assets
 
@@ -577,7 +662,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.8
+      python: 3.9
       nodejs: 12
   pre_build:
     commands:
@@ -613,6 +698,23 @@ pipelines:
     default_providers:
       source: *generic_provider
     targets: *generic_targets
+```
+
+If you want to define anchors before you use them as an alias, you can use any top-level key that starts with `x-` or `x_`. For example, if you want to define all account ids in one place, you could write:
+
+```yaml
+x_account_ids:
+  - &codecommit_account: "111111111111"
+  - &some_target_account: "222222222222"
+pipelines:
+  - name: sample-vpc
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: *codecommit_account
+    targets:
+      - *some_target_account
 ```
 
 For more advanced yaml usage, see [here](https://learnxinyminutes.com/docs/yaml/)

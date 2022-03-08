@@ -17,7 +17,7 @@ from organizations import Organizations
 def cls():
     return Organizations(
         boto3,
-        '12345678910'
+        '123456789012'
     )
 
 
@@ -44,6 +44,12 @@ def test_describe_ou_name(cls):
     cls.client = Mock()
     cls.client.describe_organizational_unit.return_value = stub_organizations.describe_organizational_unit
     assert cls.describe_ou_name('some_ou_id') == 'some_ou_name'
+
+
+def test_describe_account_name(cls):
+    cls.client = Mock()
+    cls.client.describe_account.return_value = stub_organizations.describe_account
+    assert cls.describe_account_name('some_account_id') == 'some_account_name'
 
 
 def test_determine_ou_path(cls):

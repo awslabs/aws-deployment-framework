@@ -18,7 +18,7 @@ SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_3_0'
 SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_2_0'
 SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_1_0'
 SPECIFIC_CODEBUILD_IMAGE_ECR = {
-    'repository_arn': 'arn:aws:ecr:region:012345678910:repository/test',
+    'repository_arn': 'arn:aws:ecr:region:111111111111:repository/test',
     'tag': 'specific',
 }
 CODEBUILD_SPECIFIC_MAP_PARAMS_STR = {

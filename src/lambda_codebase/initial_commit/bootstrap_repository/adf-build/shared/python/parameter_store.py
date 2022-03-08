@@ -45,12 +45,11 @@ class ParameterStore:
     def delete_parameter(self, name):
         try:
             LOGGER.debug('Deleting Parameter %s', name)
-            return self.client.delete_parameter(
+            self.client.delete_parameter(
                 Name=name
             )
         except self.client.exceptions.ParameterNotFound:
             LOGGER.debug('Attempted to delete Parameter %s but it was not found', name)
-            pass
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
@@ -63,9 +62,7 @@ class ParameterStore:
                              WithDecryption=False
                             )
         except self.client.exceptions.ParameterNotFound as error:
-            raise ParameterNotFoundError(
-                'Parameter Path {0} Not Found'.format(path)
-            ) from error
+            raise ParameterNotFoundError(f'Parameter Path {path} Not Found') from error
 
 
     def fetch_parameter(self, name, with_decryption=False):
@@ -79,6 +76,4 @@ class ParameterStore:
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
-            raise ParameterNotFoundError(
-                'Parameter {0} Not Found'.format(name)
-            ) from error
+            raise ParameterNotFoundError(f'Parameter {name} Not Found') from error

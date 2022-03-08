@@ -37,8 +37,17 @@ class GitHub(core.Construct):
         )
 
     @staticmethod
-    def create_webhook(scope, pipeline, map_params):
-        _version = pipeline.get_att('Version')
+    def create_webhook_when_required(scope, pipeline, map_params):
+        trigger_on_changes = map_params.get("default_providers", {}).get(
+            "source", {}).get("properties", {}).get("trigger_on_changes", True)
+        if not trigger_on_changes:
+            return
+
+        pipeline_version = pipeline.get_att('Version')
+        branch_name = (
+            map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch')
+            or 'master'
+        )
         _codepipeline.CfnWebhook(
             scope,
             'github_webhook',
@@ -50,12 +59,12 @@ class GitHub(core.Construct):
             filters=[
                 _codepipeline.CfnWebhook.WebhookFilterRuleProperty(
                     json_path="$.ref",
-                    match_equals="refs/heads/{0}".format(map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', {}) or 'master')
+                    match_equals=f"refs/heads/{branch_name}",
                 )
             ],
             target_action="source",
-            name="adf-webhook-{0}".format(map_params['name']),
+            name=f"adf-webhook-{map_params['name']}",
             # pylint: disable=no-value-for-parameter
-            target_pipeline_version=core.Token.as_number(_version),
+            target_pipeline_version=core.Token.as_number(pipeline_version),
             register_with_third_party=True
         )

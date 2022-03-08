@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 retrieve_organization_accounts.py
 
@@ -64,6 +65,7 @@ Example:
 
     retrieve_organization_accounts.py -v -f Id -f Email -o src/lambda/dat.json
 """
+
 import sys
 import logging
 import json
@@ -148,6 +150,19 @@ def main():
     return 0
 
 
+def _get_partition(region_name: str) -> str:
+    """Given the region, this function will return the appropriate partition.
+
+    :param region_name: The name of the region (us-east-1, us-gov-west-1)
+    :return: Returns the partition name as a string.
+    """
+
+    if region_name.startswith('us-gov'):
+        return 'aws-us-gov'
+
+    return 'aws'
+
+
 def _get_billing_account_id():
     """
     Retrieve the Billing/Root AWS Account Id of the organization.
@@ -185,7 +200,7 @@ def _get_member_accounts(billing_account_id, options):
     )
     org_client = billing_account_session.client('organizations')
     list_accounts_paginator = org_client.get_paginator('list_accounts')
-    accounts = list()
+    accounts = []
     for page in list_accounts_paginator.paginate():
         accounts.extend(
             page['Accounts']
@@ -222,7 +237,7 @@ def _flush_out(accounts, options):
         )
         return
 
-    with open(options['--output-file'], 'w') as output_file:
+    with open(options['--output-file'], mode='w', encoding='utf-8') as output_file:
         output_file.write(json_accounts)
 
 
@@ -245,11 +260,15 @@ def _request_sts_credentials(billing_account_id, options):
         required to use the STS role.
     """
     try:
-        sts_client = boto3.client('sts')
-        role_arn = "arn:aws:iam::{billing_account_id}:role/{role_name}".format(
-            billing_account_id=billing_account_id,
-            role_name=options['--role-name'],
-        )
+
+        # Setup Session
+        session = boto3.session.Session()
+        region_name = session.region_name
+        partition = _get_partition(region_name)
+        sts_client = session.client('sts')
+
+        role_name = options['--role-name']
+        role_arn = f'arn:{partition}:iam::{billing_account_id}:role/{role_name}'
         response = sts_client.assume_role(
             RoleArn=role_arn,
             RoleSessionName=options['--session-name'],

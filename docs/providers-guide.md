@@ -16,6 +16,7 @@ Providers and Actions.
   - [CodeCommit](#codecommit)
   - [GitHub](#github)
   - [S3](#s3)
+  - [CodeStar](#codestar)
 - [Build](#build)
   - [CodeBuild](#codebuild)
   - [Jenkins](#jenkins)
@@ -33,7 +34,7 @@ Providers and Actions.
 ```yaml
 default_providers:
   source:
-    provider: codecommit|github|s3
+    provider: codecommit|github|s3|codestar
     properties:
       # All provider specific properties go here.
 ```
@@ -54,7 +55,7 @@ Provider type: `codecommit`.
   > action to trigger the pipeline.
 - *repository* - *(String)* defaults to name of the pipeline.
   > The AWS CodeCommit repository name.
-- *branch* - *(String)* default: `master`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
   > The Branch on the CodeCommit repository to use to trigger this specific
   > pipeline.
 - *poll_for_changes* - *(Boolean)* default: `False`.
@@ -75,6 +76,21 @@ Provider type: `codecommit`.
   > The role to use to fetch the contents of the CodeCommit repository.
   > Only specify when you need a specific role to access it. By default ADF
   > will use its own role to access it instead.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes all together when set to False.
+  > In other words, when you don't want to rely on polling or event
+  > based triggers of changes pushed into the repository.
+  >
+  > By default, it will trigger on changes using the event triggered by
+  > CodeCommit when an update to the repository took place.
+- *output_artifact_format* - *(String)* default: `CODE_ZIP`
+  > The output artifact format. Values can be either CODEBUILD_CLONE_REF or CODE_ZIP. If unspecified, the default is CODE_ZIP.
+  > If you are using CODEBUILD_CLONE_REF, you need to ensure that the IAM role passed in via the *role* property has the CodeCommit:GitPull permission. 
+  > NB: The CODEBUILD_CLONE_REF value can only be used by CodeBuild downstream actions. 
 
 ### GitHub
 
@@ -89,7 +105,7 @@ Provider type: `github`.
   > The GitHub repository name.
   > For example, for the ADF repository it would be:
   > `aws-deployment-framework`.
-- *branch* - *(String)* - default: `master`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
   > The Branch on the GitHub repository to use to trigger this specific
   > pipeline.
 - *owner* - *(String)* **(required)**
@@ -103,6 +119,17 @@ Provider type: `github`.
 - *json_field* - *(String)* **(required)**
   > The name of the JSON key in the object that is stored in AWS Secrets
   > Manager that holds the OAuth Token.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline.
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > This disables the triggering of changes when set to False.
+  > It will not deploy the web hook that GitHub would otherwise use to
+  > trigger the pipeline on changes.
+  >
+  > By default, it will trigger deploy the web hook and trigger on changes
+  > using web hook call executed by GitHub.
 
 ### S3
 
@@ -125,6 +152,46 @@ Provider type: `s3`.
 - *object_key* - *(String)* **(required)**
   > The Specific Object within the bucket that will trigger the pipeline
   > execution.
+- *trigger_on_changes* - *(Boolean)* default: `True`.
+  > Whether CodePipeline should release a change and trigger the pipeline
+  > if a change was detected in the S3 object.
+  >
+  > When set to False, you either need to trigger the pipeline manually,
+  > through a schedule, or through the completion of another pipeline.
+  >
+  > By default, it will trigger on changes using the polling mechanism
+  > of CodePipeline. Monitoring the S3 object so it can trigger a release
+  > when an update took place.
+
+### CodeStar
+
+Use CodeStar as a source to trigger your pipeline.  The source action retrieves code changes when a pipeline is manually executed or when a webhook event is sent from the source provider. CodeStar Connections currently supports the following third-party repositories:
+
+- Bitbucket
+- GitHub and GitHub Enterprise Cloud
+- GitHub Enterprise Server
+
+The AWS CodeStar connection needs to already exist and be in the "Available" Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored in AWS Systems Manager Parameter Store in the deployment account's main region (see details below). Read the CodePipeline documentation for more [information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
+
+Provider type: `codestar`.
+
+#### Properties
+
+- *repository* - *(String)* defaults to name of the pipeline.
+  > The CodeStar repository name.
+  > For example, for the ADF repository it would be:
+  > `aws-deployment-framework`.
+- *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
+  > The Branch on the third-party repository to use to trigger this specific
+  > pipeline.
+- *owner* - *(String)* **(required)**
+  > The name of the third-party user or organization who owns the third-party repository.
+  > For example, for the ADF repository that would be: `awslabs`.
+- *codestar_connection_path* - *(String)* **(required)**
+  > The CodeStar Connection ARN token path in AWS Systems Manager Parameter Store in the deployment account
+  > in the main region that holds the CodeStar Connection ARN that will be used to download the source
+  > code and create the web hook as part of the pipeline. Read the CodeStar Connections documentation
+  > for more [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
 
 ## Build
 
@@ -167,6 +234,15 @@ Provider type: `codebuild`.
   > pipeline to consume a custom image if required.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
+  > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
+  > 
+  > Image can also take an object that contains a reference to a
+  > public docker hub image with a prefix of `docker-hub://`, such as
+  > `docker-hub://bitnami/mongodb`. This allows your pipeline
+  > to consume a public docker hub image if required.
+  > Along with the docker hub image name, we also support using a tag which can
+  > be provided after the docker hub image name such as `docker-hub://bitnami/mongodb:3.6.23`
+  > in order to define which image should be used (defaults to `latest`).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   > The Compute type to use for the build, types can be found
   > [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).

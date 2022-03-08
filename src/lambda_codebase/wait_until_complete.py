@@ -17,6 +17,7 @@ from parameter_store import ParameterStore
 from errors import RetryError
 from logger import configure_logger
 from cloudformation import CloudFormation
+from partition import get_partition
 
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
@@ -42,24 +43,25 @@ def update_deployment_account_output_parameters(
     for key, value in cloudformation.get_stack_regional_outputs().items():
         LOGGER.info('Updating %s on deployment account in %s', key, region)
         deployment_account_parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
         regional_parameter_store.put_parameter(
-            "/cross_region/{0}/{1}".format(key, region),
+            f"/cross_region/{key}/{region}",
             value
         )
+
 
 def lambda_handler(event, _):
     """Main Lambda Entry point
     """
     sts = STS()
+    account_id = event.get('account_id')
+    partition = get_partition(REGION_DEFAULT)
+    cross_account_access_role = event.get('cross_account_access_role')
 
     role = sts.assume_cross_account_role(
-        'arn:aws:iam::{0}:role/{1}'.format(
-            event['account_id'],
-            event['cross_account_access_role'],
-        ),
+        f'arn:{partition}:iam::{account_id}:role/{cross_account_access_role}',
         'master'
     )
 
@@ -75,13 +77,13 @@ def lambda_handler(event, _):
             stack_name=None,
             s3=s3,
             s3_key_path=event['ou_name'],
-            account_id=event['account_id']
+            account_id=account_id
         )
 
         status = cloudformation.get_stack_status()
 
         if status in ('CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS'):
-            raise RetryError("Cloudformation Stack is {0}".format(status))
+            raise RetryError(f"CloudFormation Stack status: {status}")
 
         if status in (
                 'CREATE_FAILED',
@@ -91,10 +93,10 @@ def lambda_handler(event, _):
                 'ROLLBACK_IN_PROGRESS',
                 'ROLLBACK_COMPLETE'
             ):
-            raise Exception("Account Bootstrap Failed - Account: {0} Region: {1} Status: {2}".format(
-                event['account_id'],
-                region,
-                status))
+            raise Exception(
+                f"Account Bootstrap Failed - Account: {account_id} "
+                f"Region: {region} Status: {status}"
+            )
 
         if event.get('is_deployment_account'):
             update_deployment_account_output_parameters(

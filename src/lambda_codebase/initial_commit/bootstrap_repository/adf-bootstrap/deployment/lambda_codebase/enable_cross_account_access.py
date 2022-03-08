@@ -17,19 +17,23 @@ from logger import configure_logger
 from parameter_store import ParameterStore
 from sts import STS
 from iam import IAM
+from partition import get_partition
 
 
 KEY_ID = os.environ['KMS_KEY_ID']
 S3_BUCKET = os.environ['S3_BUCKET_NAME']
+REGION_DEFAULT = os.getenv('AWS_REGION')
 LOGGER = configure_logger(__name__)
 
-def update_iam(role, s3_bucket, kms_key_arn, role_policies):
-    iam = IAM(role)
+
+def update_iam(role, s3_buckets, kms_key_arns, role_policies):
+    iam = IAM(role.client("iam"))
     iam.update_iam_roles(
-        s3_bucket,
-        kms_key_arn,
+        s3_buckets,
+        kms_key_arns,
         role_policies
     )
+
 
 def lambda_handler(event, _):
     target_role_policies = {
@@ -44,30 +48,35 @@ def lambda_handler(event, _):
     }
 
     sts = STS()
+    partition = get_partition(REGION_DEFAULT)
+
     parameter_store = ParameterStore(
         region=event.get('deployment_account_region'),
         role=boto3
     )
+    account_id = event.get("account_id")
+    kms_key_arns = []
+    s3_buckets = []
     for region in list(set([event.get('deployment_account_region')] + event.get("regions", []))):
         kms_key_arn = parameter_store.fetch_parameter(
-            "/cross_region/kms_arn/{0}".format(region)
+            f"/cross_region/kms_arn/{region}"
         )
+        kms_key_arns.append(kms_key_arn)
         s3_bucket = parameter_store.fetch_parameter(
-            "/cross_region/s3_regional_bucket/{0}".format(region)
+            f"/cross_region/s3_regional_bucket/{region}"
         )
-        update_iam(boto3, s3_bucket, kms_key_arn, role_policies)
-        for account_id in event.get('account_ids'):
-            try:
-                role = sts.assume_cross_account_role(
-                    'arn:aws:iam::{0}:role/{1}'.format(
-                        account_id,
-                        'adf-cloudformation-deployment-role'
-                        ), 'base_cfn_role'
-                )
-                LOGGER.debug("Role has been assumed for %s", account_id)
-                update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
-            except ClientError as err:
-                LOGGER.debug("%s could not be assumed (%s), continuing", account_id, err, exc_info=True)
-                continue
+        s3_buckets.append(s3_bucket)
+        try:
+            role = sts.assume_cross_account_role(
+                f'arn:{partition}:iam::{account_id}:role/adf-cloudformation-deployment-role',
+                'base_cfn_role'
+            )
+            LOGGER.debug("Role has been assumed for %s", account_id)
+            update_iam(role, s3_bucket, kms_key_arn, target_role_policies)
+        except ClientError as err:
+            LOGGER.debug("%s could not be assumed (%s), continuing", account_id, err, exc_info=True)
+            continue
+
+    update_iam(boto3, s3_buckets, kms_key_arns, role_policies)
 
     return event

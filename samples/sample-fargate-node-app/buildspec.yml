@@ -4,7 +4,7 @@ phases:
   install:
     runtime-versions:
       docker: 18
-      python: 3.8
+      python: 3.9
   build:
     commands:
       - bash build/docker.sh

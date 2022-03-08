@@ -21,7 +21,9 @@ CFN_CONFIG = Config(
         max_attempts=10
     )
 )
-CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9:/._+]")
+# A stack name can contain only alphanumeric characters (case sensitive) and hyphens.
+CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
+
 
 class StackProperties:
     clean_stack_status = [
@@ -60,16 +62,10 @@ class StackProperties:
         return 'global' if self.region == self.deployment_account_region else 'regional'
 
     def _create_template_path(self, path, filename_override=None):
-        return '{0}/{1}.yml'.format(
-            path,
-            filename_override or self._get_geo_prefix()
-        )
+        return f'{path}/{filename_override or self._get_geo_prefix()}.yml'
 
     def _create_parameter_path(self, path):
-        return '{0}/{1}-params.json'.format(
-            path,
-            self._get_geo_prefix()
-        )
+        return f'{path}/{self._get_geo_prefix()}-params.json'
 
     def get_template_url(self):
         return self.s3.fetch_s3_url(
@@ -86,10 +82,7 @@ class StackProperties:
             return []
 
     def _get_stack_name(self):
-        raw_stack_name = 'adf-{0}-base-{1}'.format(
-            self._get_geo_prefix(),
-            self.ou_name
-        )
+        raw_stack_name = f'adf-{self._get_geo_prefix()}-base-{self.ou_name}'
         return CFN_UNACCEPTED_CHARS.sub("-", raw_stack_name)
 
 
@@ -125,7 +118,7 @@ class CloudFormation(StackProperties):
         try:
             return self.client.validate_template(TemplateURL=self.template_url)
         except ClientError as error:
-            raise InvalidTemplateError("{0}: {1}".format(self.template_url, error)) from None
+            raise InvalidTemplateError(f"{self.template_url}: {error}") from None
 
     def _wait_stack(self, waiter_type, stack_name):
         waiter = self.client.get_waiter(waiter_type)
@@ -177,7 +170,8 @@ class CloudFormation(StackProperties):
             return False
 
     def _create_change_set(self):
-        """Creates a Cloudformation change set from a template
+        """
+        Creates a CloudFormation change set from a template
         """
         LOGGER.debug("%s - calling _create_change_set for %s", self.account_id, self.stack_name)
         try:
@@ -223,7 +217,7 @@ class CloudFormation(StackProperties):
 
     def _update_stack_termination_protection(self):
         try:
-            return self.client.update_termination_protection(
+            self.client.update_termination_protection(
                 EnableTerminationProtection=STACK_TERMINATION_PROTECTION == "True",
                 StackName=self.stack_name
             )
@@ -231,23 +225,21 @@ class CloudFormation(StackProperties):
             LOGGER.error(
                 '%s | %s, Error: %s',
                 self.account_id, self.stack_name, e)
-            pass
 
     def _delete_change_set(self):
         try:
-            return self.client.delete_change_set(
+            self.client.delete_change_set(
                 ChangeSetName=self.stack_name,
                 StackName=self.stack_name
             )
-        except ClientError as e:
+        except ClientError as client_error:
             LOGGER.info(
                 '%s | %s, Error: %s',
-                self.account_id, self.stack_name, e)
-            pass
+                self.account_id, self.stack_name, client_error)
 
     def _execute_change_set(self, waiter):
         LOGGER.info(
-            '%s - Executing Cloudformation Change Set with name: %s',
+            '%s - Executing CloudFormation Change Set with name: %s',
             self.account_id,
             self.stack_name)
 
@@ -262,10 +254,7 @@ class CloudFormation(StackProperties):
         self.template_url = self.s3.fetch_s3_url(
             self._create_template_path(self.s3_key_path, 'global-iam')
         )
-        self.stack_name = 'adf-{0}-base-{1}'.format(
-            'global',
-            'iam'
-        )
+        self.stack_name = 'adf-global-base-iam'
         waiter = self._get_waiter_type()
         create_change_set = self._create_change_set()
         if create_change_set:

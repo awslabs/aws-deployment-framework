@@ -4,44 +4,50 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 1111111111111
+          account_id: 111111111111
       build:
         provider: codebuild
       deploy:
         provider: cloudformation
     params:
-        notification_endpoint: jon@smith.com # The Notification (user/team/slack) responsible for this pipeline
+        notification_endpoint: john@example.com  # The Notification (user/team/slack) responsible for this pipeline
         restart_execution_on_update: True
     targets:  # Deployment stages
-      - /banking/testing # will use action from type defined above,
+      - /banking/testing  # This will use the default deployment action as defined above
       - path: /banking/production
-        properties: 
-          stack_name: my-cool-iam-stack # Since no deploy type is defined above this target is assumed type of CloudFormation
-          change_set_approval: True # override deploy action above and insert a approval in between create + execute change set
+        # Since the deploy type is not overridden, it uses the CloudFormation as defined by the default provider
+        # while using specific properties for this target:
+        properties:
+          stack_name: my-cool-iam-stack  # Override the default stack name to a specific one, useful when adopting a stack into ADF
+          change_set_approval: True  # Override deploy action above and insert an approval in between create + execute change set
       - provider: lambda
-        properties: # https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
-          input: {"name": "jon_doe"} # This input will be passed to the function as a string
+        properties:  # See https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
+          input: {"name": "jon_doe"}  # This input will be passed to the function as a string
           function_name: my_lambda_function
 
-  - name: ami-builder  # The name of your pipeline (by default, this will match the name of your repository)
+  - name: ami-builder  # The name of your pipeline (by default, the repository name will match the pipeline name)
     default_providers:
       source:
         provider: codecommit
         properties:
+          # When CodeCommit is configured as the source, you should specify the
+          # account_id where the repository is hosted.
           account_id: 333333333333
       build:
         provider: codebuild
         properties:
           role: packer
-          size: medium # Resource allocation for the build stage -> small | medium | large 
+          size: medium  # Resource allocation for the build stage -> small | medium | large
     params:
-      schedule: rate(7 days) # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
-    completion_trigger: # What should happen when this pipeline completes
+      schedule: rate(7 days)  # Run once every seven days. See expression syntax at: https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions
+    completion_trigger:  # What should happen when this pipeline completes
       pipelines:
-        - sample-vpc # run this other pipeline
+        - sample-vpc  # Run this other pipeline
 
   - name: sample-vpc
-    default_providers: # if we omit build and deploy type we get a default of codebuild as the build and cloudformation as the deploy. if using codecommit, account_id is required
+    default_providers:
+      # If we omit build and deploy type we get a default of CodeBuild as the build provider.
+      # and CloudFormation as the deploy provider.
       source:
         provider: github
         properties:
@@ -54,27 +60,39 @@ pipelines:
         properties:
           action: replace_on_failure
     params:
-        notification_endpoint: jon@smith.com
-    targets: # Long hand syntax including regions and names for stages
+        notification_endpoint: john@example.com
+    targets:  # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
 
+  - name: sample-ecs-app
+    default_providers:
+      source:
+        provider: codestar
+        properties:
+          repository: my-ecs-app  # Optional, the name of the pipeline will be used if this is not specified
+          owner: github-enterprise-team-org
+          codestar_connection_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeStar Connection ARN
+    params:
+      notification_endpoint: team@example.com
+    targets:
+      - [ /banking/testing, /banking/production ]
 
-  - name: sample-custom # using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
+  - name: sample-custom  # Using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
     default_providers:
       source:
         provider: codecommit
         properties:
-          account_id: 333333333333 # A different AccountId as this pipeline is owned by a different team
+          account_id: 333333333333  # A different account id as this pipeline is owned by a different team
       deploy:
         provider: codebuild
-    targets: # targets looks for the deploy defaults above to determine parameters
+    targets:  # Targets looks for the deploy defaults above to determine parameters
       - properties:
           spec_filename: custom-spec-one.yml
       - provider: approval
         properties:
           message: plz approve
-          notification_endpoint: jon@smith.com # Approvals can have their own unique notification endpoint
+          notification_endpoint: john@example.com  # Approvals can have their own unique notification endpoint
       - properties:
           spec_filename: custom-spec-two.yml
 
@@ -83,46 +101,48 @@ pipelines:
       source:
         provider: codecommit
         properties:
-          account_id: 333333333333 # A different AccountId as this pipeline is owned by a different team
+          account_id: 333333333333  # A different account id as this pipeline is owned by a different team
     targets:
       - 222222222222
 
   - name: sample-ec2-java-app-codedeploy
     default_providers:
-      source: 
+      source:
         provider: codecommit
         properties:
           account_id: 333333333333
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_3_0" # Use a specific docker image (defaults to Python 3.8) for the build stage in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+          # Use a specific docker image (to use Python 3.9) for the build stage
+          # in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+          image: "STANDARD_5_0"
       deploy:
         provider: codedeploy
     params:
         notification_endpoint: deployments
     targets:
       - target: 222222222222
-        properties: # These are stage specific properties for our deploy action
+        properties:  # These are stage specific properties for our deploy action
           application_name: sample
-          deployment_group_name: testing-sample # https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+          deployment_group_name: testing-sample  # See https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
 
   - name: sample-input-export-pipeline
     default_providers:
       source:
         provider: codecommit
         properties:
-          account_id: 1111111111111
+          account_id: 111111111111
     targets:
       - target: 222222222222
         properties:
-          outputs: some_param_outputs # Outputs will take Cloudformation Outputs and pass them into a JSON file which can be used in later stages
-      - target: 1111111111111
+          outputs: some_param_outputs  # Outputs will take CloudFormation Outputs and pass them into a JSON file which can be used in later stages
+      - target: 111111111111
         properties:
           param_overrides:
-            - inputs: some_param_outputs # Which file do we want to use to pass in overrides from
-              param: s3_bucket # The name of the parameter you wish to override at this stage
-              key_name: logging_bucket # The key from the output 'some_param_outputs' we want to get the value from
+            - inputs: some_param_outputs  # Which file do we want to use to pass in overrides from
+              param: s3_bucket  # The name of the parameter you wish to override at this stage
+              key_name: logging_bucket  # The key from the output 'some_param_outputs' we want to get the value from
 
   - name: sample-s3-pipeline
     default_providers:
@@ -131,9 +151,9 @@ pipelines:
         properties:
           bucket_name: packer-bucket-test
           object_key: input.zip
-          account_id: 44444444444444
+          account_id: 444444444444
       build:
-        enabled: False # if you wish to disable the build phase in a pipeline
+        enabled: False  # If you wish to disable the build phase in a pipeline
       deploy:
         provider: s3
     targets:

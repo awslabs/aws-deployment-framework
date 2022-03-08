@@ -23,6 +23,8 @@ class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
         self.account_list = []
+        self.wave = target.get('wave', {}) if isinstance(target, dict) else {}
+        self.exclude = target.get('exclude', []) if isinstance(target, dict) else []
 
     @staticmethod
     def _define_target_type(target):
@@ -44,6 +46,15 @@ class TargetStructure:
         if not isinstance(target, list):
             target = [target]
         return target
+
+    def generate_waves(self):
+        waves = []
+        wave_size = self.wave.get('size', 50)
+        length = len(self.account_list)
+        for index in range(0, length, wave_size):
+            yield self.account_list[index:min(index + wave_size, length)]
+            waves.append(self.account_list[index:min(index + wave_size, length)])
+        return waves
 
 
 class Target:
@@ -83,7 +94,7 @@ class Target:
         _entities = 0
         for response in responses:
             _entities += 1
-            if Target._account_is_active(response):
+            if Target._account_is_active(response) and not response.get('Id') in self.target_structure.exclude:
                 self.target_structure.account_list.append(
                     self._create_target_info(
                         response.get('Name'),
@@ -91,7 +102,7 @@ class Target:
                     )
                 )
         if _entities == 0:
-            raise NoAccountsFoundError("No Accounts found in {0}".format(self.path))
+            raise NoAccountsFoundError(f"No Accounts found in {self.path}")
 
     def _target_is_account_id(self):
         responses = self.organizations.client.describe_account(
@@ -103,8 +114,11 @@ class Target:
         responses = self.organizations.get_account_ids_for_tags(self.path)
         accounts = []
         for response in responses:
-            account = self.organizations.client.describe_account(AccountId=response).get('Account')
-            accounts.append(account)
+            if response.startswith('ou-'):
+                accounts.extend(self.organizations.get_accounts_for_parent(response))
+            else:
+                account = self.organizations.client.describe_account(AccountId=response).get('Account')
+                accounts.append(account)
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
@@ -155,5 +169,5 @@ class Target:
             # No path/target has been passed, path will default to /deployment
             return self._target_is_null_path()
         raise InvalidDeploymentMapError(
-            "Unknown definition for target: {0}".format(self.path)
+            f"Unknown definition for target: {self.path}"
         )
