@@ -371,9 +371,9 @@ class Action:
         ]
         if self.category == 'Deploy':
             for override in self.target.get('properties', {}).get('param_overrides', []):
-                input = _codepipeline.CfnPipeline.InputArtifactProperty(name=override.get('inputs', ''))
-                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE" and input not in input_artifacts:
-                    input_artifacts.append(input)
+                _input = _codepipeline.CfnPipeline.InputArtifactProperty(name=override.get('inputs', ''))
+                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE" and _input not in input_artifacts:
+                    input_artifacts.append(_input)
         return input_artifacts
 
     def _get_base_output_artifact_name(self):
