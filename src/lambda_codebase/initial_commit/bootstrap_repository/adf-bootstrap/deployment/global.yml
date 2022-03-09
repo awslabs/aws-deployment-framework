@@ -137,6 +137,9 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       VersioningConfiguration:
         Status: Enabled
       BucketEncryption:
