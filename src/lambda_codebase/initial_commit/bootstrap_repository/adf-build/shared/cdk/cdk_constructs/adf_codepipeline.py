@@ -180,6 +180,7 @@ class Action:
             if _path_prefix and not _path_prefix.endswith('/'):
                 _path_prefix = f"{_path_prefix}/"
             _input_artifact = f"{self.map_params['name']}-build"
+            _template_configuration = self.target.get('properties', {}).get('configuration_file_path', f"params/{self.target['name']}_{self.region}.json")
             _props = {
                 "ActionMode": self.action_mode,
                 "StackName": (
@@ -189,9 +190,7 @@ class Action:
                     or f"{ADF_STACK_PREFIX}{self.map_params['name']}"
                 ),
                 "ChangeSetName": f"{ADF_STACK_PREFIX}{self.map_params['name']}",
-                "TemplateConfiguration": (
-                    f"{_input_artifact}::{_path_prefix}params/{self.target['name']}_{self.region}.json"
-                ),
+                "TemplateConfiguration": f"{_input_artifact}::{_path_prefix}{_template_configuration}",
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": self.role_arn if self.role_arn else (
                     f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"

@@ -89,8 +89,8 @@ Provider type: `codecommit`.
   > CodeCommit when an update to the repository took place.
 - *output_artifact_format* - *(String)* default: `CODE_ZIP`
   > The output artifact format. Values can be either CODEBUILD_CLONE_REF or CODE_ZIP. If unspecified, the default is CODE_ZIP.
-  > If you are using CODEBUILD_CLONE_REF, you need to ensure that the IAM role passed in via the *role* property has the CodeCommit:GitPull permission. 
-  > NB: The CODEBUILD_CLONE_REF value can only be used by CodeBuild downstream actions. 
+  > If you are using CODEBUILD_CLONE_REF, you need to ensure that the IAM role passed in via the *role* property has the CodeCommit:GitPull permission.
+  > NB: The CODEBUILD_CLONE_REF value can only be used by CodeBuild downstream actions.
 
 ### GitHub
 
@@ -235,7 +235,7 @@ Provider type: `codebuild`.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
   > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
-  > 
+  >
   > Image can also take an object that contains a reference to a
   > public docker hub image with a prefix of `docker-hub://`, such as
   > `docker-hub://bitnami/mongodb`. This allows your pipeline
@@ -470,6 +470,8 @@ Provider type: `cloudformation`.
   - *key_name* *(String)*
     > The key name from the stack output that you wish to use as the input
     > in this stage.
+- *configuration_file_path* - *(String)* default: `params/${account-name}_${region}.json`
+  > If you wish to pass a custom path to the configuration file path.
 
 ### Lambda
 
