@@ -166,7 +166,8 @@ CLOUDFORMATION_PROPS = {
     Optional("action"): CLOUDFORMATION_ACTIONS,
     Optional("outputs"): str,
     Optional("change_set_approval"): bool,
-    Optional("param_overrides"): [PARAM_OVERRIDE_SCHEMA]
+    Optional("param_overrides"): [PARAM_OVERRIDE_SCHEMA],
+    Optional("configuration_file_path"): str
 }
 # No need for a stage schema since CFN takes all optional props
 DEFAULT_CLOUDFORMATION_DEPLOY = {
