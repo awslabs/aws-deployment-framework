@@ -128,6 +128,44 @@ def test_get_input_artifacts_deploy_with_cb_multiple_param_overrides(base_input_
 
 @patch('cdk_constructs.adf_codepipeline._codepipeline.CfnPipeline.ActionDeclarationProperty')
 @patch('cdk_constructs.adf_codepipeline.Action._get_base_input_artifact_name')
+def test_get_input_artifacts_deploy_with_cb_param_overrides_different_input(base_input_name_mock, action_decl_mock):
+    action_decl_mock.side_effect = lambda **x: x
+    base_input_name_mocked_value = 'BaseInputName'
+    base_input_name_mock.return_value = base_input_name_mocked_value
+    override1_mocked_value = 'OverrideName1'
+    override2_mocked_value = 'OverrideName2'
+    action = Action(
+        map_params=BASE_MAP_PARAMS,
+        category='Deploy',
+        provider='CodeBuild',
+        target={
+            'properties': {
+                'param_overrides': [
+                    {
+                        'param': 'SomeParam',
+                        'inputs': override1_mocked_value,
+                        'key_name': 'SomeKeyName',
+                    },
+                    {
+                        'param': 'SomeOtherParam',
+                        'inputs': override2_mocked_value,
+                        'key_name': 'SomeOtherKeyName',
+                    },
+                ],
+            },
+        },
+    )
+    assert action.config['input_artifacts'] == [
+        aws_codepipeline.CfnPipeline.InputArtifactProperty(
+            name=override1_mocked_value,
+        ),
+        aws_codepipeline.CfnPipeline.InputArtifactProperty(
+            name=override2_mocked_value,
+        )
+    ]
+
+@patch('cdk_constructs.adf_codepipeline._codepipeline.CfnPipeline.ActionDeclarationProperty')
+@patch('cdk_constructs.adf_codepipeline.Action._get_base_input_artifact_name')
 def test_get_input_artifacts_deploy_with_cfn_param_overrides_is_cse(base_input_name_mock, action_decl_mock):
     action_decl_mock.side_effect = lambda **x: x
     base_input_name_mocked_value = 'BaseInputName'
