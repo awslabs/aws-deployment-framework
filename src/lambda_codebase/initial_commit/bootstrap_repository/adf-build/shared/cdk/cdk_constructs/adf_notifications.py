@@ -9,6 +9,7 @@ from aws_cdk import (
     aws_lambda as _lambda,
     aws_sns as _sns,
     aws_iam as _iam,
+    aws_kms as _kms,
     aws_lambda_event_sources as _event_sources,
     core
 )
@@ -34,7 +35,8 @@ class Notifications(core.Construct):
             f'arn:{stack.partition}:lambda:{ADF_DEPLOYMENT_REGION}:'
             f'{ADF_DEPLOYMENT_ACCOUNT_ID}:function:SendSlackNotification'
         )
-        _topic = _sns.Topic(self, "PipelineTopic")
+        kms_alias = _kms.Alias.from_alias_name(self, "KMSAlias", f"alias/codepipeline-{ADF_DEPLOYMENT_ACCOUNT_ID}")
+        _topic = _sns.Topic(self, "PipelineTopic", master_key=kms_alias)
         _statement = _iam.PolicyStatement(
             actions=["sns:Publish"],
             effect=_iam.Effect.ALLOW,
