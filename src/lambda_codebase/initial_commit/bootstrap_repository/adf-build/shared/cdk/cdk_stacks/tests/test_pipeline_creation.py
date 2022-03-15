@@ -295,7 +295,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
 
 
     with pytest.raises(Exception) as e_info:
-        PipelineStack(app, stack_input)        
+        PipelineStack(app, stack_input)
         cloud_assembly = app.synth()
 
     error_message = str(e_info.value)
@@ -334,7 +334,7 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
     pipeline_notification = resources['pipelinenoti']['Properties']
 
     target = pipeline_notification["Targets"][0]
-    
+
     assert resources["pipelinenoti"]["Type"] == "AWS::CodeStarNotifications::NotificationRule"
     assert target["TargetAddress"] == "arn:aws:chatbot::111111111111:chat-configuration/slack-channel/fake-config"
     assert target["TargetType"] == "AWSChatbotSlack"

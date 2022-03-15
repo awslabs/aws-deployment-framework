@@ -49,14 +49,19 @@ Parameters:
     Description: The Prefix that will be attached to stacks deployed via ADF.
     Type: String
     Default: "adf-"
+
+Globals:
+  Function:
+    CodeUri: lambda_codebase
+    Runtime: python3.9
+
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes:
-        - python3.7
-        - python3.8
+        - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
   LambdaLayerVersionPermission:
@@ -112,6 +117,16 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+          - Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Principal:
+              Service:
+                - sns.amazonaws.com
+                - events.amazonaws.com
+                - codecommit.amazonaws.com
+            Resource: "*"
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -668,11 +683,11 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.8
+                python: 3.9
                 nodejs: 12
             pre_build:
               commands:
-                - npm install cdk@1.114 -g -y --quiet --no-progress
+                - npm install cdk@1.137 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
@@ -943,7 +958,6 @@ Resources:
   SendSlackNotification:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - Send Slack Notification"
@@ -954,12 +968,10 @@ Resources:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
           ADF_LOG_LEVEL: !Ref ADFLogLevel
-      Runtime: python3.8
       Timeout: 10
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - EnableCrossAccountAccess"
@@ -972,12 +984,10 @@ Resources:
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 900
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: lambda_codebase/
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - CheckPipelineStatus"
@@ -989,7 +999,6 @@ Resources:
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
       Timeout: 120
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -1138,7 +1147,7 @@ Resources:
                               "IntervalSeconds": 1,
                               "MaxAttempts": 10
                             }
-                          ]                          
+                          ]
                         }
                       }
                     },
@@ -1223,7 +1232,6 @@ Resources:
                 - codecommit:DeleteBranch
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
-      Runtime: python3.8
       Timeout: 300
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"

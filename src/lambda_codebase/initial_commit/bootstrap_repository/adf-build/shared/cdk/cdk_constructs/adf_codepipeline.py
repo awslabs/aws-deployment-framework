@@ -84,7 +84,7 @@ class Action:
     def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
         if self.provider == "Manual" and self.category == "Approval":
             _props = {
-                "CustomData": self.target.get('properties', {}).get('message') or "Approval stage for {0}".format(self.map_params['name'])
+                "CustomData": self.target.get('properties', {}).get('message') or f"Approval stage for {self.map_params['name']}"
             }
             if self.notification_endpoint:
                 _props["NotificationArn"] = self.notification_endpoint
@@ -178,35 +178,28 @@ class Action:
                                 'properties', {}).get(
                                     'root_dir') or ""
             if _path_prefix and not _path_prefix.endswith('/'):
-                _path_prefix = "{}/".format(_path_prefix)
-            _input_artifact = "{map_name}-build".format(
-                map_name=self.map_params['name'],
-            )
+                _path_prefix = f"{_path_prefix}/"
+            _input_artifact = f"{self.map_params['name']}-build"
             _props = {
                 "ActionMode": self.action_mode,
-                "StackName": self.target.get(
-                    'properties', {}).get('stack_name') or self.map_params.get(
-                        'default_providers', {}).get(
-                            'deploy', {}).get(
-                                'properties', {}).get(
-                                    'stack_name') or "{0}{1}".format(
-                                        ADF_STACK_PREFIX, self.map_params['name']),
-                "ChangeSetName": "{0}{1}".format(ADF_STACK_PREFIX, self.map_params['name']),
-                "TemplateConfiguration": "{input_artifact}::{path_prefix}params/{target_name}_{region}.json".format(
-                    input_artifact=_input_artifact,
-                    path_prefix=_path_prefix,
-                    target_name=self.target['name'],
-                    region=self.region,
+                "StackName": (
+                    self.target.get('properties', {}).get('stack_name')
+                    or self.map_params.get('default_providers', {}).get(
+                        'deploy', {}).get('properties', {}).get('stack_name')
+                    or f"{ADF_STACK_PREFIX}{self.map_params['name']}"
+                ),
+                "ChangeSetName": f"{ADF_STACK_PREFIX}{self.map_params['name']}",
+                "TemplateConfiguration": (
+                    f"{_input_artifact}::{_path_prefix}params/{self.target['name']}_{self.region}.json"
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
-                "RoleArn": "arn:{0}:iam::{1}:role/adf-cloudformation-deployment-role".format(ADF_DEPLOYMENT_PARTITION, self.target['id']) if not self.role_arn else self.role_arn
+                "RoleArn": self.role_arn if self.role_arn else (
+                    f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
+                    f"role/adf-cloudformation-deployment-role"
+                )
             }
             if self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
-                _props["TemplatePath"] = "{input_artifact}::{path_prefix}template_{region}.yml".format(
-                    input_artifact=_input_artifact,
-                    path_prefix=_path_prefix,
-                    region=self.region,
-                )
+                _props["TemplatePath"] = f"{_input_artifact}::{_path_prefix}template_{self.region}.yml"
             else:
                 _template_filename = self.target.get(
                     'properties', {}).get(
@@ -215,24 +208,19 @@ class Action:
                                 'deploy', {}).get(
                                     'properties', {}).get(
                                         'template_filename') or "template.yml"
-                _props["TemplatePath"] = "{input_artifact}::{path_prefix}{filename}".format(
-                    input_artifact=_input_artifact,
-                    path_prefix=_path_prefix,
-                    filename=_template_filename,
-                )
+                _props["TemplatePath"] = f"{_input_artifact}::{_path_prefix}{_template_filename}"
             if self.target.get('properties', {}).get('outputs'):
-                _props['OutputFileName'] = '{path_prefix}{filename}.json'.format(
-                    path_prefix=_path_prefix,
-                    filename=self.target['properties']['outputs'],
-                )
+                _props['OutputFileName'] = f"{_path_prefix}{self.target['properties']['outputs']}.json"
             if self.target.get('properties', {}).get('param_overrides'):
                 _overrides = {}
                 for override in self.target.get('properties', {}).get('param_overrides', []):
-                    _overrides["{0}".format(
-                        override['param'])] = {"Fn::GetParam": ["{0}".format(
-                            override['inputs']), "{0}.json".format(
-                                override['inputs']), "{0}".format(
-                                    override['key_name'])]}
+                    _overrides[override['param']] = {
+                        "Fn::GetParam": [
+                            override['inputs'],
+                            f"{override['inputs']}.json",
+                            override['key_name'],
+                        ],
+                    }
                 _props['ParameterOverrides'] = json.dumps(_overrides)
             return _props
         if self.provider == "Jenkins":
@@ -244,14 +232,15 @@ class Action:
                 "ProviderName": self.map_params['default_providers']['build'].get('properties', {}).get('provider_name') # Enter the provider name you configured in the Jenkins plugin
             }
         if self.provider == "CodeBuild":
-            if self.project_name is None:
-                self.project_name = "adf-build-{0}".format(self.map_params['name'])
             return {
-                "ProjectName": self.project_name
+                "ProjectName": self.project_name or f"adf-build-{self.map_params['name']}"
             }
         if self.provider == "ServiceCatalog":
             return {
-                "ConfigurationFilePath": self.target.get('properties', {}).get('configuration_file_path') or "params/{0}_{1}.json".format(self.target['name'], self.region),
+                "ConfigurationFilePath": (
+                    self.target.get('properties', {}).get('configuration_file_path')
+                    or f"params/{self.target['name']}_{self.region}.json"
+                ),
                 "ProductId": self.target.get(
                     'properties', {}).get(
                         'product_id') or self.map_params['default_providers']['deploy'].get(
@@ -288,7 +277,7 @@ class Action:
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props
-        raise Exception("{0} is not a valid provider".format(self.provider))
+        raise Exception(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
         account_id = self.map_params['default_providers']['source']['properties']['account_id']
@@ -320,7 +309,7 @@ class Action:
             return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
         if self.provider == "Manual":
             return None
-        raise Exception('Invalid Provider {0}'.format(self.provider))
+        raise Exception(f'Invalid Provider {self.provider}')
 
     def generate(self):
         _role = self._generate_codepipeline_access_role()
@@ -364,7 +353,7 @@ class Action:
         )
         if use_output_source:
             return "output-source"
-        return "{0}-build".format(self.map_params['name'])
+        return f"{self.map_params['name']}-build"
 
     def _get_input_artifacts(self):
         """
@@ -400,7 +389,7 @@ class Action:
         if self.category == 'Source':
             return "output-source"
         if self.category == 'Build' and not self.target:
-            return "{0}-build".format(self.map_params['name'])
+            return f"{self.map_params['name']}-build"
         if self.category == 'Deploy' and self.provider == "CloudFormation":
             outputs_name = self.target.get('properties', {}).get('outputs', '')
             if outputs_name and self.action_mode != 'CHANGE_SET_REPLACE':
@@ -441,7 +430,7 @@ class Pipeline(core.Construct):
         _pipeline_args = {
             "role_arn": _codepipeline_role_arn,
             "restart_execution_on_update": map_params.get('params', {}).get('restart_execution_on_update', False),
-            "name": "{0}{1}".format(ADF_PIPELINE_PREFIX, map_params['name']),
+            "name": f"{ADF_PIPELINE_PREFIX}{map_params['name']}",
             "stages": stages,
             "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
             "tags": Pipeline.restructure_tags(map_params.get('tags', {}))

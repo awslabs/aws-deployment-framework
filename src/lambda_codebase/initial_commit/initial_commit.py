@@ -141,7 +141,7 @@ def chunks(list_to_chunk, number_to_chunk_into):
 
 def generate_pull_request_input(event, repo_name):
     return {
-        "title": 'ADF {0} Automated Update PR'.format(event.ResourceProperties.Version),
+        "title": f'ADF {event.ResourceProperties.Version} Automated Update PR',
         "description": PR_DESCRIPTION.format(event.ResourceProperties.Version),
         "targets": [
             {
@@ -153,12 +153,13 @@ def generate_pull_request_input(event, repo_name):
     }
 
 def generate_commit_input(repo_name, index, branch="master", parent_commit_id=None, puts=None, deletes=None):
+    commit_action = "Delete" if deletes else "Create"
     output = {
         "repositoryName": repo_name,
         "branchName": branch,
         "authorName": "AWS ADF Builders Team",
         "email": "adf-builders@amazon.com",
-        "commitMessage": "Automated Commit - {0} Part {1}".format("Delete" if deletes else "Create", index),
+        "commitMessage": f"Automated Commit - {commit_action} Part {index}",
         "putFiles": puts if puts else [],
         "deleteFiles": deletes if deletes else []
     }
@@ -337,12 +338,12 @@ def create_adf_config_file(props: CustomResourceProperties, input_file_name: str
         .encode()
     )
 
-    with open("{0}".format(output_file_name), "wb") as f:
-        f.write(adf_config)
+    with open(output_file_name, mode="wb") as file:
+        file.write(adf_config)
     if input_file_name == 'bootstrap_repository/adf-bootstrap/example-global-iam.yml':
         return FileToCommit('adf-bootstrap/global-iam.yml', FileMode.NORMAL, adf_config)
     if input_file_name == 'adf.yml.j2':
         return FileToCommit('adf-accounts/adf.yml', FileMode.NORMAL, adf_config)
     if input_file_name == 'adfconfig.yml.j2':
         return FileToCommit("adfconfig.yml", FileMode.NORMAL, adf_config)
-    return FileToCommit("{0}".format(output_file_name), FileMode.NORMAL, adf_config)
+    return FileToCommit(output_file_name, FileMode.NORMAL, adf_config)

@@ -16,11 +16,11 @@ class SuccessTestCase(unittest.TestCase):
     def test_account_creation(self):
         test_account = {
             "account_full_name": "ADF Test Creation Account",
-            "email": "test+account@domain.com",
+            "email": "test@amazon.com",
         }
         test_account_result = {
             **test_account,
-            "account_id": "9087564231",
+            "account_id": "111111111111",
         }
         org_client = boto3.client("organizations")
         stubber = Stubber(org_client)
@@ -33,14 +33,14 @@ class SuccessTestCase(unittest.TestCase):
         describe_account_response = {
             "CreateAccountStatus": {
                 "State": "IN_PROGRESS",
-                "AccountId": "9087564231",
+                "AccountId": "111111111111",
                 "Id": "1234567890",
             }
         }
         describe_account_response_complete = {
             "CreateAccountStatus": {
                 "State": "SUCCEEDED",
-                "AccountId": "9087564231",
+                "AccountId": "111111111111",
                 "Id": "1234567890",
             }
         }
@@ -78,7 +78,7 @@ class FailuteTestCase(unittest.TestCase):
     def test_account_creation_failure(self):
         test_account = {
             "account_full_name": "ADF Test Creation Account",
-            "email": "test+account@domain.com",
+            "email": "test@amazon.com",
         }
         org_client = boto3.client("organizations")
         stubber = Stubber(org_client)
@@ -88,14 +88,14 @@ class FailuteTestCase(unittest.TestCase):
         describe_account_response = {
             "CreateAccountStatus": {
                 "State": "IN_PROGRESS",
-                "AccountId": "9087564231",
+                "AccountId": "111111111111",
                 "Id": "1234567890",
             }
         }
         describe_account_response_complete = {
             "CreateAccountStatus": {
                 "State": "FAILED",
-                "AccountId": "9087564231",
+                "AccountId": "111111111111",
                 "Id": "1234567890",
                 "FailureReason": "ACCOUNT_LIMIT_EXCEEDED",
             }

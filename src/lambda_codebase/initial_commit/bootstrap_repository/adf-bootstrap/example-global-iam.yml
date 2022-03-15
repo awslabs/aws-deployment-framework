@@ -2,7 +2,7 @@
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
+Description: ADF CloudFormation Template (Global) for IAM in the Target Accounts
 Resources:
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
