@@ -11,7 +11,7 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.8
+      python: 3.9
   build:
     commands:
       - export PATH=$PATH:$(pwd)

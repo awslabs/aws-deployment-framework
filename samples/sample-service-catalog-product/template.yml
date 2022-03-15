@@ -5,14 +5,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (Service Catalog Product)
 Metadata:
   License: Apache-2.0
-Parameters: 
+Parameters:
   ProductXTemplateURL:
     Type: String
     Description: Service Catalog CloudFormation Template URL
 Resources:
   Portfolio:
     Type: AWS::ServiceCatalog::Portfolio
-    Properties: 
+    Properties:
       AcceptLanguage: en
       Description: Portfolio containing Cloud9 Development Environment
       DisplayName: IDE Portfolio
@@ -29,7 +29,7 @@ Resources:
       TagOptionId: !Ref IDETagOption
   Cloud9Product:
     Type: AWS::ServiceCatalog::CloudFormationProduct
-    Properties: 
+    Properties:
       AcceptLanguage: en
       Description: CloudFormation Template to deploy Cloud9 Development Environment
       Distributor: Company
@@ -38,11 +38,11 @@ Resources:
       ProvisioningArtifactParameters:
         - Info: { "LoadTemplateFromURL": !Ref ProductXTemplateURL }
       SupportDescription: For help with Cloud9 Dev Environment contact us
-      SupportEmail: jon@doe.com
+      SupportEmail: john@example.com
       SupportUrl: http://example.com
   Association:
     Type: AWS::ServiceCatalog::PortfolioProductAssociation
-    Properties: 
+    Properties:
       AcceptLanguage: en
       PortfolioId: !Ref Portfolio
       ProductId: !Ref Cloud9Product

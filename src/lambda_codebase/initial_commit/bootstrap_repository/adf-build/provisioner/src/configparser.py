@@ -30,16 +30,16 @@ def read_config_files(folder):
 def _read_config_file(filename):
     accounts = []
     try:
-        with open(filename, 'r') as stream:
+        with open(filename, mode='r', encoding='utf-8') as stream:
             config = yaml.safe_load(stream)
             for account in config.get('accounts', []):
                 accounts.append(Account.load_from_config(account))
         return accounts
     except Exception as error:
         LOGGER.error(
-            "Could not process %s due to an error: %s. ",
+            "Could not process %s due to an error: %s",
             filename,
-            error
+            error,
         )
         LOGGER.error(
             "Make sure the content of YAML files (.yml) are not empty and "

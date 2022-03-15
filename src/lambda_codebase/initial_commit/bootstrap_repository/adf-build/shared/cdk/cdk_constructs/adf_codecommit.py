@@ -20,8 +20,11 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 class CodeCommit(core.Construct):
     def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
+        default_providers = map_params.get("default_providers", {})
+        source_props = default_providers.get("source", {}).get("properties", {})
+        account_id = source_props.get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
-            name="Source-{0}".format(map_params.get("default_providers", {}).get("source", {}).get("properties", {}).get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)),
+            name=f"Source-{account_id}",
             actions=[
                 Action(
                     name="source",

@@ -24,7 +24,7 @@ Globals:
     Architectures:
       - arm64
     CodeUri: lambda_codebase/account_processing
-    Runtime: python3.8
+    Runtime: python3.9
     Timeout: 300
     Tracing: Active
     Layers:

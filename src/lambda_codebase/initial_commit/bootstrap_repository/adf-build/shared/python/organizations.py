@@ -1,7 +1,8 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""Organizations module used throughout the ADF
+"""
+Organizations module used throughout the ADF
 """
 
 import json
@@ -20,7 +21,8 @@ REGION_DEFAULT = os.getenv('AWS_REGION')
 
 
 class Organizations:  # pylint: disable=R0904
-    """Class used for modeling Organizations
+    """
+    Class used for modeling Organizations
     """
 
     _config = Config(retries=dict(max_attempts=30))
@@ -73,14 +75,14 @@ class Organizations:  # pylint: disable=R0904
                 if organization_id in org_structure.values() and counter != 0:
                     continue
                 ou_name = self.describe_ou_name(organization_id)
-                trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, ou_name))
+                trimmed_path = Organizations.trim_policy_path(f"{name}/{ou_name}")
                 org_structure[trimmed_path] = organization_id
             # List accounts
             for account_id in [account_id['Id'] for account_id in paginator(self.client.list_children, **{"ParentId":ou_id, "ChildType":"ACCOUNT"})]:
                 if account_id in org_structure.values() and counter != 0:
                     continue
                 account_name = self.describe_account_name(account_id)
-                trimmed_path = Organizations.trim_policy_path("{0}/{1}".format(name, account_name))
+                trimmed_path = Organizations.trim_policy_path(f"{name}/{account_name}")
                 org_structure[trimmed_path] = account_id
         counter = counter + 1
         # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
@@ -93,23 +95,21 @@ class Organizations:  # pylint: disable=R0904
         )
 
     def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
+        policy_type_name = (
+            'scp' if policy_type == "SERVICE_CONTROL_POLICY"
+            else 'tagging-policy'
+        )
         response = self.client.create_policy(
             Content=content,
-            Description='ADF Managed {0}'.format(policy_type),
-            Name='adf-{0}-{1}'.format(
-                (
-                    'scp' if policy_type == "SERVICE_CONTROL_POLICY"
-                    else 'tagging-policy'
-                ),
-                ou_path,
-            ),
+            Description=f'ADF Managed {policy_type}',
+            Name=f'adf-{policy_type_name}-{ou_path}',
             Type=policy_type
         )
         return response['Policy']['PolicySummary']['Id']
 
     @staticmethod
     def get_policy_body(path):
-        with open('./adf-bootstrap/{0}'.format(path), 'r') as policy:
+        with open(f'./adf-bootstrap/{path}', mode='r', encoding='utf-8') as policy:
             return json.dumps(json.load(policy))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
@@ -125,7 +125,7 @@ class Organizations:  # pylint: disable=R0904
             Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description']][0]['Id']
+            return [p for p in response['Policies'] if f'ADF Managed {policy_type}' in p['Description']][0]['Id']
         except IndexError:
             return []
 
@@ -196,8 +196,7 @@ class Organizations:  # pylint: disable=R0904
 
     @staticmethod
     def determine_ou_path(ou_path, ou_child_name):
-        return '{0}/{1}'.format(ou_path,
-                                ou_child_name) if ou_path else ou_child_name
+        return f'{ou_path}/{ou_child_name}' if ou_path else ou_child_name
 
     def list_parents(self, ou_id):
         return self.client.list_parents(
@@ -230,14 +229,13 @@ class Organizations:  # pylint: disable=R0904
                     ou_id = ou['Id']
                     break
             else:
-                raise Exception(
-                    "Path {0} failed to return a child OU at '{1}'".format(
-                        path, p[0]))
+                raise Exception(f"Path {path} failed to return a child OU at '{p[0]}'")
         else: # pylint: disable=W0120
             return self.get_accounts_for_parent(ou_id)
 
     def build_account_path(self, ou_id, account_path, cache):
-        """Builds a path tree to the account from the root of the Organization
+        """
+        Builds a path tree to the account from the root of the Organization
         """
         current = self.list_parents(ou_id)
 
@@ -294,7 +292,9 @@ class Organizations:  # pylint: disable=R0904
         return None
 
     def list_accounts(self):
-        """Retrieves all accounts in organization."""
+        """
+        Retrieves all accounts in organization.
+        """
         existing_accounts = [
             account
             for accounts in self.client.get_paginator("list_accounts").paginate()
