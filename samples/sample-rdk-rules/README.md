@@ -73,6 +73,24 @@ In Lambda functions when you want to refer boto3 client or resource make sure
 - Use `get_client` method for client.
 - Duplicate `get_client` and create the `get_resource` method. 
 
+```
+def get_resource(service, event, region=None):
+    """Return the service boto client. It should be used instead of directly calling the client.
+
+    Keyword arguments:
+    service -- the service name used for calling the boto.client()
+    event -- the event variable given in the lambda handler
+    region -- the region where the client is called (default: None)
+    """
+    if not ASSUME_ROLE_MODE:
+        return boto3.resource(service, region)
+    credentials = get_assume_role_credentials(get_execution_role_arn(event), region)
+    return boto3.resource(service, aws_access_key_id=credentials['AccessKeyId'],
+                        aws_secret_access_key=credentials['SecretAccessKey'],
+                        aws_session_token=credentials['SessionToken'],
+                        region_name=region
+                       )
+```
 These methods use STS and config payload to assume the IAM role in the target account. If not lambda execution will be failed.
 
 
@@ -82,4 +100,5 @@ These methods use STS and config payload to assume the IAM role in the target ac
 - This solution does not setup config or config recorder.
 - When this solution deploys the config-rule to a target account; it expectes config is enabled in the target account.
 - Each target account's config role should be able assume by `<account-that-has-the-lambda-function>` to put evaluations into each target account's config. AKA config role in target account(2222222222) should have the lambda-function-account-id(1111111111) as trusted entity as below. 
+
 ![Trusted entiry](./meta/lambda-account-id-trusted-entiry.png)
