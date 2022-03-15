@@ -60,19 +60,14 @@ def add_lambda_to_template_by_rule(template:dict, config_rule_dir: str, rule_nam
     rule_name_stripped = rule_name.replace("_", "")
     runtime = parameter_content.get('Parameters').get('SourceRuntime')
     
-    #get lambda-role
-    #RuleNameLambdaRole
     lambda_role = replace_rule_name_and_load(Path(templates_root).joinpath("lambda-role.json"), rule_name, rule_name_stripped)
     template["Resources"][f"{rule_name_stripped}LambdaRole"] = lambda_role
     
-    #get lambda-function
-    #"RuleNameLambdaFunction": 
     lambda_function = replace_rule_name_and_load(Path(templates_root).joinpath("lambda-function.json"), rule_name, rule_name_stripped)
     lambda_function["Properties"]["Code"]["S3Key"] = s3_asset_key
     lambda_function["Properties"]["Runtime"] = runtime
     template["Resources"][f"{rule_name_stripped}LambdaFunction"] = lambda_function
     
-    #get lambda-permission
     lambda_permission = replace_rule_name_and_load(Path(templates_root).joinpath("lambda-permission.json"), rule_name, rule_name_stripped)
     template["Resources"][f"{rule_name_stripped}LambdaPermissions"] = lambda_permission
     
