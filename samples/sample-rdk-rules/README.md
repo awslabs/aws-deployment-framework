@@ -75,12 +75,12 @@ In Lambda functions when you want to refer boto3 client or resource make sure
 
 ```
 def get_resource(service, event, region=None):
-    """Return the service boto client. It should be used instead of directly calling the client.
+    """Return the service boto resource. It should be used instead of directly calling the resource.
 
     Keyword arguments:
-    service -- the service name used for calling the boto.client()
+    service -- the service name used for calling the boto.resource()
     event -- the event variable given in the lambda handler
-    region -- the region where the client is called (default: None)
+    region -- the region where the resource is called (default: None)
     """
     if not ASSUME_ROLE_MODE:
         return boto3.resource(service, region)
