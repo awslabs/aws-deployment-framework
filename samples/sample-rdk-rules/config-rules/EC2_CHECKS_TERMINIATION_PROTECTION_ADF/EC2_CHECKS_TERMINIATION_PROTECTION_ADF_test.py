@@ -42,13 +42,6 @@ class ComplianceTest(unittest.TestCase):
     def test_sample(self):
         self.assertTrue(True)
 
-    #def test_sample_2(self):
-    #    RULE.ASSUME_ROLE_MODE = False
-    #    response = RULE.lambda_handler(build_lambda_configurationchange_event(self.invoking_event_iam_role_sample, self.rule_parameters), {})
-    #    resp_expected = []
-    #    resp_expected.append(build_expected_response('NOT_APPLICABLE', 'some-resource-id', 'AWS::IAM::Role'))
-    #    assert_successful_evaluation(self, response, resp_expected)
-
 ####################
 # Helper Functions #
 ####################
