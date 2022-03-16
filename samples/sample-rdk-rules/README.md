@@ -3,56 +3,42 @@ This setup will allow you to deploy custom config rules created by the RDK via A
 
 ## Architecture
 ![Architecture](./meta/custom-configs.png)
-* As a first step it requires to have a Source code repository to store our code. In this pattern we are using CodeCommit repository. This repository created by as a part of the pipeline definition in the ADF's deployment_map.yml. Example of the pipeline definition in the Code section of the pattern below.
-* ADF pipeline definition creates 2 pipelines that get triggers by the single code repository. This requires because from the same code we extract the lambda function and the Config rule separately and deploy into different accounts via these 2 pipelines. 
+* As a first step it requires to have a Source code repository to store our code. In this pattern we are using CodeCommit repository. This repository created by as a part of the pipeline definition in the ADF's deployment_map.yml. Example of the pipeline definition is in the ADF setup section.
+* ADF pipeline definition creates a pipeline that will deploy Lambda function(s) into the compliance account and Custom Config rule(s) to Target accounts.
 * When a Custom Config rule get pushed into the CodeCommit repository; 
-    - Lambda pipeline: It will find the RDK rule(s) recursively then zip each single rule one by one and upload into ADF bucket. Buildspec of LambdaPipeline is utilising a helper script called lambda_helper.py to achieve this task and CodeBuild will produce a CloudFormation template to deploy this Lambda function. Then CodeDeploy will use CloudFormation template created in CodeBuild phase and deploy particular Lambda function into the Compliance Account.
-    - ADF Populates bucket names into SSM Parameter store. lambda_helper.py fetches the bucket name from the SSM Parameter Store. Parameter name looks like /cross_region/s3_regional_bucket/{region}.
-    - Config-Rule pipeline: This pipeline will only deploy Custom Config rule(s) by referring Lambda function get deployed from Lambda pipeline. This pipeline uses rdk create-rule-template --rules-only -a  -o template-config-rules.json to produce the CloudFormation template.
+    - CodeBuild will find the RDK rule(s) recursively in the `config-rules` directory then zip each single rule one by one and upload into ADF bucket. Buildspec is utilising a helper script called lambda_helper.py to achieve this task. ADF populates bucket names into SSM Parameter store on the Installation. lambda_helper.py fetches the bucket name from the SSM Parameter Store. Parameter name looks like /cross_region/s3_regional_bucket/{region}.
+    - Then CodeBuild will generate 2 CloudFormation templates one for Lambda function(s) deployment and other for the Custom Config rule(s) deployment.
+
 * When a Lambda function get invokes by a Target account Custom config rule; it will assume the Config role in Target account then put config Evaluations into the Target account's Config rule.
 ### ADF setup
-2 Pipelines will be similar to below:
+Sample pipeline defintion looks like below:
 
 ```
-- name: custom-config-rules ## repo name
-    default_providers:
-      source:
-        provider: codecommit
-        properties:
-          account_id: <deployment-account-id>
-      build:
-        provider: codebuild
-        properties:
-          image: "STANDARD_5_0"
-          spec_filename: "buildspec-lambda.yml"
-      deploy:
-        provider: cloudformation
-        properties:
+  - name: custom-config-rules-pipeline ## repo name
+  default_providers:
+    source:
+      provider: codecommit
+      properties:
+        account_id: <compliance-account-id>
+    build:
+      provider: codebuild
+      properties:
+        image: "STANDARD_5_0"
+    deploy:
+      provider: cloudformation
+  targets:  
+    - name: LambdaDeployment
+      regions: <regions>
+      target: <compliance-account-id>
+      properties:
           template_filename: "template-lambda.json"
-    targets:  
-      - <deployment-account-id>
-
-      
-  - name: custom-config-rules-2
-    default_providers:
-      source:
-        provider: codecommit
-        properties:
-          account_id: <deployment-account-id>
-          repository: custom-config-rules ### Same repo name as above
-      build:
-        provider: codebuild
-        properties:
-          image: "STANDARD_5_0"
-          spec_filename: "buildspec-config-rules.yml"
-      deploy:
-        provider: cloudformation
-        properties:
-          template_filename: "template-config-rules.json"
-    targets:  
-      - <target-accounts-to-deploy-custom-config-rules> 
+    - name: ConfigRulesDeployment
+      regions: <regions>
+      target:
+        - <target-accounts-to-deploy-custom-config-rules> 
+      properties:
+        template_filename: "template-config-rules.json"
 ```
-As you see here each time when a commit get pushed; these 2 pipelines will be triggered. As per the current ADF version(v3.1.2) we cannot stop pipeline trigger when a commit get pushed. Unless it could be chained(when [this changes](https://github.com/awslabs/aws-deployment-framework/pull/357) get released with [`trigger_on_changes`](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/providers-guide.md#codecommit) attribute).
 
 
 ## Development setup
@@ -60,10 +46,9 @@ After you clone the repo following file/folder structure will be there;
 | Name  | Purpose  |   
 |---|---|
 | config-rules  | This folder will contain all the custom config rules created by `rdk create ...`. Make sure to setup correct details in the `parameters.json` file(ex: SourceRuntime) |
-| params  | Contains parameters we need for the generated CloudFormation templates. You must set the account id that deployed your Lambda functions called `LambdaAccountId`. This will be used as a parameter when it deploys config-rule into Target accounts to refer Lambda function from the Compliance-account. [Refer this link](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#cloudformation-parameters-and-tagging)  |
+| params  | Contains parameters we need for the generated CloudFormation templates. You must set the account id of the Compliance account in `LambdaAccountId`. This will be used as a parameter when it deploys config-rule into Target accounts to refer Lambda function from the Compliance account. [Refer this link](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#cloudformation-parameters-and-tagging)  |
 | templates  | This folder contains all the cloudformation template pieces that required to build cfn template for the lambda function deployment.  |
-| buildspec-lambda.yml | Buildspec file for the Lambda function deployment pipeline. Make sure this is the same name that you have defined in ADF pipeline. |
-| buildspec-config-rules.yml | Buildspec file for the config-rule deployment pipeline. Make sure this is the same name that you have defined in ADF pipeline. |
+| buildspec.yml | Buildspec file to generate Cloudformation templates for the Lambda and Custom Config rules |
 | lambda_helper.py | This is the helper file that pack and upload the lambda code recursively in the config-rules folder |
 | requirements.txt| Requirements for the lambda_helper.py script.|
 
