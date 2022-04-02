@@ -172,7 +172,11 @@ Resources:
             Bucket:
               Ref: ADFAccountBucket
             Events: s3:ObjectCreated:*
-
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: yml
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
