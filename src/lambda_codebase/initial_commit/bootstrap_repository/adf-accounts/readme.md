@@ -38,7 +38,7 @@ The OU name is the name of the direct parent of the account. If you want to move
 - `support_level`: `basic|enterprise` ADF will raise a ticket to add the account to an existing AWS support subscription when an account is created. Currently only supports basic or enterprise.
  **NB: This is for activating enterprise support on account creation only. As a prerequisite your organization master account must already have enterprise support activated**
 
-- `alias`: AWS account alias. Must be unique globally otherwise cannot be created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html) for further details. If the account alias is not created or already exists, in the Federation login page, no alias will be presented
+- `alias`: AWS account alias. Must be unique globally otherwise cannot be created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html) for further details. If the account alias is not created or already exists, in the Federation login page, no alias will be presented. This needs to be unique across all customers, if the alias is already taken the AccountManagementStateMachine will stop and raise an error.
 - `tags`: list of tags associate to the account.
 
 ### Examples
