@@ -39,6 +39,7 @@ A basic example of a `deployment_map.yml` would look like the following:
 ```yaml
 pipelines:
   - name: iam
+    description: This description is used as a description for the CodeCommit repository.
     default_providers:
       source:
         provider: codecommit
@@ -120,6 +121,7 @@ definition:
 ```yaml
 pipelines:
   - name: sample-ec2-java-app-codedeploy
+    description: This description is used as a description for the CodeCommit repository.
     default_providers:
       source:
         provider: codecommit
@@ -194,9 +196,9 @@ targets:
     name: another_step
     wave:
       size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
-    exclude: 
-      - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids 
-    properties: ...    
+    exclude:
+      - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids
+    properties: ...
 ```
 
 CodePipeline has a limit of 50 actions per stage.
@@ -216,8 +218,8 @@ Pipelines also have parameters that don't relate to a specific stage but rather 
 The following are the available pipeline parameters:
 
 - *notification_endpoint* *(String) | (Dict) * defaults to none.
-  > Can either be a valid email address or a string that represents the name of a Slack Channel. 
-  > A more complex configuration can be provided to integrate with Slack via AWS ChatBot. 
+  > Can either be a valid email address or a string that represents the name of a Slack Channel.
+  > A more complex configuration can be provided to integrate with Slack via AWS ChatBot.
   > ```yaml
   > notification_endpoint:
   >   type: chat_bot
@@ -308,7 +310,7 @@ pipelines:
           repository: my_test_repository
 ```
 
-In the above example, the *ami-builder* pipeline is triggered when a new package version is published to the *my_test_repository* repository in CodeArtifact. 
+In the above example, the *ami-builder* pipeline is triggered when a new package version is published to the *my_test_repository* repository in CodeArtifact.
 
 ### Additional Deployment Maps
 
@@ -597,7 +599,7 @@ There are five different styles that one could choose from.
   * In case the bucket is stored in any other region, it will return:
     `https://${bucket}.s3-${region}.amazonaws.com/${key}`
 * `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
-  As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html). 
+  As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html).
   * It returns: `s3://${bucket}/${key}`
 * `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
   As an example, this style is required for [CodeBuild project source locations](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-source.html#cfn-codebuild-project-source-location).

@@ -240,7 +240,7 @@ Resources:
             Sid: "CodeCommit"
             Action:
               - "codecommit:CreateRepository"
-              - "codecommit:UpdateRepository"
+              - "codecommit:UpdateRepositoryDescription"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
             Resource:
