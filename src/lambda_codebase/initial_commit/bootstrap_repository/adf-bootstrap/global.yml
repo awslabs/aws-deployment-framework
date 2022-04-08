@@ -241,6 +241,7 @@ Resources:
             Action:
               - "codecommit:CreateRepository"
               - "codecommit:UpdateRepositoryDescription"
+              - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
             Resource:
