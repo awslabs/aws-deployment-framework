@@ -81,6 +81,6 @@ class Repo:
         if _repo_exists and not _stack_exists:
             # return when the repository exists without a stack (previously made)
             return
-        else:
-            LOGGER.info(f"Ensuring State for CodeCommit Repository Stack {self.name} on Account {self.account_id}")
-            cloudformation.create_stack()
+
+        LOGGER.info(f"Ensuring State for CodeCommit Repository Stack {self.name} on Account {self.account_id}")
+        cloudformation.create_stack()
