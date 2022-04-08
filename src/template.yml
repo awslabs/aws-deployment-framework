@@ -521,7 +521,7 @@ Resources:
           - Name: S3_BUCKET
             Value: !Ref BootstrapTemplatesBucket
           - Name: ACCOUNT_BUCKET
-            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket            
+            Value: !GetAtt AccountProcessingApplication.Outputs.Bucket
           - Name: MASTER_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET

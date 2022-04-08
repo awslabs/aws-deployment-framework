@@ -115,24 +115,24 @@ Resources:
     Properties:
       GroupDescription: Default Internet connectivity Security Group for EC2 instances
       SecurityGroupEgress:
-      - CidrIp: 0.0.0.0/0
-        FromPort: 80
-        IpProtocol: tcp
-        ToPort: 80
-      - CidrIp: 0.0.0.0/0
-        FromPort: 443
-        IpProtocol: tcp
-        ToPort: 443
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-default-internet-sg
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-default-internet-sg
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
       VpcId:
         Ref: VPC
     Type: AWS::EC2::SecurityGroup
@@ -143,34 +143,34 @@ Resources:
   InternetGateway:
     Properties:
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
     Type: AWS::EC2::InternetGateway
   NATGateway:
     Properties:
       AllocationId:
         Fn::GetAtt:
-        - EIP
-        - AllocationId
+          - EIP
+          - AllocationId
       SubnetId:
         Ref: PublicSubnet1a
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
-      - Key: Environment
-        Value:
-          Ref: Environment
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
+        - Key: Environment
+          Value:
+            Ref: Environment
     Type: AWS::EC2::NatGateway
   PrivateRoute:
     Properties:
@@ -183,15 +183,15 @@ Resources:
   PrivateRouteTable:
     Properties:
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
       VpcId:
         Ref: VPC
     Type: AWS::EC2::RouteTable
@@ -199,21 +199,21 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 0
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateOne', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PrivateSubnet1aRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -225,21 +225,21 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateTwo', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PrivateSubnet1bRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -251,21 +251,21 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateThree', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PrivateSubnet1cRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -285,15 +285,15 @@ Resources:
   PublicRouteTable:
     Properties:
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
       VpcId:
         Ref: VPC
     Type: AWS::EC2::RouteTable
@@ -301,22 +301,22 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 0
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicOne', 'CIDR']
       MapPublicIpOnLaunch: true
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PublicSubnet1aRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -328,21 +328,21 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicTwo', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PublicSubnet1bRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -354,21 +354,21 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone:
-          Fn::Select:
+        Fn::Select:
           - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'PublicThree', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
   PublicSubnet1cRouteTableAssociation:
     Properties:
       RouteTableId:
@@ -382,13 +382,13 @@ Resources:
       EnableDnsHostnames: true
       CidrBlock: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
       Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${Environment}-vpc
-      - Key: Environment
-        Value:
-          Ref: Environment
-      - Key: CostCenter
-        Value:
-          Ref: CostCenter
+        - Key: Name
+          Value:
+            Fn::Sub: ${Environment}-vpc
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: CostCenter
+          Value:
+            Ref: CostCenter
     Type: AWS::EC2::VPC

@@ -30,11 +30,11 @@ Parameters:
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    Default: "BUILD_GENERAL1_LARGE" # For threading with large amounts of pipelines this is the most effective default
+    Default: "BUILD_GENERAL1_LARGE"  # For threading with large amounts of pipelines this is the most effective default
     AllowedValues:
-      - "BUILD_GENERAL1_SMALL" # 3 GB memory, 2 vCPU
-      - "BUILD_GENERAL1_MEDIUM" # 7 GB memory, 4 vCPU
-      - "BUILD_GENERAL1_LARGE" # 15 GB memory, 8 vCPU
+      - "BUILD_GENERAL1_SMALL"  # 3 GB memory, 2 vCPU
+      - "BUILD_GENERAL1_MEDIUM"  # 7 GB memory, 4 vCPU
+      - "BUILD_GENERAL1_LARGE"  # 15 GB memory, 8 vCPU
   NotificationEndpoint:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: notification_endpoint
@@ -259,7 +259,7 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
             Action:
               - "secretsmanager:Get*"
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow CodeBuild access to secrets that start with /adf/*
           - Effect: Allow
             Action:
               - "ssm:GetParameter"
@@ -281,7 +281,7 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
           - Effect: Allow
-            Action: # If you plan on building docker images in CodeBuild you need these
+            Action:  # If you plan on building docker images in CodeBuild you need these
               - "ecr:GetAuthorizationToken"
               - "ecr:InitiateLayerUpload"
               - "ecr:UploadLayerPart"
@@ -342,7 +342,7 @@ Resources:
           - Effect: Allow
             Action:
               - "secretsmanager:Get*"
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow CodeBuild access to secrets that start with /adf/*
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow CodeBuild access to secrets that start with /adf/*
           - Effect: Allow
             Action:
               - "events:PutPermission"
@@ -434,9 +434,9 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
-              - "iam:PassRole" # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
+              - "iam:PassRole"  # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
             Resource:
-              - !Sub arn:${AWS::Partition}:iam::*:role/* # This role can pass to any other role in the organization.
+              - !Sub arn:${AWS::Partition}:iam::*:role/*  # This role can pass to any other role in the organization.
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
@@ -559,7 +559,7 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "KMS"
-            Action: # These are required for cross account deployments via codepipeline.
+            Action:  # These are required for cross account deployments via codepipeline.
               - "kms:Decrypt"
               - "kms:DescribeKey"
               - "kms:Encrypt"
@@ -815,7 +815,7 @@ Resources:
               AWS: !Ref AWS::AccountId
             Action:
               - sts:AssumeRole
-  CodePipelineRolePolicy: # https://docs.aws.amazon.com/codepipeline/latest/userguide/how-to-custom-role.html#how-to-update-role-new-services
+  CodePipelineRolePolicy:  # https://docs.aws.amazon.com/codepipeline/latest/userguide/how-to-custom-role.html#how-to-update-role-new-services
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:
@@ -1055,7 +1055,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "secretsmanager:Get*"
-                Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*" # Only allow Lambda access to get secrets that start with /adf/*
+                Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow Lambda access to get secrets that start with /adf/*
               - Effect: "Allow"
                 Action:
                   - "s3:Get*"

@@ -5,19 +5,19 @@ Description: ADF CloudFormation Stack pertaing to account processing / OU manage
 Parameters:
   OrganizationID:
     Type: String
-    MinLength : "1"
+    MinLength: "1"
 
   ADFVersion:
     Type: String
-    MinLength : "1"
+    MinLength: "1"
 
   LambdaLayer:
     Type: String
-    MinLength : "1"
+    MinLength: "1"
 
   CrossAccountAccessRoleName:
     Type: String
-    MinLength : "1"
+    MinLength: "1"
 
 Globals:
   Function:
@@ -438,152 +438,152 @@ Resources:
         RestrictPublicBuckets: true
 
   AccountManagementStateMachine:
-      Type: "AWS::StepFunctions::StateMachine"
-      Properties:
-        DefinitionString: !Sub |-
-            {
-              "Comment": "Create account?",
-              "StartAt": "CreateAccountChoice",
-              "States": {
-                "CreateAccountChoice": {
-                  "Type": "Choice",
-                  "Choices": [
-                    {
-                      "Variable": "$.needs_created",
-                      "BooleanEquals": true,
-                      "Comment": "Create Account",
-                      "Next": "CreateAccount"
-                    }
-                  ],
-                  "Default": "ConfigureAccountAlias"
-                },
-                "ConfigureAccountAlias": {
-                  "Type": "Task",
-                  "Resource": "${AccountAliasConfigFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "ConfigureAccountTags"
-                },
-                "CreateAccount": {
-                  "Type": "Task",
-                  "Resource": "${CreateAccountFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "WaitFor10Seconds"
-                },
-                "WaitFor10Seconds": {
-                  "Type": "Wait",
-                  "Seconds": 10,
-                  "Next": "ConfigureAccountSupport"
-                },
-                "ConfigureAccountSupport": {
-                  "Type": "Task",
-                  "Resource": "${RegisterAccountForSupportFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "ConfigureAccountAlias"
-                },
-                "ConfigureAccountTags": {
-                  "Type": "Task",
-                  "Resource": "${AccountTagConfigFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "ConfigureAccountOU"
-                },
-                "ConfigureAccountOU": {
-                  "Type": "Task",
-                  "Resource": "${AccountOUConfigFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "DeleteDefaultVPCChoice"
-                },
-                "DeleteDefaultVPCChoice": {
-                  "Type": "Choice",
-                  "Choices": [
-                    {
-                      "Variable": "$.delete_default_vpc",
-                      "BooleanEquals": true,
-                      "Next": "GetAccountDefaultRegionsFunction"
-                    }
-                  ],
-                  "Default": "Success"
-                },
-                "GetAccountDefaultRegionsFunction": {
-                  "Type": "Task",
-                  "Resource": "${GetAccountRegionsFunction.Arn}",
-                  "Retry": [{
-                    "ErrorEquals": ["States.TaskFailed"],
-                    "IntervalSeconds": 3,
-                    "BackoffRate": 1.5,
-                    "MaxAttempts": 30
-                  }],
-                  "Next": "DeleteDefaultVPCMap"
-                },
-                "DeleteDefaultVPCMap": {
-                  "Type": "Map",
-                  "Next": "Success",
-                  "Iterator": {
-                    "StartAt": "DeleteDefaultVPC",
-                      "States": {
-                        "DeleteDefaultVPC": {
-                          "Type": "Task",
-                          "Resource": "${DeleteDefaultVPCFunction.Arn}",
-                          "OutputPath": "$.Payload",
-                          "Parameters": {
-                            "Payload.$": "$"
-                          },
-                          "Retry": [
-                            {
-                              "ErrorEquals": [
-                                "Lambda.ServiceException",
-                                "Lambda.AWSLambdaException",
-                                "Lambda.SdkClientException"
-                              ],
-                              "IntervalSeconds": 2,
-                              "MaxAttempts": 6,
-                              "BackoffRate": 2
-                            }
-                          ],
-                          "End": true
-                        }
-                      }
-                    },
-                    "ItemsPath": "$.default_regions",
-                    "MaxConcurrency": 20,
-                    "Parameters": {
-                      "region.$": "$$.Map.Item.Value",
-                      "account_id.$": "$.account_id"
-                    },
-                    "ResultPath": null
-                  },
-                  "Success": {
-                    "Type": "Succeed"
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      DefinitionString: !Sub |-
+          {
+            "Comment": "Create account?",
+            "StartAt": "CreateAccountChoice",
+            "States": {
+              "CreateAccountChoice": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "Variable": "$.needs_created",
+                    "BooleanEquals": true,
+                    "Comment": "Create Account",
+                    "Next": "CreateAccount"
                   }
+                ],
+                "Default": "ConfigureAccountAlias"
+              },
+              "ConfigureAccountAlias": {
+                "Type": "Task",
+                "Resource": "${AccountAliasConfigFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "ConfigureAccountTags"
+              },
+              "CreateAccount": {
+                "Type": "Task",
+                "Resource": "${CreateAccountFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "WaitFor10Seconds"
+              },
+              "WaitFor10Seconds": {
+                "Type": "Wait",
+                "Seconds": 10,
+                "Next": "ConfigureAccountSupport"
+              },
+              "ConfigureAccountSupport": {
+                "Type": "Task",
+                "Resource": "${RegisterAccountForSupportFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "ConfigureAccountAlias"
+              },
+              "ConfigureAccountTags": {
+                "Type": "Task",
+                "Resource": "${AccountTagConfigFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "ConfigureAccountOU"
+              },
+              "ConfigureAccountOU": {
+                "Type": "Task",
+                "Resource": "${AccountOUConfigFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "DeleteDefaultVPCChoice"
+              },
+              "DeleteDefaultVPCChoice": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "Variable": "$.delete_default_vpc",
+                    "BooleanEquals": true,
+                    "Next": "GetAccountDefaultRegionsFunction"
+                  }
+                ],
+                "Default": "Success"
+              },
+              "GetAccountDefaultRegionsFunction": {
+                "Type": "Task",
+                "Resource": "${GetAccountRegionsFunction.Arn}",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }],
+                "Next": "DeleteDefaultVPCMap"
+              },
+              "DeleteDefaultVPCMap": {
+                "Type": "Map",
+                "Next": "Success",
+                "Iterator": {
+                  "StartAt": "DeleteDefaultVPC",
+                    "States": {
+                      "DeleteDefaultVPC": {
+                        "Type": "Task",
+                        "Resource": "${DeleteDefaultVPCFunction.Arn}",
+                        "OutputPath": "$.Payload",
+                        "Parameters": {
+                          "Payload.$": "$"
+                        },
+                        "Retry": [
+                          {
+                            "ErrorEquals": [
+                              "Lambda.ServiceException",
+                              "Lambda.AWSLambdaException",
+                              "Lambda.SdkClientException"
+                            ],
+                            "IntervalSeconds": 2,
+                            "MaxAttempts": 6,
+                            "BackoffRate": 2
+                          }
+                        ],
+                        "End": true
+                      }
+                    }
+                  },
+                  "ItemsPath": "$.default_regions",
+                  "MaxConcurrency": 20,
+                  "Parameters": {
+                    "region.$": "$$.Map.Item.Value",
+                    "account_id.$": "$.account_id"
+                  },
+                  "ResultPath": null
+                },
+                "Success": {
+                  "Type": "Succeed"
                 }
               }
-        RoleArn: !GetAtt StateMachineExecutionRole.Arn
-        TracingConfiguration:
-          Enabled: True
+            }
+      RoleArn: !GetAtt StateMachineExecutionRole.Arn
+      TracingConfiguration:
+        Enabled: true
 
 Outputs:
   Bucket:

@@ -86,13 +86,13 @@ Resources:
           AssignPublicIp: ENABLED
           SecurityGroups:
             - Fn::ImportValue: 'FargateContainerSecurityGroup'
-          Subnets: 
-              - Fn::ImportValue:
-                  Fn::Sub: ${Environment}-public-subnet-1a
-              - Fn::ImportValue:
-                  Fn::Sub: ${Environment}-public-subnet-1b
-              - Fn::ImportValue:
-                  Fn::Sub: ${Environment}-public-subnet-1c
+          Subnets:
+            - Fn::ImportValue:
+                Fn::Sub: ${Environment}-public-subnet-1a
+            - Fn::ImportValue:
+                Fn::Sub: ${Environment}-public-subnet-1b
+            - Fn::ImportValue:
+                Fn::Sub: ${Environment}-public-subnet-1c
       TaskDefinition: !Ref 'TaskDefinition'
       LoadBalancers:
         - ContainerName: !Ref 'ServiceName'
@@ -113,7 +113,7 @@ Resources:
       UnhealthyThresholdCount: 2
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
   LoadBalancerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:

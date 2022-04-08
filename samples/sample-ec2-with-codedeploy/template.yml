@@ -126,7 +126,7 @@ Resources:
       GroupDescription: Access to the Instance
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
   SecurityGroupIngressFromPublicALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -147,25 +147,25 @@ Resources:
       GroupDescription: Access to the public facing load balancer
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
       SecurityGroupIngress:
-          # Allow access to ALB from anywhere on the internet
-          - CidrIp: 0.0.0.0/0
-            IpProtocol: -1
+        # Allow access to ALB from anywhere on the internet
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: -1
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Scheme: internet-facing
       LoadBalancerAttributes:
-      - Key: idle_timeout.timeout_seconds
-        Value: '30'
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
       Subnets:
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1a
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1b
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1c
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1a
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1b
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1c
       SecurityGroups:
         - !Ref 'PublicLoadBalancerSG'
   ApplicationLoadBalancerHTTPListener:
@@ -197,7 +197,7 @@ Resources:
           Value: "5"
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
   ScaleDownCloudWatchAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
