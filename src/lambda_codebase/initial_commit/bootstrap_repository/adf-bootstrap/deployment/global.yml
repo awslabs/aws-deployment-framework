@@ -1278,7 +1278,8 @@ Resources:
           - aws.codecommit
         detail-type:
           - "CodeCommit Repository State Change"
-        resources: !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
+        resources: 
+          - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
         detail:
           event:
             - referenceCreated

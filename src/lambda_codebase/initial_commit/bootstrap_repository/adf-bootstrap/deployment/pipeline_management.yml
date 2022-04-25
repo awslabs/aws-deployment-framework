@@ -321,10 +321,18 @@ Resources:
                   - "xray:PutTelemetryRecords"
                   - "xray:PutTraceSegments"
                 Resource: "*"
+        - PolicyName: "adf-deploy-cloudformation-delete"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:         
               - Effect: Allow
-                Action: 
-                  - "cloudformation:DeleteStack"
-                Resource: "*"                 
+                Action:
+                  - cloudformation:DeleteStack
+                Resource:
+                  - "*" 
+                Condition:
+                    StringEquals:
+                        'aws:ResourceTag/createdBy': "ADF"                
 
   PipelineManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -552,7 +560,19 @@ Resources:
                   - "s3:List*"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*"
-                  - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}"     
+                  - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}"  
+        - PolicyName: "adf-deploy-cloudformation-create"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:         
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                Resource:
+                  - "*" 
+                Condition:
+                    StringEquals:
+                        'aws:RequestTag/createdBy': "ADF"                     
         - PolicyName: "adf-deploy-cloudformation-template"
           PolicyDocument:
             Version: "2012-10-17"
@@ -560,7 +580,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - cloudformation:CreateStack
-                  - cloudformation:DeleteStack
                   - cloudformation:DescribeStacks
                   - cloudformation:UpdateStack
                   - cloudformation:CreateChangeSet
@@ -652,7 +671,7 @@ Resources:
               Action:
                 - "iam:PassRole" # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
               Resource:
-                - arn:${AWS::Partition}:iam::*:role/* # This role can pass to any other role in the organization.
+                - !Sub arn:${AWS::Partition}:iam::*:role/* # This role can pass to any other role in the organization.
               Condition:
                 StringEquals:
                   aws:PrincipalOrgID: !Ref OrganizationID   

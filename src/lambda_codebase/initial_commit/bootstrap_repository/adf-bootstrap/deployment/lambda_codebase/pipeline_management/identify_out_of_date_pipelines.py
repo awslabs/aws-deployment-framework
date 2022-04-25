@@ -70,7 +70,7 @@ def lambda_handler(event, _):
         None,
         None,
         map_path="/tmp/deployment_map.yml",
-        map_dir_path="/tmp/deployment_maps",
+        map_dir_path="/tmp/",
     )
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     current_pipelines = {
