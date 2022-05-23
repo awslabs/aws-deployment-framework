@@ -10,8 +10,8 @@ invokes the account processing step function per account.
 import json
 import os
 import tempfile
-import yaml
 import logging
+import yaml
 
 from yaml.error import YAMLError
 
@@ -103,7 +103,7 @@ def start_executions(sfn_client, processed_account_list):
 
 def lambda_handler(event, _):
     """Main Lambda Entry point"""
-    LOGGER.debug(json.dumps(s3_object, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--")
+    LOGGER.debug(json.dumps(event, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--")
     sfn_client = boto3.client("stepfunctions")
     s3_resource = boto3.resource("s3")
 
