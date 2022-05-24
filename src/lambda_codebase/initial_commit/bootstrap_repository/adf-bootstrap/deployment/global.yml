@@ -137,6 +137,9 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       VersioningConfiguration:
         Status: Enabled
       BucketEncryption:
@@ -1268,7 +1271,8 @@ Resources:
           - aws.codecommit
         detail-type:
           - "CodeCommit Repository State Change"
-        resources: !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
+        resources: 
+          - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepository.Name}"
         detail:
           event:
             - referenceCreated
