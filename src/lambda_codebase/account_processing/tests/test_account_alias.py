@@ -36,7 +36,7 @@ class FailureTestCase(unittest.TestCase):
         stubber.add_client_error(
             'create_account_alias',
             'EntityAlreadyExistsException',
-            'An error occurred (EntityAlreadyExists) when calling the CreateAccountAlias operation: The account alias nonunique already exists.'
+            f"An error occurred (EntityAlreadyExists) when calling the CreateAccountAlias operation: The account alias {test_account.get('alias')} already exists."
         )
         stubber.activate()
 
