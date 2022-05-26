@@ -142,7 +142,7 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  - !GetAtt AccountAliasConfigFunctionRole.Arn
+                  - !GetAtt AccountAliasConfigFunction.Arn
                   - !GetAtt CreateAccountFunction.Arn
                   - !GetAtt RegisterAccountForSupportFunction.Arn
                   - !GetAtt AccountTagConfigFunction.Arn
