@@ -166,7 +166,7 @@ Resources:
       FunctionName: AccountFileProcessorFunction
       Role: !GetAtt AccountProcessingLambdaRole.Arn
       Events:
-        S3Event:
+        S3YmlSuffixEvent:
           Type: S3
           Properties:
             Bucket:
@@ -177,7 +177,7 @@ Resources:
                 Rules:
                 - Name: suffix
                   Value: yml
-        S3Event2:
+        S3YamlSuffixEvent:
           Type: S3
           Properties:
             Bucket:
