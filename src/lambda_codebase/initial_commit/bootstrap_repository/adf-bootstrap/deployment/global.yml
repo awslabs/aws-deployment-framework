@@ -506,6 +506,15 @@ Resources:
               - s3:List*
               - s3:Put*
             Resource: "*"
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationPolicyKMS:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-role-policy-kms"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -516,7 +525,7 @@ Resources:
               - kms:ReEncrypt*
             Resource: !GetAtt KMSKey.Arn
       Roles:
-        - !Ref CloudFormationRole
+        - !Ref CloudFormationRole              
   CloudFormationDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
@@ -874,37 +883,6 @@ Resources:
             Resource:
               - "*"
           - Effect: Allow
-            Sid: "KMS"
-            Action:
-              - kms:Decrypt
-              - kms:DescribeKey
-              - kms:Encrypt
-              - kms:GenerateDataKey*
-              - kms:ReEncrypt*
-            Resource: !GetAtt KMSKey.Arn
-          - Effect: Allow
-            Sid: "AssumeRole"
-            Action:
-              - sts:AssumeRole
-            Resource:
-              - !Sub arn:${AWS::Partition}:iam::*:role/adf-cloudformation-role
-              - !Sub arn:${AWS::Partition}:iam::*:role/adf-codecommit-role
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-          - Effect: Allow
-            Sid: "S3"
-            Action:
-              - s3:Get*
-              - s3:List*
-              - s3:Put*
-              - s3:ReplicateDelete
-              - s3:ReplicateObject
-              - s3:ReplicateTags
-            Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-          - Effect: Allow
             Sid: "CodeCommit"
             Action:
               - codecommit:GetBranch
@@ -938,6 +916,67 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
+  CodePipelineRolePolicyKMS: 
+    Type: AWS::IAM::Policy
+    DependsOn: PipelineBucketPolicy
+    Properties:
+      PolicyName: "adf-codepipeline-role-policy-kms"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Resource: !GetAtt KMSKey.Arn
+      Roles:
+        - !Ref CodePipelineRole
+  CodePipelineRolePolicySTS: 
+    Type: AWS::IAM::Policy
+    DependsOn: PipelineBucketPolicy
+    Properties:
+      PolicyName: "adf-codepipeline-role-policy-sts"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRole"
+            Action:
+              - sts:AssumeRole
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::*:role/adf-cloudformation-role
+              - !Sub arn:${AWS::Partition}:iam::*:role/adf-codecommit-role
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationId
+      Roles:
+        - !Ref CodePipelineRole  
+  CodePipelineRolePolicyS3: 
+    Type: AWS::IAM::Policy
+    DependsOn: PipelineBucketPolicy
+    Properties:
+      PolicyName: "adf-codepipeline-role-policy-s3"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
+              - s3:ReplicateDelete
+              - s3:ReplicateObject
+              - s3:ReplicateTags
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
+      Roles:
+        - !Ref CodePipelineRole                        
   PipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
