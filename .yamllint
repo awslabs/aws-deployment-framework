@@ -24,7 +24,7 @@ rules:
   line-length: disable
   new-line-at-end-of-file: disable
   new-lines: enable
-  octal-values: disable
+  octal-values: enable
   quoted-strings: disable
   trailing-spaces: enable
   truthy:
