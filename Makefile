@@ -13,6 +13,7 @@ test:
 lint:
 	# Linter performs static analysis to catch latent bugs
 	find src/ -iname "*.py" -not -path "src/.aws-sam/*" | xargs pylint --rcfile .pylintrc
+	cfn-lint
 
 build:
 	sam build -u

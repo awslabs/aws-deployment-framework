@@ -1,0 +1,16 @@
+templates:
+  - ./**/template.yml
+  - ./**/account_processing.yml
+  - ./resources/*.yaml
+  - ./**/example-global-iam.yml
+  - ./**/global.yml
+  - ./**/regional.yml
+ignore_templates:
+  - ./**/appspec.yml
+  - ./**/appspec.yaml
+  - ./**/buildspec.yml
+  - ./**/buildspec.yaml
+  - ./**/params/*.yml
+  - ./**/params/*.yaml
+include_checks:
+  - I
