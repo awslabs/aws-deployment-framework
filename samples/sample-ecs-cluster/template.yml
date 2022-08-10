@@ -155,7 +155,7 @@ Outputs:
       Name: 'ClusterName'
   ExternalUrl:
     Description: The url of the external load balancer
-    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Value: !Sub http://${PublicLoadBalancer.DNSName}
     Export:
       Name: 'ExternalUrl'
   ECSRole:
