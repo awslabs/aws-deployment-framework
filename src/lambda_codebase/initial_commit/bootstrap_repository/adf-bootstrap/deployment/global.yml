@@ -526,7 +526,7 @@ Resources:
               - kms:ReEncrypt*
             Resource: !GetAtt KMSKey.Arn
       Roles:
-        - !Ref CloudFormationRole              
+        - !Ref CloudFormationRole
   CloudFormationDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
@@ -917,7 +917,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
-  CodePipelineRolePolicyKMS: 
+  CodePipelineRolePolicyKMS:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:
@@ -936,7 +936,7 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CodePipelineRole
-  CodePipelineRolePolicySTS: 
+  CodePipelineRolePolicySTS:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:
@@ -977,7 +977,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
       Roles:
-        - !Ref CodePipelineRole                        
+        - !Ref CodePipelineRole
   PipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:

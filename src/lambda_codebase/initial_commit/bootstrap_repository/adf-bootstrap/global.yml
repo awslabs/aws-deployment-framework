@@ -134,7 +134,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
       Roles:
-        - !Ref CloudFormationRole                
+        - !Ref CloudFormationRole
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
