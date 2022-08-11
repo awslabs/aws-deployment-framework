@@ -9,3 +9,4 @@ pyyaml>=5.4.1
 schema~=0.7.5
 tox==3.24.4
 cfn-lint~=0.60.1
+docutils~=0.15.2
