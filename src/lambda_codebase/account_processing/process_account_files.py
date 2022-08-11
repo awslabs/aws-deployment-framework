@@ -41,7 +41,10 @@ def get_details_from_event(event: dict):
 
 def get_file_from_s3(s3_object: dict, s3_resource: boto3.resource):
     try:
-        LOGGER.debug(json.dumps(s3_object, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--")
+        LOGGER.debug(
+            "Reading YAML from S3: %s",
+            json.dumps(s3_object, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--"
+        )
         s3_object = s3_resource.Object(**s3_object)
         with tempfile.TemporaryFile(mode='w+b') as file_pointer:
             s3_object.download_fileobj(file_pointer)
@@ -103,7 +106,10 @@ def start_executions(sfn_client, processed_account_list):
 
 def lambda_handler(event, _):
     """Main Lambda Entry point"""
-    LOGGER.debug(json.dumps(event, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--")
+    LOGGER.debug(
+        "Processing event: %s",
+        json.dumps(event, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--"
+    )
     sfn_client = boto3.client("stepfunctions")
     s3_resource = boto3.resource("s3")
 
