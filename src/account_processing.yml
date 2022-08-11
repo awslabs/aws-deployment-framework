@@ -84,7 +84,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:aws:iam::*:role/${CrossAccountAccessRoleName}"
+            Resource: !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
       Roles:
         - !Ref AccountProcessingLambdaRole
         - !Ref GetAccountRegionsFunctionRole
