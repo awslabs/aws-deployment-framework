@@ -25,4 +25,4 @@ jobs:
         # Run tox using the version of Python in `PATH`
         run: |
           tox --version
-          tox #-e py
+          tox
