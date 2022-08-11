@@ -145,6 +145,8 @@ Resources:
         ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
         OrganizationID: !GetAtt Organization.OrganizationId
         CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
@@ -471,12 +473,12 @@ Resources:
             Resource:
               - !GetAtt "BootstrapTemplatesBucket.Arn"
               - !Sub "${BootstrapTemplatesBucket.Arn}/*"
-              - !GetAtt BootstrapArtifactStorageBucket.Arn
+              - !GetAtt "BootstrapArtifactStorageBucket.Arn"
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}/*"
-              - !Sub "arn:aws:s3:::${AccountProcessingApplication.Outputs.Bucket}"
-              - !Sub "arn:aws:s3:::${AccountProcessingApplication.Outputs.Bucket}/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${AccountProcessingApplication.Outputs.Bucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${AccountProcessingApplication.Outputs.Bucket}/*"
           - Effect: "Allow"
             Action:
               - "codebuild:*"
