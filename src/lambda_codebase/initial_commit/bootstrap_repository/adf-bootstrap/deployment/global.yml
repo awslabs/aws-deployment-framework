@@ -955,8 +955,8 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
       Roles:
-        - !Ref CodePipelineRole  
-  CodePipelineRolePolicyS3: 
+        - !Ref CodePipelineRole
+  CodePipelineRolePolicyS3:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:
