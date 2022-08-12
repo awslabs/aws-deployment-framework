@@ -21,3 +21,17 @@ def get_partition(region_name: str) -> str:
         return 'aws-us-gov'
 
     return 'aws'
+
+
+def get_organization_api_region(region_name: str) -> str:
+    """
+    Given the current region, it will determine the partition and use
+    that to return the Organizations API region (us-east-1 or us-gov-west-1)
+
+    :param region_name: The name of the region (eu-west-1, us-gov-east-1)
+    :return: Returns the AWS Organizations API region to use as a string.
+    """
+    if get_partition(region_name) == 'aws-us-gov':
+        return 'us-gov-west-1'
+
+    return 'us-east-1'
