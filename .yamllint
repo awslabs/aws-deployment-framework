@@ -1,0 +1,40 @@
+---
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - '.yamllint'
+
+rules:
+  braces:
+    forbid: non-empty
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+  brackets: enable
+  colons: enable
+  commas: enable
+  comments:
+    level: warning
+  comments-indentation:
+    level: warning
+  document-end: disable
+  document-start: disable
+  empty-lines: enable
+  empty-values: disable
+  empty-values: disable
+  float-values:
+    forbid-inf: true
+    forbid-nan: true
+    forbid-scientific-notation: true
+    require-numeral-before-decimal: true
+  hyphens: enable
+  indentation: enable
+  key-duplicates: enable
+  key-ordering: disable
+  line-length: disable
+  new-line-at-end-of-file: disable
+  new-lines: enable
+  octal-values: enable
+  quoted-strings: disable
+  trailing-spaces: enable
+  truthy: 
+    level: error

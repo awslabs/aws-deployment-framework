@@ -10,8 +10,8 @@ pipelines:
       deploy:
         provider: cloudformation
     params:
-        notification_endpoint: john@example.com  # The Notification (user/team/slack) responsible for this pipeline
-        restart_execution_on_update: True
+      notification_endpoint: john@example.com  # The Notification (user/team/slack) responsible for this pipeline
+      restart_execution_on_update: true
     targets:  # Deployment stages
       - /banking/testing  # This will use the default deployment action as defined above
       - path: /banking/production
@@ -19,10 +19,11 @@ pipelines:
         # while using specific properties for this target:
         properties:
           stack_name: my-cool-iam-stack  # Override the default stack name to a specific one, useful when adopting a stack into ADF
-          change_set_approval: True  # Override deploy action above and insert an approval in between create + execute change set
+          change_set_approval: true  # Override deploy action above and insert an approval in between create + execute change set
       - provider: lambda
         properties:  # See https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
-          input: {"name": "jon_doe"}  # This input will be passed to the function as a string
+          input:
+            name: john_doe  # This input will be passed to the function as a string
           function_name: my_lambda_function
 
   - name: ami-builder  # The name of your pipeline (by default, the repository name will match the pipeline name)
@@ -51,16 +52,16 @@ pipelines:
       source:
         provider: github
         properties:
-          repository: example-vpc-adf # Optional, above name property will be used if this is not specified
+          repository: example-vpc-adf  # Optional, above name property will be used if this is not specified
           owner: bundyfx
-          oauth_token_path: /adf/github_token # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-          json_field: token # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+          oauth_token_path: /adf/github_token  # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
+          json_field: token  # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
       deploy:
         provider: cloudformation
         properties:
           action: replace_on_failure
     params:
-        notification_endpoint: john@example.com
+      notification_endpoint: john@example.com
     targets:  # Long hand syntax including regions and names for stages
       - path: /banking/testing
         name: fancy-name
@@ -76,7 +77,7 @@ pipelines:
     params:
       notification_endpoint: team@example.com
     targets:
-      - [ /banking/testing, /banking/production ]
+      - [/banking/testing, /banking/production]
 
   - name: sample-custom  # Using a custom pipeline, we can execute code within CodeBuild to perform whichever tasks are required.
     default_providers:
@@ -120,7 +121,7 @@ pipelines:
       deploy:
         provider: codedeploy
     params:
-        notification_endpoint: deployments
+      notification_endpoint: deployments
     targets:
       - target: 222222222222
         properties:  # These are stage specific properties for our deploy action
@@ -153,7 +154,7 @@ pipelines:
           object_key: input.zip
           account_id: 444444444444
       build:
-        enabled: False  # If you wish to disable the build phase in a pipeline
+        enabled: false  # If you wish to disable the build phase in a pipeline
       deploy:
         provider: s3
     targets:

@@ -44,7 +44,7 @@ Resources:
       Description: !Ref InstanceDescription
       InstanceType: !Ref InstanceType
       Name: !Ref InstanceName
-      OwnerArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UserName}" #In this sample case 'sample-developer' from the IAM stack can be used here
+      OwnerArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UserName}"  # In this sample case 'sample-developer' from the IAM stack can be used here
       SubnetId:
-          Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1a # Imported from sample-vpc
+        Fn::ImportValue:
+          Fn::Sub: ${Environment}-public-subnet-1a  # Imported from sample-vpc

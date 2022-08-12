@@ -2,9 +2,9 @@ version: 0.2
 
 env:
   variables:
-    AWS_DEFAULT_REGION: eu-central-1 # The region you plan on deploying resources into
-    TF_VAR_TARGET_ACCOUNT_ID: 111111111111 # The AWS Account you plan on targeting
-    TF_VAR_TARGET_ACCOUNT_ROLE: adf-custom-deploy-role # The IAM Role terraform will assume to deploy resources
+    AWS_DEFAULT_REGION: eu-central-1  # The region you plan on deploying resources into
+    TF_VAR_TARGET_ACCOUNT_ID: 111111111111  # The AWS Account you plan on targeting
+    TF_VAR_TARGET_ACCOUNT_ROLE: adf-custom-deploy-role  # The IAM Role terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
     TF_CLI_ARGS: "-no-color"
 
