@@ -34,14 +34,17 @@ class IAM:
             s3_buckets = [s3_buckets]
         if not isinstance(kms_key_arns, list):
             kms_key_arns = [kms_key_arns]
+        for role_name, policy_names in role_policies.items():
+            if not isinstance(policy_names, list):
+                policy_names = [policy_names]
+            for policy_name in policy_names:
+                self._fetch_policy_document(role_name, policy_name)
+                for s3_bucket in s3_buckets:
+                    self._update_iam_policy_bucket(s3_bucket)
+                for kms_key_arn in kms_key_arns:
+                    self._update_iam_cfn(kms_key_arn)
+                self._put_role_policy()
 
-        for role_name, policy_name in role_policies.items():
-            self._fetch_policy_document(role_name, policy_name)
-            for s3_bucket in s3_buckets:
-                self._update_iam_policy_bucket(s3_bucket)
-            for kms_key_arn in kms_key_arns:
-                self._update_iam_cfn(kms_key_arn)
-            self._put_role_policy()
 
     def _get_policy(self):
         return self.policy

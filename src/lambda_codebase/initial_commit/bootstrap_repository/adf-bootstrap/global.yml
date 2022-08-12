@@ -97,15 +97,15 @@ Resources:
               - servicecatalog:ListProvisioningArtifacts
               - servicecatalog:UpdateProduct
             Resource: "*"
-          - Effect: Allow
-            Sid: "S3"
-            Action:
-              - s3:Get*
-              - s3:List*
-              - s3:Put*
-            Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
-              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationKMSPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-role-policy-kms"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -115,6 +115,24 @@ Resources:
               - kms:GenerateDataKey*
               - kms:ReEncrypt*
             Resource: !Ref KMSArn
+      Roles:
+        - !Ref CloudFormationRole
+  CloudFormationPolicyS3:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-cloudformation-role-policy-s3"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "S3"
+            Action:
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
       Roles:
         - !Ref CloudFormationRole
   CloudFormationRole:
