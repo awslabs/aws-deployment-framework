@@ -175,8 +175,8 @@ Resources:
             Filter:
               S3Key:
                 Rules:
-                - Name: suffix
-                  Value: yml
+                  - Name: suffix
+                    Value: yml
         S3YamlSuffixEvent:
           Type: S3
           Properties:
@@ -186,8 +186,8 @@ Resources:
             Filter:
               S3Key:
                 Rules:
-                - Name: suffix
-                  Value: yaml
+                  - Name: suffix
+                    Value: yaml
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
