@@ -1,9 +1,9 @@
-astroid~=2.9.0
+astroid~=2.11.0
 botocore==1.24.32
 boto3==1.21.31
 isort==5.10.1
 mock~=4.0.3
-pylint~=2.12.2
+pylint~=2.13.0
 pytest~=6.2.5
 pyyaml>=5.4.1
 schema~=0.7.5
