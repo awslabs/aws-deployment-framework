@@ -49,10 +49,10 @@ aws-cdk.aws-stepfunctions==1.137
 aws-cdk.core==1.137
 aws-cdk.cx-api==1.137
 aws-cdk.region-info==1.137
-awscli==1.22.26
+awscli~=1.22.87
+botocore==1.24.32
+boto3==1.21.31
 aws-sam-cli~=1.36
-botocore==1.23.26
-boto3==1.20.26
 mock~=4.0.3
 pytest~=6.2.5
 pyyaml>=5.4.1
