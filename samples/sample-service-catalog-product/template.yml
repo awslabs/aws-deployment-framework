@@ -1,7 +1,7 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (Service Catalog Product)
 Metadata:
   License: Apache-2.0
@@ -36,7 +36,8 @@ Resources:
       Name: Cloud9 Development Environment
       Owner: Company
       ProvisioningArtifactParameters:
-        - Info: { "LoadTemplateFromURL": !Ref ProductXTemplateURL }
+        - Info:
+            LoadTemplateFromURL: !Ref ProductXTemplateURL
       SupportDescription: For help with Cloud9 Dev Environment contact us
       SupportEmail: john@example.com
       SupportUrl: http://example.com

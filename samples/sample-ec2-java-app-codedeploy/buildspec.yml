@@ -8,7 +8,7 @@ phases:
     commands:
       - mvn clean package --quiet
 artifacts:
-  discard-paths: yes
+  discard-paths: yes  # yamllint disable-line rule:truthy
   files:
     - target/*
     - scripts/*

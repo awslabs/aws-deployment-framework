@@ -2,8 +2,8 @@ roles:
   cross-account-access: OrganizationAccountAccessRole  # The role by ADF to assume cross account access
 
 regions:
-  deployment-account: eu-central-1 # The region you define as your main deployment region
-  targets: # A list of regions you wish to bootstrap and also deploy into via pipelines (Other than the Deployment Account region)
+  deployment-account: eu-central-1  # The region you define as your main deployment region
+  targets:  # A list of regions you wish to bootstrap and also deploy into via pipelines (Other than the Deployment Account region)
     - eu-west-1
 
 config:
@@ -16,5 +16,5 @@ config:
   scp:
     keep-default-scp: enabled  # Determines if the default AWSFullAccess SCP stays attached to all OU's
   scm:  # Source control management
-  auto-create-repositories: enabled  # If true and using CodeCommit as source, the repository will be automatically created
-    default-scm-branch: master       # The default branch is used when the pipeline does not specify a specific branch. If this parameter is not specified, it defaults to the "master" branch.
+    auto-create-repositories: enabled  # If true and using CodeCommit as source, the repository will be automatically created
+    default-scm-branch: master  # The default branch is used when the pipeline does not specify a specific branch. If this parameter is not specified, it defaults to the "master" branch.

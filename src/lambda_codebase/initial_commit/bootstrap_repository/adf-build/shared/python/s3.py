@@ -79,7 +79,7 @@ class S3:
             "virtual-hosted."
         )
 
-    def put_object(self, key, file_path, style="path", pre_check=False):
+    def put_object(self, key, file_path, style="path", pre_check=False, object_acl='private'):
         """
         Put the object into S3 and return the reference to the object
         in the requested path style.
@@ -101,6 +101,12 @@ class S3:
                 given file are not compared. Only whether the given object key
                 exists in the bucket or not.
 
+            object_acl (str): Set the object ACL when uploading the object.
+                Directly passed to boto3. Valid values are:
+                ACL='private'|'public-read'|'public-read-write'|
+                'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|
+                'bucket-owner-full-control'
+
         Returns:
             str: The S3 object reference in the requested path style. This
                 will be returned regardless of whether or not an upload was
@@ -112,7 +118,7 @@ class S3:
         # If we don't need to check first, do. Otherwise, check if it exists
         # first and only upload if it does not exist.
         if not pre_check or not self._does_object_exist(key):
-            self._perform_put_object(key, file_path)
+            self._perform_put_object(key, file_path, object_acl)
         return self.build_pathing_style(style, key)
 
     def _does_object_exist(self, key):
@@ -131,7 +137,7 @@ class S3:
         except self.client.exceptions.NoSuchKey:
             return False
 
-    def _perform_put_object(self, key, file_path):
+    def _perform_put_object(self, key, file_path, object_acl="private"):
         """
         Perform actual put operation without any checks.
         This is called internally by the put_object method when the
@@ -141,6 +147,8 @@ class S3:
             key (str): They S3 key of the object to put the file contents to.
 
             file_path (str): The file to upload using binary write mode.
+
+            object_acl (str): The object ACL to be applied.
         """
         try:
             LOGGER.info(
@@ -151,7 +159,10 @@ class S3:
                 self.region,
             )
             with open(file_path, mode='rb') as file_handler:
-                self.resource.Object(self.bucket, key).put(Body=file_handler)
+                self.resource.Object(self.bucket, key).put(
+                    ACL=object_acl,
+                    Body=file_handler,
+                )
                 LOGGER.debug("Upload of %s was successful.", key)
         except BaseException:
             LOGGER.error("Failed to upload %s", key, exc_info=True)
