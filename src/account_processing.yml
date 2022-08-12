@@ -166,13 +166,28 @@ Resources:
       FunctionName: AccountFileProcessorFunction
       Role: !GetAtt AccountProcessingLambdaRole.Arn
       Events:
-        S3Event:
+        S3YmlSuffixEvent:
           Type: S3
           Properties:
             Bucket:
               Ref: ADFAccountBucket
             Events: s3:ObjectCreated:*
-
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: yml
+        S3YamlSuffixEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ADFAccountBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: yaml
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:

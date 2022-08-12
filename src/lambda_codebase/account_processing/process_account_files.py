@@ -10,7 +10,9 @@ invokes the account processing step function per account.
 import json
 import os
 import tempfile
+import logging
 import yaml
+
 from yaml.error import YAMLError
 
 import boto3
@@ -33,14 +35,18 @@ def get_details_from_event(event: dict):
     object_key = s3_details.get("object", {}).get("key")
     return {
         "bucket_name": bucket_name,
-        "object_key": object_key,
+        "key": object_key,
     }
 
 
 def get_file_from_s3(s3_object: dict, s3_resource: boto3.resource):
     try:
+        LOGGER.debug(
+            "Reading YAML from S3: %s",
+            json.dumps(s3_object, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--"
+        )
         s3_object = s3_resource.Object(**s3_object)
-        with tempfile.TemporaryFile(encoding='utf-8') as file_pointer:
+        with tempfile.TemporaryFile(mode='w+b') as file_pointer:
             s3_object.download_fileobj(file_pointer)
 
             # Move pointer to the start of the file
@@ -100,6 +106,10 @@ def start_executions(sfn_client, processed_account_list):
 
 def lambda_handler(event, _):
     """Main Lambda Entry point"""
+    LOGGER.debug(
+        "Processing event: %s",
+        json.dumps(event, indent=2) if LOGGER.isEnabledFor(logging.DEBUG) else "--data-hidden--"
+    )
     sfn_client = boto3.client("stepfunctions")
     s3_resource = boto3.resource("s3")
 
