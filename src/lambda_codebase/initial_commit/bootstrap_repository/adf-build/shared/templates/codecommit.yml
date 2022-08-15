@@ -11,6 +11,7 @@ Resources:
   Repo:
     Type: AWS::CodeCommit::Repository
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       RepositoryName: !Ref RepoName
       RepositoryDescription: !Ref Description
