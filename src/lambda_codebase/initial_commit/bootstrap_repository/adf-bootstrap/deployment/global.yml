@@ -26,7 +26,7 @@ Parameters:
   Image:
     Description: The Image you wish to use for CodeBuild (defaults to ubuntu).
     Type: String
-    Default: "aws/codebuild/standard:5.0"
+    Default: "aws/codebuild/standard:6.0"
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
@@ -719,6 +719,12 @@ Resources:
             install:
               runtime-versions:
                 python: 3.9
+                nodejs: 16
+            pre_build:
+              commands:
+                - npm install cdk@1.168 -g -y --quiet --no-progress
+                - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
+                - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
               commands:
                 - aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml  
@@ -965,8 +971,8 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
       Roles:
-        - !Ref CodePipelineRole  
-  CodePipelineRolePolicyS3: 
+        - !Ref CodePipelineRole
+  CodePipelineRolePolicyS3:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:

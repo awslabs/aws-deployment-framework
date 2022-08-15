@@ -7,7 +7,9 @@ Description: ADF CloudFormation Initial Base Stack for the Master Account in the
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: aws-deployment-framework
-    Description: The AWS Deployment Framework (ADF) is an extensive and flexible framework to manage and deploy resources across multiple AWS accounts and regions based on AWS Organizations.
+    Description: >-
+      The AWS Deployment Framework (ADF) is an extensive and flexible framework to manage and deploy resources across multiple
+      AWS accounts and regions based on AWS Organizations.
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: ../LICENSE.txt
@@ -44,7 +46,8 @@ Parameters:
   DeploymentAccountId:
     Type: String
     Default: ""
-    Description: "Example -> 123456789012 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)"
+    Description: >-
+      Example -> 123456789012 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)
   DeploymentAccountMainRegion:
     Type: String
     Default: ""
@@ -512,7 +515,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: false
-        Image: "aws/codebuild/standard:5.0"
+        Image: "aws/codebuild/standard:6.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
