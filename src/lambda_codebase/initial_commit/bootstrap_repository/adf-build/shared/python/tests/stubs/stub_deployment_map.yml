@@ -22,7 +22,6 @@ pipelines:
           change_set_approval: true  # Override deploy action above and insert an approval in between create + execute change set
       - provider: lambda
         properties:  # See https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
-          input: {"name": "jon_doe"}  # This input will be passed to the function as a string
           function_name: my_lambda_function
 
   - name: ami-builder  # The name of your pipeline (by default, the repository name will match the pipeline name)

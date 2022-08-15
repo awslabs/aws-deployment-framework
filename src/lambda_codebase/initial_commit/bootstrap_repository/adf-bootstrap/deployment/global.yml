@@ -154,6 +154,8 @@ Resources:
         RestrictPublicBuckets: true
   PipelineManagementApplication:
     Type: AWS::Serverless::Application
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
     Properties:
       Location: pipeline_management.yml
       Parameters:
