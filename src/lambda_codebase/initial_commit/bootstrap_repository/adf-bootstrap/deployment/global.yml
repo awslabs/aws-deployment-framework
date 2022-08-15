@@ -160,14 +160,14 @@ Resources:
         LambdaLayer: !Ref LambdaLayerVersion
         ADFVersion: !Ref ADFVersion
         OrganizationID: !Ref OrganizationId
-        CrossAccountAccessRole: !Ref CrossAccountAccessRole     
-        PipelineBucket: !Ref PipelineBucket  
-        RootAccountId: !Ref MasterAccountId    
+        CrossAccountAccessRole: !Ref CrossAccountAccessRole
+        PipelineBucket: !Ref PipelineBucket
+        RootAccountId: !Ref MasterAccountId
         CodeBuildImage: !Ref Image
         CodeBuildComputeType: !Ref ComputeType
-        SharedModulesBucket: !Ref SharedModulesBucket 
+        SharedModulesBucket: !Ref SharedModulesBucket
         PipelinePrefix: !Ref PipelinePrefix
-        StackPrefix: !Ref StackPrefix         
+        StackPrefix: !Ref StackPrefix
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
@@ -255,7 +255,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*                
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -347,7 +347,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*              
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -698,7 +698,7 @@ Resources:
           - Name: SHARED_MODULES_BUCKET
             Value: !Ref SharedModulesBucket
           - Name: ADF_PIPELINES_BUCKET
-            Value: !GetAtt PipelineManagementApplication.Outputs.Bucket            
+            Value: !GetAtt PipelineManagementApplication.Outputs.Bucket
           - Name: ADF_PIPELINE_PREFIX
             Value: !Ref PipelinePrefix
           - Name: ADF_STACK_PREFIX
@@ -727,8 +727,8 @@ Resources:
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
               commands:
-                - aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml  
-                - aws s3 sync deployment_maps/* s3://$ADF_PIPELINES_BUCKET              
+                - aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - aws s3 sync deployment_maps/* s3://$ADF_PIPELINES_BUCKET
       ServiceRole: !GetAtt PipelineProvisionerCodeBuildRole.Arn
       Tags:
         - Key: "Name"

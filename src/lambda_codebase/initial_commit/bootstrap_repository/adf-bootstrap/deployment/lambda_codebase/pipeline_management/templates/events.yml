@@ -27,9 +27,9 @@ Resources:
               - Effect: Allow
                 Action: events:PutEvents
                 Resource: '*'
-  EventRule: 
+  EventRule:
     Type: AWS::Events::Rule
-    Properties: 
+    Properties:
       Name: !Sub adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
       EventPattern:
         source:
