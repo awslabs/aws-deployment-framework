@@ -335,6 +335,7 @@ TRIGGERS_SCHEMA = {
 PIPELINE_SCHEMA = {
     "name": And(str, len),
     "default_providers": PROVIDER_SCHEMA,
+    Optional("description"): str,
     Optional("params"): PARAM_SCHEMA,
     Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
