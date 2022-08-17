@@ -14,7 +14,7 @@ test:
 lint:
 	# Linter performs static analysis to catch latent bugs
 	find src/ -iname "*.py" -not -path "src/.aws-sam/*" | xargs pylint --rcfile .pylintrc
-	find src -iname "*.yml" -o -iname "*.yaml" -not -path "src/.aws-sam/*" | xargs yamllint -c .yamllint
+	find src -iname "*.yml" -o -iname "*.yaml" -not -path "src/.aws-sam/*" | xargs yamllint -c .yamllint.yml
 	cfn-lint
 
 build:
