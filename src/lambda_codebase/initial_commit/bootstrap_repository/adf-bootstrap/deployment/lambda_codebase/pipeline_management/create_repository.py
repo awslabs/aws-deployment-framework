@@ -9,6 +9,8 @@ from repo import Repo
 
 from logger import configure_logger
 from cloudwatch import ADFMetrics
+from parameter_store import ParameterStore
+
 
 
 CLOUDWATCH = boto3.client("cloudwatch")
@@ -22,7 +24,10 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 def lambda_handler(pipeline, _):
     """Main Lambda Entry point"""
-    auto_create_repositories = "enabled"
+    auto_create_repositories = parameter_store.fetch_parameter(
+                "auto_create_repositories"
+            )
+    LOGGER.info(auto_create_repositories)
     if auto_create_repositories == "enabled":
         code_account_id = (
             pipeline.get("default_providers", {})
