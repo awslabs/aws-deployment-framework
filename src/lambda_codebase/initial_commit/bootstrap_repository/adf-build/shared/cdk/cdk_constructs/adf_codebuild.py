@@ -43,11 +43,16 @@ class CodeBuild(core.Construct):
                 compute_type=target.get(
                     'properties', {}).get(
                         'size') or getattr(
-                            _codebuild.ComputeType, map_params['default_providers']['build'].get(
+                            _codebuild.ComputeType,
+                            map_params['default_providers']['deploy'].get(
                                 'properties', {}).get(
                                     'size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
-                privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
+                privileged=(
+                    target.get('properties', {}).get('privileged', False)
+                    or map_params['default_providers']['deploy'].get(
+                        'properties', {}).get('privileged', False)
+                )
             )
             build_spec = CodeBuild.determine_build_spec(
                 id,
