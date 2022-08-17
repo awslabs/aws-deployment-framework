@@ -16,6 +16,6 @@ class ADFMetrics:
         self.namespace = f"{namespace}/{service}"
 
     def put_metric_data(self, metric_data):
-        if isinstance(metric_data, list):
+        if not isinstance(metric_data, list):
             metric_data = [metric_data]
         self.cw.put_metric_data(Namespace=self.namespace, MetricData=metric_data)

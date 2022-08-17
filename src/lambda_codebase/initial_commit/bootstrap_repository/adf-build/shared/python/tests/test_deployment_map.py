@@ -42,8 +42,24 @@ def test_update_deployment_parameters(cls):
         }
     })
     pipeline.template_dictionary = {
-        "targets": [[{"name": "some_pipeline", "path": "/fake/path"}]]
+        "targets": [
+            [
+            [
+                {
+            "id": "111111111111",
+            "name": "some_account",
+            "path": "/fake/path",
+            "properties": {},
+            "provider": {},
+            "regions": [
+              "eu-west-1"
+            ],
+            "step_name": ""
+          },
+          ]
+            ]
+          ]
     }
 
     cls.update_deployment_parameters(pipeline)
-    assert cls.account_ou_names['some_pipeline'] == '/fake/path'
+    assert cls.account_ou_names['some_account'] == '/fake/path'

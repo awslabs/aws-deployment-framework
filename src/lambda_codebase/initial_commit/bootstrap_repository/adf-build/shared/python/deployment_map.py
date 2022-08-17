@@ -36,13 +36,21 @@ class DeploymentMap:
 
     def update_deployment_parameters(self, pipeline):
         for target in pipeline.template_dictionary['targets']:
-            for _t in target:
-                if _t.get('target'): # Allows target to be interchangeable with path
-                    _t['path'] = _t.pop('target')
-                if _t.get('path'):
-                    self.account_ou_names.update(
-                        {item['name']: item['path'] for item in target if item['name'] != 'approval'}
-                    )
+            LOGGER.debug('target: %s', target)
+            for wave in target:
+                LOGGER.debug('wave: %s', wave)
+                for wave_target in wave:
+                    LOGGER.debug('wave_target: %s', wave_target)
+                    if wave_target.get('target'): # Allows target to be interchangeable with path
+                        wave_target['path'] = wave_target.pop('target')
+                    if wave_target.get('path'):
+                        self.account_ou_names.update(
+                            {
+                                item['name']: item['path']
+                                for item in wave
+                                if item['name'] != 'approval'
+                            }
+                        )
         with open(f'{pipeline.name}.json', mode='w', encoding='utf-8') as outfile:
             json.dump(self.account_ou_names, outfile)
         self.s3.put_object(
