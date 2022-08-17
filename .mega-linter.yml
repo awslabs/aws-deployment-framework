@@ -10,7 +10,7 @@ APPLY_FIXES: none
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by default
 ENABLE_LINTERS:
   - CLOUDFORMATION_CFN_LINT
-  #- DOCKERFILE_HADOLINT
+  - DOCKERFILE_HADOLINT
   - JSON_JSONLINT
   #- JSON_PRETTIER
   - JSON_V8R
