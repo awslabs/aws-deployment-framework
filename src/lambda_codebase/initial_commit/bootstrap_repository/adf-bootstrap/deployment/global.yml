@@ -640,7 +640,8 @@ Resources:
             Sid: "CodeCommit"
             Action:
               - "codecommit:CreateRepository"
-              - "codecommit:UpdateRepository"
+              - "codecommit:UpdateRepositoryDescription"
+              - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
             Resource:

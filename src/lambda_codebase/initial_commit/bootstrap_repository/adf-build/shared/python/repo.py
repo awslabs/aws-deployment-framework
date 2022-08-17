@@ -74,16 +74,12 @@ class Repo:
             s3_key_path=None,
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
-        # Update the stack if the repo and the ADF controlled stack exist,
-        # return if the repo exists but no stack (previously made)
+
         _repo_exists = self.repo_exists()
         _stack_exists = cloudformation.get_stack_status()
         if _repo_exists and not _stack_exists:
+            # return when the repository exists without a stack (previously made)
             return
-        if not _repo_exists and not _stack_exists:
-            LOGGER.info(
-                'Ensuring State for CodeCommit Repository Stack %s on Account %s',
-                self.name,
-                self.account_id,
-            )
-            cloudformation.create_stack()
+
+        LOGGER.info(f"Ensuring State for CodeCommit Repository Stack {self.name} on Account {self.account_id}")
+        cloudformation.create_stack()
