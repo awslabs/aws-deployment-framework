@@ -1,6 +1,6 @@
 """
 Pipeline Management Lambda Function
-Stores pipeline input from prior funtion to S3.
+Stores pipeline input from prior function to S3.
 """
 
 import os

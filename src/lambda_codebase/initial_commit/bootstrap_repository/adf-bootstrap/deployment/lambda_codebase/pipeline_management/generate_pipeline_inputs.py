@@ -55,6 +55,7 @@ def fetch_required_ssm_params(regions):
             output[region]["modules"] = parameter_store.fetch_parameter(
                 "deployment_account_bucket"
             )
+            output['default_scm_branch'] = parameter_store.fetch_parameter('default_scm_branch')
     return output
 
 

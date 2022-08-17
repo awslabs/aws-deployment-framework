@@ -8,7 +8,7 @@ import boto3
 class ADFMetrics:
     def __init__(self, client: boto3.client, service, namespace="ADF") -> None:
         """
-        Client: Any Boto3 Cloudwatch client
+        Client: Any Boto3 CloudWatch client
         Service: The name of the Service e.g PipelineManagement/Repository or AccountManagement/EnableSupport
         namespace: Defaults to ADF
         """

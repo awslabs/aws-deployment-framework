@@ -108,4 +108,4 @@ class DeploymentMap:
                     self._read(filename)
                 )
             else:
-                LOGGER.warning(f"{filename} is not a directory and doesn't end in.yml")
+                LOGGER.warning("%s is not a directory and doesn't hold the .yml suffix", filename)
