@@ -1,6 +1,7 @@
 {
     "Version": "2012-10-17",
-    "Statement": [{
+    "Statement": [
+        {
             "Effect": "Deny",
             "Action": "cloudtrail:Stop*",
             "Resource": "*"
@@ -12,12 +13,7 @@
         },
         {
             "Effect": "Deny",
-            "Action": [
-                "config:DeleteConfigRule",
-                "config:DeleteConfigurationRecorder",
-                "config:DeleteDeliveryChannel",
-                "config:Stop*"
-            ],
+            "Action": ["config:DeleteConfigRule", "config:DeleteConfigurationRecorder", "config:DeleteDeliveryChannel", "config:Stop*"],
             "Resource": "*"
         }
     ]
