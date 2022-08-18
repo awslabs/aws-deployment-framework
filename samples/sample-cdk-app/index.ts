@@ -10,7 +10,9 @@ export class LambdaCronStack extends cdk.Stack {
     super(app, id);
 
     const lambdaFn = new lambda.Function(this, 'Singleton', {
-      code: new lambda.InlineCode(fs.readFileSync('handler.py', { encoding: 'utf-8' })),
+      code: new lambda.InlineCode(
+        fs.readFileSync('handler.py', { encoding: 'utf-8' }),
+      ),
       handler: 'index.main',
       timeout: cdk.Duration.seconds(300),
       runtime: lambda.Runtime.PYTHON_3_8

@@ -6,6 +6,7 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
     Default: deployment_account_id
+
 Resources:
   EventRole:
     Type: AWS::IAM::Role

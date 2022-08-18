@@ -48,15 +48,23 @@ def test_is_account_valid_state(cls):
 def test_is_account_in_invalid_state(cls):
     cls.protected = []
     cls.protected.append('ou-123')
-    assert is_account_in_invalid_state('ou-123', cls.__dict__) == 'Is in a protected Organizational Unit ou-123, it will be skipped.'
+    assert is_account_in_invalid_state('ou-123', cls.__dict__) == (
+        'Is in a protected Organizational Unit ou-123, it will be skipped.'
+    )
+
 
 
 def test_is_account_is_in_root(cls):
-    assert is_account_in_invalid_state('r-123', cls.__dict__) == 'Is in the Root of the Organization, it will be skipped.'
+    assert is_account_in_invalid_state('r-123', cls.__dict__) == (
+        'Is in the Root of the Organization, it will be skipped.'
+    )
+
 
 
 def test_ensure_generic_account_can_be_setup(cls, sts):
-    assert ensure_generic_account_can_be_setup(sts, cls, '123456789012') == sts.assume_cross_account_role()
+    assert ensure_generic_account_can_be_setup(sts, cls, '123456789012') == (
+        sts.assume_cross_account_role()
+    )
 
 
 def test_update_deployment_account_output_parameters(cls, sts):
@@ -69,8 +77,14 @@ def test_update_deployment_account_output_parameters(cls, sts):
     }
     with patch.object(ParameterStore, 'put_parameter') as mock:
         expected_calls = [
-            call('/cross_region/kms_arn/eu-central-1', 'some_kms_arn'),
-            call('/cross_region/s3_regional_bucket/eu-central-1', 'some_s3_bucket'),
+            call(
+                '/cross_region/kms_arn/eu-central-1',
+                'some_kms_arn',
+            ),
+            call(
+                '/cross_region/s3_regional_bucket/eu-central-1',
+                'some_s3_bucket',
+            ),
         ]
         kms_and_bucket_dict={}
         update_deployment_account_output_parameters(

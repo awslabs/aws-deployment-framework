@@ -10,6 +10,7 @@ import os
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 
+
 class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')

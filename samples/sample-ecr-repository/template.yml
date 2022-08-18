@@ -5,13 +5,16 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (Shared ECR Repository)
 Metadata:
   License: Apache-2.0
+
 Parameters:
   TestingAccountId:
     Description: Testing Account Id that will pull from this repository
     Type: String
+
   ProductionAccountId:
     Description: Production Account Id that will pull from this repository
     Type: String
+
 Resources:
   SampleAppRepository:
     Type: AWS::ECR::Repository

@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Account handler that is called when ADF is installed to initially create the deployment account if required
+The Account handler that is called when ADF is installed to initially create
+the deployment account if required
 """
 
 try:

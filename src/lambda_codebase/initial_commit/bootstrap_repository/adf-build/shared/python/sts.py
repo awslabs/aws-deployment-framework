@@ -28,4 +28,5 @@ class STS:
         return boto3.Session(
             aws_access_key_id=sts_response['Credentials']['AccessKeyId'],
             aws_secret_access_key=sts_response['Credentials']['SecretAccessKey'],
-            aws_session_token=sts_response['Credentials']['SessionToken'])
+            aws_session_token=sts_response['Credentials']['SessionToken'],
+        )

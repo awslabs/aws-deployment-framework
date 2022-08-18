@@ -17,11 +17,15 @@ from parameter_store import ParameterStore
 def extract_pipeline(message):
     """
     Try extract the pipeline name from the message (approval/success/failure)
-    otherwise if message was a string (bootstrap events) then set its value to main
-    since we want to access the main notification endpoint for bootstrap events
+    otherwise if message was a string (bootstrap events) then set its value to
+    main since we want to access the main notification endpoint for bootstrap
+    events.
     """
     try:
-        name = message.get('approval', {}).get('pipelineName', None) or message.get("detail", {}).get("pipeline", None)
+        name = (
+            message.get('approval', {}).get('pipelineName', None)
+            or message.get("detail", {}).get("pipeline", None)
+        )
         return {
             "name": name.split(str(os.environ.get("ADF_PIPELINE_PREFIX")))[-1],
             "state": message.get("detail", {}).get("state"),
@@ -51,8 +55,8 @@ def is_approval(message):
 def is_bootstrap(event):
     """
     Determines if the message sent in was for an bootstrap action -
-    Bootstrap (success) events are always just strings so loading it as json should
-    raise a ValueError
+    Bootstrap (success) events are always just strings so loading it as json
+    should raise a ValueError.
     """
     try:
         message = json.loads(event['Records'][0]['Sns']['Message'])
@@ -66,9 +70,9 @@ def is_bootstrap(event):
 
 def extract_message(event):
     """
-    Takes the message out of the incoming event and attempts to load it into JSON
-    This will raise a ValueError (JSONDecode) on bootstrap and thus we should
-    return the raw message.
+    Takes the message out of the incoming event and attempts to load it into
+    JSON. This will raise a ValueError (JSONDecode) on bootstrap and thus we
+    should return the raw message.
     """
     message = event['Records'][0]['Sns']['Message']
     try:
@@ -77,9 +81,9 @@ def extract_message(event):
         return message
 
 
-def create_approval(channel, message):
+def create_approval_message_body(channel, message):
     """
-    Creates a dict that will be sent to send_message for approvals
+    Creates a dict that will be sent to send_message for approvals.
     """
     return {
         "text": (
@@ -102,11 +106,16 @@ def create_approval(channel, message):
     }
 
 
-def create_pipeline_message_text(channel, pipeline):
+
+def create_pipeline_message_body(channel, pipeline):
     """
-    Creates a dict that will be sent to send_message for pipeline success or failures
+    Creates a dict that will be sent to send_message for pipeline success
+    or failures.
     """
-    emote = ":red_circle:" if pipeline.get("state") == "FAILED" else ":white_check_mark:"
+    emote = (
+        ":red_circle:" if pipeline.get("state") == "FAILED"
+        else ":white_check_mark:"
+    )
     return {
         "channel": channel,
         "text": (
@@ -116,19 +125,37 @@ def create_pipeline_message_text(channel, pipeline):
     }
 
 
-def create_bootstrap_message_text(channel, message):
+def create_bootstrap_message_body(channel, message):
     """
-    Creates a dict that will be sent to send_message for bootstrapping completion
+    Creates a dict that will be sent to send_message for bootstrapping
+    completion.
     """
     if isinstance(message, dict):
         if message.get('Error'):
             message = json.loads(message.get('Cause')).get('errorMessage')
 
-    emote = ":red_circle:" if any(x in message for x in ['error', 'Failed']) else ":white_check_mark:"
+    emote = (
+        ":red_circle:" if any(x in message for x in ['error', 'Failed'])
+        else ":white_check_mark:"
+    )
     return {
         "channel": channel,
         "text": f"{emote} {message}"
     }
+
+
+def create_message_text(channel, message, event, pipeline):
+    """
+    Create the message dictionary for the type of message
+    that should be delivered.
+    """
+    if is_approval(message):
+        return create_approval_message_body(channel, message)
+
+    if is_bootstrap(event):
+        return create_bootstrap_message_body(channel, message)
+
+    return create_pipeline_message_body(channel, pipeline)
 
 
 def send_message(url, payload):
@@ -149,7 +176,10 @@ def lambda_handler(event, _):
     message = extract_message(event)
     pipeline = extract_pipeline(message)
     parameter_store = ParameterStore(os.environ["AWS_REGION"], boto3)
-    secrets_manager = boto3.client('secretsmanager', region_name=os.environ["AWS_REGION"])
+    secrets_manager = boto3.client(
+        'secretsmanager',
+        region_name=os.environ["AWS_REGION"],
+    )
     channel = parameter_store.fetch_parameter(
         name=f'/notification_endpoint/{pipeline["name"]}',
         with_decryption=False,
@@ -159,11 +189,7 @@ def lambda_handler(event, _):
     url = json.loads(secrets_manager.get_secret_value(
         SecretId=f'/adf/slack/{channel}'
     )['SecretString'])
-    if is_approval(message):
-        send_message(url[channel], create_approval(channel, message))
-        return
-    if is_bootstrap(event):
-        send_message(url[channel], create_bootstrap_message_text(channel, message))
-        return
-    send_message(url[channel], create_pipeline_message_text(channel, pipeline))
-    return
+    send_message(
+        url[channel],
+        create_message_text(channel, message, event, pipeline),
+    )

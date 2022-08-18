@@ -16,8 +16,9 @@ LOGGER = configure_logger(__name__)
 
 def lambda_handler(event, _):
     LOGGER.info(
-        f"Ensuring Account: {event.get('account_full_name')} is "
-        f"in OU {event.get('organizational_unit_path')}"
+        "Ensuring Account: %s is in OU %s",
+        event.get('account_full_name'),
+        event.get('organizational_unit_path'),
     )
     organizations = Organizations(boto3)
     organizations.move_account(

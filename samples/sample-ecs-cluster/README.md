@@ -1,6 +1,6 @@
-## Sample ECS Cluster to showcase ADF Pipelines
+# Sample ECS Cluster to showcase ADF Pipelines
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-ecs-cluster

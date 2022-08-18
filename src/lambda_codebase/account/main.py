@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Account main that is called when ADF is installed to initially create the deployment account if required.
+The Account main that is called when ADF is installed to initially create the
+deployment account if required.
 """
 
 from typing import Mapping, Any, Tuple
@@ -70,7 +71,11 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
         "CrossAccountAccessRoleName"
     ]
     account_id, created = ensure_account(
-        existing_account_id, account_name, account_email, cross_account_access_role_name)
+        existing_account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+    )
     return PhysicalResource(
         account_id, account_name, account_email, created
     ).as_cfn_response()
@@ -87,7 +92,11 @@ def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
         "CrossAccountAccessRoleName"
     ]
     account_id, created = ensure_account(
-        existing_account_id, account_name, account_email, cross_account_access_role_name)
+        existing_account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+    )
     return PhysicalResource(
         account_id, account_name, account_email, created or previously_created
     ).as_cfn_response()

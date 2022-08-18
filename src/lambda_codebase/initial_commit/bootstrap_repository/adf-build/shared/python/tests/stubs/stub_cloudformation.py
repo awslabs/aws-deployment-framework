@@ -7,13 +7,15 @@ Stubs for testing cloudformation.py
 
 describe_stack = {
     'Stacks': [{
-        'Outputs': [{
-            'OutputKey': "DeploymentFrameworkRegionalKMSKey",
-            'OutputValue': "some_key_arn"
-        }, {
-            'OutputKey': "DeploymentFrameworkRegionalS3Bucket",
-            'OutputValue': "some_bucket_name"
-        }],
+        'Outputs': [
+            {
+                'OutputKey': "DeploymentFrameworkRegionalKMSKey",
+                'OutputValue': "some_key_arn"
+            }, {
+                'OutputKey': "DeploymentFrameworkRegionalS3Bucket",
+                'OutputValue': "some_bucket_name"
+            }
+        ],
         'StackStatus': 'CREATE_IN_PROGRESS'
     }]
 }

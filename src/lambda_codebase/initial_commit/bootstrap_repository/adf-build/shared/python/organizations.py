@@ -157,7 +157,6 @@ class Organizations:  # pylint: disable=R0904
             PolicyId=policy_id
         )
 
-
     def get_accounts(self):
         for account in paginator(self.client.list_accounts):
             if not account.get('Status') == 'ACTIVE':

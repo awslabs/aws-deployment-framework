@@ -86,7 +86,9 @@ def update_deployment_account_output_parameters(
     outputs = cloudformation.get_stack_regional_outputs()
     kms_and_bucket_dict[region] = {}
     kms_and_bucket_dict[region]['kms'] = outputs['kms_arn']
-    kms_and_bucket_dict[region]['s3_regional_bucket'] = outputs['s3_regional_bucket']
+    kms_and_bucket_dict[region]['s3_regional_bucket'] = (
+        outputs['s3_regional_bucket']
+    )
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
             f"/cross_region/{key}/{region}",
@@ -169,12 +171,13 @@ def prepare_deployment_account(sts, deployment_account_id, config):
 
 
 def worker_thread(
-        account_id,
-        sts,
-        config,
-        s3,
-        cache,
-        updated_kms_bucket_dict):
+    account_id,
+    sts,
+    config,
+    s3,
+    cache,
+    updated_kms_bucket_dict
+):
     """
     The Worker thread function that is created for each account
     in which CloudFormation create_stack is called
@@ -211,9 +214,13 @@ def worker_thread(
             # up-to-date
             parameter_store = ParameterStore(region, role)
             parameter_store.put_parameter(
-                'kms_arn', updated_kms_bucket_dict[region]['kms'])
+                'kms_arn',
+                updated_kms_bucket_dict[region]['kms'],
+            )
             parameter_store.put_parameter(
-                'bucket_name', updated_kms_bucket_dict[region]['s3_regional_bucket'])
+                'bucket_name',
+                updated_kms_bucket_dict[region]['s3_regional_bucket'],
+            )
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -231,10 +238,11 @@ def worker_thread(
             except GenericAccountConfigureError as error:
                 if 'Unable to fetch parameters' in str(error):
                     LOGGER.error(
-                        '%s - Failed to update its base stack due to missing parameters '
-                        '(deployment_account_id or kms_arn), ensure this account has been '
-                        'bootstrapped correctly by being moved from the root into an '
-                        'Organizational Unit within AWS Organizations.',
+                        '%s - Failed to update its base stack due to missing '
+                        'parameters (deployment_account_id or kms_arn), '
+                        'ensure this account has been bootstrapped correctly '
+                        'by being moved from the root into an Organizational '
+                        'Unit within AWS Organizations.',
                         account_id,
                     )
                 raise Exception from error
@@ -284,8 +292,13 @@ def main():  # pylint: disable=R0915
         kms_and_bucket_dict = {}
         # First Setup/Update the Deployment Account in all regions (KMS Key and
         # S3 Bucket + Parameter Store values)
-        for region in list(
-                set([config.deployment_account_region] + config.target_regions)):
+        regions_to_enable = list(
+            set(
+                [config.deployment_account_region]
+                + config.target_regions
+            )
+        )
+        for region in regions_to_enable:
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -320,10 +333,15 @@ def main():  # pylint: disable=R0915
         )
         cloudformation.create_stack()
         threads = []
-        account_ids = [account_id["Id"]
-                       for account_id in organizations.get_accounts()]
-        for account_id in [
-                account for account in account_ids if account != deployment_account_id]:
+        account_ids = [
+            account_id["Id"]
+            for account_id in organizations.get_accounts()
+        ]
+        non_deployment_account_ids = [
+            account for account in account_ids
+            if account != deployment_account_id
+        ]
+        for account_id in non_deployment_account_ids:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
                 sts,
@@ -353,7 +371,9 @@ def main():  # pylint: disable=R0915
         LOGGER.info(
             'A Deployment Account is ready to be bootstrapped! '
             'The Account provisioner will now kick into action, '
-            'be sure to check out its progress in AWS Step Functions in this account.')
+            'be sure to check out its progress in AWS Step Functions '
+            'in this account.'
+        )
         return
 
 

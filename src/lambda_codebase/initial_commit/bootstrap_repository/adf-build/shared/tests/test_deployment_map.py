@@ -24,6 +24,7 @@ def cls():
         )
     )
 
+
 def test_update_deployment_parameters(cls):
     cls.s3 = Mock()
     cls.s3.put_object.return_value = None
@@ -42,7 +43,12 @@ def test_update_deployment_parameters(cls):
         }
     })
     pipeline.template_dictionary = {
-        "targets": [[{"name": "some_pipeline", "path": "/fake/path"}]]
+        "targets": [[
+            {
+                "name": "some_pipeline",
+                "path": "/fake/path",
+            }
+        ]]
     }
 
     cls.update_deployment_parameters(pipeline)

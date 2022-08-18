@@ -53,8 +53,10 @@ class StackProperties:
         self.region = region
         self.deployment_account_region = deployment_account_region
         self.s3_key_path = s3_key_path
-        self.ou_name = self.s3_key_path.split(
-            '/')[-1] if self.s3_key_path else None
+        self.ou_name = (
+            self.s3_key_path.split('/')[-1] if self.s3_key_path
+            else None
+        )
         self.s3 = s3
         self.stack_name = stack_name or self._get_stack_name()
 
@@ -154,8 +156,9 @@ class CloudFormation(StackProperties):
         )
 
     def _get_waiter_type(self):
-        return 'stack_update_complete' if self._get_change_set_type(
-        ) == 'UPDATE' else 'stack_create_complete'
+        if self._get_change_set_type() == 'UPDATE':
+            return 'stack_update_complete'
+        return 'stack_create_complete'
 
     def _get_change_set_type(self):
         return 'UPDATE' if self.get_stack_status() else 'CREATE'

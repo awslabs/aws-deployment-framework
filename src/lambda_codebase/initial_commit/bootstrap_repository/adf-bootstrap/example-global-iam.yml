@@ -3,12 +3,14 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Global) for IAM in the Target Accounts
+
 Resources:
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
     # within the target account. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used for
+    # purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -17,9 +19,10 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action:  # These below actions are examples, change these to your requirements..
+            Action:
+              # These below actions are examples, change these to your requirements..
               - "apigateway:*"
-              - "cloudformation:*"  # You will need Cloudformation actions in order to work with Cloudformation
+              - "cloudformation:*"  # You will need CloudFormation actions in order to work with CloudFormation
               - "ecr:*"
               - "ecs:*"
               - "ec2:*"
@@ -33,7 +36,9 @@ Resources:
             Resource:
               - "*"
       Roles:
-        - adf-cloudformation-deployment-role  # This role is created in the global.yml and is the default cloudformation deployment role for ADF.
+        # This role is created in the global.yml and is the default
+        # CloudFormation deployment role for ADF.
+        - adf-cloudformation-deployment-role
 
 # MyExampleCustomRole:
 #   # Am example custom role that you would need to create in order to deploy custom resources in other AWS Accounts within the organization.

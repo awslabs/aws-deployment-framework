@@ -1,10 +1,12 @@
-## Expunge VPC
+# Expunge VPC
 
-This template uses a Custom Lambda backed resource to expunge the default VPC within all regions.
+This template uses a Custom Lambda backed resource to expunge the default VPC
+within all regions.
 
 Upon stack deletion the default VPCs will be recreated.
 
-### Deployment Map Example
+## Deployment Map Example
+
 ```yaml
 - name: expunge-vpc
   default_providers:
@@ -17,7 +19,8 @@ Upon stack deletion the default VPCs will be recreated.
       properties:
         image: "STANDARD_4_0" # So we can specify which Python version we need
         environment_variables:
-          CONTAINS_TRANSFORM: true # Required for templates that contain transforms. (eg SAM Templates)
+          CONTAINS_TRANSFORM: true
+          # ^ Required for templates that contain transforms (eg SAM Templates)
 
   params:
     - restart_execution_on_update: true
