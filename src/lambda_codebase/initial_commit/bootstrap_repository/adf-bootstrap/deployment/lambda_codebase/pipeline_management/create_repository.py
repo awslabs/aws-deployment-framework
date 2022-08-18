@@ -24,6 +24,7 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 def lambda_handler(pipeline, _):
     """Main Lambda Entry point"""
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     auto_create_repositories = parameter_store.fetch_parameter(
                 "auto_create_repositories"
             )
