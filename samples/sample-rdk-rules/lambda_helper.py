@@ -28,7 +28,7 @@ def load_json_file(file: str) -> dict:
         
 def replace_rule_name_and_load(file: str, rule_name:str, rule_name_stripped:str) -> dict:
     try:
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf-8") as f:
             content = f.read().replace("RuleNameStripped", rule_name_stripped)
             content = content.replace("RuleName", rule_name)
             return json.loads(content)

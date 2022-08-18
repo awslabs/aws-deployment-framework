@@ -1,5 +1,5 @@
 
-  {
+{
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "AWS CloudFormation template to create Lambda functions for backing custom AWS Config rules. You will be billed for the AWS resources used if you create a stack from this template.",
   "Resources": {}

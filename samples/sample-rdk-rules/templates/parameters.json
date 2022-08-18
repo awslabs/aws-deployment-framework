@@ -1,21 +1,25 @@
 
 {
-      "SourceBucket": {
-        "Description": "Name of the S3 bucket that you have stored the rule zip files in.",
-        "Type": "String",
-        "MinLength": "1",
-        "MaxLength": "255"
-      },
-      "SourceBucketFolder": {
-        "Description": "Folder in the s3 bucket all the lambda function code stored",
-        "Type": "String",
-        "MinLength": "1",
-        "MaxLength": "255"
-      },
-      "LambdaAccountId": {
-        "Description": "Account ID that contains Lambda functions for Config Rules.",
-        "Type": "String",
-        "MinLength": "12",
-        "MaxLength": "12"
-      }
-    }
+  "SourceBucket": {
+    "Description": "Name of the S3 bucket that you have stored the rule zip files in.",
+    "Type": "String",
+    "MinLength": "1",
+    "MaxLength": "255"
+  },
+  "SourceBucketFolder": {
+    "Description": "Folder in the s3 bucket all the lambda function code stored",
+    "Type": "String",
+    "MinLength": "1",
+    "MaxLength": "255"
+  },
+  "LambdaAccountId": {
+    "Description": "Account ID that contains Lambda functions for Config Rules.",
+    "Type": "String",
+    "MinLength": "12",
+    "MaxLength": "12"
+  },
+  "ConfigRoleArnToAssume": {
+    "Description": "Lambda function required to assume this config role in target accounts to put evaluations",
+    "Type": "String"
+  }
+}

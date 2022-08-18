@@ -88,11 +88,8 @@ def is_valid_environment(instance_id, event):
 def is_part_of_asg(instance_id,event):
     asg = get_client('autoscaling', event)
     result = asg.describe_auto_scaling_instances(InstanceIds=[instance_id])
-    if result['AutoScalingInstances']:
-        return True
-    else:
-        return False
-
+    return len(result['AutoScalingInstances']) > 0
+    
 # Checks DisableApiTermination is enabled or not
 def is_termination_protection_on(instance_id, event):
     client = get_client('ec2', event)

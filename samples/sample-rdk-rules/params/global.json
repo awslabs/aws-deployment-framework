@@ -1,5 +1,6 @@
 {
     "Parameters": {
-        "LambdaAccountId": "1111111111"
+        "LambdaAccountId": "1111111111",
+        "ConfigRoleArnToAssume": "config-role-arn-here | ex: arn:aws:iam::*:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig"
     }
 }

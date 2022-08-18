@@ -1,4 +1,4 @@
-# Introduction
+# Sample RDK Rules pipeline
 This setup will allow you to deploy custom config rules created by the RDK via ADF pipeline. 
 
 ## Architecture
@@ -10,8 +10,9 @@ This setup will allow you to deploy custom config rules created by the RDK via A
     - Then CodeBuild will generate 2 CloudFormation templates one for Lambda function(s) deployment and other for the Custom Config rule(s) deployment.
 
 * When a Lambda function get invokes by a Target account Custom config rule; it will assume the Config role in Target account then put config Evaluations into the Target account's Config rule.
+
 ### ADF setup
-Sample pipeline defintion looks like below:
+Sample pipeline definition looks like below:
 
 ```
   - name: custom-config-rules-pipeline ## repo name
@@ -46,7 +47,7 @@ After you clone the repo following file/folder structure will be there;
 | Name  | Purpose  |   
 |---|---|
 | config-rules  | This folder will contain all the custom config rules created by `rdk create ...`. Make sure to setup correct details in the `parameters.json` file(ex: SourceRuntime) |
-| params  | Contains parameters we need for the generated CloudFormation templates. You must set the account id of the Compliance account in `LambdaAccountId`. This will be used as a parameter when it deploys config-rule into Target accounts to refer Lambda function from the Compliance account. [Refer this link](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#cloudformation-parameters-and-tagging)  |
+| params  | Contains parameters we need for the generated CloudFormation templates. You must set the account id of the Compliance account in `LambdaAccountId` and Target accounts Config role arn as a pattern in `ConfigRoleArnToAssume`. These will be used as parameters when it deploys config-rule into Target accounts to refer Lambda function from the Compliance account. [Refer this link](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#cloudformation-parameters-and-tagging)  |
 | templates  | This folder contains all the cloudformation template pieces that required to build cfn template for the lambda function deployment.  |
 | buildspec.yml | Buildspec file to generate Cloudformation templates for the Lambda and Custom Config rules |
 | lambda_helper.py | This is the helper file that pack and upload the lambda code recursively in the config-rules folder |
