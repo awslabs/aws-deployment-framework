@@ -92,11 +92,13 @@ def generate_pipeline_inputs(pipeline, organizations, parameter_store):
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
+
     pipeline_object.generate_input()
     data["ssm_params"] = fetch_required_ssm_params(
         pipeline_object.input["regions"] or [DEPLOYMENT_ACCOUNT_REGION]
     )
     data["input"] = pipeline_object.input
+    data['input']['default_scm_branch'] = data["ssm_params"].get('default_scm_branch')
     store_regional_parameter_config(pipeline_object, parameter_store)
     return data
 
