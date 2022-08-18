@@ -17,7 +17,7 @@ def vpc_cleanup(account_id, vpcid, role, region):
         ec2 = role.resource('ec2', region_name=region)
         ec2client = ec2.meta.client
         vpc = ec2.Vpc(vpcid)
-        # detach and delete all gateways associated with the vpc
+        # Detach and delete all gateways associated with the VPC
         for gw in vpc.internet_gateways.all():
             vpc.detach_internet_gateway(InternetGatewayId=gw.id)
             gw.delete()
@@ -35,12 +35,17 @@ def vpc_cleanup(account_id, vpcid, role, region):
             for interface in subnet.network_interfaces.all():
                 interface.delete()
             subnet.delete()
-        # Delete vpc
+        # Delete VPC
         ec2client.delete_vpc(VpcId=vpcid)
-        LOGGER.info(f"VPC {vpcid} and associated resources has been deleted.")
+        LOGGER.info(
+            "VPC %s and associated resources has been deleted.",
+            vpcid,
+        )
     except exceptions.ClientError:
         LOGGER.warning(
-            f"WARNING: cannot delete VPC {vpcid} in account {account_id}",
+            "WARNING: cannot delete VPC %s in account %s",
+            vpcid,
+            account_id,
             exc_info=True,
         )
         raise
@@ -53,20 +58,25 @@ def delete_default_vpc(client, account_id, region, role):
         try:
             vpc_response = client.describe_vpcs()
             break
-        except exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == 'OptInRequired':
+        except exceptions.ClientError as client_error:
+            if client_error.response["Error"]["Code"] == 'OptInRequired':
                 LOGGER.warning(
-                    f'Passing on region {client.meta.region_name} as Opt-in is required.')
+                    'Passing on region %s as Opt-in is required.',
+                    client.meta.region_name,
+                )
                 return
-        except BaseException as e:
+        except BaseException as error:
             LOGGER.warning(
-                f'Could not retrieve VPCs: {e}. Sleeping for 2 seconds before trying again.')
+                'Could not retrieve VPCs: %s}. '
+                'Sleeping for 2 seconds before trying again.',
+                error,
+            )
             max_retry_seconds = + 2
             sleep(2)
             if max_retry_seconds <= 0:
                 raise Exception(
                     "Could not describe VPCs within retry limit.",
-                ) from e
+                ) from error
 
     for vpc in vpc_response["Vpcs"]:
         if vpc["IsDefault"] is True:
@@ -75,9 +85,15 @@ def delete_default_vpc(client, account_id, region, role):
 
     if default_vpc_id is None:
         LOGGER.debug(
-            f"No default VPC found in account {account_id} in the {region} region")
+            "No default VPC found in account %s in the %s region",
+            account_id,
+            region,
+        )
         return
 
     LOGGER.info(
-        f"Found default VPC Id {default_vpc_id} in the {region} region")
+        "Found default VPC Id %s in the %s region",
+        default_vpc_id,
+        region,
+    )
     vpc_cleanup(account_id, default_vpc_id, role, region)

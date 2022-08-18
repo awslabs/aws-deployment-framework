@@ -1,19 +1,23 @@
 # // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # // SPDX-License-Identifier: Apache-2.0
 
-# This Template builds on top of the great work of Nathan Peck => https://github.com/nathanpeck/aws-cloudformation-fargate
+# This Template builds on top of the great work of Nathan Pec
+# => https://github.com/nathanpeck/aws-cloudformation-fargate
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (ECS Cluster)
 Metadata:
   License: Apache-2.0
+
 Parameters:
   Environment:
     Description: The Current Environment
     Type: String
+
 Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
+
   FargateContainerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -21,6 +25,7 @@ Resources:
       VpcId:
         Fn::ImportValue:
           Fn::Sub: ${Environment}-vpc-id
+
   EcsSecurityGroupIngressFromPublicALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -28,6 +33,7 @@ Resources:
       GroupId: !Ref 'FargateContainerSecurityGroup'
       IpProtocol: -1
       SourceSecurityGroupId: !Ref 'PublicLoadBalancerSG'
+
   EcsSecurityGroupIngressFromSelf:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -35,6 +41,7 @@ Resources:
       GroupId: !Ref 'FargateContainerSecurityGroup'
       IpProtocol: -1
       SourceSecurityGroupId: !Ref 'FargateContainerSecurityGroup'
+
   PublicLoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -46,6 +53,7 @@ Resources:
         # Allow access to ALB from anywhere on the internet
         - CidrIp: 0.0.0.0/0
           IpProtocol: -1
+
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -61,6 +69,7 @@ Resources:
             Fn::Sub: ${Environment}-public-subnet-1b
         - Fn::ImportValue:
             Fn::Sub: ${Environment}-public-subnet-1c
+
   DummyTargetGroupPublic:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -76,6 +85,7 @@ Resources:
       VpcId:
         Fn::ImportValue:
           Fn::Sub: ${Environment}-vpc-id
+
   PublicLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -85,6 +95,7 @@ Resources:
       LoadBalancerArn: !Ref 'PublicLoadBalancer'
       Port: 80
       Protocol: HTTP
+
   ECSRole:
     Type: AWS::IAM::Role
     Properties:
@@ -147,32 +158,38 @@ Resources:
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
                 Resource: '*'
+
 Outputs:
   ClusterName:
     Description: The name of the ECS cluster
     Value: !Ref 'ECSCluster'
     Export:
       Name: 'ClusterName'
+
   ExternalUrl:
     Description: The url of the external load balancer
     Value: !Sub http://${PublicLoadBalancer.DNSName}
     Export:
       Name: 'ExternalUrl'
+
   ECSRole:
     Description: The ARN of the ECS role
     Value: !GetAtt 'ECSRole.Arn'
     Export:
       Name: 'ECSRole'
+
   ECSTaskExecutionRole:
     Description: The ARN of the ECS role
     Value: !GetAtt 'ECSTaskExecutionRole.Arn'
     Export:
       Name: 'ECSTaskExecutionRole'
+
   PublicListener:
     Description: The ARN of the public load balancer's Listener
     Value: !Ref PublicLoadBalancerListener
     Export:
       Name: 'PublicListener'
+
   FargateContainerSecurityGroup:
     Description: A security group used to allow Fargate containers to receive traffic
     Value: !Ref 'FargateContainerSecurityGroup'

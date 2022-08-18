@@ -29,6 +29,7 @@ SHARED_MODULES_BUCKET = os.environ["SHARED_MODULES_BUCKET"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
+
 def clean(parameter_store, deployment_map):
     """
     Function used to remove stale entries in Parameter Store and
@@ -46,7 +47,11 @@ def clean(parameter_store, deployment_map):
     stacks_to_remove = []
     for parameter in current_pipeline_parameters:
         name = parameter.get('Name').split('/')[-2]
-        if name not in [p.get('name') for p in deployment_map.map_contents['pipelines']]:
+        defined_pipelines = [
+            pipeline.get('name')
+            for pipeline in deployment_map.map_contents['pipelines']
+        ]
+        if name not in defined_pipelines:
             LOGGER.info(f'Deleting {parameter.get("Name")}')
             parameter_store.delete_parameter(parameter.get('Name'))
             stacks_to_remove.append(name)

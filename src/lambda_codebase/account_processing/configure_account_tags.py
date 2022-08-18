@@ -20,7 +20,9 @@ LOGGER = configure_logger(__name__)
 
 def create_account_tags(account_id, tags, org_session: Organizations):
     LOGGER.info(
-        f"Ensuring Account: {account_id} has tags: {tags}"
+        "Ensuring Account: %s has tags: %s",
+        account_id,
+        tags,
     )
     org_session.create_account_tags(account_id, tags)
 
@@ -35,6 +37,7 @@ def lambda_handler(event, _):
         )
     else:
         LOGGER.info(
-            f"Account: {event.get('account_full_name')} does not need tags configured"
+            "Account: %s does not need tags configured",
+            event.get('account_full_name'),
         )
     return event

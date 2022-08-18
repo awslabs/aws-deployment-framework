@@ -1,6 +1,7 @@
 {
     "Version": "2012-10-17",
-    "Statement": [{
+    "Statement": [
+        {
             "Effect": "Deny",
             "Action": "cloudtrail:Stop*",
             "Resource": "*"

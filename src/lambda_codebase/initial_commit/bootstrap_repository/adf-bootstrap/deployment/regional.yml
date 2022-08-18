@@ -3,10 +3,12 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Regional) for Deployment Account
+
 Parameters:
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
+
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
     Type: AWS::S3::Bucket
@@ -24,6 +26,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   DeploymentFrameworkRegionalPipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -44,6 +47,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
             Principal:
               AWS: "*"
+
   DeploymentFrameworkRegionalKMSKey:
     Type: AWS::KMS::Key
     Properties:
@@ -90,12 +94,14 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
     Description: The S3 Bucket used for cross region codepipeline deployments
     Value: !Ref DeploymentFrameworkRegionalS3Bucket
     Export:
       Name: !Sub "S3Bucket-${AWS::Region}"
+
   DeploymentFrameworkRegionalKMSKey:
     Description: The KMSKey used for cross region codepipeline deployments
     Value: !GetAtt DeploymentFrameworkRegionalKMSKey.Arn

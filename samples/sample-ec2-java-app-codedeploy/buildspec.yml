@@ -4,9 +4,11 @@ phases:
   install:
     runtime-versions:
       java: corretto8
+
   build:
     commands:
       - mvn clean package --quiet
+
 artifacts:
   discard-paths: yes  # yamllint disable-line rule:truthy
   files:

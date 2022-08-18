@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: >
+Description: >-
   Organizational Account Access Role for Cross-Account automation
 
 Parameters:
@@ -8,6 +8,7 @@ Parameters:
     Description: >-
       The name of the Cross-Account role
     Default: OrganizationAccountAccessRole
+
   AdministratorAccountId:
     Type: String
     Description: >-

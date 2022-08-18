@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Organization main that is called when ADF is installed to create the organization if required
+The Organization main that is called when ADF is installed to create the
+organization if required.
 """
 
 from typing import Mapping, Any, Tuple, cast
@@ -91,7 +92,9 @@ def update_(_event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
 @delete()
 def delete_(event, _context):
     try:
-        physical_resource = PhysicalResource.from_json(event["PhysicalResourceId"])
+        physical_resource = PhysicalResource.from_json(
+            event["PhysicalResourceId"],
+        )
     except InvalidPhysicalResourceId:
         raw_physical_resource = event["PhysicalResourceId"]
         LOGGER.info(
@@ -114,7 +117,9 @@ def ensure_organization() -> Tuple[OrganizationId, Created]:
     try:
         describe_organization = ORGANIZATION_CLIENT.describe_organization()
     except ORGANIZATION_CLIENT.exceptions.AWSOrganizationsNotInUseException:
-        create_organization = ORGANIZATION_CLIENT.create_organization(FeatureSet="ALL")
+        create_organization = ORGANIZATION_CLIENT.create_organization(
+            FeatureSet="ALL",
+        )
         organization_id = create_organization["Organization"]["Id"]
         LOGGER.info("Organization created: %s", organization_id)
         return organization_id, True

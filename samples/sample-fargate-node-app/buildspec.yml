@@ -5,9 +5,11 @@ phases:
     runtime-versions:
       docker: 18
       python: 3.9
+
   build:
     commands:
       - bash build/docker.sh
+
   post_build:
     commands:
       - bash build/generate_parameters.sh

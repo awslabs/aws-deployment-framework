@@ -23,12 +23,13 @@ S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 LOGGER = configure_logger(__name__)
 
-def update_deployment_account_output_parameters(
-        deployment_account_region,
-        region,
-        deployment_account_role,
-        cloudformation):
 
+def update_deployment_account_output_parameters(
+    deployment_account_region,
+    region,
+    deployment_account_role,
+    cloudformation
+):
     deployment_account_parameter_store = ParameterStore(
         deployment_account_region, deployment_account_role
     )
@@ -53,7 +54,8 @@ def update_deployment_account_output_parameters(
 
 
 def lambda_handler(event, _):
-    """Main Lambda Entry point
+    """
+    Main Lambda Entry point
     """
     sts = STS()
     account_id = event.get('account_id')
@@ -67,8 +69,13 @@ def lambda_handler(event, _):
 
     s3 = S3(REGION_DEFAULT, S3_BUCKET)
 
-    for region in list(set([event['deployment_account_region']] + event['regions'])):
-
+    regions = list(
+        set(
+            [event['deployment_account_region']]
+            + event['regions']
+        )
+    )
+    for region in regions:
         cloudformation = CloudFormation(
             region=region,
             deployment_account_region=event['deployment_account_region'],
@@ -77,22 +84,21 @@ def lambda_handler(event, _):
             stack_name=None,
             s3=s3,
             s3_key_path=event['ou_name'],
-            account_id=account_id
+            account_id=account_id,
         )
 
         status = cloudformation.get_stack_status()
-
         if status in ('CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS'):
             raise RetryError(f"CloudFormation Stack status: {status}")
 
         if status in (
-                'CREATE_FAILED',
-                'ROLLBACK_FAILED',
-                'DELETE_FAILED',
-                'UPDATE_ROLLBACK_FAILED',
-                'ROLLBACK_IN_PROGRESS',
-                'ROLLBACK_COMPLETE'
-            ):
+            'CREATE_FAILED',
+            'ROLLBACK_FAILED',
+            'DELETE_FAILED',
+            'UPDATE_ROLLBACK_FAILED',
+            'ROLLBACK_IN_PROGRESS',
+            'ROLLBACK_COMPLETE',
+        ):
             raise Exception(
                 f"Account Bootstrap Failed - Account: {account_id} "
                 f"Region: {region} Status: {status}"

@@ -1,6 +1,6 @@
-## Sample VPC to showcase ADF Pipelines
+# Sample VPC to showcase ADF Pipelines
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-vpc

@@ -34,7 +34,9 @@ def update_iam(role, s3_buckets, kms_key_arns, role_policies):
 def lambda_handler(event, _):
     # Target Role Policies are updated in target accounts
     target_role_policies = {
-        "adf-cloudformation-deployment-role": "adf-cloudformation-deployment-role-policy-kms",
+        'adf-cloudformation-deployment-role': (
+            'adf-cloudformation-deployment-role-policy-kms'
+        ),
         "adf-cloudformation-role": [
             "adf-cloudformation-role-policy",
             "adf-cloudformation-role-policy-s3",
@@ -49,7 +51,9 @@ def lambda_handler(event, _):
             "adf-codepipeline-role-policy-s3",
             "adf-codepipeline-role-policy-kms",
         ],
-        "adf-cloudformation-deployment-role": "adf-cloudformation-deployment-role-policy",
+        "adf-cloudformation-deployment-role": (
+            "adf-cloudformation-deployment-role-policy"
+        ),
         "adf-cloudformation-role": "adf-cloudformation-role-policy",
     }
 
@@ -65,7 +69,9 @@ def lambda_handler(event, _):
     for region in list(
         set([event.get("deployment_account_region")] + event.get("regions", []))
     ):
-        kms_key_arn = parameter_store.fetch_parameter(f"/cross_region/kms_arn/{region}")
+        kms_key_arn = parameter_store.fetch_parameter(
+            f"/cross_region/kms_arn/{region}"
+        )
         kms_key_arns.append(kms_key_arn)
         s3_bucket = parameter_store.fetch_parameter(
             f"/cross_region/s3_regional_bucket/{region}"
@@ -73,8 +79,11 @@ def lambda_handler(event, _):
         s3_buckets.append(s3_bucket)
         try:
             role = sts.assume_cross_account_role(
-                f"arn:{partition}:iam::{account_id}:role/adf-cloudformation-deployment-role",
-                "base_cfn_role",
+                (
+                    f'arn:{partition}:iam::{account_id}:'
+                    f'role/adf-cloudformation-deployment-role'
+                ),
+                'base_cfn_role'
             )
             LOGGER.debug("Role has been assumed for %s", account_id)
             update_iam(role, s3_bucket, kms_key_arn, target_role_policies)

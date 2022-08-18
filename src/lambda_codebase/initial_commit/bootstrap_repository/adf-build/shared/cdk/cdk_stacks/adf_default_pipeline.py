@@ -30,54 +30,118 @@ PIPELINE_TYPE = "default"
 def generate_adf_default_pipeline(scope: core.Stack, stack_input):
     _stages = []
 
-    notification_config = stack_input["input"].get("params", {}).get("notification_endpoint", {})
+    notification_config = (
+        stack_input["input"].get("params", {}).get("notification_endpoint", {})
+    )
 
-    if isinstance(notification_config, str) or notification_config.get('type', '') == "lambda":
-        stack_input["input"]["topic_arn"] = adf_notifications.Notifications(scope, "adf_notifications", stack_input["input"]).topic_arn
+    needs_topic_arn = (
+        isinstance(notification_config, str)
+        or notification_config.get('type', '') == "lambda"
+    )
+    if needs_topic_arn:
+        stack_input["input"]["topic_arn"] = (
+            adf_notifications.Notifications(
+                scope,
+                "adf_notifications",
+                stack_input["input"],
+            ).topic_arn
+        )
 
-    _source_name = generate_source_stage_for_pipeline(_stages, scope, stack_input)
+    _source_name = generate_source_stage_for_pipeline(
+        _stages,
+        scope,
+        stack_input,
+    )
     generate_build_stage_for_pipeline(_stages, scope, stack_input)
     generate_targets_for_pipeline(_stages, scope, stack_input)
 
     _pipeline = adf_codepipeline.Pipeline(
-        scope, "code_pipeline", stack_input["input"], stack_input["ssm_params"], _stages
+        scope, "code_pipeline",
+        stack_input["input"],
+        stack_input["ssm_params"],
+        _stages,
     )
 
     if "github" in _source_name:
-        adf_github.GitHub.create_webhook_when_required(scope, _pipeline.cfn, stack_input["input"])
+        adf_github.GitHub.create_webhook_when_required(
+            scope,
+            _pipeline.cfn,
+            stack_input["input"],
+        )
 
-    pipeline_triggers = stack_input["input"].get("triggers", {}).get("triggered_by")
+    pipeline_triggers = (
+        stack_input["input"].get("triggers", {}).get("triggered_by")
+    )
     if pipeline_triggers:
         for trigger_type, trigger_config in pipeline_triggers.items():
-            _pipeline.add_pipeline_trigger(trigger_type=trigger_type, trigger_config=trigger_config)
+            _pipeline.add_pipeline_trigger(
+                trigger_type=trigger_type,
+                trigger_config=trigger_config,
+            )
 
-    if isinstance(notification_config, dict) and notification_config.get('type', '') == 'chat_bot':
-        adf_chatbot.PipelineNotifications(scope, "adf_chatbot_notifications", _pipeline.cfn, notification_config)
+    needs_chatbot_nofications = (
+        isinstance(notification_config, dict)
+        and notification_config.get('type', '') == 'chat_bot'
+    )
+    if needs_chatbot_nofications:
+        adf_chatbot.PipelineNotifications(
+            scope,
+            "adf_chatbot_notifications",
+            _pipeline.cfn,
+            notification_config,
+        )
 
 
 def generate_source_stage_for_pipeline(_stages, scope, stack_input):
-    _source_name = stack_input["input"]["default_providers"]["source"][
-        "provider"
-    ].lower()
+    _source_name = (
+        stack_input["input"]["default_providers"]["source"]["provider"].lower()
+    )
     if "codecommit" in _source_name:
         _stages.append(
-            adf_codecommit.CodeCommit(scope, "source", stack_input["input"]).source
+            adf_codecommit.CodeCommit(
+                scope,
+                "source",
+                stack_input["input"],
+            ).source,
         )
     elif "codestar" in _source_name:
-        _stages.append(adf_codestar.CodeStar(scope, "source", stack_input['input']).source)
+        _stages.append(
+            adf_codestar.CodeStar(
+                scope,
+                "source",
+                stack_input['input'],
+            ).source,
+        )
     elif "github" in _source_name:
-        _stages.append(adf_github.GitHub(scope, "source", stack_input["input"]).source)
+        _stages.append(
+            adf_github.GitHub(
+                scope,
+                "source",
+                stack_input["input"],
+            ).source,
+        )
     elif "s3" in _source_name:
-        _stages.append(adf_s3.S3(scope, "source", stack_input["input"]).source)
+        _stages.append(
+            adf_s3.S3(
+                scope,
+                "source",
+                stack_input["input"],
+            ).source,
+        )
     return _source_name
 
 
 def generate_build_stage_for_pipeline(_stages, scope, stack_input):
-    _build_name = (
-        stack_input["input"]["default_providers"]["build"].get("provider", "").lower()
+    build_name = (
+        stack_input["input"]["default_providers"]["build"].get(
+            "provider",
+            "",
+        ).lower()
     )
-    build_enabled = stack_input["input"]["default_providers"]["build"].get("enabled", True)
-    if "codebuild" in _build_name and build_enabled:
+    build_enabled = (
+        stack_input["input"]["default_providers"]["build"].get("enabled", True)
+    )
+    if "codebuild" in build_name and build_enabled:
         _stages.append(
             adf_codebuild.CodeBuild(
                 scope,
@@ -88,15 +152,20 @@ def generate_build_stage_for_pipeline(_stages, scope, stack_input):
                 {},  # Empty target since this is a build only stage
             ).build
         )
-    elif "jenkins" in _build_name:
-        _stages.append(adf_jenkins.Jenkins(scope, "build", stack_input["input"]).build)
+    elif "jenkins" in build_name:
+        _stages.append(
+            adf_jenkins.Jenkins(
+                scope,
+                "build",
+                stack_input["input"],
+            ).build
+        )
 
 
 def generate_targets_for_pipeline(_stages, scope, stack_input):
     for index, targets in enumerate(
-            stack_input["input"].get("environments", {}).get("targets", [])
+        stack_input["input"].get("environments", {}).get("targets", [])
     ):
-
         top_level_deployment_type = (
             stack_input["input"]
             .get("default_providers", {})
@@ -123,16 +192,24 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
                 # 0th Index since step names are for entire stages not
                 # per target.
                 f"{wave[0].get('step_name')}-{wave_index}"
-                if wave[0].get("step_name") else f"{_action_type_name}-stage-{index + 1}-wave-{wave_index}"
+                if wave[0].get("step_name")
+                else f"{_action_type_name}-stage-{index + 1}-wave-{wave_index}"
             )
 
             for target in wave:
-                target_stage_override = target.get("provider") or top_level_deployment_type
-                if target.get("name") == "approval" or target.get("provider", "") == "approval":
+                target_stage_override = (
+                    target.get("provider")
+                    or top_level_deployment_type
+                )
+                is_approval = (
+                    target.get("name") == "approval"
+                    or target.get("provider", "") == "approval"
+                )
+                if is_approval:
                     _actions.extend(
                         [
                             adf_codepipeline.Action(
-                                name=f"wave-{wave_index}-{target.get('name')}".format(target["name"]),
+                                name=f"wave-{wave_index}-{target.get('name')}",
                                 provider="Manual",
                                 category="Approval",
                                 target=target,
@@ -152,7 +229,10 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
                                 # Use the name of the pipeline for CodeBuild
                                 # instead of the target name as it will always
                                 # operate from the deployment account.
-                                f"{stack_input['input']['name']}-target-{index + 1}-wave-{wave_index}",
+                                (
+                                    f"{stack_input['input']['name']}-target-"
+                                    f"{index + 1}-wave-{wave_index}"
+                                ),
                                 stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["modules"],
                                 stack_input["ssm_params"][ADF_DEPLOYMENT_REGION]["kms"],
                                 stack_input["input"],
@@ -180,13 +260,14 @@ def generate_targets_for_pipeline(_stages, scope, stack_input):
             )
 
 
-def generate_deployment_action_per_region(_actions,
-                                          regions,
-                                          stack_input,
-                                          target,
-                                          target_stage_override,
-                                          top_level_action
-                                          ):
+def generate_deployment_action_per_region(
+    _actions,
+    regions,
+    stack_input,
+    target,
+    target_stage_override,
+    top_level_action
+):
     for region in regions:
         if "cloudformation" in target_stage_override:
             target_approval_mode = target.get("properties", {}).get(

@@ -54,5 +54,9 @@ class Rule:
             s3_key_path=None,
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
-        LOGGER.info('Ensuring Stack State for Event Rule forwarding from %s to %s', self.source_account_id, DEPLOYMENT_ACCOUNT_ID)
+        LOGGER.info(
+            'Ensuring Stack State for Event Rule forwarding from %s to %s',
+            self.source_account_id,
+            DEPLOYMENT_ACCOUNT_ID,
+        )
         cloudformation.create_stack()

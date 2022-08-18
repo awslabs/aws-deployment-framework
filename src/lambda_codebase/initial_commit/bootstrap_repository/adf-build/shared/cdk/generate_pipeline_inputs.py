@@ -3,8 +3,9 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to build the pipeline cloudformation stack inputs
+"""
+This file is pulled into CodeBuild containers
+and used to build the pipeline CloudFormation stack inputs
 """
 import json
 import os
@@ -37,15 +38,15 @@ ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
 
 def ensure_event_bus_status(organization_id):
-    _events = boto3.client('events')
-    _events.put_permission(
+    events = boto3.client('events')
+    events.put_permission(
         Action='events:PutEvents',
         Principal='*',
         StatementId='OrgAccessForEventBus',
         Condition={
             'Type': 'StringEquals',
             'Key': 'aws:PrincipalOrgID',
-            'Value': organization_id
+            'Value': organization_id,
         }
     )
 
@@ -140,6 +141,10 @@ def _create_inputs_folder():
 
 
 def main():
+    """
+    Generate pipeline inputs script. Kicks off multiple threads to
+    generate the pipeline inputs in parallel.
+    """
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
@@ -156,28 +161,42 @@ def main():
     )
     sts = STS()
     partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
-    cross_account_access_role = parameter_store.fetch_parameter('cross_account_access_role')
+    cross_account_access_role = parameter_store.fetch_parameter(
+        'cross_account_access_role',
+    )
     role = sts.assume_cross_account_role(
-        f'arn:{partition}:iam::{MASTER_ACCOUNT_ID}:role/'
-        f'{cross_account_access_role}-readonly',
+        (
+            f'arn:{partition}:iam::{MASTER_ACCOUNT_ID}:role/'
+            f'{cross_account_access_role}-readonly'
+        ),
         'pipeline'
     )
     organizations = Organizations(role)
     ensure_event_bus_status(ORGANIZATION_ID)
     try:
-        auto_create_repositories = parameter_store.fetch_parameter('auto_create_repositories')
+        auto_create_repositories = parameter_store.fetch_parameter(
+            'auto_create_repositories',
+        )
     except ParameterNotFoundError:
         auto_create_repositories = 'enabled'
     threads = []
-    _cache = Cache()
-    for p in deployment_map.map_contents.get('pipelines', []):
-        _source_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
-        if _source_account_id and int(_source_account_id) != int(DEPLOYMENT_ACCOUNT_ID) and not _cache.check(_source_account_id):
-            rule = Rule(p['default_providers']['source']['properties']['account_id'])
+    cache = Cache()
+    for pipeline in deployment_map.map_contents.get('pipelines', []):
+        source_account_id = (
+            pipeline.get('default_providers', {}).get(
+                'source', {}).get('properties', {}).get('account_id')
+        )
+        need_to_create_rules = (
+            source_account_id
+            and int(source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
+            and not cache.check(source_account_id)
+        )
+        if need_to_create_rules:
+            rule = Rule(source_account_id)
             rule.create_update()
-            _cache.add(p['default_providers']['source']['properties']['account_id'], True)
+            cache.add(source_account_id, True)
         thread = PropagatingThread(target=worker_thread, args=(
-            p,
+            pipeline,
             organizations,
             auto_create_repositories,
             deployment_map,

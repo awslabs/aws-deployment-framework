@@ -22,6 +22,7 @@ LOGGER = configure_logger(__name__)
 DEFAULT_REGION = os.environ["AWS_REGION"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 
+
 class Resolver:
     def __init__(self, parameter_store, stage_parameters, comparison_parameters):
         self.parameter_store = parameter_store

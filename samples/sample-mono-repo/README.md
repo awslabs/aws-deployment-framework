@@ -20,7 +20,7 @@ from the other sample ADF deployments. Although the sample below shows two,
 you could use the same technique to create tens of pipelines from the same
 repository.
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-mono-repo-alpha

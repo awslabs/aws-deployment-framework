@@ -21,6 +21,7 @@ LOGGER = configure_logger(__name__)
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
+
 def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
@@ -32,6 +33,7 @@ def main():
             app = core.App()
             PipelineStack(app, stack_input)
             app.synth()
+
 
 if __name__ == '__main__':
     main()

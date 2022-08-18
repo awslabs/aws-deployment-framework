@@ -19,11 +19,11 @@ LOGGER = configure_logger(__name__)
 
 class DeploymentMap:
     def __init__(
-            self,
-            parameter_store,
-            s3,
-            pipeline_name_prefix,
-            map_path=None
+        self,
+        parameter_store,
+        s3,
+        pipeline_name_prefix,
+        map_path=None
     ):
         self.map_path = map_path or 'deployment_map.yml'
         self.map_dir_path = map_path or 'deployment_maps'
