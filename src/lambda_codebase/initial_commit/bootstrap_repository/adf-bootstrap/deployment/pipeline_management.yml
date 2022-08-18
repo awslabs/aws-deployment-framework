@@ -170,7 +170,7 @@ Resources:
                   - "ssm:GetParameters"
                   - "ssm:GetParametersByPath"
                 Resource:
-                  - "*"              
+                  - "*"
 
   GeneratePipelineInputsLambdaRole:
     Type: "AWS::IAM::Role"
