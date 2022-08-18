@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description: ADF CloudFormation Stack pertaing to account processing / OU management.
+Description: ADF CloudFormation Stack pertaining to account processing / OU management.
 
 Parameters:
   OrganizationID:
