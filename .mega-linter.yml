@@ -25,3 +25,7 @@ ENABLE_LINTERS:
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass
+
+JSON_PRETTIER_PRE_COMMANDS:
+  - command: npm install prettier-plugin-multiline-arrays@1.1.0
+    cwd: "workspace"

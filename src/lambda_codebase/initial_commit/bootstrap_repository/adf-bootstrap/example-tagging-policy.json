@@ -5,7 +5,10 @@
                 "@@assign": "my_key"
             },
             "tag_value": {
-                "@@assign": ["value1", "value2"]
+                "@@assign": [
+                    "value1",
+                    "value2"
+                ]
             },
             "enforced_for": {
                 "@@assign": ["s3:bucket"]
