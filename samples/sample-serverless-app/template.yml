@@ -10,7 +10,7 @@ Metadata:
     config:
       ignore_checks:
         # https://github.com/aws/serverless-application-model/issues/1590
-        - I3042 
+        - I3042
 Resources:
   ExampleServerlessApp:
     Type: 'AWS::Serverless::Function'

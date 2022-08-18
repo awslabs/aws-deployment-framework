@@ -19,7 +19,6 @@ rules:
   document-start: disable
   empty-lines: enable
   empty-values: disable
-  empty-values: disable
   float-values:
     forbid-inf: true
     forbid-nan: true
@@ -37,3 +36,4 @@ rules:
   trailing-spaces: enable
   truthy:
     level: error
+    check-keys: false
