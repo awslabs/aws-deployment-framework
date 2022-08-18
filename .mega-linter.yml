@@ -17,7 +17,7 @@ ENABLE_LINTERS:
   #- JAVASCRIPT_STANDARD
   - SPELL_MISSPELL
   - TERRAFORM_TFLINT
-  #- YAML_YAMLLINT
+  - YAML_YAMLLINT
 
 # DISABLE:
 #   - COPYPASTE # Comment to enable checks of excessive copy-pastes
