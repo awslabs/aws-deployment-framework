@@ -20,7 +20,7 @@ templates_root = os.path.join(project_root, templates_dir)
 
 def load_json_file(file: str) -> dict:
     try:
-        with open(f"{file}") as file:
+        with open(f"{file}", "r", ecoding="utf-8") as file:
             return json.load(file)
     except FileNotFoundError:
         logging.exception(f"File {file} not found.")
