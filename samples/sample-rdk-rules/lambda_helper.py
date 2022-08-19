@@ -9,7 +9,6 @@ import boto3
 from s3 import S3
 from pathlib import Path
 
-
 deployment_account_region = os.environ.get("AWS_REGION")
 project_root = os.path.dirname(__file__)
 s3_rdk_assets_prefix = "rdk_assets"
@@ -18,6 +17,7 @@ templates_dir = "templates"
 config_rules_root = os.path.join(project_root, "config-rules")
 templates_root = os.path.join(project_root, templates_dir)
 
+
 def load_json_file(file: str) -> dict:
     try:
         with open(f"{file}", "r", ecoding="utf-8") as file:
@@ -25,7 +25,8 @@ def load_json_file(file: str) -> dict:
     except FileNotFoundError:
         logging.exception(f"File {file} not found.")
         sys.exit(1)
-        
+
+
 def replace_rule_name_and_load(file: str, rule_name:str, rule_name_stripped:str) -> dict:
     try:
         with open(file, 'r', encoding="utf-8") as f:
@@ -35,6 +36,7 @@ def replace_rule_name_and_load(file: str, rule_name:str, rule_name_stripped:str)
     except FileNotFoundError:
         logging.exception(f"File {file} not found.")
         sys.exit(1)
+
 
 def clean_up_template(file: str):
     if os.path.exists(file):
@@ -54,6 +56,7 @@ def get_tempalte_skeleton(shared_modules_bucket: str) -> dict:
     
     return skeleton
 
+
 def add_lambda_to_template_by_rule(template:dict, config_rule_dir: str, rule_name:str, s3_asset_key:str) -> dict:
     parameter_file = Path(config_rule_dir).joinpath("parameters.json")
     parameter_content = load_json_file(parameter_file)
@@ -72,7 +75,8 @@ def add_lambda_to_template_by_rule(template:dict, config_rule_dir: str, rule_nam
     template["Resources"][f"{rule_name_stripped}LambdaPermissions"] = lambda_permission
     
     return template
-    
+
+
 def write_template(template:dict, file_name:str):
     with open(file_name, "a") as file:
         json.dump(template, file, indent=4)
@@ -112,7 +116,6 @@ def main(shared_modules_bucket: str):
     
     write_template(template, template_name)
        
-  
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
