@@ -36,6 +36,24 @@ In order to run the tests locally you need a virtual environment that is used by
 3. Install dependencies: `make init`
 4. To run the tests, execute: `tox`
 
+
+## Running linters locally
+
+You need to have NodeJS and Docker installed on your computer to run MegaLinter locally with MegaLinter Runner.
+
+You can run mega-linter-runner without installation by using `npx` (Run from the root of the repository!).
+
+```sh
+npx mega-linter-runner
+```
+
+Some linters can automatically fix findings by running the command below.
+
+```sh
+npx mega-linter-runner --fix
+```
+
+
 ## Contributing via Pull Requests
 
 Contributions via pull requests are much appreciated.
@@ -53,11 +71,13 @@ To send us a pull request, please:
 2. Modify the source; please focus on the specific change you are contributing.
    If you also reformat all the code, it will be hard for us to focus on your
    change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request
+3. Make sure your editor is configured to use [editorconfig](https://editorconfig.org/),
+   this helps maintain consistent coding styles and prevents linter findings later.
+4. Ensure local tests and linters pass.
+5. Commit to your fork using clear commit messages.
+6. Send us a pull request, answering any default questions in the pull request
    interface.
-6. Pay attention to any automated CI failures reported in the pull request,
+7. Pay attention to any automated CI failures reported in the pull request,
    and stay involved in the conversation.
 
 GitHub provides additional document on
