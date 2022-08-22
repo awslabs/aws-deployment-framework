@@ -191,7 +191,7 @@ class CloudFormation(StackProperties):
                     "Tags":[{
                         'Key': 'createdBy',
                         'Value': 'ADF'
-                        }],
+                    }],
                     "ChangeSetName": self.stack_name,
                     "ChangeSetType": self._get_change_set_type()
                 }
