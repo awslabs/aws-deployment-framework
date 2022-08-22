@@ -1,8 +1,10 @@
-## Sample CDK Application to showcase ADF Pipelines
+# Sample CDK Application to showcase ADF Pipelines
 
-This pipeline is expecting *(in the example case)* a AWS CodeCommit repository on the account `111111111111` in your main deployment region named *sample-cdk-application*.
+This pipeline is expecting *(in the example case)* a AWS CodeCommit repository
+on the account `111111111111` in your main deployment region named
+*sample-cdk-application*.
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-cdk-application

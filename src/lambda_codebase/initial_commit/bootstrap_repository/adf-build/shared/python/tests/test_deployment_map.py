@@ -18,48 +18,51 @@ def cls():
     return DeploymentMap(
         parameter_store=None,
         s3=None,
-        pipeline_name_prefix='adf',
-        map_path='{0}/stubs/stub_deployment_map.yml'.format(
+        pipeline_name_prefix="adf",
+        map_path="{0}/stubs/stub_deployment_map.yml".format(
             os.path.dirname(os.path.realpath(__file__))
-        )
+        ),
     )
+
 
 def test_update_deployment_parameters(cls):
     cls.s3 = Mock()
     cls.s3.put_object.return_value = None
 
-    pipeline = Pipeline({
-        "name": "pipeline",
-        "params": {"key": "value"},
-        "targets": [],
-        "default_providers": {
-            "source": {
-                "name": "codecommit",
-                "properties" : {
-                    "account_id": 111111111111,
+    pipeline = Pipeline(
+        {
+            "name": "pipeline",
+            "params": {"key": "value"},
+            "targets": [],
+            "default_providers": {
+                "source": {
+                    "name": "codecommit",
+                    "properties": {
+                        "account_id": 111111111111,
+                    },
                 }
-            }
+            },
         }
-    })
+    )
+
+    # Targets : [[account_id, account_id], [account_id, account_id]]
     pipeline.template_dictionary = {
         "targets": [
             [
-            [
-                {
-            "id": "111111111111",
-            "name": "some_account",
-            "path": "/fake/path",
-            "properties": {},
-            "provider": {},
-            "regions": [
-              "eu-west-1"
-            ],
-            "step_name": ""
-          },
-          ]
+                [
+                    {
+                        "id": "111111111111",
+                        "name": "some_account",
+                        "path": "/fake/path",
+                        "properties": {},
+                        "provider": {},
+                        "regions": ["eu-west-1"],
+                        "step_name": "",
+                    },
+                ]
             ]
-          ]
+        ]
     }
 
     cls.update_deployment_parameters(pipeline)
-    assert cls.account_ou_names['some_account'] == '/fake/path'
+    assert cls.account_ou_names["some_account"] == "/fake/path"

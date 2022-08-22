@@ -4,12 +4,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
 Description: ADF CloudFormation Initial Base Stack for the Master Account in the us-east-1 region.
+
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: aws-deployment-framework
     Description: >-
-      The AWS Deployment Framework (ADF) is an extensive and flexible framework to manage and deploy resources across multiple
-      AWS accounts and regions based on AWS Organizations.
+      The AWS Deployment Framework (ADF) is an extensive and flexible framework to manage and
+      deploy resources across multiple AWS accounts and regions based on AWS Organizations.
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: ../LICENSE.txt
@@ -19,49 +20,63 @@ Metadata:
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
     SemanticVersion: 3.1.2
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
+
 Mappings:
   Metadata:
     ADF:
       Version: 3.1.2
+
 Parameters:
   CrossAccountAccessRoleName:
     Type: String
     Default: OrganizationAccountAccessRole
+
   MainNotificationEndpoint:
     Type: String
     Default: ""
     Description: "Example -> jane@example.com"
+
   DeploymentAccountName:
     Type: String
     Default: ""
     Description: "The name of the new or existing deployment account"
+
   DeploymentAccountEmailAddress:
     Type: String
     Default: ""
     Description: "The email address for the new or existing deployment account"
+
   DeploymentAccountAlias:
     Type: String
     Default: ""
     Description: "(Optional) Example -> companyname-deployment (must be globally unique)"
+
   DeploymentAccountId:
     Type: String
     Default: ""
     Description: >-
-      Example -> 123456789012 (Only required if you have an existing AWS Account that you wish to use as the deployment account.)
+      Example -> 123456789012  (Only required if you have an existing AWS Account
+      that you wish to use as the deployment account.)
+
   DeploymentAccountMainRegion:
     Type: String
     Default: ""
     Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
+
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
     Default: ""
     Description: "(Optional) Example -> us-east-1, us-west-1, eu-west-3"
+
   ProtectedOUs:
     Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
+
   LogLevel:
-    Description: "At what Log Level the ADF should operate, default is INFO. Valid options are: DEBUG, INFO, WARN, ERROR, and CRITICAL."
+    Description: >-
+      At what Log Level the ADF should operate, default is INFO.
+      Valid options are: DEBUG, INFO, WARN, ERROR, and CRITICAL.
     Type: String
     Default: "INFO"
     AllowedValues:
@@ -105,6 +120,7 @@ Resources:
               - !Sub "${BootstrapTemplatesBucket.Arn}/*"
             Principal:
               AWS: !Ref AWS::AccountId
+
   BootstrapArtifactStorageBucket:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -122,6 +138,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   BootstrapTemplatesBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -139,8 +156,11 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   AccountProcessingApplication:
     Type: AWS::Serverless::Application
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
     Properties:
       Location: account_processing.yml
       Parameters:
@@ -148,8 +168,7 @@ Resources:
         ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
         OrganizationID: !GetAtt Organization.OrganizationId
         CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
+
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
@@ -158,6 +177,7 @@ Resources:
         - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
+
   LambdaLayerVersionPermission:
     Type: "AWS::Lambda::LayerVersionPermission"
     Properties:
@@ -165,6 +185,7 @@ Resources:
       LayerVersionArn: !Ref LambdaLayerVersion
       OrganizationId: !GetAtt Organization.OrganizationId
       Principal: "*"
+
   LambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -178,6 +199,7 @@ Resources:
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+
   LambdaPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -213,6 +235,7 @@ Resources:
               !Sub "${BootstrapTemplatesBucket.Arn}/*"
       Roles:
         - !Ref LambdaRole
+
   StackWaiterFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -230,6 +253,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
+
   DetermineEventFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -248,6 +272,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
+
   CrossAccountExecuteFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -267,6 +292,7 @@ Resources:
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
       Timeout: 600
+
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -283,6 +309,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
+
   MovedToRootActionFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -300,6 +327,7 @@ Resources:
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
       Timeout: 900
+
   UpdateResourcePoliciesFunction:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -316,6 +344,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
+
   CloudWatchEventsRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -332,6 +361,7 @@ Resources:
         - Arn: !Ref StateMachine
           RoleArn: !GetAtt StatesExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
+
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
@@ -345,6 +375,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -363,6 +394,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodeCommitRole
+
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -378,6 +410,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref "CodeBuildPolicy"
       RoleName: "adf-codebuild-role"
+
   BootstrapCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -402,6 +435,7 @@ Resources:
                   - 'support:CreateCase'
                   - 'support:DescribeSeverityLevels'
                 Resource: '*'
+
   CodeBuildPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -486,8 +520,8 @@ Resources:
             Action:
               - "codebuild:*"
             Resource:
-              # Hardcoded name (instead of !GetAtt CodeBuildProject.Arn)to avoid a circular dependency.
-              # Converting this to an inline policy can break the circle
+              # Hardcoded name (instead of !GetAtt CodeBuildProject.Arn) to avoid a circular
+              # dependency. Converting this to an inline policy can break the circle
               - !Sub "arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
           - Effect: "Allow"
             Action:
@@ -501,11 +535,14 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
+
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryName: "aws-deployment-framework-bootstrap"
-      RepositoryDescription: !Sub "CodeCommit Repo for AWS Deployment Framework base in ${AWS::AccountId}"
+      RepositoryDescription: !Sub >-
+        CodeCommit Repo for AWS Deployment Framework base in ${AWS::AccountId}
+
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -553,15 +590,21 @@ Resources:
               commands:
                 - sam build -t adf-bootstrap/deployment/pipeline_management.yml
                 - sam build -t adf-bootstrap/deployment/global.yml
-                - sam package --output-template-file adf-bootstrap/deployment/global.yml --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
-                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet # Shared Modules to be used with AWS CodeBuild
-                - aws s3 sync . s3://$S3_BUCKET --quiet --delete # Base Templates
+                - >-
+                    sam package --output-template-file adf-bootstrap/deployment/global.yml
+                    --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                # Shared Modules to be used with AWS CodeBuild:
+                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
+                # Base templates:
+                - aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 - aws s3 sync ./adf-accounts s3://$ACCOUNT_BUCKET --quiet
-                - python adf-build/main.py  # Updates config, updates (or creates) base stacks.
+                # Updates config, updates (or creates) base stacks:
+                - python adf-build/main.py
         Type: CODEPIPELINE
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base-templates"
+
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -601,6 +644,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref CodeBuildProject
               RunOrder: 1
+
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -615,6 +659,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CodePipelineRolePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -633,6 +678,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
+
   OrgEventCodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -646,6 +692,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   OrgEventCodePipelinePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -659,6 +706,7 @@ Resources:
             Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
       Roles:
         - !Ref OrgEventCodePipelineRole
+
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -683,6 +731,7 @@ Resources:
                   - "lambda:InvokeFunction"
                   - "states:StartExecution"
                 Resource: "*"
+
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
@@ -787,6 +836,7 @@ Resources:
                 }
             }
       RoleArn: !GetAtt StatesExecutionRole.Arn
+
   InitialCommit:
     Type: Custom::InitialCommit
     Properties:
@@ -803,6 +853,7 @@ Resources:
       TargetRegions: !Ref DeploymentAccountTargetRegions
       ProtectedOUs: !Ref ProtectedOUs
       NotificationEndpoint: !Ref MainNotificationEndpoint
+
   InitialCommitHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -822,6 +873,7 @@ Resources:
                 - codecommit:GetDifferences
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: BootstrapCreateInitialCommitFunction
+
   SharedModulesBucket:
     Type: Custom::CrossRegionBucket
     Properties:
@@ -842,6 +894,7 @@ Resources:
                 - codebuild.amazonaws.com
                 - lambda.amazonaws.com
                 - cloudformation.amazonaws.com
+
   SharedModulesBucketName:
     Type: AWS::SSM::Parameter
     Properties:
@@ -849,6 +902,7 @@ Resources:
       Name: shared_modules_bucket
       Type: String
       Value: !GetAtt SharedModulesBucket.BucketName
+
   LogLevelSetting:
     Type: AWS::SSM::Parameter
     Properties:
@@ -856,6 +910,7 @@ Resources:
       Name: adf_log_level
       Type: String
       Value: !Ref LogLevel
+
   CrossRegionBucketHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -881,15 +936,17 @@ Resources:
             - Effect: Allow
               Action: ssm:GetParameter
               Resource:
-                # Hardcoded name (instead of ${SharedModulesBucketName})to avoid a circular dependency.
-                # Converting this to an inline policy can break the circle
+                # Hardcoded name (instead of ${SharedModulesBucketName}) to avoid a circular
+                # dependency. Converting this to an inline policy can break the circle
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
       FunctionName: CrossRegionBucketHandler
+
   Organization:
     Type: Custom::Organization
     Properties:
       ServiceToken: !GetAtt OrganizationHandler.Arn
+
   OrganizationHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -910,12 +967,14 @@ Resources:
               Action: "iam:CreateServiceLinkedRole"
               Resource: !Sub "arn:${AWS::Partition}:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
+
   DeploymentOrganizationUnit:
     Type: Custom::OrganizationUnit
     Properties:
       ServiceToken: !GetAtt OrganizationUnitHandler.Arn
       ParentId: !GetAtt Organization.OrganizationRootId
       OrganizationUnitName: deployment
+
   OrganizationUnitHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -932,6 +991,7 @@ Resources:
                 - "organizations:ListOrganizationalUnitsForParent"
               Resource: "*"
       FunctionName: OrganizationUnitHandler
+
   DeploymentAccount:
     Type: Custom::Account
     DependsOn: Organization
@@ -941,6 +1001,7 @@ Resources:
       AccountEmailAddress: !Ref DeploymentAccountEmailAddress
       CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
       ExistingAccountId: !Ref DeploymentAccountId
+
   AccountHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -959,6 +1020,7 @@ Resources:
               Action: ssm:GetParameter
               Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
       FunctionName: AccountHandler
+
   PipelineCloudWatchEventRole:
     Type: AWS::IAM::Role
     Properties:
@@ -979,6 +1041,7 @@ Resources:
               - Effect: Allow
                 Action: codepipeline:StartPipelineExecution
                 Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1001,21 +1064,25 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-bootstrap
+
 Outputs:
   ADFVersionNumber:
     Value: !FindInMap ["Metadata", "ADF", "Version"]
     Export:
       Name: "ADFVersionNumber"
+
   LayerArn:
     Description: "The Shared modules Lambda Layer Arn"
     Value: !Ref LambdaLayerVersion
     Export:
       Name: "SharedLayerArn"
+
   CodeCommitHttpURL:
     Description: "The CodeCommit HTTP Url"
     Value: !GetAtt CodeCommitRepository.CloneUrlHttp
     Export:
       Name: "BaseTemplatesRepoHttpURL"
+
   CodeCommitSshURL:
     Description: "The CodeCommit SSH Url"
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh

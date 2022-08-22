@@ -2,20 +2,26 @@
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ADF CloudFormation Template - Global Base - Cross Account Roles to Allow Access to CodePipeline in Deployment Account
+Description: >-
+  ADF CloudFormation Template - Global Base - Cross Account Roles to Allow Access
+  to CodePipeline in Deployment Account
+
 Parameters:
   KMSArn:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: ARN of the KMS CMK created in the Deployment account
     Default: kms_arn
+
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
     Default: deployment_account_id
+
   DeploymentAccountBucketName:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Bucket Name
     Default: bucket_name
+
 Resources:
   CodeCommitRole:
     # This role is used to connect the Pipeline in the deployment account to CodeCommit in
@@ -39,6 +45,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -78,6 +85,7 @@ Resources:
             Resource: !Ref KMSArn
       Roles:
         - !Ref CodeCommitRole
+
   CloudFormationPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -117,6 +125,7 @@ Resources:
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationRole
+
   CloudFormationPolicyS3:
     Type: AWS::IAM::Policy
     Properties:
@@ -135,6 +144,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
       Roles:
         - !Ref CloudFormationRole
+
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -150,11 +160,13 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
     # within the target account. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used
+    # for purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy-kms"
@@ -172,6 +184,7 @@ Resources:
             Resource: !Ref "KMSArn"
       Roles:
         - !Ref CloudFormationDeploymentRole
+
   CloudFormationDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
@@ -204,9 +217,12 @@ Resources:
               ArnEquals:
                 "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
       Path: /
+
   AdfAutomationRole:
-    # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
-    # This role is not assumed by CodeBuild in any other pipeline other than 'aws-deployment-framework-pipelines'
+    # This role is used by CodeBuild on the Deployment Account when creating
+    # new CodePipeline Pipelines.
+    # This role is not assumed by CodeBuild in any other pipeline other
+    # than 'aws-deployment-framework-pipelines'
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-automation-role"
@@ -221,6 +237,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   AdfAutomationRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -300,10 +317,14 @@ Resources:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
       Roles:
         - !Ref AdfAutomationRole
+
   ReadOnlyAutomationRole:
-    # This role is used by CodeBuild on the Deployment Account for each of the deployment pipelines
-    # to gather information from other accounts. For example, certain intrinsic functions (resolve/import) allow fetching/reading data from other accounts CloudFormation stacks and Parameter Store values.
-    # This is the role that will be assumed in order to facilitate this scenario.
+    # This role is used by CodeBuild on the Deployment Account for each
+    # of the deployment pipelines to gather information from other accounts.
+    # For example, certain intrinsic functions (resolve/import) allow
+    # fetching/reading data from other accounts CloudFormation stacks
+    # and Parameter Store values. This is the role that will be assumed
+    # in order to facilitate this scenario.
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-readonly-automation-role"
@@ -318,6 +339,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   ReadOnlyAutomationRolePolicy:
     Type: AWS::IAM::Policy
     Properties:

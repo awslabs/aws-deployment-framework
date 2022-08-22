@@ -3,8 +3,9 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to build the pipeline CloudFormation stacks via the AWS CDK
+"""
+This file is pulled into CodeBuild containers
+and used to build the pipeline CloudFormation stacks via the AWS CDK.
 """
 
 import random
@@ -34,8 +35,8 @@ CLOUDFORMATION_ROLE_ARN = os.environ["CLOUDFORMATION_ROLE_ARN"]
 def upload_pipeline(template_path, name, s3):
     """
     Responsible for uploading the object (global.yml) to S3
-    and returning the URL that can be referenced in the CloudFormation
-    create_stack call.
+    and returning the URL that can be referenced in the
+    CloudFormation create_stack call.
     """
     s3_object_path = s3.put_object(f"pipelines/{name}/global.yml", template_path)
     LOGGER.debug('Uploaded Pipeline Template %s to S3', s3_object_path)
@@ -70,8 +71,11 @@ def main():
     threads = []
     template_paths = glob.glob("cdk.out/*.template.json")
     for counter, template_path in enumerate(template_paths):
-        # The Stack name only. No extension and no .template
-        name = os.path.splitext(template_path.split('/')[-1].split('.template')[0])[0]
+        name = (
+            os.path.splitext(
+                template_path.split('/')[-1].split('.template')[0]
+            )[0] # Just stackname no extension and no .template
+        )
         with open(template_path, encoding='utf-8') as _template_path:
             thread = PropagatingThread(target=worker_thread, args=(
                 template_path,
@@ -81,9 +85,14 @@ def main():
             thread.start()
             threads.append(thread)
             batch_mod = counter % 10
-            if batch_mod == 9: # 9 meaning we have hit a set of 10 threads since n % 10
+            if batch_mod == 9:
+                # Set to 9, meaning we have hit a set of 10 threads since n % 10
                 delay = random.randint(5, 11)
-                LOGGER.debug('Waiting for %s seconds before starting next batch of 10 threads.', delay)
+                LOGGER.debug(
+                    'Waiting for %s seconds before starting next batch '
+                    'of 10 threads.',
+                    delay,
+                )
                 time.sleep(delay)
 
     for thread in threads:

@@ -20,6 +20,7 @@ def cls():
     )
     return cls
 
+
 def test_fetch_parameter(cls):
     cls.client = Mock()
     cls.client.get_parameter.return_value = stub_parameter_store.get_parameter

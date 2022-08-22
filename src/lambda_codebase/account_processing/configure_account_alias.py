@@ -18,7 +18,9 @@ ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 
 def create_account_alias(account, iam_client):
     LOGGER.info(
-        f"Ensuring Account: {account.get('account_full_name')} has alias {account.get('alias')}"
+        "Ensuring Account: %s has alias %s",
+        account.get('account_full_name'),
+        account.get('alias'),
     )
     try:
         iam_client.create_account_alias(AccountAlias=account.get("alias"))
@@ -43,6 +45,7 @@ def lambda_handler(event, _):
         create_account_alias(event, role.client("iam"))
     else:
         LOGGER.info(
-            f"Account: {event.get('account_full_name')} does not need an alias"
+            "Account: %s does not need an alias",
+            event.get('account_full_name'),
         )
     return event

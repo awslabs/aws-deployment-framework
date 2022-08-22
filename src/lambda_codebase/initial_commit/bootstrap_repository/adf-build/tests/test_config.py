@@ -59,7 +59,10 @@ def test_raise_validation_remove_deployment_target_region(cls):
 
 
 def test_raise_validation_length_deployment_target_region(cls):
-    cls.config_contents["regions"]["deployment-account"] = ['region1', 'region2']
+    cls.config_contents["regions"]["deployment-account"] = [
+        'region1',
+        'region2',
+    ]
     with raises(InvalidConfigError):
         assert cls._parse_config()
 

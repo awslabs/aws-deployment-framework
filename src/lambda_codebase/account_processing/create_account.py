@@ -17,7 +17,7 @@ ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 
 
 def create_account(account, adf_role_name, org_client):
-    LOGGER.info(f"Creating account {account.get('account_full_name')}")
+    LOGGER.info("Creating account %s", account.get('account_full_name'))
     allow_billing = "ALLOW" if account.get("allow_billing", False) else "DENY"
     response = org_client.create_account(
         Email=account.get("email"),
@@ -31,7 +31,8 @@ def create_account(account, adf_role_name, org_client):
         )["CreateAccountStatus"]
         if response.get("FailureReason"):
             raise IOError(
-                f"Failed to create account {account.get('account_full_name')}: {response['FailureReason']}"
+                f"Failed to create account {account.get('account_full_name')}: "
+                f"{response['FailureReason']}"
             )
     return {
         **account,

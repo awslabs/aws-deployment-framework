@@ -4,47 +4,61 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
 Description: ADF CloudFormation Template (Global) for Deployment Account
+
 Parameters:
   ADFVersion:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: adf_version
+
   ADFLogLevel:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: adf_log_level
+
   MasterAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: master_account_id
+
   SharedModulesBucket:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: deployment_account_bucket
+
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
+
   CrossAccountAccessRole:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: cross_account_access_role
+
   Image:
-    Description: The Image you wish to use for CodeBuild (defaults to ubuntu).
+    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:6.0).
     Type: String
     Default: "aws/codebuild/standard:6.0"
+
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    Default: "BUILD_GENERAL1_LARGE"  # For threading with large amounts of pipelines this is the most effective default
+    # BUILD_GENERAL1_LARGE - For threading with large amounts of pipelines
+    # this is the most effective default:
+    Default: "BUILD_GENERAL1_LARGE"
     AllowedValues:
       - "BUILD_GENERAL1_SMALL"  # 3 GB memory, 2 vCPU
       - "BUILD_GENERAL1_MEDIUM"  # 7 GB memory, 4 vCPU
       - "BUILD_GENERAL1_LARGE"  # 15 GB memory, 8 vCPU
+
   NotificationEndpoint:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: notification_endpoint
+
   NotificationType:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: notification_type
+
   PipelinePrefix:
     Description: The Prefix that will be attached to pipeline stacks and names for ADF.
     Type: String
     Default: "adf-pipeline-"
+
   StackPrefix:
     Description: The Prefix that will be attached to stacks deployed via ADF.
     Type: String
@@ -64,6 +78,7 @@ Resources:
         - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
+
   LambdaLayerVersionPermission:
     Type: "AWS::Lambda::LayerVersionPermission"
     Properties:
@@ -71,6 +86,7 @@ Resources:
       LayerVersionArn: !Ref LambdaLayerVersion
       OrganizationId: !Ref OrganizationId
       Principal: "*"
+
   KMSKey:
     Type: AWS::KMS::Key
     Properties:
@@ -127,11 +143,13 @@ Resources:
                 - events.amazonaws.com
                 - codecommit.amazonaws.com
             Resource: "*"
+
   KMSAlias:
     Type: AWS::KMS::Alias
     Properties:
       AliasName: !Sub "alias/codepipeline-${AWS::AccountId}"
       TargetKeyId: !Ref KMSKey
+
   PipelineBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -170,6 +188,7 @@ Resources:
         SharedModulesBucket: !Ref SharedModulesBucket
         PipelinePrefix: !Ref PipelinePrefix
         StackPrefix: !Ref StackPrefix
+
   CodeCommitRole:
     Type: AWS::IAM::Role
     Properties:
@@ -190,6 +209,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -224,6 +244,7 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CodeCommitRole
+
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -237,6 +258,7 @@ Resources:
                 - codebuild.amazonaws.com
             Action:
               - sts:AssumeRole
+
   CodeBuildRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -283,7 +305,9 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
             Action:
               - "secretsmanager:Get*"
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow CodeBuild access to secrets that start with /adf/*
+            Resource:
+              # Only allow CodeBuild access to secrets that start with /adf/*
+              - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"
           - Effect: Allow
             Action:
               - "ssm:GetParameter"
@@ -316,6 +340,7 @@ Resources:
               - "*"
       Roles:
         - !Ref CodeBuildRole
+
   PipelineProvisionerCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -329,6 +354,7 @@ Resources:
                 - codebuild.amazonaws.com
             Action:
               - sts:AssumeRole
+
   PipelineProvisionerCodeBuildRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -460,9 +486,11 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
           - Effect: Allow
             Action:
-              - "iam:PassRole"  # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
+              # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
+              - "iam:PassRole"
             Resource:
-              - !Sub arn:${AWS::Partition}:iam::*:role/*  # This role can pass to any other role in the organization.
+              # This role can pass to any other role in the organization.
+              - !Sub arn:${AWS::Partition}:iam::*:role/*
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
@@ -493,6 +521,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref PipelineProvisionerCodeBuildRole
+
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -513,6 +542,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CloudFormationPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -549,6 +579,7 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CloudFormationRole
+
   CloudFormationDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
@@ -568,9 +599,12 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   AdfAutomationRole:
-    # This role is used by CodeBuild on the Deployment Account when creating new Codepipeline Pipelines.
-    # This role is not assumed by CodeBuild in any other pipeline other than 'aws-deployment-framework-pipelines'
+    # This role is used by CodeBuild on the Deployment Account when
+    # creating new CodePipeline Pipelines.
+    # This role is not assumed # by CodeBuild in any other pipeline
+    # other than 'aws-deployment-framework-pipelines'
     Type: AWS::IAM::Role
     Properties:
       RoleName: "adf-automation-role"
@@ -585,6 +619,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   CloudFormationDeploymentPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -594,7 +629,7 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "KMS"
-            Action:  # These are required for cross account deployments via codepipeline.
+            Action:  # These are required for cross account deployments via CodePipeline.
               - "kms:Decrypt"
               - "kms:DescribeKey"
               - "kms:Encrypt"
@@ -603,6 +638,7 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CloudFormationDeploymentRole
+
   AdfAutomationRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -669,6 +705,7 @@ Resources:
               - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/kms_arn"
       Roles:
         - !Ref AdfAutomationRole
+
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -681,6 +718,7 @@ Resources:
             - master
           Events:
             - all
+
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -736,6 +774,7 @@ Resources:
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base"
+
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -776,6 +815,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref CodeBuildProject
               RunOrder: 1
+
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -783,6 +823,7 @@ Resources:
       Subscription:
         - Endpoint: !Ref NotificationEndpoint
           Protocol: !Ref NotificationType
+
   PipelineEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -809,6 +850,7 @@ Resources:
               state: "$.detail.state"
               at: "$.time"
               account: "$.account"
+
   PipelineSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -826,6 +868,7 @@ Resources:
             Resource: "*"
       Topics:
         - !Ref PipelineSNSTopic
+
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -847,7 +890,9 @@ Resources:
               AWS: !Ref AWS::AccountId
             Action:
               - sts:AssumeRole
-  CodePipelineRolePolicy:  # https://docs.aws.amazon.com/codepipeline/latest/userguide/how-to-custom-role.html#how-to-update-role-new-services
+
+  CodePipelineRolePolicy:
+    # See https://docs.aws.amazon.com/codepipeline/latest/userguide/how-to-custom-role.html#how-to-update-role-new-services
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
     Properties:
@@ -936,6 +981,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
+
   CodePipelineRolePolicyKMS:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
@@ -955,6 +1001,7 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
       Roles:
         - !Ref CodePipelineRole
+
   CodePipelineRolePolicySTS:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
@@ -975,6 +1022,7 @@ Resources:
                 aws:PrincipalOrgID: !Ref OrganizationId
       Roles:
         - !Ref CodePipelineRole
+
   CodePipelineRolePolicyS3:
     Type: AWS::IAM::Policy
     DependsOn: PipelineBucketPolicy
@@ -997,6 +1045,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
       Roles:
         - !Ref CodePipelineRole
+
   PipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -1017,6 +1066,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
             Principal:
               AWS: "*"
+
   SendSlackNotification:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -1031,6 +1081,7 @@ Resources:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
           ADF_LOG_LEVEL: !Ref ADFLogLevel
       Timeout: 10
+
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -1047,6 +1098,7 @@ Resources:
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Timeout: 900
+
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties:
@@ -1062,6 +1114,7 @@ Resources:
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Timeout: 120
+
   LambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1117,7 +1170,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - "secretsmanager:Get*"
-                Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow Lambda access to get secrets that start with /adf/*
+                Resource:
+                  # Only allow Lambda access to get secrets that start with /adf/*
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"
               - Effect: "Allow"
                 Action:
                   - "s3:Get*"
@@ -1129,6 +1184,7 @@ Resources:
               - Effect: "Allow"
                 Action: "logs:*"
                 Resource: !Sub "arn:${AWS::Partition}:logs:*:*:*"
+
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1156,6 +1212,7 @@ Resources:
                   - "sns:Publish"
                   - "states:StartExecution"
                 Resource: "*"
+
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1163,6 +1220,7 @@ Resources:
       Principal: sns.amazonaws.com
       SourceArn: !Ref PipelineSNSTopic
       FunctionName: !Ref SendSlackNotification
+
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
@@ -1266,6 +1324,7 @@ Resources:
             }
         }
       RoleArn: !GetAtt StatesExecutionRole.Arn
+
   InitialCommit:
     Type: Custom::InitialCommit
     Properties:
@@ -1273,6 +1332,7 @@ Resources:
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       Version: !Ref ADFVersion
       DirectoryName: pipelines_repository
+
   InitialCommitHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -1295,12 +1355,14 @@ Resources:
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
       Timeout: 300
+
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"
     Properties:
       Name: "kms_arn"
       Type: "String"
       Value: !GetAtt KMSKey.Arn
+
   PipelineCloudWatchEventRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1350,49 +1412,60 @@ Outputs:
     Value: !Ref ADFVersion
     Export:
       Name: "ADFVersionNumber"
+
   SlackLambdaArn:
     Value: !GetAtt SendSlackNotification.Arn
     Export:
       Name: "SendSlackNotificationLambdaArn"
+
   DeploymentFrameworkRegionalKMSKey:
     Value: !GetAtt KMSKey.Arn
     Export:
       Name: !Sub "KMSArn-${AWS::Region}"
+
   DeploymentFrameworkRegionalS3Bucket:
     Value: !Ref PipelineBucket
     Export:
       Name: !Sub "S3Bucket-${AWS::Region}"
+
   CodeBuildRoleArn:
     Value: !GetAtt CodeBuildRole.Arn
     Export:
       Name: "CodeBuildRoleArn"
+
   CloudformationRoleArn:
     Value: !GetAtt CloudFormationRole.Arn
     Export:
       Name: "CloudFormationRoleArn"
+
   CloudformationDeploymentRoleArn:
     Value: !GetAtt CloudFormationDeploymentRole.Arn
     Export:
       Name: "CloudFormationDeploymentRoleArn"
+
   CodeCommitHttpURL:
     Description: "The CodeCommit HTTP Url"
     Value: !GetAtt CodeCommitRepository.CloneUrlHttp
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-http-url"
+
   LambdaRoleArn:
     Value: !GetAtt LambdaRole.Arn
     Export:
       Name: "LambdaRoleArn"
+
   CodeCommitSshURL:
     Description: "The CodeCommit SSH Url"
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-ssh-url"
+
   CodePipelineRoleArn:
     Description: "The CodePipeline Arn"
     Value: !GetAtt CodePipelineRole.Arn
     Export:
       Name: "CodePipelineRoleArn"
+
   KmsKeyArn:
     Description: "The Kms Key Arn"
     Value: !GetAtt KMSKey.Arn

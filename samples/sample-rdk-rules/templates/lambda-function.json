@@ -1,0 +1,26 @@
+
+{
+  "Type": "AWS::Lambda::Function",
+  "DependsOn": "RuleNameStrippedLambdaRole",
+  "Properties": {
+    "FunctionName": "RDK-Rule-Function-RuleNameStripped",
+    "Code": {
+      "S3Bucket": {
+        "Ref": "SourceBucket"
+      },
+      "S3Key": "RuleName/RuleName.zip"
+    },
+    "Description": "Function for AWS Config Rule RuleName",
+    "Handler": "RuleName.lambda_handler",
+    "MemorySize": "256",
+    "Role": {
+      "Fn::GetAtt": [
+        "RuleNameStrippedLambdaRole",
+        "Arn"
+      ]
+    },
+    "Runtime": "RuleRuntime",
+    "Timeout": "60",
+    "Tags": []
+  }
+}

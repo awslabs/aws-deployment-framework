@@ -12,7 +12,8 @@ get_role_policy = {
     'PolicyName': 'string',
     'PolicyDocument': {
         "Version": "2012-10-17",
-        "Statement": [{
+        "Statement": [
+            {
                 "Sid": "KMS",
                 "Effect": "Allow",
                 "Action": ["iam:ChangePassword"],

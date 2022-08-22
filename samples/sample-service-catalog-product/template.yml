@@ -9,6 +9,7 @@ Parameters:
   ProductXTemplateURL:
     Type: String
     Description: Service Catalog CloudFormation Template URL
+
 Resources:
   Portfolio:
     Type: AWS::ServiceCatalog::Portfolio

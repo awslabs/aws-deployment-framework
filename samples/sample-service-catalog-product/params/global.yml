@@ -1,2 +1,2 @@
 Parameters:
-    ProductXTemplateURL: 'upload:eu-central-1:productX/template.yml'
+  ProductXTemplateURL: 'upload:eu-central-1:productX/template.yml'

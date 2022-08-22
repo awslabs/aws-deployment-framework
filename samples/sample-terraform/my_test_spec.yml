@@ -4,7 +4,8 @@ env:
   variables:
     AWS_DEFAULT_REGION: eu-central-1  # The region you plan on deploying resources into
     TF_VAR_TARGET_ACCOUNT_ID: 111111111111  # The AWS Account you plan on targeting
-    TF_VAR_TARGET_ACCOUNT_ROLE: adf-custom-deploy-role  # The IAM Role terraform will assume to deploy resources
+    # The IAM Role Terraform will assume to deploy resources:
+    TF_VAR_TARGET_ACCOUNT_ROLE: adf-custom-deploy-role
     TF_IN_AUTOMATION: true
     TF_CLI_ARGS: "-no-color"
 
@@ -12,6 +13,7 @@ phases:
   install:
     runtime-versions:
       python: 3.9
+
   build:
     commands:
       - export PATH=$PATH:$(pwd)

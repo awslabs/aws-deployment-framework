@@ -1,5 +1,6 @@
 """
-The Initial Commit Handler that is called when ADF is installed to commit the initial pipelines repository content
+The Initial Commit Handler that is called when ADF is installed to commit the
+initial pipelines repository content.
 """
 
 try:
@@ -16,7 +17,10 @@ except Exception as err: # pylint: disable=broad-except
     def lambda_handler(event, _context, prior_error=err):
         payload = dict(
             LogicalResourceId=event["LogicalResourceId"],
-            PhysicalResourceId=event.get("PhysicalResourceId", "NOT_YET_CREATED"),
+            PhysicalResourceId=event.get(
+                "PhysicalResourceId",
+                "NOT_YET_CREATED",
+            ),
             Status="FAILED",
             RequestId=event["RequestId"],
             StackId=event["StackId"],
