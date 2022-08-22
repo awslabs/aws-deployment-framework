@@ -1,15 +1,14 @@
-
 {
-  "Type": "AWS::Lambda::Permission",
-  "DependsOn": "RuleNameStrippedLambdaFunction",
-  "Properties": {
-    "FunctionName": {
-      "Fn::GetAtt": [
-        "RuleNameStrippedLambdaFunction",
-        "Arn"
-      ]
-    },
-    "Action": "lambda:InvokeFunction",
-    "Principal": "config.amazonaws.com"
-  }
+    "Type": "AWS::Lambda::Permission",
+    "DependsOn": "RuleNameStrippedLambdaFunction",
+    "Properties": {
+        "FunctionName": {
+            "Fn::GetAtt": [
+                "RuleNameStrippedLambdaFunction",
+                "Arn"
+            ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "config.amazonaws.com"
+    }
 }

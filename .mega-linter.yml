@@ -30,3 +30,5 @@ FILEIO_REPORTER: false
 JSON_PRETTIER_PRE_COMMANDS:
   - command: npm install prettier-plugin-multiline-arrays@1.1.0
     cwd: "workspace"
+
+CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
