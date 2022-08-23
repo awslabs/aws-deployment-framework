@@ -11,9 +11,7 @@
                 ]
             },
             "enforced_for": {
-                "@@assign": [
-                    "s3:bucket"
-                ]
+                "@@assign": ["s3:bucket"]
             }
         }
     }

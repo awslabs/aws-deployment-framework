@@ -137,3 +137,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+megalinter-reports/
