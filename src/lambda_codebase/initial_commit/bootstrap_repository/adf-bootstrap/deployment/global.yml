@@ -188,6 +188,7 @@ Resources:
         SharedModulesBucket: !Ref SharedModulesBucket
         PipelinePrefix: !Ref PipelinePrefix
         StackPrefix: !Ref StackPrefix
+        ADFLogLevel: !Ref ADFLogLevel
 
   CodeCommitRole:
     Type: AWS::IAM::Role

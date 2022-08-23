@@ -36,6 +36,9 @@ Parameters:
   StackPrefix:
     Type: String
     MinLength: "1"
+  ADFLogLevel:
+    Type: String
+    MinLength: "1"
 
 Globals:
   Function:
@@ -606,7 +609,8 @@ Resources:
                 Sid: "PassRole"
                 Action:
                   - 'iam:PassRole'
-                Resource: '*'
+                Resource:
+                  - !GetAtt ADFPipelineMangementCloudFormationRole.Arn
                 Condition:
                   StringEqualsIfExists:
                     'iam:PassedToService':
@@ -681,14 +685,6 @@ Resources:
                     aws:PrincipalOrgID: !Ref OrganizationID
               - Effect: Allow
                 Action:
-                  - "iam:PassRole"  # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
-                Resource:
-                  - !Sub arn:${AWS::Partition}:iam::*:role/*  # This role can pass to any other role in the organization.
-                Condition:
-                  StringEquals:
-                    aws:PrincipalOrgID: !Ref OrganizationID
-              - Effect: Allow
-                Action:
                   - "events:PutRule"
                   - "events:PutTargets"
                   - "events:PutPermission"
@@ -724,7 +720,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           PIPELINE_MANAGEMENT_STATE_MACHINE: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
       FunctionName: DeploymentMapProcessorFunction
@@ -762,7 +758,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
       FunctionName: CreateOrUpdateRuleFunction
@@ -778,7 +774,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
       FunctionName: CreateRepositoryFunction
@@ -794,7 +790,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
           ROOT_ACCOUNT_ID: !Ref RootAccountId
@@ -811,7 +807,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref ADFDefinitionBucket
           ROOT_ACCOUNT_ID: !Ref RootAccountId
@@ -828,7 +824,7 @@ Resources:
           ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !Ref OrganizationID
           ADF_VERSION: !Ref ADFVersion
-          ADF_LOG_LEVEL: INFO
+          ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           ROOT_ACCOUNT_ID: !Ref RootAccountId
           S3_BUCKET_NAME: !Ref ADFPipelineBucket
