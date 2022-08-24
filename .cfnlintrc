@@ -1,6 +1,5 @@
 templates:
   - ./**/template.yml
-  - ./**/account_processing.yml
   - ./resources/*.yaml
   - ./**/example-global-iam.yml
   - ./**/global.yml
