@@ -506,7 +506,7 @@ Resources:
           - Name: ADF_STACK_PREFIX
             Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
-            Value: INFO
+            Value: !Ref ADFLogLevel
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
           - Name: ORGANIZATION_ID
