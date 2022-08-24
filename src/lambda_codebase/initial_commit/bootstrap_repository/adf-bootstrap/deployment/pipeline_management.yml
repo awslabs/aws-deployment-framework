@@ -111,7 +111,6 @@ Resources:
               - "s3:GetObject"
             Resource:
               - !Sub "arn:${AWS::Partition}:s3:::${PipelineBucket}/*"
-              - !Sub "arn:${AWS::Partition}:s3:::${PipelineBucket}"
           - Effect: Allow
             Action:
               - "cloudformation:ValidateTemplate"
@@ -230,7 +229,6 @@ Resources:
                   - "s3:PutObject"
                 Resource:
                   - !Sub "${ADFDefinitionBucket.Arn}/*"
-                  - !Sub "${ADFDefinitionBucket.Arn}"
   IdentifyOutOfDatePipelinesLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -251,7 +249,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "s3:List*"
+                  - "s3:ListBucket"
                   - "s3:GetObject"
                 Resource:
                   - !Sub "${ADFPipelineBucket.Arn}/*"
@@ -285,7 +283,7 @@ Resources:
                   - "xray:PutTelemetryRecords"
                   - "xray:PutTraceSegments"
                   - "codebuild:BatchGetBuilds"
-                  - "cloudwatch:*"
+                  - "cloudwatch:PutMetricData"
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -335,6 +333,7 @@ Resources:
                 Action:
                   - "xray:PutTelemetryRecords"
                   - "xray:PutTraceSegments"
+                  - "cloudwatch:PutMetricData"
                 Resource: "*"
         - PolicyName: "adf-deploy-cloudformation-delete"
           PolicyDocument:
@@ -424,20 +423,20 @@ Resources:
               "Next": "InvokeDeleteStateMachine"
             },
             "InvokeDeleteStateMachine": {
-                  "Type": "Task",
-                  "Resource": "arn:${AWS::Partition}:states:::aws-sdk:sfn:startExecution",
-                  "Parameters": {
-                    "StateMachineArn": "${PipelineDeletionStateMachine}",
-                    "Input.$": "$.pipelines_to_be_deleted",
-                    "Name.$": "$.hash",
-                    "TraceHeader.$": "$.traceroot"
-                  },
-                  "Catch": [ {
-                    "ErrorEquals": [ "Sfn.ExecutionAlreadyExistsException" ],
-                    "Next": "Success"
-                } ],
-                  "Next": "Success"
-                },
+              "Type": "Task",
+              "Resource": "arn:${AWS::Partition}:states:::aws-sdk:sfn:startExecution",
+              "Parameters": {
+                "StateMachineArn": "${PipelineDeletionStateMachine}",
+                "Input.$": "$.pipelines_to_be_deleted",
+                "Name.$": "$.hash",
+                "TraceHeader.$": "$.traceroot"
+              },
+              "Catch": [ {
+                "ErrorEquals": [ "Sfn.ExecutionAlreadyExistsException" ],
+                "Next": "Success"
+              } ],
+              "Next": "Success"
+            },
             "Success": {
               "Type": "Succeed"
             }
@@ -523,10 +522,10 @@ Resources:
             install:
               runtime-versions:
                 python: 3.9
-                nodejs: 12
+                nodejs: 16
             pre_build:
               commands:
-                - npm install cdk@1.88 -g -y --quiet --no-progress
+                - npm install cdk@1.168 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
@@ -560,7 +559,7 @@ Resources:
                 Action:
                   - "s3:GetObject"
                   - "s3:GetObjectVersion"
-                  - "s3:List*"
+                  - "s3:ListBucket"
                 Resource:
                   - !Sub "${ADFDefinitionBucket.Arn}/*"
                   - !Sub "${ADFDefinitionBucket.Arn}"
@@ -572,17 +571,18 @@ Resources:
                 Action:
                   - "s3:GetObject"
                   - "s3:GetObjectVersion"
-                  - "s3:List*"
+                  - "s3:ListBucket"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*"
                   - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}"
-        - PolicyName: "adf-deploy-cloudformation-create"
+        - PolicyName: "adf-deploy-cloudformation-createupdate"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
                 Resource:
                   - "*"
                 Condition:
@@ -594,9 +594,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - cloudformation:CreateStack
                   - cloudformation:DescribeStacks
-                  - cloudformation:UpdateStack
                   - cloudformation:CreateChangeSet
                   - cloudformation:DeleteChangeSet
                   - cloudformation:DescribeChangeSet
@@ -867,6 +865,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   StateMachineFailureAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -882,6 +881,7 @@ Resources:
       Threshold: 1
       TreatMissingData: notBreaching
       Unit: Count
+
 Outputs:
   Bucket:
     Value: !Ref ADFPipelineBucket
