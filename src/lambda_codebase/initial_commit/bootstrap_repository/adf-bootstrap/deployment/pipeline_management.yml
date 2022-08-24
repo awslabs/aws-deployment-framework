@@ -674,10 +674,9 @@ Resources:
                   - "iam:DeleteRolePolicy"
                   - "iam:GetRole"
                   - "iam:GetRolePolicy"
-                  - "iam:PassRole"
                   - "iam:PutRolePolicy"
                 Resource:
-                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-deployment-framework/*
                 Condition:
                   StringEquals:
                     aws:PrincipalOrgID: !Ref OrganizationID
