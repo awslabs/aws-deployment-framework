@@ -1,12 +1,12 @@
 """
-The Initial Commit main that is called when ADF is installed to commit the initial bootstrap repository content
+The Initial Commit main that is called when ADF is installed to commit the
+initial pipelines repository content.
 """
 
 from typing import Mapping, Optional, Union, List, Dict, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import os
 import re
 import boto3
 import jinja2
@@ -24,15 +24,25 @@ HERE = Path(__file__).parent
 NOT_YET_CREATED = "NOT_YET_CREATED"
 CC_CLIENT = boto3.client("codecommit")
 CONFIG_FILE_REGEX = re.compile(r"\A.*[.](yaml|yml|json)\Z", re.I)
+EXECUTABLE_FILES = []
 
-PR_DESCRIPTION = """ADF Version {0} from https://github.com/awslabs/aws-deployment-framework
+PR_DESCRIPTION = """ADF Version {0}
 
-This PR was automatically created when you deployed version {0} of the AWS Deployment Framework through the Serverless Application Repository.
+You can find the changelog at:
+https://github.com/awslabs/aws-deployment-framework/releases/tag/v{0}
 
-Review this PR to understand what changes will be made to your bootstrapping repository. If you also made changes to the repository yourself, you might have to resolve merge conflicts before you can merge this PR.
+This PR was automatically created when you deployed version {0} of the
+AWS Deployment Framework through the Serverless Application Repository.
 
-Merge this PR to complete the deployment of the version {0} of the AWS Deployment Framework.
+Review this PR to understand what changes will be made to your bootstrapping
+repository. If you also made changes to the repository yourself,
+you might have to resolve merge conflicts before you can merge this PR.
+
+Merge this PR to complete the deployment of the version {0} of the
+AWS Deployment Framework.
 """
+
+
 @dataclass
 class CustomResourceProperties:
     ServiceToken: str
@@ -69,7 +79,7 @@ class Event:
 
     def __post_init__(self):
         self.ResourceProperties = CustomResourceProperties(
-            **self.ResourceProperties # pylint: disable=not-a-mapping
+            **self.ResourceProperties  # pylint: disable=not-a-mapping
         )
 
 
@@ -101,9 +111,11 @@ class FileToDelete:
             "filePath": self.filePath
         }
 
+
 @dataclass
 class CreateEvent(Event):
     pass
+
 
 @dataclass
 class UpdateEvent(Event):
@@ -118,6 +130,7 @@ class UpdateEvent(Event):
             **self.OldResourceProperties # pylint: disable=not-a-mapping
         )
 
+
 def generate_create_branch_input(event, repo_name, commit_id):
     return {
         "repositoryName": repo_name,
@@ -125,15 +138,18 @@ def generate_create_branch_input(event, repo_name, commit_id):
         "commitId": commit_id
     }
 
+
 def generate_delete_branch_input(event, repo_name):
     return {
         "repositoryName": repo_name,
         "branchName": event.ResourceProperties.Version
     }
 
+
 def chunks(list_to_chunk, number_to_chunk_into):
     number_of_chunks = max(1, number_to_chunk_into)
     return (list_to_chunk[item:item + number_of_chunks] for item in range(0, len(list_to_chunk), number_of_chunks))
+
 
 def generate_pull_request_input(event, repo_name):
     return {
@@ -147,6 +163,7 @@ def generate_pull_request_input(event, repo_name):
             },
         ]
     }
+
 
 def generate_commit_input(repo_name, index, branch="master", parent_commit_id=None, puts=None, deletes=None):
     commit_action = "Delete" if deletes else "Create"
@@ -162,6 +179,7 @@ def generate_commit_input(repo_name, index, branch="master", parent_commit_id=No
     if parent_commit_id:
         output["parentCommitId"] = parent_commit_id
     return output
+
 
 @create()
 def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], Data]:
@@ -216,6 +234,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
 
         return commit_id, {}
 
+
 @update()
 def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[PhysicalResourceId, Data]: #pylint: disable=R0912, R0915
     update_event = UpdateEvent(**event)
@@ -268,8 +287,10 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
 def delete_(_event, _context):
     pass
 
+
 def repo_arn_to_name(repo_arn: str) -> str:
     return repo_arn.split(":")[-1]
+
 
 def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
     differences = CC_CLIENT.get_differences(
@@ -284,8 +305,12 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         if not CONFIG_FILE_REGEX.match(file['afterBlob']['path'])
     ]
 
-    # 31: trimming off /var/task/pipelines_repository so we can compare correctly
-    blobs = [str(filename)[31:] for filename in Path('/var/task/pipelines_repository/').rglob('*')]
+    # 31: trimming off /var/task/pipelines_repository so
+    # we can compare correctly
+    blobs = [
+        str(filename)[31:]
+        for filename in Path('/var/task/pipelines_repository/').rglob('*')
+    ]
 
     return [
         FileToDelete(
@@ -297,13 +322,23 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
     ]
 
 
+def determine_file_mode(entry, directoryName):
+    if str(get_relative_name(entry, directoryName)) in EXECUTABLE_FILES:
+        return FileMode.EXECUTABLE
+
+    return FileMode.NORMAL
+
+
 def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName
 
     return [
         FileToCommit(
             str(get_relative_name(entry, directoryName)),
-            FileMode.NORMAL if not os.access(entry, os.X_OK) else FileMode.EXECUTABLE,
+            determine_file_mode(
+                entry,
+                directoryName,
+            ),
             entry.read_bytes(),
         )
         for entry in path.glob("**/*")
@@ -332,4 +367,5 @@ def create_adf_config_file(props: CustomResourceProperties) -> FileToCommit:
 
     with open("/tmp/adfconfig.yml", mode="wb") as file:
         file.write(adf_config)
+
     return FileToCommit("adfconfig.yml", FileMode.NORMAL, adf_config)

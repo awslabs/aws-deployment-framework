@@ -12,7 +12,7 @@
       deploy:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
     targets:
       - properties:
           spec_filename: my_test_spec.yml
