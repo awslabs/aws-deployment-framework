@@ -3,9 +3,14 @@
 
 # pylint: skip-file
 
+from pathlib import Path
+import pytest
 from mock import Mock, patch
 from initial_commit import (
+    EXECUTABLE_FILES,
+    FileMode,
     FileToDelete,
+    determine_file_mode,
     get_files_to_delete,
 )
 
@@ -33,6 +38,10 @@ SHOULD_DELETE_PATHS = [
     'other.txt',
     'pipeline_types/cc-cloudformation.yml.j2',
     'cc-cloudformation.yml.j2',
+]
+SHOULD_NOT_BE_EXECUTABLE = [
+    "README.md",
+    "deployment_map.yml",
 ]
 
 
@@ -97,3 +106,23 @@ def test_get_files_to_delete(cc_client, path_cls):
     # Should delete all other
     assert all(x in result_paths for x in SHOULD_DELETE_PATHS)
     assert len(result_paths) == len(SHOULD_DELETE_PATHS)
+
+
+@pytest.mark.parametrize("entry", SHOULD_NOT_BE_EXECUTABLE)
+def test_determine_file_mode_normal(entry):
+    base_path = "test"
+    new_entry = f"/some/{base_path}/{entry}"
+    assert determine_file_mode(
+        Path(new_entry),
+        base_path,
+    ) == FileMode.NORMAL
+
+
+@pytest.mark.parametrize("entry", EXECUTABLE_FILES)
+def test_determine_file_mode_executable(entry):
+    base_path = "test"
+    new_entry = f"/some/{base_path}/{entry}"
+    assert determine_file_mode(
+        Path(new_entry),
+        base_path,
+    ) == FileMode.EXECUTABLE
