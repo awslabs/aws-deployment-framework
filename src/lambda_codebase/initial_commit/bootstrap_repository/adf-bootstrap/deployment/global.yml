@@ -31,9 +31,9 @@ Parameters:
     Default: cross_account_access_role
 
   Image:
-    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:6.0).
+    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:5.0).
     Type: String
-    Default: "aws/codebuild/standard:6.0"
+    Default: "aws/codebuild/standard:5.0"
 
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
@@ -739,7 +739,7 @@ Resources:
                 nodejs: 16
             pre_build:
               commands:
-                - npm install cdk@1.168 -g -y --quiet --no-progress
+                - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:

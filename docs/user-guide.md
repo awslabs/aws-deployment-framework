@@ -656,7 +656,7 @@ When the `package_transform.sh` command is executed, the file will be packaged u
 
 Serverless Applications can also be deployed via ADF *(see samples)*. The only extra step required to deploy a SAM template is that you execute `bash adf-build/helpers/package_transform.sh` from within your build stage like so:
 
-For example, deploying a NodeJS Serverless Application from AWS CodeBuild with the *aws/codebuild/standard:2.0* image can be done with a *buildspec.yml* that looks like the following [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
+For example, deploying a NodeJS Serverless Application from AWS CodeBuild with the *aws/codebuild/standard:5.0* image can be done with a *buildspec.yml* that looks like the following [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 
 ```yaml
 version: 0.2
@@ -665,7 +665,7 @@ phases:
   install:
     runtime-versions:
       python: 3.9
-      nodejs: 12
+      nodejs: 16
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet

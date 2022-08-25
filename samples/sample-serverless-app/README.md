@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           environment_variables:
             CONTAINS_TRANSFORM: True
     targets:
