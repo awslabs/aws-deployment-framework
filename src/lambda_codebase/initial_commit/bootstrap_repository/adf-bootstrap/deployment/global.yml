@@ -736,7 +736,7 @@ Resources:
             install:
               runtime-versions:
                 python: 3.9
-                nodejs: 16
+                nodejs: 14
             pre_build:
               commands:
                 - npm install cdk@1.169 -g -y --quiet --no-progress
