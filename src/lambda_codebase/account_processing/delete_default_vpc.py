@@ -13,12 +13,13 @@ patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
+AWS_PARTITION = os.getenv("AWS_PARTITION")
 
 
 def assume_role(account_id):
     sts = STS()
     return sts.assume_cross_account_role(
-        f"arn:aws:iam::{account_id}:role/{ADF_ROLE_NAME}",
+        f"arn:{AWS_PARTITION}:iam::{account_id}:role/{ADF_ROLE_NAME}",
         "adf_delete_default_vpc",
     )
 

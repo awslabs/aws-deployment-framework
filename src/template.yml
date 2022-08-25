@@ -357,6 +357,7 @@ Resources:
         - !Ref LambdaLayerVersion
       Environment:
         Variables:
+          AWS_PARTITION: !Ref AWS::Partition
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
@@ -467,6 +468,7 @@ Resources:
         - !Ref LambdaLayerVersion
       Environment:
         Variables:
+          AWS_PARTITION: !Ref AWS::Partition
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
@@ -501,6 +503,7 @@ Resources:
         - !Ref LambdaLayerVersion
       Environment:
         Variables:
+          AWS_PARTITION: !Ref AWS::Partition
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']

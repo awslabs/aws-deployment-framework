@@ -14,6 +14,7 @@ patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
+AWS_PARTITION = os.getenv("AWS_PARTITION")
 
 
 def create_account_alias(account, iam_client):
@@ -39,7 +40,7 @@ def lambda_handler(event, _):
         sts = STS()
         account_id = event.get("account_id")
         role = sts.assume_cross_account_role(
-            f"arn:aws:iam::{account_id}:role/{ADF_ROLE_NAME}",
+            f"arn:{AWS_PARTITION}:iam::{account_id}:role/{ADF_ROLE_NAME}",
             "adf_account_alias_config",
         )
         create_account_alias(event, role.client("iam"))

@@ -38,8 +38,16 @@ class PipelineNotifications(core.Construct):
         **kwargs,
     ):  # pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
-        slack_channel_arn = f"arn:aws:chatbot::{ADF_DEPLOYMENT_ACCOUNT_ID}:chat-configuration/slack-channel/{notification_config.get('target')}"
-        pipeline_arn = f"arn:aws:codepipeline:{ADF_DEPLOYMENT_REGION}:{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
+        stack = core.Stack.of(self)
+        slack_channel_arn = (
+            f"arn:{stack.partition}:chatbot::{ADF_DEPLOYMENT_ACCOUNT_ID}:"
+            f"chat-configuration/slack-channel/"
+            f"{notification_config.get('target')}"
+        )
+        pipeline_arn = (
+            f"arn:{stack.partition}:codepipeline:{ADF_DEPLOYMENT_REGION}:"
+            "{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
+        )
         cp_notifications.CfnNotificationRule(
             scope,
             "pipeline-notification",
