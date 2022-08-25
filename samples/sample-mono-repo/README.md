@@ -33,7 +33,7 @@ repository.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           spec_filename: apps/alpha/buildspec.yml
       deploy:
         provider: cloudformation
@@ -53,7 +53,7 @@ repository.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           spec_filename: apps/beta/buildspec.yml
       deploy:
         provider: cloudformation

@@ -20,9 +20,9 @@ via ADF.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           # ^ Since we're building a Java application here we want to use
-          # STANDARD_4_0 (Ubuntu) as our base CodeBuild Image, that way we can
+          # STANDARD_5_0 (Ubuntu) as our base CodeBuild Image, that way we can
           # tell it to have Java ready for us so we can build, compile and test
           # our application.
       deploy:

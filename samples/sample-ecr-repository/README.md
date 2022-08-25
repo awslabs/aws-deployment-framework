@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0" # So we can specify which Python version we need
+          image: "STANDARD_5_0" # So we can specify which Python version we need
     targets:
       - /deployment
 ```
