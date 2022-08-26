@@ -665,7 +665,7 @@ phases:
   install:
     runtime-versions:
       python: 3.9
-      nodejs: 16
+      nodejs: 14
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
