@@ -19,14 +19,15 @@ LOGGER = configure_logger(__name__)
 
 class DeploymentMap:
     def __init__(
-        self,
-        parameter_store,
-        s3,
-        pipeline_name_prefix,
-        map_path=None
+            self,
+            parameter_store,
+            s3,
+            pipeline_name_prefix,
+            map_path=None,
+            map_dir_path=None,
     ):
         self.map_path = map_path or 'deployment_map.yml'
-        self.map_dir_path = map_path or 'deployment_maps'
+        self.map_dir_path = map_dir_path or 'deployment_maps'
         self.parameter_store = parameter_store
         self.s3 = s3
         self._get_all()
@@ -35,18 +36,26 @@ class DeploymentMap:
 
     def update_deployment_parameters(self, pipeline):
         for target in pipeline.template_dictionary['targets']:
-            for _t in target:
-                if _t.get('target'): # Allows target to be interchangeable with path
-                    _t['path'] = _t.pop('target')
-                if _t.get('path'):
-                    self.account_ou_names.update(
-                        {item['name']: item['path'] for item in target if item['name'] != 'approval'}
-                    )
+            LOGGER.debug('target: %s', target)
+            for wave in target:
+                LOGGER.debug('wave: %s', wave)
+                for wave_target in wave:
+                    LOGGER.debug('wave_target: %s', wave_target)
+                    if wave_target.get('target'): # Allows target to be interchangeable with path
+                        wave_target['path'] = wave_target.pop('target')
+                    if wave_target.get('path'):
+                        self.account_ou_names.update(
+                            {
+                                item['name']: item['path']
+                                for item in wave
+                                if item['name'] != 'approval'
+                            }
+                        )
         with open(f'{pipeline.name}.json', mode='w', encoding='utf-8') as outfile:
             json.dump(self.account_ou_names, outfile)
         self.s3.put_object(
             f"adf-parameters/deployment/{pipeline.name}/account_ous.json",
-            f"{pipeline.name}.json",
+            f'{pipeline.name}.json'
         )
         if pipeline.notification_endpoint:
             self.parameter_store.put_parameter(
@@ -63,7 +72,7 @@ class DeploymentMap:
                 _input = yaml.load(stream, Loader=yaml.FullLoader)
                 return SchemaValidation(_input).validated
         except FileNotFoundError:
-            LOGGER.info('No default map file found at %s, continuing', file_path)
+            LOGGER.warning('No default map file found at %s, continuing', file_path)
             return {}
         except SchemaError as err:
             LOGGER.error(err.code)
@@ -101,4 +110,4 @@ class DeploymentMap:
                     self._read(filename)
                 )
             else:
-                LOGGER.warning("%s is not a directory and doesn't end in.yml", filename)
+                LOGGER.warning("%s is not a directory and doesn't hold the .yml suffix", filename)

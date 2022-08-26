@@ -101,12 +101,14 @@ class CloudFormation(StackProperties):
             s3_key_path=None,
             parameters=None,
             account_id=None, # Used for logging visibility
+            role_arn=None,
     ):
         self.client = role.client('cloudformation', region_name=region, config=CFN_CONFIG)
         self.wait = wait
         self.parameters = parameters
         self.account_id = account_id
         self.template_url = template_url
+        self.role_arn = role_arn
         StackProperties.__init__(
             self,
             region=region,
@@ -181,21 +183,21 @@ class CloudFormation(StackProperties):
             self.template_url = self.template_url if self.template_url is not None else self.get_template_url()
             if self.template_url:
                 self.validate_template()
-                self.client.create_change_set(
-                    StackName=self.stack_name,
-                    TemplateURL=self.template_url,
-                    Parameters=self.parameters if self.parameters is not None else self.get_parameters(),
-                    Capabilities=[
-                        'CAPABILITY_NAMED_IAM',
-                    ],
-                    Tags=[
-                        {
-                            'Key': 'createdBy',
-                            'Value': 'ADF'
-                        }
-                    ],
-                    ChangeSetName=self.stack_name,
-                    ChangeSetType=self._get_change_set_type())
+                change_set_params = {
+                    "StackName": self.stack_name,
+                    "TemplateURL": self.template_url,
+                    "Parameters": self.parameters if self.parameters is not None else self.get_parameters(),
+                    "Capabilities": ["CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
+                    "Tags":[{
+                        'Key': 'createdBy',
+                        'Value': 'ADF'
+                    }],
+                    "ChangeSetName": self.stack_name,
+                    "ChangeSetType": self._get_change_set_type()
+                }
+                if self.role_arn:
+                    change_set_params["RoleARN"] = self.role_arn
+                self.client.create_change_set(**change_set_params)
                 self._wait_change_set()
                 return True
             return False
