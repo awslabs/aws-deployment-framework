@@ -677,9 +677,6 @@ Resources:
                   - "iam:PutRolePolicy"
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-*
-                Condition:
-                  StringEquals:
-                    aws:PrincipalOrgID: !Ref OrganizationID
               - Effect: Allow
                 Action:
                   - "events:PutRule"
