@@ -522,10 +522,10 @@ Resources:
             install:
               runtime-versions:
                 python: 3.9
-                nodejs: 16
+                nodejs: 14
             pre_build:
               commands:
-                - npm install cdk@1.168 -g -y --quiet --no-progress
+                - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
@@ -758,7 +758,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
-      FunctionName: CreateOrUpdateRuleFunction
+      FunctionName: ADFPipelineCreateOrUpdateRuleFunction
       Role: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
 
   CreateRepositoryFunction:
@@ -774,7 +774,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
-      FunctionName: CreateRepositoryFunction
+      FunctionName: ADFPipelineCreateRepositoryFunction
       Role: !GetAtt CreateRepositoryLambdaRole.Arn
 
   GeneratePipelineInputsFunction:
@@ -791,7 +791,7 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
           ROOT_ACCOUNT_ID: !Ref RootAccountId
-      FunctionName: GeneratePipelineInputsFunction
+      FunctionName: ADFPipelineGenerateInputsFunction
       Role: !GetAtt GeneratePipelineInputsLambdaRole.Arn
 
   StoreDefinitionFunction:
@@ -808,7 +808,7 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref ADFDefinitionBucket
           ROOT_ACCOUNT_ID: !Ref RootAccountId
-      FunctionName: StoreDefinitionFunction
+      FunctionName: ADFPipelineStoreDefinitionFunction
       Role: !GetAtt StoreDefinitionLambdaRole.Arn
 
   IdentifyOutOfDatePipelinesFunction:
@@ -826,7 +826,7 @@ Resources:
           ROOT_ACCOUNT_ID: !Ref RootAccountId
           S3_BUCKET_NAME: !Ref ADFPipelineBucket
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
-      FunctionName: IdentifyOutOfDatePipelinesFunction
+      FunctionName: ADFPipelineIdentifyOutOfDatePipelinesFunction
       Role: !GetAtt IdentifyOutOfDatePipelinesLambdaRole.Arn
 
   ADFDefinitionBucket:

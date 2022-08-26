@@ -51,27 +51,32 @@ def get_file_from_s3(s3_details: dict, s3_resource: boto3.resource):
             return yaml.safe_load(file_pointer)
     except ClientError as error:
         LOGGER.error(
-            f"Failed to download {s3_details.get('object_key')} "
-            f"from {s3_details.get('bucket_name')}, due to {error}"
+            "Failed to download %s from %s, due to %s",
+            s3_details.get('object_key'),
+            s3_details.get('bucket_name'),
+            error,
         )
         raise
     except YAMLError as yaml_error:
         LOGGER.error(
-            f"Failed to parse YAML file: {s3_details.get('object_key')} "
-            f"from {s3_details.get('bucket_name')}, due to {yaml_error}"
+            "Failed to parse YAML file: %s from %s, due to %s",
+            s3_details.get('object_key'),
+            s3_details.get('bucket_name'),
+            yaml_error,
         )
         raise
 
 
 def start_executions(sfn_client, deployment_map):
     LOGGER.info(
-        f"Invoking Pipeline Management State Machine ({PIPELINE_MANAGEMENT_STATEMACHINE})"
+        "Invoking Pipeline Management State Machine (%s)",
+        PIPELINE_MANAGEMENT_STATEMACHINE,
     )
     for pipeline in deployment_map.get("pipelines"):
-        LOGGER.debug(f"Payload: {pipeline}")
+        LOGGER.debug("Payload: %s", pipeline)
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
-            input=f"{json.dumps(pipeline)}",
+            input=json.dumps(pipeline),
         )
 
 
