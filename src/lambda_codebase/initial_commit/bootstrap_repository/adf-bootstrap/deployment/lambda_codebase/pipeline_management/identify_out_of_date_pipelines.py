@@ -2,7 +2,6 @@
 Pipeline Management Lambda Function
 Compares pipeline definitions in S3 to the definitions stored in SSM Param Store.
 Any that exist in param store but not S3 are marked for removal.
-
 """
 
 import os
@@ -28,11 +27,11 @@ def download_deployment_maps(resource, prefix, local):
     for result in paginator.paginate(
         Bucket=S3_BUCKET_NAME, Delimiter="/", Prefix=prefix
     ):
-        LOGGER.info(result)
+        LOGGER.debug("Downloaded deployment map: %s", result)
         for subdir in result.get("CommonPrefixes", []):
             download_deployment_maps(resource, subdir.get("Prefix"), local)
         for file in result.get("Contents", []):
-            LOGGER.info(file)
+            LOGGER.debug("File content in deployment map: %s", file)
             dest_path_name = os.path.join(local, file.get("Key"))
             if not os.path.exists(os.path.dirname(dest_path_name)):
                 os.makedirs(os.path.dirname(dest_path_name))
@@ -54,8 +53,11 @@ def identify_out_of_date_pipelines(pipeline_names, current_pipelines):
 
 def delete_ssm_params(out_of_date_pipelines, parameter_store):
     for pipeline in out_of_date_pipelines:
-        print(pipeline)
-        print(f"/deployment/{pipeline.get('pipeline')}/regions")
+        LOGGER.debug(
+            "Deleting SSM regions parameter of stale pipeline: /deployment/%s/regions - %s",
+            pipeline.get('name'),
+            pipeline,
+        )
         parameter_store.delete_parameter(
             f"/deployment/{pipeline.get('pipeline').removeprefix(ADF_PIPELINE_PREFIX)}/regions"
         )

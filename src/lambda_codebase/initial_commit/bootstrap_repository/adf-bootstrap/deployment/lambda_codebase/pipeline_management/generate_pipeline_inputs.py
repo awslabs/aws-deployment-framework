@@ -1,7 +1,6 @@
 """
 Pipeline Management Lambda Function
 Generates Pipeline Inputs
-
 """
 
 import os

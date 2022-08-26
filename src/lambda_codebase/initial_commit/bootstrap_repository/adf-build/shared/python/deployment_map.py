@@ -92,8 +92,10 @@ class DeploymentMap:
         )
         if not self.map_contents['pipelines']:
             LOGGER.error(
-                "No Deployment Map files found, create a deployment_map.yml file in the root of the repository to create pipelines. "
-                "You can create additional deployment maps if required in a folder named deployment_maps with any name (ending in .yml)"
+                "No Deployment Map files found, create a deployment_map.yml "
+                "file in the root of the repository to create pipelines. "
+                "You can create additional deployment maps if required in a "
+                "folder named deployment_maps with any name (ending in .yml)"
             )
             raise InvalidDeploymentMapError("No Deployment Map files found..") from None
 
