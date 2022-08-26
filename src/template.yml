@@ -1458,7 +1458,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
-      CodeUri: lambda_codebase/determine_default_branch
+      CodeUri: lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/determine_default_branch
       Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
       Policies:
         - Version: "2012-10-17"
@@ -1467,7 +1467,7 @@ Resources:
               Action:
                 - codecommit:GetRepository
               Resource: !GetAtt CodeCommitRepository.Arn
-      FunctionName: BootstrapDetermineDefaultBranchName
+      FunctionName: ADFBootstrapDetermineDefaultBranchName
 
   InitialCommit:
     Type: Custom::InitialCommit

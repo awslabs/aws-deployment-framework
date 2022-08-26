@@ -484,7 +484,7 @@ run to finalize the update to the latest version.
 
 Which branch is used is determined by:
 1. Describing the CodeCommit repository, it will use the default branch of the repository.
-1. Follow [these instructions](#update-the-default-branch-of-the-bootstrap-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
+1. Follow [these instructions](#update-the-default-branch-of-the-bootstrap-pipelines-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
 
 In the management account in us-east-1:
 1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
@@ -504,7 +504,7 @@ Once finished, it will trigger the aws-deployment-framework-_pipelines_ pipeline
 
 If this last pipeline turned green, to be sure that all went well, you can release changes in a pipeline of your choice to test them.
 
-### Update the default branch of the bootstrap repository
+### Update the default branch of the bootstrap/pipelines repository
 
 ADF will automatically detect the default branch that is configured for the CodeCommit repository.
 
@@ -513,13 +513,14 @@ you need to create a new branch from the current default branch.
 
 For example, switching from `master` to `main`:
 Simply running these commands from inside the
-`aws-deployment-framework-bootstrap` repository that is cloned locally
+`aws-deployment-framework-bootstrap` or the
+`aws-deployment-framework-pipelines` repository that is cloned locally
 should do it:
 
 ```bash
-# Please note: this assumes that the aws-deployment-framework-bootstrap
-# repository is configured as the origin remote in your local git
-# environment.
+# Please note: this assumes that the
+# aws-deployment-framework-bootstrap/pipelines repository is configured as the
+# origin remote in your local git environment.
 
 git fetch
 git checkout origin/master
