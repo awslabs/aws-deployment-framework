@@ -7,6 +7,7 @@ Any that exist in param store but not S3 are marked for removal.
 import os
 import json
 import hashlib
+import tempfile
 
 import boto3
 
@@ -66,14 +67,16 @@ def delete_ssm_params(out_of_date_pipelines, parameter_store):
 def lambda_handler(event, _):
     output = event.copy()
     s3 = boto3.resource("s3")
-    download_deployment_maps(s3, "", "/tmp")
-    deployment_map = DeploymentMap(
-        None,
-        None,
-        None,
-        map_path="/tmp/deployment_map.yml",
-        map_dir_path="/tmp/",
-    )
+    deployment_map = None
+    with tempfile.TemporaryDirectory() as tmp_dir_path:
+        download_deployment_maps(s3, "", tmp_dir_path)
+        deployment_map = DeploymentMap(
+            None,
+            None,
+            None,
+            map_path=f"{tmp_dir_path}/deployment_map.yml",
+            map_dir_path=tmp_dir_path,
+        )
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     current_pipelines = {
             parameter.get("Name").split("/")[-2]
