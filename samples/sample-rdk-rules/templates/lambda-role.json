@@ -26,7 +26,7 @@
                             "Action": ["s3:GetObject"],
                             "Effect": "Allow",
                             "Resource": {
-                                "Fn::Sub": "arn:aws:s3:::${SourceBucket}/${SourceBucketFolder}/*"
+                                "Fn::Sub": "arn:${AWS::Partition}:s3:::${SourceBucket}/${SourceBucketFolder}/*"
                             }
                         },
                         {
@@ -68,7 +68,7 @@
         ],
         "ManagedPolicyArns": [
             {
-                "Fn::Sub": "arn:aws:iam::aws:policy/ReadOnlyAccess"
+                "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"
             }
         ]
     }

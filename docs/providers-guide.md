@@ -139,7 +139,7 @@ Please note: you can use S3 as a source and deployment provider. The properties
 that are available are slightly different.
 
 The role used to fetch the object from the S3 bucket is:
-`arn:aws:iam::${source_account_id}:role/adf-codecommit-role`.
+`arn:${partition}:iam::${source_account_id}:role/adf-codecommit-role`.
 
 Provider type: `s3`.
 
@@ -383,7 +383,7 @@ Provider type: `codedeploy`.
   > The name of the CodeDeploy Application you want to use for this deployment.
 - *deployment_group_name* *(String)* **(required)**
   > The name of the Deployment Group you want to use for this deployment.
-- *role* - *(String)* default `arn:aws:iam::${target_account_id}:role/adf-cloudformation-role`.
+- *role* - *(String)* default `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
   > The role you would like to use on the target AWS account to execute the
   > CodeDeploy action. The role should allow the CodeDeploy service to assume
   > it. As is [documented in the CodeDeploy service role documentation](https://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-create-service-role.html).
@@ -436,7 +436,7 @@ Provider type: `cloudformation`.
   >
   > Defaults to empty string, the root of the source repository or input
   > artifact.
-- *role* - *(String)* default `arn:aws:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
+- *role* - *(String)* default `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
   > The role you would like to use on the target AWS account to execute the
   > CloudFormation action. Ensure that the CloudFormation service should be
   > allowed to assume that role.
@@ -495,7 +495,7 @@ Provider type: `lambda`.
 Service Catalog deployment provider.
 
 The role used to deploy the service catalog is:
-`arn:aws:iam::${target_account_id}:role/adf-cloudformation-role`.
+`arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
 
 Provider type: `service_catalog`.
 
@@ -520,7 +520,7 @@ Please note: you can use S3 as a source and deployment provider. The properties
 that are available are slightly different.
 
 The role used to upload the object(s) to the S3 bucket is:
-`arn:aws:iam::${target_account_id}:role/adf-cloudformation-role`.
+`arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
 
 Provider type: `s3`.
 
@@ -533,5 +533,5 @@ Provider type: `s3`.
 - *extract* - *(Boolean)* default: `False`.
   > Whether CodePipeline should extract the contents of the object when
   > it deploys it.
-- *role* - *(String)* default: `arn:aws:iam::${target_account_id}:role/adf-cloudformation-role`.
+- *role* - *(String)* default: `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
   > The role you would like to use for this action.

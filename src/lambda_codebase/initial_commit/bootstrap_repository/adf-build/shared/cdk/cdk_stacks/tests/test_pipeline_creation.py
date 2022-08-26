@@ -445,10 +445,14 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
     assert resources["pipelinenoti"]["Type"] == (
         "AWS::CodeStarNotifications::NotificationRule"
     )
-    assert target["TargetAddress"] == (
-        "arn:aws:chatbot::111111111111:"
-        "chat-configuration/slack-channel/fake-config"
-    )
+    assert target["TargetAddress"] == {
+        "Fn::Join": ["", [
+            "arn:",
+            {"Ref": "AWS::Partition"},
+            ":chatbot::111111111111:"
+            "chat-configuration/slack-channel/fake-config"
+        ]]
+    }
     assert target["TargetType"] == "AWSChatbotSlack"
     assert pipeline_notification["EventTypeIds"] == [
         "codepipeline-pipeline-stage-execution-succeeded",
