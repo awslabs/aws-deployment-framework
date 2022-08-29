@@ -762,15 +762,14 @@ Resources:
               runtime-versions:
                 python: 3.9
                 nodejs: 14
-            pre_build:
               commands:
                 - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
             build:
               commands:
-                - aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
-                - aws s3 sync deployment_maps/* s3://$ADF_PIPELINES_BUCKET
+                - bash -c "[[ -e deployment_map.yml ]] && echo 'Copying deployment_map.yml' && aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml || echo 'No deployment_map.yml, skipping copy'"
+                - bash -c "[[ -e deployment_maps ]] && echo 'Syncing deployment_maps folder' && aws s3 sync deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps || echo 'No deployment_maps folder, skipping sync'"
       ServiceRole: !GetAtt PipelineProvisionerCodeBuildRole.Arn
       Tags:
         - Key: "Name"
