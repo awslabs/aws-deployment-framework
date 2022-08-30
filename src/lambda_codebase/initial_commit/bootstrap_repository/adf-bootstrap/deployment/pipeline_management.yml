@@ -178,6 +178,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-provisioner-generate-inputs"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
