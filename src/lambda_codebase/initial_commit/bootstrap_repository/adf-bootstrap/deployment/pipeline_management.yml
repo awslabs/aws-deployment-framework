@@ -420,7 +420,18 @@ Resources:
                 "BackoffRate": 1.5,
                 "MaxAttempts": 10
               }],
-              "Next": "InvokeDeleteStateMachine"
+              "Next": "AnyPipelineToBeDeleted?"
+            },
+            "AnyPipelineToBeDeleted?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.pipelines_to_be_deleted",
+                  "IsPresent": true,
+                  "Next": "InvokeDeleteStateMachine"
+                }
+              ],
+              "Default": "Success"
             },
             "InvokeDeleteStateMachine": {
               "Type": "Task",
