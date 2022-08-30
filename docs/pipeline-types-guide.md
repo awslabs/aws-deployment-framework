@@ -15,8 +15,8 @@ in when updating ADF versions.
 
 ### Adding a new pipeline type
 
-A pipeline can either be added manually into the [cdk_stacks](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks)
-folder as a separate python file or installed via [requirements.txt](src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt)
+A pipeline can either be added manually into the [cdk_stacks](/src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks)
+folder as a separate python file or installed via [requirements.txt](/src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt)
 in the adf-build folder.
 
 #### Source Code
