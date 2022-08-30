@@ -1,23 +1,31 @@
 # User Guide
 
-- [Deployment Map](#deployment-map)
-  - [Providers](#providers)
-  - [Targets Syntax](#targets-syntax)
-  - [Params](#params)
-  - [Repositories](#repositories)
-  - [Completion Triggers](#completion-triggers)
-  - [Additional Triggers](#additional-triggers)
-  - [Additional Deployment Maps](#additional-deployment-maps)
-  - [Removing Pipelines](#removing-pipelines)
-- [Deploying via Pipelines](#deploying-via-pipelines)
-  - [BuildSpec](#buildspec)
-  - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
-  - [Serverless Transforms](#serverless-transforms)
-  - [Parameter Injection](#parameter-injection)
-  - [Nested Stacks](#nested-cloudformation-stacks)
-  - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
-  - [Using Anchors and Alias](#using-anchors-and-alias)
-  - [One to many Relationships](#one-to-many-relationships)
+- [User Guide](#user-guide)
+  - [Deployment Map](#deployment-map)
+      - [Targeting via Tags](#targeting-via-tags)
+    - [Important Notes](#important-notes)
+      - [Zero-prefixed AWS Account Ids](#zero-prefixed-aws-account-ids)
+    - [Providers](#providers)
+    - [Targets Syntax](#targets-syntax)
+    - [Params](#params)
+    - [Completion Triggers](#completion-triggers)
+    - [Additional Triggers](#additional-triggers)
+    - [Additional Deployment Maps](#additional-deployment-maps)
+    - [Repositories](#repositories)
+    - [Removing Pipelines](#removing-pipelines)
+  - [Deploying via Pipelines](#deploying-via-pipelines)
+    - [BuildSpec](#buildspec)
+      - [Custom Build Images](#custom-build-images)
+    - [CloudFormation Parameters and Tagging](#cloudformation-parameters-and-tagging)
+    - [Serverless Transforms](#serverless-transforms)
+    - [Parameter Injection](#parameter-injection)
+      - [Retrieving parameter values](#retrieving-parameter-values)
+      - [Importing output values](#importing-output-values)
+      - [Uploading assets](#uploading-assets)
+    - [Nested CloudFormation Stacks](#nested-cloudformation-stacks)
+    - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
+    - [Using Anchors and Alias](#using-anchors-and-alias)
+    - [One to many relationships](#one-to-many-relationships)
 
 ## Deployment Map
 
@@ -195,7 +203,7 @@ targets:
     regions: [eu-central-1, us-west-1]
     name: another_step
     wave:
-      size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
+      size: 30 # (Optional) This forces the pipeline to split this OU into separate stages, each stage containing up to X accounts
     exclude:
       - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids
     properties: ...

@@ -8,7 +8,7 @@ The flow below is a high level overview of what happens when a change is committ
 ![bootstrap-repo-overview](./images/TechnicalGuide-BootstrapRepo.png)
 
 ### Account Management State Machine 
-The Account Managment State Machine is triggered by S3 PUT events to the ADF Accounts bucket. 
+The Account Management State Machine is triggered by S3 PUT events to the ADF Accounts bucket. 
 Below is a diagram detailing the components of the standard state machine. This state machine is defined in `src/account_processing.yml` and the lambda functions code is location in `src/lambda_codebase/account_processing`
 ![account-management-state-machine](./images/TechnicalGuide-AccountManagementStateMachine.drawio.png)
 

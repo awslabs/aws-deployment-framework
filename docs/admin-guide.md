@@ -1,35 +1,39 @@
 # Administrator Guide
 
-- [Src Folder](#src-folder)
-- [adfconfig](#adfconfig)
-  - [Roles](#roles)
-  - [Regions](#regions)
-  - [Config](#config)
-- [Accounts](#Accounts)
-  - [Master](#master-account)
-  - [Deployment](#deployment-account)
-    - [Default Deployment Account Region](#default-deployment-account-region)
-  - [Bootstrapping](#bootstrapping-accounts)
-    - [Bootstrapping Overview](#bootstrapping-overview)
-    - [Bootstrapping Inheritance](#bootstrapping-inheritance)
-    - [Regional Bootstrapping](#regional-bootstrapping)
-    - [Global Bootstrapping](#global-bootstrapping)
-    - [Bootstrapping Regions](#bootstrapping-regions)
-    - [Bootstrapping Recommendations](#bootstrapping-recommendations)
-  - [Pipelines](#pipelines)
-    - [Pipeline Parameters](#pipeline-parameters)
-    - [Using Github](#using-github)
-    - [Chaining Pipelines](#chaining-pipelines)
-- [Service Control Policies](#service-control-policies)
-- [Tagging Policies](#tagging-policies)
-- [Pipelines](#pipelines)
-  - [Pipeline Parameters](#pipeline-parameters)
-  - [Chaining Pipelines](#chaining-pipelines)
-- [Integrating Slack](#integrating-slack)
-- [Check Current Version](#check-current-version)
-- [Updating Between Versions](#updating-between-versions)
-- [Removing ADF](#removing-adf)
-- [Troubleshooting](#troubleshooting)
+- [Administrator Guide](#administrator-guide)
+  - [Src Folder](#src-folder)
+  - [adfconfig](#adfconfig)
+    - [Roles](#roles)
+    - [Regions](#regions)
+    - [Config](#config)
+  - [Accounts](#accounts)
+    - [Master Account](#master-account)
+    - [Deployment Account](#deployment-account)
+      - [Default Deployment Account Region](#default-deployment-account-region)
+    - [Account Provisioning](#account-provisioning)
+    - [Bootstrapping Accounts](#bootstrapping-accounts)
+      - [Bootstrapping Overview](#bootstrapping-overview)
+      - [Bootstrapping Inheritance](#bootstrapping-inheritance)
+      - [Regional Bootstrapping](#regional-bootstrapping)
+      - [Global Bootstrapping](#global-bootstrapping)
+      - [Bootstrapping Regions](#bootstrapping-regions)
+      - [Bootstrapping Recommendations](#bootstrapping-recommendations)
+    - [Pipelines](#pipelines)
+      - [Pipeline Parameters](#pipeline-parameters)
+      - [Using Github](#using-github)
+      - [Chaining Pipelines](#chaining-pipelines)
+  - [Service Control Policies](#service-control-policies)
+  - [Tagging Policies](#tagging-policies)
+  - [Integrating Slack](#integrating-slack)
+    - [Integrating with Slack using Lambda](#integrating-with-slack-using-lambda)
+    - [Integrating with Slack with AWS ChatBot](#integrating-with-slack-with-aws-chatbot)
+  - [Check Current Version](#check-current-version)
+    - [ADF version you have deployed](#adf-version-you-have-deployed)
+    - [Latest ADF version that is available](#latest-adf-version-that-is-available)
+  - [Updating Between Versions](#updating-between-versions)
+  - [Removing ADF](#removing-adf)
+  - [Troubleshooting](#troubleshooting)
+    - [How to share debug information](#how-to-share-debug-information)
 
 ## Src Folder
 
@@ -140,7 +144,7 @@ The Bootstrapping of AWS an Account is a concept that allows you to specify an A
 
 When deploying ADF via the Serverless Application Repository, a CodeCommit repository titled `aws-deployment-framework-bootstrap` will also be created. This repository acts as an entry point for bootstrapping templates. The definition of which templates are applied to which Organization Unit are defined in the folder structure of the `aws-deployment-framework-bootstrap` repository.
 
-Create a folder structure and associated CloudFormation templates *(global.yml)* or *(regional.yml)* and optional parameters *(global-params.json)* or *(regional-params.json)* that match your desired specificity when bootstrapping your AWS Accounts. Commit and push this repository to the CodeCommit repository titled `aws-deployment-framework-bootstrap` on the master account. The `regional.yml` is optional however the base configuration required for the ADF to funtion as intended in the default `global.yml` in the base of the *bootstrap repository* repository.
+Create a folder structure and associated CloudFormation templates *(global.yml)* or *(regional.yml)* and optional parameters *(global-params.json)* or *(regional-params.json)* that match your desired specificity when bootstrapping your AWS Accounts. Commit and push this repository to the CodeCommit repository titled `aws-deployment-framework-bootstrap` on the master account. The `regional.yml` is optional however the base configuration required for the ADF to function as intended in the default `global.yml` in the base of the *bootstrap repository* repository.
 
 Pushing to this repository will initiate AWS CodePipeline to run which will in-turn start AWS CodeBuild to sync the contents of the repository with S3. Once the files are in S3, moving an Account into a specific AWS Organization will trigger AWS Step Functions to run and to apply the bootstrap template for that specific Organizational Unit to that newly moved account.
 

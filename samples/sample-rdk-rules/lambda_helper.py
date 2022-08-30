@@ -43,7 +43,7 @@ def clean_up_template(file: str):
         os.remove(file)
    
 
-def get_tempalte_skeleton(shared_modules_bucket: str) -> dict:
+def get_template_skeleton(shared_modules_bucket: str) -> dict:
     #get skeleton
     parameters = load_json_file(Path(templates_root).joinpath("parameters.json"))
     parameters["SourceBucketFolder"]["Default"] = s3_rdk_assets_prefix
@@ -85,7 +85,7 @@ def write_template(template:dict, file_name:str):
 def main(shared_modules_bucket: str):
     s3 = S3(deployment_account_region, shared_modules_bucket)
     clean_up_template(template_name)
-    template = get_tempalte_skeleton(shared_modules_bucket)
+    template = get_template_skeleton(shared_modules_bucket)
     
     config_rules_dirs = [x for x in  Path(config_rules_root).iterdir() if x.is_dir()]
     for config_rule_dir in config_rules_dirs:
@@ -111,7 +111,7 @@ def main(shared_modules_bucket: str):
         )
         print(f"uploaded to {uploaded_asset_path}")
         clean_up_template(file_asset_path)
-        print(f"Creating tempalte for {rule_name}")
+        print(f"Creating template for {rule_name}")
         template = add_lambda_to_template_by_rule(template, config_rule_dir, rule_name, s3_asset_key)
     
     write_template(template, template_name)
