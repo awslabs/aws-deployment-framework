@@ -523,7 +523,6 @@ Resources:
               runtime-versions:
                 python: 3.9
                 nodejs: 14
-            pre_build:
               commands:
                 - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
@@ -583,6 +582,7 @@ Resources:
                 Action:
                   - cloudformation:CreateStack
                   - cloudformation:UpdateStack
+                  - cloudformation:UpdateTerminationProtection
                 Resource:
                   - "*"
                 Condition:
