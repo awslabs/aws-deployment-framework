@@ -673,7 +673,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "ConfigureAccountTags"
             },
@@ -697,7 +697,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "WaitFor10Seconds"
             },
@@ -726,7 +726,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "ConfigureAccountAlias"
             },
@@ -750,7 +750,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "ConfigureAccountOU"
             },
@@ -774,7 +774,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "DeleteDefaultVPCChoice"
             },
@@ -809,7 +809,7 @@ Resources:
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
                   "MaxAttempts": 6
-                },
+                }
               ],
               "Next": "DeleteDefaultVPCMap"
             },
@@ -832,7 +832,7 @@ Resources:
                             "Lambda.Unknown",
                             "Lambda.ServiceException",
                             "Lambda.AWSLambdaException",
-                            "Lambda.SdkClientException"
+                            "Lambda.SdkClientException",
                             "Lambda.TooManyRequestsException"
                           ],
                           "IntervalSeconds": 2,
@@ -1048,7 +1048,7 @@ Resources:
           eventName:
             - MoveAccount
       Targets:
-        - Arn: !Ref StateMachine
+        - Arn: !Ref AccountBootstrappingStateMachine
           RoleArn: !GetAtt StatesExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
@@ -1422,9 +1422,12 @@ Resources:
                   - "states:StartExecution"
                 Resource: "*"
 
-  StateMachine:
+  AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
+      RoleArn: !GetAtt StatesExecutionRole.Arn
+      TracingConfiguration:
+        Enabled: true
       DefinitionString: !Sub |-
         {
           "Comment": "ADF Account Bootstrapping Process",
@@ -1620,7 +1623,6 @@ Resources:
             }
           }
         }
-      RoleArn: !GetAtt StatesExecutionRole.Arn
 
   DetermineDefaultBranchName:
     Type: Custom::DetermineDefaultBranchName
