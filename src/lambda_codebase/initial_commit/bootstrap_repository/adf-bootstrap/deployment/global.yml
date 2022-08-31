@@ -717,6 +717,7 @@ Resources:
           DestinationArn: !Ref PipelineSNSTopic
           Branches:
             - master
+            - main
           Events:
             - all
 
@@ -796,7 +797,7 @@ Resources:
               OutputArtifacts:
                 - Name: "Source"
               Configuration:
-                BranchName: "master"
+                BranchName: !GetAtt DetermineDefaultBranchName.DefaultBranchName
                 RepositoryName: !GetAtt CodeCommitRepository.Name
                 PollForSourceChanges: false
               RunOrder: 1
@@ -1325,6 +1326,28 @@ Resources:
         }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 
+  DetermineDefaultBranchName:
+    Type: Custom::DetermineDefaultBranchName
+    Properties:
+      ServiceToken: !GetAtt DetermineDefaultBranchNameHandler.Arn
+      Version: !Ref ADFVersion
+      RepositoryArn: !GetAtt CodeCommitRepository.Arn
+
+  DetermineDefaultBranchNameHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: lambda_codebase/determine_default_branch
+      Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - codecommit:GetRepository
+              Resource: !GetAtt CodeCommitRepository.Arn
+      FunctionName: ADFPipelinesDetermineDefaultBranchName
+
   InitialCommit:
     Type: Custom::InitialCommit
     Properties:
@@ -1332,6 +1355,7 @@ Resources:
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       Version: !Ref ADFVersion
       DirectoryName: pipelines_repository
+      DefaultBranchName: !GetAtt DetermineDefaultBranchName.DefaultBranchName
 
   InitialCommitHandler:
     Type: AWS::Serverless::Function
@@ -1401,7 +1425,7 @@ Resources:
           referenceType:
             - branch
           referenceName:
-            - master
+            - !GetAtt DetermineDefaultBranchName.DefaultBranchName
       Targets:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
