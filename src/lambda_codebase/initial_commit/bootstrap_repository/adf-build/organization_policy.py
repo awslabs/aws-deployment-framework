@@ -186,7 +186,7 @@ class OrganizationPolicy:
                         current_policy.get("Content")
                     ) == self._compare_ordered_policy(proposed_policy):
                         LOGGER.info(
-                            "Policy (%s) %s does not require updating. " "Path is: %s",
+                            "Policy (%s) %s does not require updating. Path is: %s",
                             policy,
                             organization_mapping[path],
                             path,
