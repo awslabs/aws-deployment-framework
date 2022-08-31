@@ -1228,74 +1228,37 @@ Resources:
       StateMachineName: "EnableCrossAccountAccess"
       DefinitionString: !Sub |-
         {
-            "Comment": "Enable Cross Account Access from Deployment Account",
-            "StartAt": "DetermineEvent",
-            "States": {
-                "DetermineEvent": {
-                    "Type": "Choice",
-                    "Choices": [
-                        {
-                            "Variable": "$.update_only",
-                            "NumericEquals": 1,
-                            "Next": "UpdateDeploymentPipelines"
-                        }, {
-                            "Not": {
-                                "Variable": "$.error",
-                                "NumericEquals": 0
-                            },
-                            "Next": "NotifyFailure"
-                        }
-                    ],
-                    "Default": "EnableCrossAccountAccessMap"
-                },
-                "EnableCrossAccountAccessMap": {
-                    "Type": "Map",
-                    "Next": "UpdateDeploymentPipelines",
-                    "Iterator": {
-                      "StartAt": "EnableCrossAccountAccess",
-                      "States": {
-                        "EnableCrossAccountAccess": {
-                          "Type": "Task",
-                          "Resource": "${EnableCrossAccountAccess.Arn}",
-                          "TimeoutSeconds": 900,
-                          "End": true,
-                          "Retry": [
-                            {
-                              "ErrorEquals": [
-                                "States.TaskFailed"
-                              ],
-                              "BackoffRate": 1.1,
-                              "IntervalSeconds": 1,
-                              "MaxAttempts": 10
-                            }, {
-                              "ErrorEquals": [
-                                "Lambda.Unknown",
-                                "Lambda.ServiceException",
-                                "Lambda.AWSLambdaException",
-                                "Lambda.SdkClientException"
-                                "Lambda.TooManyRequestsException"
-                              ],
-                              "IntervalSeconds": 2,
-                              "MaxAttempts": 6,
-                              "BackoffRate": 2
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    "ItemsPath": "$.account_ids",
-                    "Parameters": {
-                      "deployment_account_region.$": "$.deployment_account_region",
-                      "deployment_account_id.$": "$.deployment_account_id",
-                      "account_id.$": "$$.Map.Item.Value",
-                      "regions.$": "$.regions"
-                    },
-                    "ResultPath": null
-                },
-                "UpdateDeploymentPipelines": {
+          "Comment": "Enable Cross Account Access from Deployment Account",
+          "StartAt": "DetermineEvent",
+          "States": {
+            "DetermineEvent": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.update_only",
+                  "NumericEquals": 1,
+                  "Next": "UpdateDeploymentPipelines"
+                }, {
+                  "Not": {
+                    "Variable": "$.error",
+                    "NumericEquals": 0
+                  },
+                  "Next": "NotifyFailure"
+                }
+              ],
+              "Default": "EnableCrossAccountAccessMap"
+            },
+            "EnableCrossAccountAccessMap": {
+              "Type": "Map",
+              "Next": "UpdateDeploymentPipelines",
+              "Iterator": {
+                "StartAt": "EnableCrossAccountAccess",
+                "States": {
+                  "EnableCrossAccountAccess": {
                     "Type": "Task",
-                    "Resource": "${CheckPipelineStatus.Arn}",
-                    "TimeoutSeconds": 60,
+                    "Resource": "${EnableCrossAccountAccess.Arn}",
+                    "TimeoutSeconds": 900,
+                    "End": true,
                     "Retry": [
                       {
                         "ErrorEquals": [
@@ -1316,45 +1279,84 @@ Resources:
                         "MaxAttempts": 6,
                         "BackoffRate": 2
                       }
-                    ],
-                    "Next": "NeedToNotifySuccess?"
-                },
-                "NeedToNotifySuccess?": {
-                    "Type": "Choice",
-                    "Choices": [{
-                        "Variable": "$.update_only",
-                        "NumericEquals": 1,
-                        "Next": "Success"
-                    }],
-                    "Default": "NotifySuccess"
-                },
-                "Success": {
-                    "Type": "Succeed"
-                },
-                "Failure": {
-                    "Type": "Fail"
-                },
-                "NotifySuccess": {
-                    "Type": "Task",
-                    "Resource": "arn:${AWS::Partition}:states:::sns:publish",
-                    "Parameters": {
-                        "TopicArn": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
-                        "Message.$": "$.message",
-                        "Subject": "Success - AWS Deployment Framework Bootstrap"
-                    },
-                    "Next": "Success"
-                },
-                "NotifyFailure": {
-                    "Type": "Task",
-                    "Resource": "arn:${AWS::Partition}:states:::sns:publish",
-                    "Parameters": {
-                        "TopicArn": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
-                        "Message.$": "$.error",
-                        "Subject": "Failure - AWS Deployment Framework Bootstrap"
-                    },
-                    "Next": "Failure"
+                    ]
+                  }
                 }
+              },
+              "ItemsPath": "$.account_ids",
+              "Parameters": {
+                "deployment_account_region.$": "$.deployment_account_region",
+                "deployment_account_id.$": "$.deployment_account_id",
+                "account_id.$": "$$.Map.Item.Value",
+                "regions.$": "$.regions"
+              },
+              "ResultPath": null
+            },
+            "UpdateDeploymentPipelines": {
+              "Type": "Task",
+              "Resource": "${CheckPipelineStatus.Arn}",
+              "TimeoutSeconds": 60,
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "BackoffRate": 1.1,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 10
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "NeedToNotifySuccess?"
+            },
+            "NeedToNotifySuccess?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.update_only",
+                  "NumericEquals": 1,
+                  "Next": "Success"
+                }
+              ],
+              "Default": "NotifySuccess"
+            },
+            "Success": {
+                "Type": "Succeed"
+            },
+            "Failure": {
+                "Type": "Fail"
+            },
+            "NotifySuccess": {
+              "Type": "Task",
+              "Resource": "arn:${AWS::Partition}:states:::sns:publish",
+              "Parameters": {
+                "TopicArn": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
+                "Message.$": "$.message",
+                "Subject": "Success - AWS Deployment Framework Bootstrap"
+              },
+              "Next": "Success"
+            },
+            "NotifyFailure": {
+              "Type": "Task",
+              "Resource": "arn:${AWS::Partition}:states:::sns:publish",
+              "Parameters": {
+                "TopicArn": "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelineSNSTopic.TopicName}",
+                "Message.$": "$.error",
+                "Subject": "Failure - AWS Deployment Framework Bootstrap"
+              },
+              "Next": "Failure"
             }
+          }
         }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 
