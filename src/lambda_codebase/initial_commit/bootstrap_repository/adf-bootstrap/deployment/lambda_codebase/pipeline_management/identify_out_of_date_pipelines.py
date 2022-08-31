@@ -91,7 +91,10 @@ def lambda_handler(event, _):
     )
     delete_ssm_params(out_of_date_pipelines, parameter_store)
 
-    output = {"pipelines_to_be_deleted": out_of_date_pipelines}
+    output = {}
+    if len(out_of_date_pipelines) > 0:
+        output["pipelines_to_be_deleted"] = out_of_date_pipelines
+
     data_md5 = hashlib.md5(
         json.dumps(output, sort_keys=True).encode("utf-8")
     ).hexdigest()
