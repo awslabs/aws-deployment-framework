@@ -1,4 +1,4 @@
-## Sample Terraform 
+## Sample Terraform
 
 ### Deployment Map example
 

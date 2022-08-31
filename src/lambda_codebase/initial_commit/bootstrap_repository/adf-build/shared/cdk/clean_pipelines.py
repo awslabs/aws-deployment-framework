@@ -3,10 +3,11 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to remove stale SSM Parameter Store entries and delete
-   the CloudFormation stacks for pipelines that are no longer defined
-   in the deployment map(s)
+"""
+This file is pulled into CodeBuild containers
+and used to remove stale SSM Parameter Store entries and delete
+the CloudFormation stacks for pipelines that are no longer defined
+in the deployment map(s)
 """
 
 import os
@@ -36,24 +37,25 @@ def clean(parameter_store, deployment_map):
     Deployment Pipelines that are no longer in the Deployment Map
     """
     current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
-        '/deployment/')
+        "/deployment/"
+    )
 
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     cloudformation = CloudFormation(
         region=DEPLOYMENT_ACCOUNT_REGION,
         deployment_account_region=DEPLOYMENT_ACCOUNT_REGION,
-        role=boto3
+        role=boto3,
     )
     stacks_to_remove = []
     for parameter in current_pipeline_parameters:
-        name = parameter.get('Name').split('/')[-2]
+        name = parameter.get("Name").split("/")[-2]
         defined_pipelines = [
-            pipeline.get('name')
-            for pipeline in deployment_map.map_contents['pipelines']
+            pipeline.get("name")
+            for pipeline in deployment_map.map_contents["pipelines"]
         ]
         if name not in defined_pipelines:
             LOGGER.info(f'Deleting {parameter.get("Name")}')
-            parameter_store.delete_parameter(parameter.get('Name'))
+            parameter_store.delete_parameter(parameter.get("Name"))
             stacks_to_remove.append(name)
 
     for stack in list(set(stacks_to_remove)):
@@ -61,24 +63,17 @@ def clean(parameter_store, deployment_map):
 
 
 def main():
-    LOGGER.info('ADF Version %s', ADF_VERSION)
+    LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
-    parameter_store = ParameterStore(
-        DEPLOYMENT_ACCOUNT_REGION,
-        boto3
-    )
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
 
     s3 = S3(DEPLOYMENT_ACCOUNT_REGION, SHARED_MODULES_BUCKET)
-    deployment_map = DeploymentMap(
-        parameter_store,
-        s3,
-        ADF_PIPELINE_PREFIX
-    )
+    deployment_map = DeploymentMap(parameter_store, s3, ADF_PIPELINE_PREFIX)
 
-    LOGGER.info('Cleaning Stale Deployment Map entries')
+    LOGGER.info("Cleaning Stale Deployment Map entries")
     clean(parameter_store, deployment_map)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

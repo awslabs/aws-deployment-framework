@@ -38,16 +38,16 @@ ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
 
 def ensure_event_bus_status(organization_id):
-    events = boto3.client('events')
+    events = boto3.client("events")
     events.put_permission(
-        Action='events:PutEvents',
-        Principal='*',
-        StatementId='OrgAccessForEventBus',
+        Action="events:PutEvents",
+        Principal="*",
+        StatementId="OrgAccessForEventBus",
         Condition={
-            'Type': 'StringEquals',
-            'Key': 'aws:PrincipalOrgID',
-            'Value': organization_id,
-        }
+            "Type": "StringEquals",
+            "Key": "aws:PrincipalOrgID",
+            "Value": organization_id,
+        },
     )
 
 
@@ -60,13 +60,13 @@ def store_regional_parameter_config(pipeline, parameter_store):
     if pipeline.top_level_regions:
         parameter_store.put_parameter(
             f"/deployment/{pipeline.nam}/regions",
-            str(list(set(pipeline.top_level_regions)))
+            str(list(set(pipeline.top_level_regions))),
         )
         return
 
     parameter_store.put_parameter(
         f"/deployment/{pipeline.name}/regions",
-        str(list(set(Pipeline.flatten_list(pipeline.stage_regions))))
+        str(list(set(Pipeline.flatten_list(pipeline.stage_regions)))),
     )
 
 
@@ -76,46 +76,69 @@ def fetch_required_ssm_params(regions):
         parameter_store = ParameterStore(region, boto3)
         output[region] = {
             "s3": parameter_store.fetch_parameter(
-                f'/cross_region/s3_regional_bucket/{region}',
+                f"/cross_region/s3_regional_bucket/{region}",
             ),
             "kms": parameter_store.fetch_parameter(
-                f'/cross_region/kms_arn/{region}',
+                f"/cross_region/kms_arn/{region}",
             ),
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
-            output[region]["modules"] = parameter_store.fetch_parameter('deployment_account_bucket')
-            output['default_scm_branch'] = parameter_store.fetch_parameter('default_scm_branch')
+            output[region]["modules"] = parameter_store.fetch_parameter(
+                "deployment_account_bucket"
+            )
+            output["default_scm_branch"] = parameter_store.fetch_parameter(
+                "default_scm_branch"
+            )
     return output
 
 
-def worker_thread(p, organizations, auto_create_repositories, deployment_map, parameter_store):
-    LOGGER.debug("Worker Thread started for %s", p.get('name'))
+def worker_thread(
+    p, organizations, auto_create_repositories, deployment_map, parameter_store
+):
+    LOGGER.debug("Worker Thread started for %s", p.get("name"))
     pipeline = Pipeline(p)
-    if auto_create_repositories == 'enabled':
-        code_account_id = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id', {})
-        has_custom_repo = p.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {})
-        if auto_create_repositories and code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
-            repo = Repo(code_account_id, p.get('name'), p.get('description'))
+    if auto_create_repositories == "enabled":
+        code_account_id = (
+            p.get("default_providers", {})
+            .get("source", {})
+            .get("properties", {})
+            .get("account_id", {})
+        )
+        has_custom_repo = (
+            p.get("default_providers", {})
+            .get("source", {})
+            .get("properties", {})
+            .get("repository", {})
+        )
+        if (
+            auto_create_repositories
+            and code_account_id
+            and str(code_account_id).isdigit()
+            and not has_custom_repo
+        ):
+            repo = Repo(code_account_id, p.get("name"), p.get("description"))
             repo.create_update()
 
     regions = []
-    for target in p.get('targets', []):
+    for target in p.get("targets", []):
         target_structure = TargetStructure(target)
         for step in target_structure.target:
-            regions = step.get(
-                'regions', p.get(
-                    'regions', DEPLOYMENT_ACCOUNT_REGION))
+            regions = step.get("regions", p.get("regions", DEPLOYMENT_ACCOUNT_REGION))
             paths_tags = []
-            for path in step.get('path', []):
+            for path in step.get("path", []):
                 paths_tags.append(path)
-            if step.get('tags') is not None:
-                paths_tags.append(step.get('tags', {}))
+            if step.get("tags") is not None:
+                paths_tags.append(step.get("tags", {}))
             for path_or_tag in paths_tags:
                 pipeline.stage_regions.append(regions)
-                pipeline_target = Target(path_or_tag, target_structure, organizations, step, regions)
+                pipeline_target = Target(
+                    path_or_tag, target_structure, organizations, step, regions
+                )
                 pipeline_target.fetch_accounts_for_target()
 
-            pipeline.template_dictionary["targets"].append(target_structure.generate_waves())
+            pipeline.template_dictionary["targets"].append(
+                target_structure.generate_waves()
+            )
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
@@ -125,17 +148,19 @@ def worker_thread(p, organizations, auto_create_repositories, deployment_map, pa
     )
     deployment_map.update_deployment_parameters(pipeline)
     store_regional_parameter_config(pipeline, parameter_store)
-    with open(f'cdk_inputs/{pipeline.input["name"]}.json', mode='w', encoding='utf-8') as outfile:
+    with open(
+        f'cdk_inputs/{pipeline.input["name"]}.json', mode="w", encoding="utf-8"
+    ) as outfile:
         data = {}
-        data['input'] = pipeline.input
-        data['input']['default_scm_branch'] = ssm_params.get('default_scm_branch')
-        data['ssm_params'] = ssm_params
+        data["input"] = pipeline.input
+        data["input"]["default_scm_branch"] = ssm_params.get("default_scm_branch")
+        data["ssm_params"] = ssm_params
         json.dump(data, outfile)
 
 
 def _create_inputs_folder():
     try:
-        return os.mkdir('cdk_inputs')
+        return os.mkdir("cdk_inputs")
     except FileExistsError:
         return None
 
@@ -145,46 +170,41 @@ def main():
     Generate pipeline inputs script. Kicks off multiple threads to
     generate the pipeline inputs in parallel.
     """
-    LOGGER.info('ADF Version %s', ADF_VERSION)
+    LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
     _create_inputs_folder()
-    parameter_store = ParameterStore(
-        DEPLOYMENT_ACCOUNT_REGION,
-        boto3
-    )
+    parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     s3 = S3(DEPLOYMENT_ACCOUNT_REGION, SHARED_MODULES_BUCKET)
-    deployment_map = DeploymentMap(
-        parameter_store,
-        s3,
-        ADF_PIPELINE_PREFIX
-    )
+    deployment_map = DeploymentMap(parameter_store, s3, ADF_PIPELINE_PREFIX)
     sts = STS()
     partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
     cross_account_access_role = parameter_store.fetch_parameter(
-        'cross_account_access_role',
+        "cross_account_access_role",
     )
     role = sts.assume_cross_account_role(
         (
-            f'arn:{partition}:iam::{MASTER_ACCOUNT_ID}:role/'
-            f'{cross_account_access_role}-readonly'
+            f"arn:{partition}:iam::{MASTER_ACCOUNT_ID}:role/"
+            f"{cross_account_access_role}-readonly"
         ),
-        'pipeline'
+        "pipeline",
     )
     organizations = Organizations(role)
     ensure_event_bus_status(ORGANIZATION_ID)
     try:
         auto_create_repositories = parameter_store.fetch_parameter(
-            'auto_create_repositories',
+            "auto_create_repositories",
         )
     except ParameterNotFoundError:
-        auto_create_repositories = 'enabled'
+        auto_create_repositories = "enabled"
     threads = []
     cache = Cache()
-    for pipeline in deployment_map.map_contents.get('pipelines', []):
+    for pipeline in deployment_map.map_contents.get("pipelines", []):
         source_account_id = (
-            pipeline.get('default_providers', {}).get(
-                'source', {}).get('properties', {}).get('account_id')
+            pipeline.get("default_providers", {})
+            .get("source", {})
+            .get("properties", {})
+            .get("account_id")
         )
         need_to_create_rules = (
             source_account_id
@@ -195,13 +215,16 @@ def main():
             rule = Rule(source_account_id)
             rule.create_update()
             cache.add(source_account_id, True)
-        thread = PropagatingThread(target=worker_thread, args=(
-            pipeline,
-            organizations,
-            auto_create_repositories,
-            deployment_map,
-            parameter_store
-        ))
+        thread = PropagatingThread(
+            target=worker_thread,
+            args=(
+                pipeline,
+                organizations,
+                auto_create_repositories,
+                deployment_map,
+                parameter_store,
+            ),
+        )
         thread.start()
         threads.append(thread)
 
@@ -209,5 +232,5 @@ def main():
         thread.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

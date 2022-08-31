@@ -3,8 +3,9 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to build the pipeline CloudFormation stacks via the AWS CDK
+"""
+This file is pulled into CodeBuild containers
+and used to build the pipeline CloudFormation stacks via the AWS CDK
 """
 
 import glob
@@ -23,17 +24,17 @@ ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
 
 def main():
-    LOGGER.info('ADF Version %s', ADF_VERSION)
+    LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
     _threads = []
     _templates = glob.glob("cdk_inputs/*.json")
     for template_path in _templates:
-        with open(template_path, encoding='utf-8') as template:
+        with open(template_path, encoding="utf-8") as template:
             stack_input = json.load(template)
             app = core.App()
             PipelineStack(app, stack_input)
             app.synth()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

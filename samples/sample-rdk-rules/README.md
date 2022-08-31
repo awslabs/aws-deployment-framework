@@ -1,11 +1,11 @@
 # Sample RDK Rules pipeline
-This setup will allow you to deploy custom config rules created by the RDK via ADF pipeline. 
+This setup will allow you to deploy custom config rules created by the RDK via ADF pipeline.
 
 ## Architecture
 ![Architecture](./meta/custom-configs.png)
 * As a first step it requires to have a Source code repository to store our code. In this pattern we are using CodeCommit repository. This repository created by as a part of the pipeline definition in the ADF's deployment_map.yml. Example of the pipeline definition is in the ADF setup section.
 * ADF pipeline definition creates a pipeline that will deploy Lambda function(s) into the compliance account and Custom Config rule(s) to Target accounts.
-* When a Custom Config rule get pushed into the CodeCommit repository; 
+* When a Custom Config rule get pushed into the CodeCommit repository;
     - CodeBuild will find the RDK rule(s) recursively in the `config-rules` directory then zip each single rule one by one and upload into ADF bucket. Buildspec is utilising a helper script called lambda_helper.py to achieve this task. ADF populates bucket names into SSM Parameter store on the Installation. lambda_helper.py fetches the bucket name from the SSM Parameter Store. Parameter name looks like /cross_region/s3_regional_bucket/{region}.
     - Then CodeBuild will generate 2 CloudFormation templates one for Lambda function(s) deployment and other for the Custom Config rule(s) deployment.
 
@@ -27,7 +27,7 @@ Sample pipeline definition looks like below:
         image: "STANDARD_5_0"
     deploy:
       provider: cloudformation
-  targets:  
+  targets:
     - name: LambdaDeployment
       regions: <regions>
       target: <compliance-account-id>
@@ -36,7 +36,7 @@ Sample pipeline definition looks like below:
     - name: ConfigRulesDeployment
       regions: <regions>
       target:
-        - <target-accounts-to-deploy-custom-config-rules> 
+        - <target-accounts-to-deploy-custom-config-rules>
       properties:
         template_filename: "template-config-rules.json"
 ```
@@ -54,10 +54,10 @@ After you clone the repo following file/folder structure will be there;
 | requirements.txt | Requirements for the lambda_helper.py script.                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## Lambda function implementation requirements
-In Lambda functions when you want to refer boto3 client or resource make sure 
+In Lambda functions when you want to refer boto3 client or resource make sure
 - Set `ASSUME_ROLE_MODE` constant to `True`
 - Use `get_client` method for client.
-- Duplicate `get_client` and create the `get_resource` method. 
+- Duplicate `get_client` and create the `get_resource` method.
 
 ```
 def get_resource(service, event, region=None):
@@ -85,6 +85,6 @@ These methods use STS and config payload to assume the IAM role in the target ac
 ## Prerequisites/ Important bits
 - This solution does not setup config or config recorder.
 - When this solution deploys the config-rule to a target account; it expects config is enabled in the target account.
-- Each target account's config role should be able assume by `<account-that-has-the-lambda-function>` to put evaluations into each target account's config. AKA config role in target account(2222222222) should have the lambda-function-account-id(1111111111) as trusted entity as below. 
+- Each target account's config role should be able assume by `<account-that-has-the-lambda-function>` to put evaluations into each target account's config. AKA config role in target account(2222222222) should have the lambda-function-account-id(1111111111) as trusted entity as below.
 
 ![Trusted entiry](./meta/lambda-account-id-trusted-entiry.png)
