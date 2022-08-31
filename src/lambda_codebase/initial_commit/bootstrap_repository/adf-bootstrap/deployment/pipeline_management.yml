@@ -6,36 +6,47 @@ Parameters:
   OrganizationID:
     Type: String
     MinLength: "1"
+
   ADFVersion:
     Type: String
     MinLength: "1"
+
   LambdaLayer:
     Type: String
     MinLength: "1"
+
   CrossAccountAccessRole:
     Type: String
     MinLength: "1"
+
   PipelineBucket:
     Type: String
     MinLength: "1"
+
   RootAccountId:
     Type: String
     MinLength: "1"
+
   CodeBuildImage:
     Type: String
     MinLength: "1"
+
   CodeBuildComputeType:
     Type: String
     MinLength: "1"
+
   SharedModulesBucket:
     Type: String
     MinLength: "1"
+
   PipelinePrefix:
     Type: String
     MinLength: "1"
+
   StackPrefix:
     Type: String
     MinLength: "1"
+
   ADFLogLevel:
     Type: String
     MinLength: "1"
@@ -98,6 +109,7 @@ Resources:
             Resource: !Sub "${ADFPipelineBucket.Arn}/*"
       Roles:
         - !Ref DeploymentMapProcessingLambdaRole
+
   CrossAccountCloudFormationPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -178,6 +190,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-provisioner-generate-inputs"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -206,6 +219,7 @@ Resources:
                   - "ssm:PutParameter"
                 Resource:
                   - "*"
+
   StoreDefinitionLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -229,6 +243,7 @@ Resources:
                   - "s3:PutObject"
                 Resource:
                   - !Sub "${ADFDefinitionBucket.Arn}/*"
+
   IdentifyOutOfDatePipelinesLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -420,7 +435,18 @@ Resources:
                 "BackoffRate": 1.5,
                 "MaxAttempts": 10
               }],
-              "Next": "InvokeDeleteStateMachine"
+              "Next": "AnyPipelineToBeDeleted?"
+            },
+            "AnyPipelineToBeDeleted?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.pipelines_to_be_deleted",
+                  "IsPresent": true,
+                  "Next": "InvokeDeleteStateMachine"
+                }
+              ],
+              "Default": "Success"
             },
             "InvokeDeleteStateMachine": {
               "Type": "Task",
@@ -523,7 +549,6 @@ Resources:
               runtime-versions:
                 python: 3.9
                 nodejs: 14
-            pre_build:
               commands:
                 - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
@@ -537,6 +562,7 @@ Resources:
                 - cdk synth --app adf-build/cdk/generate_pipeline_stacks.py -vv
                 - python adf-build/cdk/execute_pipeline_stacks.py
       ServiceRole: !GetAtt PipelineManagementCodeBuildProjectRole.Arn
+
   PipelineManagementCodeBuildProjectRole:
     Type: AWS::IAM::Role
     Properties:
@@ -583,6 +609,7 @@ Resources:
                 Action:
                   - cloudformation:CreateStack
                   - cloudformation:UpdateStack
+                  - cloudformation:UpdateTerminationProtection
                 Resource:
                   - "*"
                 Condition:

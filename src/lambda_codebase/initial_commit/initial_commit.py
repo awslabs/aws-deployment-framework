@@ -4,7 +4,7 @@ initial bootstrap repository content.
 """
 
 from typing import Mapping, Optional, Union, List, Dict, Any, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from enum import Enum
 from pathlib import Path
 import re
@@ -60,6 +60,7 @@ class CustomResourceProperties:
     RepositoryArn: str
     DirectoryName: str
     Version: str
+    DefaultBranchName: Optional[str] = None
     CrossAccountAccessRole: Optional[str] = None
     DeploymentAccountRegion: Optional[str] = None
     ExistingAccountId: Optional[str] = None
@@ -81,6 +82,12 @@ class CustomResourceProperties:
             )
 
 
+def to_dict(datacls_or_dict: Any) -> dict:
+    if isinstance(datacls_or_dict, CustomResourceProperties):
+        return datacls_or_dict.__dict__
+    return datacls_or_dict
+
+
 @dataclass
 class Event:
     RequestType: str
@@ -93,8 +100,18 @@ class Event:
     ResourceProperties: CustomResourceProperties
 
     def __post_init__(self):
+        # Used to filter out any properties that this class does not know about
+        custom_resource_fields = list(map(
+            lambda a: a.name,
+            fields(CustomResourceProperties),
+        ))
         self.ResourceProperties = CustomResourceProperties(
-            **self.ResourceProperties  # pylint: disable=not-a-mapping
+            **{
+                key: value for key, value in to_dict(
+                    self.ResourceProperties
+                ).items()
+                if key in custom_resource_fields
+            }
         )
 
 
@@ -139,11 +156,18 @@ class UpdateEvent(Event):
     OldResourceProperties: CustomResourceProperties
 
     def __post_init__(self):
-        self.ResourceProperties = CustomResourceProperties(
-            **self.ResourceProperties # pylint: disable=not-a-mapping
-        )
+        super().__post_init__()
+        custom_resource_fields = list(map(
+            lambda a: a.name,
+            fields(CustomResourceProperties),
+        ))
         self.OldResourceProperties = CustomResourceProperties(
-            **self.OldResourceProperties # pylint: disable=not-a-mapping
+            **{
+                key: value for key, value in to_dict(
+                    self.OldResourceProperties
+                ).items()
+                if key in custom_resource_fields
+            }
         )
 
 
@@ -167,7 +191,7 @@ def chunks(list_to_chunk, number_to_chunk_into):
     return (list_to_chunk[item:item + number_of_chunks] for item in range(0, len(list_to_chunk), number_of_chunks))
 
 
-def generate_pull_request_input(event, repo_name):
+def generate_pull_request_input(event, repo_name, default_branch_name):
     return {
         "title": f'ADF {event.ResourceProperties.Version} Automated Update PR',
         "description": PR_DESCRIPTION.format(event.ResourceProperties.Version),
@@ -175,13 +199,13 @@ def generate_pull_request_input(event, repo_name):
             {
                 'repositoryName': repo_name,
                 'sourceReference': event.ResourceProperties.Version,
-                'destinationReference': 'master'
+                'destinationReference': default_branch_name,
             },
         ]
     }
 
 
-def generate_commit_input(repo_name, index, branch="master", parent_commit_id=None, puts=None, deletes=None):
+def generate_commit_input(repo_name, index, branch="main", parent_commit_id=None, puts=None, deletes=None):
     commit_action = "Delete" if deletes else "Create"
     output = {
         "repositoryName": repo_name,
@@ -201,11 +225,12 @@ def generate_commit_input(repo_name, index, branch="master", parent_commit_id=No
 def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], Data]:
     create_event = CreateEvent(**event)
     repo_name = repo_arn_to_name(create_event.ResourceProperties.RepositoryArn)
+    default_branch_name = create_event.ResourceProperties.DefaultBranchName
     directory = create_event.ResourceProperties.DirectoryName
     try:
         commit_id = CC_CLIENT.get_branch(
             repositoryName=repo_name,
-            branchName="master",
+            branchName=default_branch_name,
         )["branch"]["commitId"]
         CC_CLIENT.create_branch(
             repositoryName=repo_name,
@@ -224,7 +249,11 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
                 )["commitId"]
 
         CC_CLIENT.create_pull_request(
-            **generate_pull_request_input(create_event, repo_name)
+            **generate_pull_request_input(
+                create_event,
+                repo_name,
+                default_branch_name,
+            )
         )
         return event.get("PhysicalResourceId"), {}
 
@@ -261,12 +290,13 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
 def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[PhysicalResourceId, Data]: #pylint: disable=R0912, R0915
     update_event = UpdateEvent(**event)
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
+    default_branch_name = update_event.ResourceProperties.DefaultBranchName
     files_to_delete = get_files_to_delete(repo_name)
     files_to_commit = get_files_to_commit(update_event.ResourceProperties.DirectoryName)
 
     commit_id = CC_CLIENT.get_branch(
         repositoryName=repo_name,
-        branchName="master",
+        branchName=default_branch_name,
     )["branch"]["commitId"]
     CC_CLIENT.create_branch(
         **generate_create_branch_input(update_event, repo_name, commit_id)
@@ -298,7 +328,13 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
         except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
             pass
     if create_pr or files_to_delete:
-        CC_CLIENT.create_pull_request(**generate_pull_request_input(update_event, repo_name))
+        CC_CLIENT.create_pull_request(
+            **generate_pull_request_input(
+                update_event,
+                repo_name,
+                default_branch_name,
+            )
+        )
     else:
         CC_CLIENT.delete_branch(**generate_delete_branch_input(update_event, repo_name))
 

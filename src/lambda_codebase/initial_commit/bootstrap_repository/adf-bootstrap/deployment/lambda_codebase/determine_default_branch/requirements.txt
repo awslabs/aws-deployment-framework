@@ -1,0 +1,2 @@
+boto3==1.18.2
+cfn-custom-resource~=1.0.1
