@@ -1,10 +1,4 @@
 {
-    "replacementPatterns": [
-        {
-            "pattern": "^/",
-            "replacement": "{{BASEURL}}/tmp/lint/"
-        }
-    ],
     "httpHeaders": [
         {
             "urls": [
