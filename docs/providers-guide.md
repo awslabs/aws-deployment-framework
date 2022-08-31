@@ -12,22 +12,37 @@ Providers and Actions.
 
 ## Index
 
-- [Source](#source)
-  - [CodeCommit](#codecommit)
-  - [GitHub](#github)
-  - [S3](#s3)
-  - [CodeStar](#codestar)
-- [Build](#build)
-  - [CodeBuild](#codebuild)
-  - [Jenkins](#jenkins)
-- [Deploy](#deploy)
-  - [Approval](#approval)
-  - [CodeBuild](#codebuild-1)
-  - [CodeDeploy](#codedeploy)
-  - [CloudFormation](#cloudformation)
-  - [Lambda](#lambda)
-  - [Service Catalog](#service-catalog)
-  - [S3](#s3-1)
+- [Providers Guide](#providers-guide)
+  - [Index](#index)
+  - [Source](#source)
+    - [CodeCommit](#codecommit)
+      - [Properties](#properties)
+    - [GitHub](#github)
+      - [Properties](#properties-1)
+    - [S3](#s3)
+      - [Properties](#properties-2)
+    - [CodeStar](#codestar)
+      - [Properties](#properties-3)
+  - [Build](#build)
+    - [CodeBuild](#codebuild)
+      - [Properties](#properties-4)
+    - [Jenkins](#jenkins)
+      - [Properties](#properties-5)
+  - [Deploy](#deploy)
+    - [Approval](#approval)
+      - [Properties](#properties-6)
+    - [CodeBuild](#codebuild-1)
+      - [Properties](#properties-7)
+    - [CodeDeploy](#codedeploy)
+      - [Properties](#properties-8)
+    - [CloudFormation](#cloudformation)
+      - [Properties](#properties-9)
+    - [Lambda](#lambda)
+      - [Properties](#properties-10)
+    - [Service Catalog](#service-catalog)
+      - [Properties](#properties-11)
+    - [S3](#s3-1)
+      - [Properties](#properties-12)
 
 ## Source
 
@@ -234,7 +249,7 @@ Provider type: `codebuild`.
   > pipeline to consume a custom image if required.
   > Along with `repository_arn`, we also support a `tag` key which can be used
   > to define which image should be used (defaults to `latest`).
-  > An example of this setup is provided [here](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/user-guide.md#custom-build-images).
+  > An example of this setup is provided [here](user-guide.md#custom-build-images).
   > 
   > Image can also take an object that contains a reference to a
   > public docker hub image with a prefix of `docker-hub://`, such as
@@ -299,7 +314,7 @@ Jenkins can be configured as the build provider, where it will be triggered
 as part of the CodePipeline deployed by ADF.
 
 To use Jenkins as a Build provider, you will need to install the
-[Jenkins Plugin as documented here](https://wiki.jenkins.io/display/JENKINS/AWS+CodePipeline+Plugin).
+[Jenkins Plugin as documented here](https://plugins.jenkins.io/aws-codepipeline).
 
 Provider type: `jenkins`.
 

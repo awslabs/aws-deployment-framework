@@ -1,35 +1,40 @@
 # Administrator Guide
 
-- [Src Folder](#src-folder)
-- [adfconfig](#adfconfig)
-  - [Roles](#roles)
-  - [Regions](#regions)
-  - [Config](#config)
-- [Accounts](#Accounts)
-  - [Master](#master-account)
-  - [Deployment](#deployment-account)
-    - [Default Deployment Account Region](#default-deployment-account-region)
-  - [Bootstrapping](#bootstrapping-accounts)
-    - [Bootstrapping Overview](#bootstrapping-overview)
-    - [Bootstrapping Inheritance](#bootstrapping-inheritance)
-    - [Regional Bootstrapping](#regional-bootstrapping)
-    - [Global Bootstrapping](#global-bootstrapping)
-    - [Bootstrapping Regions](#bootstrapping-regions)
-    - [Bootstrapping Recommendations](#bootstrapping-recommendations)
-  - [Pipelines](#pipelines)
-    - [Pipeline Parameters](#pipeline-parameters)
-    - [Using Github](#using-github)
-    - [Chaining Pipelines](#chaining-pipelines)
-- [Service Control Policies](#service-control-policies)
-- [Tagging Policies](#tagging-policies)
-- [Pipelines](#pipelines)
-  - [Pipeline Parameters](#pipeline-parameters)
-  - [Chaining Pipelines](#chaining-pipelines)
-- [Integrating Slack](#integrating-slack)
-- [Check Current Version](#check-current-version)
-- [Updating Between Versions](#updating-between-versions)
-- [Removing ADF](#removing-adf)
-- [Troubleshooting](#troubleshooting)
+- [Administrator Guide](#administrator-guide)
+  - [Src Folder](#src-folder)
+  - [adfconfig](#adfconfig)
+    - [Roles](#roles)
+    - [Regions](#regions)
+    - [Config](#config)
+  - [Accounts](#accounts)
+    - [Master Account](#master-account)
+    - [Deployment Account](#deployment-account)
+      - [Default Deployment Account Region](#default-deployment-account-region)
+    - [Account Provisioning](#account-provisioning)
+    - [Bootstrapping Accounts](#bootstrapping-accounts)
+      - [Bootstrapping Overview](#bootstrapping-overview)
+      - [Bootstrapping Inheritance](#bootstrapping-inheritance)
+      - [Regional Bootstrapping](#regional-bootstrapping)
+      - [Global Bootstrapping](#global-bootstrapping)
+      - [Bootstrapping Regions](#bootstrapping-regions)
+      - [Bootstrapping Recommendations](#bootstrapping-recommendations)
+    - [Pipelines](#pipelines)
+      - [Pipeline Parameters](#pipeline-parameters)
+      - [Using Github](#using-github)
+      - [Chaining Pipelines](#chaining-pipelines)
+  - [Service Control Policies](#service-control-policies)
+  - [Tagging Policies](#tagging-policies)
+  - [Integrating Slack](#integrating-slack)
+    - [Integrating with Slack using Lambda](#integrating-with-slack-using-lambda)
+    - [Integrating with Slack with AWS ChatBot](#integrating-with-slack-with-aws-chatbot)
+  - [Check Current Version](#check-current-version)
+    - [ADF version you have deployed](#adf-version-you-have-deployed)
+    - [Latest ADF version that is available](#latest-adf-version-that-is-available)
+  - [Updating Between Versions](#updating-between-versions)
+    - [Update the default branch of the bootstrap/pipelines repository](#update-the-default-branch-of-the-bootstrappipelines-repository)
+  - [Removing ADF](#removing-adf)
+  - [Troubleshooting](#troubleshooting)
+    - [How to share debug information](#how-to-share-debug-information)
 
 ## Src Folder
 
@@ -100,7 +105,7 @@ In the above example we want our main region to be the `eu-central-1` region, th
 
 Config has five components in `main-notification-endpoint`, `scp`, `scm`, `moves` and `protected`.
 
-- **main-notification-endpoint** is the main notification endpoint for the bootstrapping pipeline and deployment account pipeline creation pipeline. This value should be a valid email address or [slack](./admin-guide/#integrating-slack) channel that will receive updates about the status *(Success/Failure)* of CodePipeline that is associated with bootstrapping and creation/updating of all pipelines throughout your organization.
+- **main-notification-endpoint** is the main notification endpoint for the bootstrapping pipeline and deployment account pipeline creation pipeline. This value should be a valid email address or [slack](#integrating-slack) channel that will receive updates about the status *(Success/Failure)* of CodePipeline that is associated with bootstrapping and creation/updating of all pipelines throughout your organization.
 - **moves** is configuration related to moving accounts within your AWS Organization. Currently the only configuration options for `moves` is named *to-root* and allows either `safe` or `remove_base`. If you specify *safe* you are telling the framework that when an AWS Account is moved from whichever OU it currently is in, back into the root of the Organization it will not make any direct changes to the account. It will however update any AWS CodePipeline pipelines that the account belonged to so that it is no longer a valid target. If you specify `remove_base` for this option and move an account to the root of your organization it will attempt to remove the base CloudFormation stacks *(regional and global)* from the account and then update any associated pipeline.
 - **protected** is a configuration that allows you to specify a list of OUs that are not configured by the AWS Deployment Framework bootstrapping process. You can move accounts to the protected OUs which will skip the standard bootstrapping process. This is useful for migrating existing accounts into being managed by The ADF.
 - **scp** allows the definition of configuration options that relate to Service Control Policies. Currently the only option for *scp* is *keep-default-scp* which can either be *enabled* or *disabled*. This option determines if the default FullAWSAccess Service Control Policy should stay attached to OUs that are managed by an *scp.json* or if it should be removed to make way for a more specific SCP, by default this is *enabled*. Its important to understand how SCPs work before setting this setting to disabled. Please read [How SCPs work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_about-scps.html) for more information.
@@ -123,11 +128,11 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 
 ### Deployment Account
 
-The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map files via AWS CodePipeline. The Deployment account holds the [deployment_map.yml](#deployment_map) file(s) which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the deployment map files via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
+The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map files via AWS CodePipeline. The Deployment account holds the [deployment_map.yml](#pipelines) file(s) which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the deployment map files via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
 
 #### Default Deployment Account Region
 
-The Default Deployment account region is the region where the Pipelines you create and their associated [stacks](#pipeline_types) will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the region that you would consider your default region of choice when deploying resources in AWS.
+The Default Deployment account region is the region where the [Pipelines](#pipelines) you create and their associated stacks will reside. It is also the region that will host CodeCommit repositories *(If you choose to use CodeCommit)*. You can think of the Deployment Account region as the region that you would consider your default region of choice when deploying resources in AWS.
 
 ### Account Provisioning
 ADF enables automated AWS Account creation and management via its Account Provisioning process. This process runs as part of the bootstrap pipeline and ensures the existence of AWS Accounts defined in *.yml* files within the *adf-accounts* directory. For more information on how how this works see the *readme.md* in the adf-accounts directory.
@@ -140,7 +145,7 @@ The Bootstrapping of AWS an Account is a concept that allows you to specify an A
 
 When deploying ADF via the Serverless Application Repository, a CodeCommit repository titled `aws-deployment-framework-bootstrap` will also be created. This repository acts as an entry point for bootstrapping templates. The definition of which templates are applied to which Organization Unit are defined in the folder structure of the `aws-deployment-framework-bootstrap` repository.
 
-Create a folder structure and associated CloudFormation templates *(global.yml)* or *(regional.yml)* and optional parameters *(global-params.json)* or *(regional-params.json)* that match your desired specificity when bootstrapping your AWS Accounts. Commit and push this repository to the CodeCommit repository titled `aws-deployment-framework-bootstrap` on the master account. The `regional.yml` is optional however the base configuration required for the ADF to funtion as intended in the default `global.yml` in the base of the *bootstrap repository* repository.
+Create a folder structure and associated CloudFormation templates *(global.yml)* or *(regional.yml)* and optional parameters *(global-params.json)* or *(regional-params.json)* that match your desired specificity when bootstrapping your AWS Accounts. Commit and push this repository to the CodeCommit repository titled `aws-deployment-framework-bootstrap` on the master account. The `regional.yml` is optional however the base configuration required for the ADF to function as intended in the default `global.yml` in the base of the *bootstrap repository* repository.
 
 Pushing to this repository will initiate AWS CodePipeline to run which will in-turn start AWS CodeBuild to sync the contents of the repository with S3. Once the files are in S3, moving an Account into a specific AWS Organization will trigger AWS Step Functions to run and to apply the bootstrap template for that specific Organizational Unit to that newly moved account.
 
@@ -220,7 +225,7 @@ Similar to [Regional Bootstrapping](#regional-bootstrapping) however defined at 
 
 #### Bootstrapping Regions
 
-When you setup the initial configuration for the AWS Deployment Framework you define your parameters in the Serverless Application Repository, some of these details get placed into the [adfconfig.yml](#adfconfig.yml). This file defines the regions you will use for not only bootstrapping but which regions will later be used as targets for deployment pipelines. Be sure you read the section on *adfconfig* to understand how this ties in with bootstrapping.
+When you setup the initial configuration for the AWS Deployment Framework you define your parameters in the Serverless Application Repository, some of these details get placed into the [adfconfig.yml](#adfconfig). This file defines the regions you will use for not only bootstrapping but which regions will later be used as targets for deployment pipelines. Be sure you read the section on *adfconfig* to understand how this ties in with bootstrapping.
 
 #### Bootstrapping Recommendations
 
@@ -234,7 +239,7 @@ The name you specify in the *deployment_map.yml* *(or other map files)* will be 
 
 The pipeline for this CloudFormation template should only ever be triggered by changes on the repository in that specific teams account. In this case, the AWS Account Id for the team that is responsible for this specific CloudFormation will be entered in the parameters as **source_account_id** value.
 
-When you enter the *source_account_id* in the *deployment_map.yml**, you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to [adfconfig.yml - config/scm/default-scm-branch](#adfconfig.yml))*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source. Another common parameter used in pipelines is `restart_execution_on_update`, when this is set to *True* it will automatically trigger a run of the pipeline whenever its structure is updated. This is useful when you want a pipeline to automatically execute when a new account is moved into an Organizational Unit that a pipeline deploys into, such as foundational resources (eg VPC, IAM CloudFormation resources).
+When you enter the *source_account_id* in the *deployment_map.yml**, you are saying that this pipeline can only receive content *(trigger a run)* from a change on that specific repository in that specific account and on a specific branch *(defaults to [adfconfig.yml - config/scm/default-scm-branch](#adfconfig))*. This stops other accounts making repositories that might push code down an unintended pipeline since every pipeline maps to only one source. Another common parameter used in pipelines is `restart_execution_on_update`, when this is set to *True* it will automatically trigger a run of the pipeline whenever its structure is updated. This is useful when you want a pipeline to automatically execute when a new account is moved into an Organizational Unit that a pipeline deploys into, such as foundational resources (eg VPC, IAM CloudFormation resources).
 
 
 ```yaml
@@ -303,7 +308,7 @@ In this example, we want to take our `input.zip` file from the Amazon S3 Bucket 
 
 In order for a pipeline to be connected to Github you will need to create a Personal Access Token in Github that allows its connection to AWS CodePipeline. You can read more about creating a Token [here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html). Once the token has been created you can store that in AWS Secrets Manager on the Deployment Account. The Webhook Secret is a value you define and store in AWS Secrets Manager with a path of `/adf/my_teams_token`. By Default, ADF only has read access access to Secrets with a path that starts with `/adf/`.
 
-Once the values are stored, you can create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](#./user-guide/#deployment-map) to use the new source type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github, in this case the repository on github must be named 'vpc'.
+Once the values are stored, you can create the Repository in Github as per normal. Once its created you do not need to do anything else on Github's side just update your [deployment map](user-guide.md#deployment-map) to use the new source type and push to the deployment account. Here is an example of a deployment map with a single pipeline from Github, in this case the repository on github must be named 'vpc'.
 
 ```yaml
 pipelines:
@@ -447,7 +452,7 @@ Check the CloudFormation stack output or tag of the `serverlessrepo-aws-deployme
 
 If you want to check which version is the latest one available, go to the management account in us-east-1:
 1. Navigate to the AWS Deployment Framework Serverless Application Repository *(SAR)*, it can be found [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-1. You can find the latest version in the title of the page, like so: `aws-deployment-framework — version x.y.z`.
+2. You can find the latest version in the title of the page, like so: `aws-deployment-framework — version x.y.z`.
 
 ## Updating Between Versions
 
@@ -484,7 +489,7 @@ run to finalize the update to the latest version.
 
 Which branch is used is determined by:
 1. Describing the CodeCommit repository, it will use the default branch of the repository.
-1. Follow [these instructions](#update-the-default-branch-of-the-bootstrap-pipelines-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
+2. Follow [these instructions](#update-the-default-branch-of-the-bootstrappipelines-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
 
 In the management account in us-east-1:
 1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)

@@ -1,23 +1,31 @@
 # User Guide
 
-- [Deployment Map](#deployment-map)
-  - [Providers](#providers)
-  - [Targets Syntax](#targets-syntax)
-  - [Params](#params)
-  - [Repositories](#repositories)
-  - [Completion Triggers](#completion-triggers)
-  - [Additional Triggers](#additional-triggers)
-  - [Additional Deployment Maps](#additional-deployment-maps)
-  - [Removing Pipelines](#removing-pipelines)
-- [Deploying via Pipelines](#deploying-via-pipelines)
-  - [BuildSpec](#buildspec)
-  - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
-  - [Serverless Transforms](#serverless-transforms)
-  - [Parameter Injection](#parameter-injection)
-  - [Nested Stacks](#nested-cloudformation-stacks)
-  - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
-  - [Using Anchors and Alias](#using-anchors-and-alias)
-  - [One to many Relationships](#one-to-many-relationships)
+- [User Guide](#user-guide)
+  - [Deployment Map](#deployment-map)
+      - [Targeting via Tags](#targeting-via-tags)
+    - [Important Notes](#important-notes)
+      - [Zero-prefixed AWS Account Ids](#zero-prefixed-aws-account-ids)
+    - [Providers](#providers)
+    - [Targets Syntax](#targets-syntax)
+    - [Params](#params)
+    - [Completion Triggers](#completion-triggers)
+    - [Additional Triggers](#additional-triggers)
+    - [Additional Deployment Maps](#additional-deployment-maps)
+    - [Repositories](#repositories)
+    - [Removing Pipelines](#removing-pipelines)
+  - [Deploying via Pipelines](#deploying-via-pipelines)
+    - [BuildSpec](#buildspec)
+      - [Custom Build Images](#custom-build-images)
+    - [CloudFormation Parameters and Tagging](#cloudformation-parameters-and-tagging)
+    - [Serverless Transforms](#serverless-transforms)
+    - [Parameter Injection](#parameter-injection)
+      - [Retrieving parameter values](#retrieving-parameter-values)
+      - [Importing output values](#importing-output-values)
+      - [Uploading assets](#uploading-assets)
+    - [Nested CloudFormation Stacks](#nested-cloudformation-stacks)
+    - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
+    - [Using Anchors and Alias](#using-anchors-and-alias)
+    - [One to many relationships](#one-to-many-relationships)
 
 ## Deployment Map
 
@@ -71,7 +79,7 @@ pipelines:
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
 ```
 
-In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account `111111111111`. This CodeCommit Repository will automatically be created by default in the `111111111111` AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
+In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account `111111111111`. This CodeCommit Repository will automatically be created by default in the `111111111111` AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](admin-guide.md#adfconfig). Any failure during the pipeline will cause it to halt.
 
 The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. You can choose between an absolute path in your AWS Organization, AWS Account ID or an array of OUs or IDs. This pipeline also uses Github as a source rather than AWS CodeCommit. When generating the pipeline, ADF expects [GitHub Token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to be placed in AWS Secrets Manager in a path prefixed with `/adf/`.
 
@@ -195,7 +203,7 @@ targets:
     regions: [eu-central-1, us-west-1]
     name: another_step
     wave:
-      size: 30 # (Optional) This forces the pipeline to split this OU into seperate stages, each stage containing up to X accounts
+      size: 30 # (Optional) This forces the pipeline to split this OU into separate stages, each stage containing up to X accounts
     exclude:
       - 9999999999 # (Optional) List of accounts to exclude from this target. Currently only supports account Ids
     properties: ...

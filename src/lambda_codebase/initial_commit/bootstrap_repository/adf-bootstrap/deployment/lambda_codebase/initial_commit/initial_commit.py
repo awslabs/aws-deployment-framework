@@ -384,7 +384,7 @@ def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
 
 def get_relative_name(path: Path, directoryName: str) -> Path:
     """
-    Search for the last occurance of <directoryName> in <path> and return only the trailing part of <path>
+    Search for the last occurrence of <directoryName> in <path> and return only the trailing part of <path>
 
     >>> get_relative_name(Path('/foo/test/bar/test/xyz/abc.py') ,'test')
     Path('xyz/abc.py')

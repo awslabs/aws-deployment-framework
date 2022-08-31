@@ -142,6 +142,6 @@ Please do **not** create a public GitHub issue.
 
 ## Licensing
 
-See the [LICENSE](https://github.com/awslabs/aws-deployment-framework/blob/master/LICENSE)
+See the [LICENSE](LICENSE.txt)
 file for our project's licensing. We will ask you to confirm the licensing of
 your contribution.

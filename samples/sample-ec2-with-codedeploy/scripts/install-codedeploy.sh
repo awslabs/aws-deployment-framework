@@ -40,7 +40,7 @@ function execute(){
     chmod +x ./install
 
     if ./install auto; then
-      echo "Instalation completed"
+      echo "Installation completed"
         if ! ${AUTOUPDATE}; then
           echo "Disabling Auto Update"
           sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
@@ -49,7 +49,7 @@ function execute(){
         fi
       exit 0
     else
-      echo "Instalation script failed, please investigate"
+      echo "Installation script failed, please investigate"
       rm -f /tmp/install
       exit 1
     fi
@@ -60,7 +60,7 @@ function execute(){
     chmod +x ./install
 
     if ./install auto; then
-      echo "Instalation completed"
+      echo "Installation completed"
         if ! ${AUTOUPDATE}; then
             echo "Disabling auto update"
             sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
@@ -69,7 +69,7 @@ function execute(){
         fi
       exit 0
     else
-      echo "Instalation script failed, please investigate"
+      echo "Installation script failed, please investigate"
       rm -f /tmp/install
       exit 1
     fi

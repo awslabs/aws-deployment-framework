@@ -17,7 +17,7 @@ except ImportError:
 DEFAULT_RESOURCE_TYPE = 'AWS::::Account'
 
 APPLICABLE_RESOURCES = ['AWS::EC2::Instance']
-VALID_ENVIORNMENTS = ['PROD', 'UAT']
+VALID_ENVIRONMENTS = ['PROD', 'UAT']
 
 # Set to True to get the lambda to assume the Role attached on the Config Service (useful for cross-account).
 ASSUME_ROLE_MODE = True
@@ -56,7 +56,7 @@ def evaluate_compliance(event, configuration_item, valid_rule_parameters):
     if not is_applicable_ec2(configuration_item, event) or configuration_item is None:
         return 'NOT_APPLICABLE'
         
-    # if termination protection is not enabled resourse is not Compliant
+    # if termination protection is not enabled resource is not Compliant
     if not is_termination_protection_on(configuration_item['resourceId'], event):
         return 'NON_COMPLIANT'
     else:
@@ -82,7 +82,7 @@ def is_valid_environment(instance_id, event):
     instance = ec2.Instance(instance_id)
     for tags in instance.tags or []:
         if tags["Key"] == 'Env':
-            return tags["Value"] in VALID_ENVIORNMENTS
+            return tags["Value"] in VALID_ENVIRONMENTS
 
 # Checks is instance part of an Autoscaling Group
 def is_part_of_asg(instance_id,event):
