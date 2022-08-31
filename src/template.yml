@@ -656,23 +656,49 @@ Resources:
             "ConfigureAccountAlias": {
               "Type": "Task",
               "Resource": "${AccountAliasConfigFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "ConfigureAccountTags"
             },
             "CreateAccount": {
               "Type": "Task",
               "Resource": "${CreateAccountFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "WaitFor10Seconds"
             },
             "WaitFor10Seconds": {
@@ -683,34 +709,73 @@ Resources:
             "ConfigureAccountSupport": {
               "Type": "Task",
               "Resource": "${RegisterAccountForSupportFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "ConfigureAccountAlias"
             },
             "ConfigureAccountTags": {
               "Type": "Task",
               "Resource": "${AccountTagConfigFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "ConfigureAccountOU"
             },
             "ConfigureAccountOU": {
               "Type": "Task",
               "Resource": "${AccountOUConfigFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "DeleteDefaultVPCChoice"
             },
             "DeleteDefaultVPCChoice": {
@@ -727,12 +792,25 @@ Resources:
             "GetAccountDefaultRegionsFunction": {
               "Type": "Task",
               "Resource": "${GetAccountRegionsFunction.Arn}",
-              "Retry": [{
-                "ErrorEquals": ["States.TaskFailed"],
-                "IntervalSeconds": 3,
-                "BackoffRate": 1.5,
-                "MaxAttempts": 30
-              }],
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 1.5,
+                  "MaxAttempts": 30
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                },
+              ],
               "Next": "DeleteDefaultVPCMap"
             },
             "DeleteDefaultVPCMap": {
@@ -751,9 +829,11 @@ Resources:
                       "Retry": [
                         {
                           "ErrorEquals": [
+                            "Lambda.Unknown",
                             "Lambda.ServiceException",
                             "Lambda.AWSLambdaException",
                             "Lambda.SdkClientException"
+                            "Lambda.TooManyRequestsException"
                           ],
                           "IntervalSeconds": 2,
                           "MaxAttempts": 6,
@@ -1346,105 +1426,200 @@ Resources:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
       DefinitionString: !Sub |-
-            {
-                "Comment": "ADF Account Bootstrapping Process",
-                "StartAt": "DetermineEvent",
-                "States": {
-                    "DetermineEvent": {
-                        "Type": "Task",
-                        "Resource": "${DetermineEventFunction.Arn}",
-                        "Next": "MovedToRootOrProtected?",
-                        "TimeoutSeconds": 300
-                    },
-                    "MovedToRootOrProtected?": {
-                        "Type": "Choice",
-                        "Choices": [{
-                                "Variable": "$.moved_to_protected",
-                                "NumericEquals": 1,
-                                "Next": "ExecuteDeploymentAccountStateMachine"
-                            },
-                            {
-                                "Variable": "$.moved_to_root",
-                                "NumericEquals": 1,
-                                "Next": "MovedToRootAction"
-                            }
-                        ],
-                        "Default": "CreateOrUpdateBaseStack"
-                    },
-                    "CreateOrUpdateBaseStack": {
-                        "Type": "Task",
-                        "Resource": "${CrossAccountExecuteFunction.Arn}",
-                        "Retry": [{
-                            "ErrorEquals": ["InvalidTemplateError", "GenericAccountConfigureError"],
-                            "IntervalSeconds": 1,
-                            "BackoffRate": 1.1,
-                            "MaxAttempts": 45
-                        }],
-                        "Catch": [{
-                            "ErrorEquals": ["States.ALL"],
-                            "Next": "ExecuteDeploymentAccountStateMachine",
-                            "ResultPath": "$.error"
-                        }],
-                        "Next": "WaitUntilBootstrapComplete",
-                        "TimeoutSeconds": 600
-                    },
-                    "MovedToRootAction": {
-                        "Type": "Task",
-                        "Resource": "${MovedToRootActionFunction.Arn}",
-                        "Retry": [{
-                            "ErrorEquals": ["RetryError"],
-                            "IntervalSeconds": 10,
-                            "BackoffRate": 1.0,
-                            "MaxAttempts": 20
-                        }],
-                        "Catch": [{
-                            "ErrorEquals": ["States.ALL"],
-                            "Next": "ExecuteDeploymentAccountStateMachine",
-                            "ResultPath": "$.error"
-                        }],
-                        "Next": "ExecuteDeploymentAccountStateMachine",
-                        "TimeoutSeconds": 900
-                    },
-                    "WaitUntilBootstrapComplete": {
-                        "Type": "Task",
-                        "Resource": "${StackWaiterFunction.Arn}",
-                        "Retry": [{
-                            "ErrorEquals": ["RetryError"],
-                            "IntervalSeconds": 10,
-                            "BackoffRate": 1.0,
-                            "MaxAttempts": 500
-                        }],
-                        "Catch": [{
-                            "ErrorEquals": ["States.ALL"],
-                            "Next": "ExecuteDeploymentAccountStateMachine",
-                            "ResultPath": "$.error"
-                        }],
-                        "Next": "DeploymentAccount?",
-                        "TimeoutSeconds": 900
-                    },
-                    "DeploymentAccount?": {
-                        "Type": "Choice",
-                        "Choices": [{
-                            "Variable": "$.is_deployment_account",
-                            "NumericEquals": 1,
-                            "Next": "DeploymentAccountConfig"
-                        }],
-                        "Default": "ExecuteDeploymentAccountStateMachine"
-                    },
-                    "DeploymentAccountConfig": {
-                        "Type": "Task",
-                        "Resource": "${RoleStackDeploymentFunction.Arn}",
-                        "End": true,
-                        "TimeoutSeconds": 900
-                    },
-                    "ExecuteDeploymentAccountStateMachine": {
-                        "Type": "Task",
-                        "Resource": "${UpdateResourcePoliciesFunction.Arn}",
-                        "End": true,
-                        "TimeoutSeconds": 900
-                    }
+        {
+          "Comment": "ADF Account Bootstrapping Process",
+          "StartAt": "DetermineEvent",
+          "States": {
+            "DetermineEvent": {
+              "Type": "Task",
+              "Resource": "${DetermineEventFunction.Arn}",
+              "Next": "MovedToRootOrProtected?",
+              "TimeoutSeconds": 300,
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
                 }
+              ]
+            },
+            "MovedToRootOrProtected?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.moved_to_protected",
+                  "NumericEquals": 1,
+                  "Next": "ExecuteDeploymentAccountStateMachine"
+                },
+                {
+                  "Variable": "$.moved_to_root",
+                  "NumericEquals": 1,
+                  "Next": "MovedToRootAction"
+                }
+              ],
+              "Default": "CreateOrUpdateBaseStack"
+            },
+            "CreateOrUpdateBaseStack": {
+              "Type": "Task",
+              "Resource": "${CrossAccountExecuteFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "InvalidTemplateError",
+                    "GenericAccountConfigureError"
+                  ],
+                  "IntervalSeconds": 1,
+                  "BackoffRate": 1.1,
+                  "MaxAttempts": 45
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "ExecuteDeploymentAccountStateMachine",
+                  "ResultPath": "$.error"
+                }
+              ],
+              "Next": "WaitUntilBootstrapComplete",
+              "TimeoutSeconds": 600
+            },
+            "MovedToRootAction": {
+              "Type": "Task",
+              "Resource": "${MovedToRootActionFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "RetryError"
+                  ],
+                  "IntervalSeconds": 10,
+                  "BackoffRate": 1.0,
+                  "MaxAttempts": 20
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "ExecuteDeploymentAccountStateMachine",
+                  "ResultPath": "$.error"
+                }
+              ],
+              "Next": "ExecuteDeploymentAccountStateMachine",
+              "TimeoutSeconds": 900
+            },
+            "WaitUntilBootstrapComplete": {
+              "Type": "Task",
+              "Resource": "${StackWaiterFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": ["RetryError"],
+                  "IntervalSeconds": 10,
+                  "BackoffRate": 1.0,
+                  "MaxAttempts": 500
+                }, {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "ExecuteDeploymentAccountStateMachine",
+                  "ResultPath": "$.error"
+                }
+              ],
+              "Next": "DeploymentAccount?",
+              "TimeoutSeconds": 900
+            },
+            "DeploymentAccount?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.is_deployment_account",
+                  "NumericEquals": 1,
+                  "Next": "DeploymentAccountConfig"
+                }
+              ],
+              "Default": "ExecuteDeploymentAccountStateMachine"
+            },
+            "DeploymentAccountConfig": {
+              "Type": "Task",
+              "Resource": "${RoleStackDeploymentFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "End": true,
+              "TimeoutSeconds": 900
+            },
+            "ExecuteDeploymentAccountStateMachine": {
+              "Type": "Task",
+              "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "End": true,
+              "TimeoutSeconds": 900
             }
+          }
+        }
       RoleArn: !GetAtt StatesExecutionRole.Arn
 
   DetermineDefaultBranchName:

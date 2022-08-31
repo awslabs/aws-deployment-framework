@@ -25,6 +25,7 @@ S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 LOGGER = configure_logger(__name__)
+DEPLOY_TIME_IN_MS = 5 * 60 * 1000
 
 
 def configure_generic_account(sts, event, region, role):
@@ -107,7 +108,7 @@ def is_inter_ou_account_move(event):
     )
 
 
-def lambda_handler(event, _):
+def lambda_handler(event, context):
     sts = STS()
 
     account_id = event["account_id"]
@@ -136,9 +137,28 @@ def lambda_handler(event, _):
             + event["regions"]
         )
     )
+    LOGGER.debug(
+        "Looping through regions to deploy the base stack in %s, regions: %s",
+        event["account_id"],
+        regions,
+    )
     for region in regions:
+        if context.get_remaining_time_in_millis() < DEPLOY_TIME_IN_MS:
+            LOGGER.info(
+                "Cannot deploy another region, as the time available for this "
+                "lambda execution is less than the time required to deploy."
+            )
+            raise GenericAccountConfigureError(
+                'Execution time remaining is not sufficient to deploy '
+                'another region, aborting this execution so it can restart.'
+            )
         if not event["is_deployment_account"]:
             configure_generic_account(sts, event, region, role)
+        LOGGER.info(
+            "Creating/updating base stack in %s %s",
+            event["account_id"],
+            region,
+        )
         cloudformation = CloudFormation(
             region=region,
             deployment_account_region=event["deployment_account_region"],
