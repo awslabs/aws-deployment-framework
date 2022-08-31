@@ -162,7 +162,7 @@ class OrganizationPolicy:
                         )
             except ParameterNotFoundError:
                 LOGGER.debug(
-                    "Parameter %s was not found in Parameter Store, " "continuing.",
+                    "Parameter %s was not found in Parameter Store, continuing.",
                     policy,
                 )
                 pass
