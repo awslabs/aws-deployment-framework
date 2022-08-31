@@ -31,6 +31,7 @@
     - [ADF version you have deployed](#adf-version-you-have-deployed)
     - [Latest ADF version that is available](#latest-adf-version-that-is-available)
   - [Updating Between Versions](#updating-between-versions)
+    - [Update the default branch of the bootstrap/pipelines repository](#update-the-default-branch-of-the-bootstrappipelines-repository)
   - [Removing ADF](#removing-adf)
   - [Troubleshooting](#troubleshooting)
     - [How to share debug information](#how-to-share-debug-information)
@@ -127,7 +128,7 @@ The Master account *(also known as root)* is the owner of the AWS Organization. 
 
 ### Deployment Account
 
-The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map files via AWS CodePipeline. The Deployment account holds the [deployment_map.yml](#adfconfig) file(s) which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the deployment map files via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
+The Deployment Account is the gatekeeper for all deployments throughout an Organization. Once the baselines have been applied to your accounts via the bootstrapping process, the Deployment account connects the dots by taking source code and resources from a repository *(Github / CodeCommit / S3)* and into the numerous target accounts and regions as defined in the deployment map files via AWS CodePipeline. The Deployment account holds the [deployment_map.yml](#pipelines) file(s) which defines where, what and how your resources will go from their source to their destination. In an Organization there should only be a single Deployment account. This is to promote transparency throughout an organization and to reduce duplication of code and resources. With a single Deployment Account teams can see the status of other teams deployments while still being restricted to making changes to the deployment map files via [Pull Requests](https://docs.aws.amazon.com/codecommit/latest/userguide/pull-requests.html).
 
 #### Default Deployment Account Region
 
@@ -451,7 +452,7 @@ Check the CloudFormation stack output or tag of the `serverlessrepo-aws-deployme
 
 If you want to check which version is the latest one available, go to the management account in us-east-1:
 1. Navigate to the AWS Deployment Framework Serverless Application Repository *(SAR)*, it can be found [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-1. You can find the latest version in the title of the page, like so: `aws-deployment-framework — version x.y.z`.
+2. You can find the latest version in the title of the page, like so: `aws-deployment-framework — version x.y.z`.
 
 ## Updating Between Versions
 
@@ -488,7 +489,7 @@ run to finalize the update to the latest version.
 
 Which branch is used is determined by:
 1. Describing the CodeCommit repository, it will use the default branch of the repository.
-1. Follow [these instructions](#update-the-default-branch-of-the-bootstrap-pipelines-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
+2. Follow [these instructions](#update-the-default-branch-of-the-bootstrappipelines-repository) if you want to switch from one branch to another, you only need to create a new branch from the current default branch. Navigate to the CodeCommit repository and update the default branch of the repository to the new branch. Make sure to click the `Save` button underneath the default branch setting to save it. Alternatively, you can also perform the update using the AWS CLI.
 
 In the management account in us-east-1:
 1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
