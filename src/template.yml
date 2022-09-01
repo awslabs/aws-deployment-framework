@@ -661,7 +661,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
@@ -685,7 +685,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
@@ -714,7 +714,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
@@ -738,7 +738,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
@@ -762,7 +762,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
@@ -797,7 +797,7 @@ Resources:
                   "ErrorEquals": ["States.TaskFailed"],
                   "IntervalSeconds": 3,
                   "BackoffRate": 1.5,
-                  "MaxAttempts": 30
+                  "MaxAttempts": 10
                 }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
