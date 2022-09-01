@@ -170,21 +170,21 @@ adf-bootstrap <-- This folder lives in the bootstrap repo on master account
 │   ------│   global.yml
 │   │ ───test
 │   ------│   regional.yml
-│   ------│   global.yml  
+│   ------│   global.yml
 │   │ ───prod
 │   ------│   regional.yml
 │   ------│   global.yml
 │
 
 │
-│───insurance  
-│   │  
+│───insurance
+│   │
 │   │ ───dev
 │   ------│   regional.yml
 │   ------│   global.yml
 │   │ ───test
 │   ------│   regional.yml
-│   ------│   global.yml  
+│   ------│   global.yml
 │   │ ───prod
 │   ------│   regional.yml
 │   ------│   global.yml
@@ -206,7 +206,7 @@ adf-bootstrap <-- This folder lives in the bootstrap repo on master account
 │   │ ───prod
 │   -------- │   regional.yml
 │   -------- │   global.yml
-│───insurance  
+│───insurance
 │   │ ───prod
 │   -------- │   regional.yml
 │   -------- │   global.yml
@@ -420,9 +420,9 @@ pipelines:
 ```
 
 ### Integrating with Slack with AWS ChatBot
-The ADF also supports integrating pipeline notifications with Slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent Slack notification across different AWS services. 
+The ADF also supports integrating pipeline notifications with Slack via the AWS ChatBot. This allows pipeline notifications to scale and provides a consistent Slack notification across different AWS services.
 
-In order to use AWS ChatBot, first you must configure an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired Slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF. 
+In order to use AWS ChatBot, first you must configure an (AWS ChatBot Client)[https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients] for your desired Slack workspace. Once the client has been created. You will need to manually create a channel configuration that will be used by the ADF.
 
 Currently, dynamically creating channel configurations is not supported. In the deployment map, you can configure a unique channel via the notification endpoint parameter for each pipeline separately. Add the `params` section if that is missing and add the following configuration to the pipeline:
 ```
@@ -430,7 +430,7 @@ pipelines:
   - name: some-pipeline
     # ...
     params:
-      notification_endpoint: 
+      notification_endpoint:
         type: chat_bot
         target: my_channel_config
 ```

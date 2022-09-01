@@ -324,8 +324,8 @@ COMPLETION_TRIGGERS_SCHEMA = {
 }
 PIPELINE_TRIGGERS_SCHEMA = {
     Optional("code_artifact"): {
-      "repository": str,
-      Optional("package"): str,
+        "repository": str,
+        Optional("package"): str,
     }
 }
 TRIGGERS_SCHEMA = {
