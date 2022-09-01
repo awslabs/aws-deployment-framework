@@ -6,8 +6,8 @@ This setup will allow you to deploy custom config rules created by the RDK via A
 * As a first step it requires to have a Source code repository to store our code. In this pattern we are using CodeCommit repository. This repository created by as a part of the pipeline definition in the ADF's deployment_map.yml. Example of the pipeline definition is in the ADF setup section.
 * ADF pipeline definition creates a pipeline that will deploy Lambda function(s) into the compliance account and Custom Config rule(s) to Target accounts.
 * When a Custom Config rule get pushed into the CodeCommit repository;
-    - CodeBuild will find the RDK rule(s) recursively in the `config-rules` directory then zip each single rule one by one and upload into ADF bucket. Buildspec is utilising a helper script called lambda_helper.py to achieve this task. ADF populates bucket names into SSM Parameter store on the Installation. lambda_helper.py fetches the bucket name from the SSM Parameter Store. Parameter name looks like /cross_region/s3_regional_bucket/{region}.
-    - Then CodeBuild will generate 2 CloudFormation templates one for Lambda function(s) deployment and other for the Custom Config rule(s) deployment.
+  - CodeBuild will find the RDK rule(s) recursively in the `config-rules` directory then zip each single rule one by one and upload into ADF bucket. Buildspec is utilising a helper script called lambda_helper.py to achieve this task. ADF populates bucket names into SSM Parameter store on the Installation. lambda_helper.py fetches the bucket name from the SSM Parameter Store. Parameter name looks like /cross_region/s3_regional_bucket/{region}.
+  - Then CodeBuild will generate 2 CloudFormation templates one for Lambda function(s) deployment and other for the Custom Config rule(s) deployment.
 
 * When a Lambda function get invokes by a Target account Custom config rule; it will assume the Config role in Target account then put config Evaluations into the Target account's Config rule.
 

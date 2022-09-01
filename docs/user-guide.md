@@ -2,7 +2,7 @@
 
 - [User Guide](#user-guide)
   - [Deployment Map](#deployment-map)
-      - [Targeting via Tags](#targeting-via-tags)
+    - [Targeting via Tags](#targeting-via-tags)
     - [Important Notes](#important-notes)
       - [Zero-prefixed AWS Account Ids](#zero-prefixed-aws-account-ids)
     - [Providers](#providers)
@@ -225,7 +225,7 @@ Pipelines also have parameters that don't relate to a specific stage but rather 
 
 The following are the available pipeline parameters:
 
-- *notification_endpoint* *(String) | (Dict) * defaults to none.
+- *notification_endpoint* *(String) | (Dict)* defaults to none.
   > Can either be a valid email address or a string that represents the name of a Slack Channel.
   > A more complex configuration can be provided to integrate with Slack via AWS ChatBot.
   > ```yaml
@@ -688,7 +688,7 @@ artifacts:
 
 ### Using Anchors and Alias
 
-You can take advantage of YAML Anchors and Alias' in the deployment map files. As you can see from the example below, The &generic_params and &generic_targets are anchors. They can be added to any mapping, sequence or scalar. Once you create an anchor, you can reference it anywhere within the map again with its alias *(eg *generic_params)* to reproduce their values, similar to variables.
+You can take advantage of YAML Anchors and Alias' in the deployment map files. As you can see from the example below, The &generic_params and &generic_targets are anchors. They can be added to any mapping, sequence or scalar. Once you create an anchor, you can reference it anywhere within the map again with its alias *(eg*generic_params)* to reproduce their values, similar to variables.
 
 ```yaml
 pipelines:

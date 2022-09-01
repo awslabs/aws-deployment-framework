@@ -9,10 +9,10 @@ The below guide highlights a few of these examples and helps get them setup when
 **Note:** This guide assumes the Deployment account has been bootstrapped, please see the [installation guide](./installation-guide.md) before continuing.
 
 The samples this guide will cover deploying are:
-  - A VPC CloudFormation Template.
-  - A Elastic Container Registry Repository (ECR) Template.
-  - A Elastic Container Service (ECS) Cluster Template.
-  - A Simple NodeJS Express Application to run in AWS Fargate.
+- A VPC CloudFormation Template.
+- A Elastic Container Registry Repository (ECR) Template.
+- A Elastic Container Service (ECS) Cluster Template.
+- A Simple NodeJS Express Application to run in AWS Fargate.
 
 In this guide, we will deploy a foundational VPC with associated resources along with a ECR Repository to hold our shared container images. Once the VPC is in place, we can deploy a ECS Cluster that will run our sample NodeJS application.
 
