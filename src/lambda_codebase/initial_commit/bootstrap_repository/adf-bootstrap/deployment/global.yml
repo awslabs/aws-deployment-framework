@@ -1231,6 +1231,9 @@ Resources:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
       StateMachineName: "EnableCrossAccountAccess"
+      RoleArn: !GetAtt StatesExecutionRole.Arn
+      TracingConfiguration:
+        Enabled: true
       DefinitionString: !Sub |-
         {
           "Comment": "Enable Cross Account Access from Deployment Account",
@@ -1277,7 +1280,7 @@ Resources:
                           "Lambda.Unknown",
                           "Lambda.ServiceException",
                           "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException"
+                          "Lambda.SdkClientException",
                           "Lambda.TooManyRequestsException"
                         ],
                         "IntervalSeconds": 2,
@@ -1314,7 +1317,7 @@ Resources:
                     "Lambda.Unknown",
                     "Lambda.ServiceException",
                     "Lambda.AWSLambdaException",
-                    "Lambda.SdkClientException"
+                    "Lambda.SdkClientException",
                     "Lambda.TooManyRequestsException"
                   ],
                   "IntervalSeconds": 2,
@@ -1363,7 +1366,6 @@ Resources:
             }
           }
         }
-      RoleArn: !GetAtt StatesExecutionRole.Arn
 
   DetermineDefaultBranchName:
     Type: Custom::DetermineDefaultBranchName
