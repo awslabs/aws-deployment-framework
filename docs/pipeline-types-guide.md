@@ -20,7 +20,6 @@ Pipeline types is a feature aimed at advanced users and developers of ADF.
 Any custom changes made to the adf-bootstrap repository will have to be merged
 in when updating ADF versions.
 
-
 ## Adding a new pipeline type
 
 A pipeline can either be added manually into the [cdk_stacks](../src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks)
@@ -28,6 +27,7 @@ folder as a separate python file or installed via [requirements.txt](../src/lamb
 in the adf-build folder.
 
 ### Source Code
+
 This is the file that creates your CDK constructs.
 It takes in a single CDK stack that you can interact with and add constructs to.
 

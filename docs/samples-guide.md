@@ -9,6 +9,7 @@ The below guide highlights a few of these examples and helps get them setup when
 **Note:** This guide assumes the Deployment account has been bootstrapped, please see the [installation guide](./installation-guide.md) before continuing.
 
 The samples this guide will cover deploying are:
+
 - A VPC CloudFormation Template.
 - A Elastic Container Registry Repository (ECR) Template.
 - A Elastic Container Service (ECS) Cluster Template.

@@ -266,11 +266,13 @@ Provider type: `codebuild`.
   > for this pipeline. These are to be passed in as Key/Value pairs.
   >
   > For example:
+
   ```yaml
   environment_variables:
     MY_ENV_VAR: some value
     ANOTHER_ENV_VAR: another value
   ```
+
 - *role* *(String)* default: `adf-codebuild-role`.
   > If you wish to pass a custom IAM Role to use for the Build stage of this
   > pipeline. Alternatively, you can change the `adf-codebuild-role` with

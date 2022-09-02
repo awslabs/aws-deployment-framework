@@ -8,7 +8,6 @@ Please read through this document before submitting any issues or pull requests
 to ensure we have all the necessary information to effectively respond to your
 bug report or contribution.
 
-
 ## Reporting Bugs/Feature Requests
 
 We welcome you to use the GitHub issue tracker to report bugs or suggest features.
@@ -21,11 +20,10 @@ issues to make sure somebody else hasn't already reported the issue.
 Please try to include as much information as you can.
 Details like these are incredibly useful:
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you have made relevant to the bug
-* Anything unusual about your environment or deployment
-
+- A reproducible test case or series of steps
+- The version of our code being used
+- Any modifications you have made relevant to the bug
+- Anything unusual about your environment or deployment
 
 ## Running tests locally
 
@@ -35,7 +33,6 @@ In order to run the tests locally you need a virtual environment that is used by
 2. Activate the virtual environment: `source .tox/env/bin/activate`
 3. Install dependencies: `make init`
 4. To run the tests, execute: `tox`
-
 
 ## Running linters locally
 
@@ -52,7 +49,6 @@ Some linters can automatically fix findings by running the command below.
 ```sh
 npx mega-linter-runner --fix
 ```
-
 
 ## Contributing via Pull Requests
 
@@ -84,7 +80,6 @@ GitHub provides additional document on
 [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
-
 ## Finding contributions to work on
 
 Looking at the existing issues is a great way to find something to contribute
@@ -92,7 +87,6 @@ on. As our projects, by default, use the default GitHub issue labels
 (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at
 any ['help wanted'](https://github.com/awslabs/aws-deployment-framework/labels/help%20wanted)
 issues is a great place to start.
-
 
 ## Use of examples
 
@@ -102,25 +96,24 @@ it is recommended to use one of the following examples instead:
 In case you want to specify an example email address, please make use of one of
 the following email addresses:
 
-* `jane@example.com`
-* `john@example.com`
-* `janes_team@example.com`
-* Or another `@example.com`
-* For tests that could potentially create accounts (if mocks failed to work),
+- `jane@example.com`
+- `john@example.com`
+- `janes_team@example.com`
+- Or another `@example.com`
+- For tests that could potentially create accounts (if mocks failed to work),
   please use `test@amazon.com` instead.
 
 When you want to write documentation/tests and need an example account id, the
 following account ids may be used:
 
-* `111111111111`
-* `222222222222`
-* ... to ...
-* `999999999999`
-* or to show the length more easily:
-* `012345678910`
-* `012345671234`
-* `123456789012`
-
+- `111111111111`
+- `222222222222`
+- ... to ...
+- `999999999999`
+- or to show the length more easily:
+- `012345678910`
+- `012345671234`
+- `123456789012`
 
 ## Code of Conduct
 
@@ -130,7 +123,6 @@ For more information see the
 [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
 opensource-codeofconduct@amazon.com with any additional questions or comments.
 
-
 ## Security issue notifications
 
 If you discover a potential security issue in this project we ask that you
@@ -138,7 +130,6 @@ notify AWS/Amazon Security via our
 [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/).
 
 Please do **not** create a public GitHub issue.
-
 
 ## Licensing
 

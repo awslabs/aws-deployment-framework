@@ -228,6 +228,7 @@ The following are the available pipeline parameters:
 - *notification_endpoint* *(String) | (Dict)* defaults to none.
   > Can either be a valid email address or a string that represents the name of a Slack Channel.
   > A more complex configuration can be provided to integrate with Slack via AWS ChatBot.
+>
   > ```yaml
   > notification_endpoint:
   >   type: chat_bot
@@ -280,6 +281,7 @@ pipelines:
 ```
 
 Completion triggers can also be defined in a short handed fashion. Take the above example for the ami-builder pipeline.
+
 ```yaml
 pipelines:
   - name: ami-builder
@@ -294,7 +296,6 @@ pipelines:
   - name: my-web-app-pipeline
     # Same configuration as defined above.
 ```
-
 
 ### Additional Triggers
 
@@ -381,6 +382,7 @@ Other packages such as [cfn-lint](https://github.com/awslabs/cfn-python-lint) ca
 If you wish to hide away the steps that can occur in AWS CodeBuild, you can move the *buildspec.yml* content itself into the pipeline by using the *spec_inline* property in your map files. By doing this, you can remove the option to have a buildspec.yml in the source repository at all. This is a potential way to enforce certain build steps for certain pipeline types.
 
 #### Custom Build Images
+
 You can use [custom build](https://aws.amazon.com/blogs/devops/extending-aws-codebuild-with-custom-build-environments/) environments in AWS CodeBuild. This can be defined in the your deployment map files like so:
 
 ```yaml
@@ -595,25 +597,25 @@ upload:${region}:${style}:${local_path}
 
 There are five different styles that one could choose from.
 
-* `path` style, as shown in the example above, will return the S3 path to the object as.
+- `path` style, as shown in the example above, will return the S3 path to the object as.
   This is referred to as the classic [Path Style method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html).
-  * In case the bucket is stored in us-east-1, it will return:
+  - In case the bucket is stored in us-east-1, it will return:
     `https://s3.amazonaws.com/${bucket}/${key}`
-  * In case the bucket is stored in any other region, it will return:
+  - In case the bucket is stored in any other region, it will return:
     `https://s3-${region}.amazonaws.com/${bucket}/${key}`
-* `virtual-hosted` style, will return the S3 location using the virtual hosted bucket domain.
-  * In case the bucket is stored in us-east-1, it will return:
+- `virtual-hosted` style, will return the S3 location using the virtual hosted bucket domain.
+  - In case the bucket is stored in us-east-1, it will return:
     `https://${bucket}.s3.amazonaws.com/${key}`
-  * In case the bucket is stored in any other region, it will return:
+  - In case the bucket is stored in any other region, it will return:
     `https://${bucket}.s3-${region}.amazonaws.com/${key}`
-* `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
+- `s3-url` style, will return the S3 location using S3 URL with the `s3://` protocol.
   As an example, this style is required for [CloudFormation AWS::Include transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/create-reusable-transform-function-snippets-and-add-to-your-template-with-aws-include-transform.html).
-  * It returns: `s3://${bucket}/${key}`
-* `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
+  - It returns: `s3://${bucket}/${key}`
+- `s3-uri` style, will return the S3 location using S3 URI without specifying a protocol.
   As an example, this style is required for [CodeBuild project source locations](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-source.html#cfn-codebuild-project-source-location).
-  * It returns: `${bucket}/${key}`
-* `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
-  * It returns: `${key}`
+  - It returns: `${bucket}/${key}`
+- `s3-key-only` style, similar to `s3-uri` but it will only return the `key` value.
+  - It returns: `${key}`
 
 The `region` is optional.
 This allows you to upload files to S3 Buckets within specific regions by
