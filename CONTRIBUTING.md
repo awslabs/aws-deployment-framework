@@ -10,7 +10,8 @@ bug report or contribution.
 
 ## Reporting Bugs/Feature Requests
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+We welcome you to use the GitHub issue tracker to report bugs or suggest
+features.
 
 When filing an issue, please check
 [existing open](https://github.com/awslabs/aws-deployment-framework/issues),
@@ -27,7 +28,8 @@ Details like these are incredibly useful:
 
 ## Running tests locally
 
-In order to run the tests locally you need a virtual environment that is used by [tox](https://pypi.org/project/tox/).
+In order to run the tests locally you need a virtual environment that is used
+by [tox](https://pypi.org/project/tox/).
 
 1. Create a virtual environment: `virtualenv .tox/env`
 2. Activate the virtual environment: `source .tox/env/bin/activate`
@@ -36,9 +38,11 @@ In order to run the tests locally you need a virtual environment that is used by
 
 ## Running linters locally
 
-You need to have NodeJS and Docker installed on your computer to run MegaLinter locally with MegaLinter Runner.
+You need to have NodeJS and Docker installed on your computer to run MegaLinter
+locally with MegaLinter Runner.
 
-You can run mega-linter-runner without installation by using `npx` (Run from the root of the repository!).
+You can run mega-linter-runner without installation by using `npx` (Run from the
+root of the repository!).
 
 ```sh
 npx mega-linter-runner
@@ -57,24 +61,25 @@ Before sending us a pull request, please ensure that:
 
 1. You are working against the latest source on the *master* branch.
 2. You check existing open, and recently merged, pull requests to make sure
-   someone else hasn't addressed the problem already.
+someone else hasn't addressed the problem already.
 3. You open an issue to discuss any significant work - we would hate for your
-   time to be wasted.
+time to be wasted.
 
 To send us a pull request, please:
 
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing.
-   If you also reformat all the code, it will be hard for us to focus on your
-   change.
-3. Make sure your editor is configured to use [editorconfig](https://editorconfig.org/),
-   this helps maintain consistent coding styles and prevents linter findings later.
+If you also reformat all the code, it will be hard for us to focus on your
+change.
+3. Make sure your editor is configured to use
+[editorconfig](https://editorconfig.org/), this helps maintain consistent coding
+styles and prevents linter findings later.
 4. Ensure local tests and linters pass.
 5. Commit to your fork using clear commit messages.
 6. Send us a pull request, answering any default questions in the pull request
-   interface.
+interface.
 7. Pay attention to any automated CI failures reported in the pull request,
-   and stay involved in the conversation.
+and stay involved in the conversation.
 
 GitHub provides additional document on
 [forking a repository](https://help.github.com/articles/fork-a-repo/) and

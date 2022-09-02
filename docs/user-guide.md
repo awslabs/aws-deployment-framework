@@ -85,7 +85,7 @@ The second pipeline (*vpc*) example deploys to an OU path `/banking/testing`. Yo
 
 By default, the above pipelines will be created to deploy CloudFormation using a change in two actions *(Create then Execute)*.
 
-#### Targeting via Tags
+### Targeting via Tags
 
 Tags on AWS Accounts can also be used to define stages within a pipeline. For example, we might want to create a pipeline that targets all AWS Accounts with the tag `cost-center` and value of `foo-team`. You cannot use a combination of `path/target` and `tags`.
 
@@ -334,16 +334,16 @@ Taking it a step further, you can create a map per service.
 So you can organize these deployment map files inside your preferred directory structure
 For example, the `aws-deployment-framework-pipelines` repo could look like this:
 
-```
+```txt
 deployment_maps/
-  security/
-    amazon-guardduty.yml
-    aws-config.yml
-  product-one/
-    roles/
-      some-role-pipeline.yml
-    infrastructure/
-      some-infra-pipeline.yml
+|-- security/
+|   |-- amazon-guardduty.yml
+|   |-- aws-config.yml
+|-- product-one/
+|   roles/
+|   |-- some-role-pipeline.yml
+|   infrastructure/
+|   |-- some-infra-pipeline.yml
 ```
 
 ### Repositories
@@ -456,18 +456,13 @@ The different types of parameter files and their order of precedence *(in the tr
 
 **Note:** When using OU parameter files, the OU must be specified in the deployment map as a target. If only the account number is in the deployment map the corresponding OU parameter file will not be referenced.
 
-```
+```txt
 global.yml
-|
-|_ deployment_account_region.yml (e.g. global_eu-west-1.yml)
-    |
-    |_ ou.yml (e.g. ou-1a2b-3c4d5e.yml)
-        |
-        |_ ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
-            |
-            |_ account.yml (e.g. dev-account-1.yml)
-                |
-                |_ account_region.yml (e.g. dev-account-1_eu-west-1.yml)
+|-- deployment_account_region.yml (e.g. global_eu-west-1.yml)
+|   |-- ou.yml (e.g. ou-1a2b-3c4d5e.yml)
+|       |-- ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
+|           |-- account.yml (e.g. dev-account-1.yml)
+|               |-- account_region.yml (e.g. dev-account-1_eu-west-1.yml)
 ```
 
 This concept also works for applying **Tags** to the resources within your stack. You can include tags like so:
@@ -587,7 +582,7 @@ In the above example, we are calling the **upload** function on a file called `t
 
 Syntax:
 
-```
+```yaml
 # Using the default region:
 upload:${style}:${local_path}
 

@@ -1,6 +1,6 @@
-## Sample Terraform
+# Sample Terraform
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: my-terraform-example
