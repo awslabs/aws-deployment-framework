@@ -63,8 +63,8 @@ Management Account. By default, there is a `global.yml` in the root of the
 *bootstrap_repository* repository that can act as a fall back *(default)* and
 be append to as required.
 
-If we look at AWS Step Functions in the management account in `us-east-1` we can see
-the progress of the bootstrap process.
+If we look at AWS Step Functions in the management account in `us-east-1`
+we can see the progress of the bootstrap process.
 
 ![run-state-machine](./images/run-state-machine.png)
 
