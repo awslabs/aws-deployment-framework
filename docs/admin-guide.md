@@ -304,36 +304,35 @@ accounts. Lets take the following example.
 ```txt
 adf-bootstrap <-- This folder lives in the bootstrap repo on management account
 │
-└───deployment
-│    ------│   global.yml
-│    ------│   regional.yml
+├───deployment
+│    ├───global.yml
+│    └───regional.yml
 │
 │
-│───banking
+├───banking
 │   │
-│   │ ───dev
-│   ------│   regional.yml
-│   ------│   global.yml
-│   │ ───test
-│   ------│   regional.yml
-│   ------│   global.yml
-│   │ ───prod
-│   ------│   regional.yml
-│   ------│   global.yml
+│   ├───dev
+│   │   ├───regional.yml
+│   │   └───global.yml
+│   ├───test
+│   │   ├───regional.yml
+│   │   └───global.yml
+│   └───prod
+│       ├───regional.yml
+│       └───global.yml
 │
 │
-│───insurance
-│   │
-│   │ ───dev
-│   ------│   regional.yml
-│   ------│   global.yml
-│   │ ───test
-│   ------│   regional.yml
-│   ------│   global.yml
-│   │ ───prod
-│   ------│   regional.yml
-│   ------│   global.yml
-│
+└───insurance
+    │
+    ├───dev
+    │   ├───regional.yml
+    │   └───global.yml
+    ├───test
+    │   ├───regional.yml
+    │   └───global.yml
+    └───prod
+        ├───regional.yml
+        └───global.yml
 ```
 
 In the above example we have defined a different global and regional
@@ -345,22 +344,23 @@ structure to be as follows:
 
 ```txt
 adf-bootstrap <-- This folder lives in the bootstrap repo on management account
-│   regional.yml  <== These will be used when specificity is lowest
-│   global.yml
+├───regional.yml  <== These will be used when specificity is lowest
+├───global.yml
 │
-└───deployment
-│   -------- │   regional.yml
-│   -------- │   global.yml
+├───deployment
+│   ├───regional.yml
+│   └───global.yml
 │
-│───banking
-│   │ ───prod
-│   -------- │   regional.yml
-│   -------- │   global.yml
-│───insurance
-│   │ ───prod
-│   -------- │   regional.yml
-│   -------- │   global.yml
+├───banking
+│   ├───prod
+│   ├───regional.yml
+│   └───global.yml
 │
+└───insurance
+    ├───prod
+    ├───regional.yml
+    └───global.yml
+
 ```
 
 What we have done is removed two folder representations of the Organizational
@@ -635,18 +635,19 @@ whole `deployment` OU, the folder structure would look like this:
 ```txt
 adf-bootstrap <-- This folder lives in the aws-deployment-framework-bootstrap
 │                 repository on the management account.
-|
-└─── deployment
-│    |
-│    └─── scp.json
 │
-│───banking
+├───deployment
 │   │
-│   └─── dev
-│         │
-│         └─── my_banking_account
-│               └─── scp.json
+│   └───scp.json
 │
+└───banking
+    │
+    └───dev
+        │
+        └───my_banking_account
+            │
+            └───scp.json
+
 ```
 
 The file `adf-bootstrap/deployment/scp.json` applies the defined SCP to the
