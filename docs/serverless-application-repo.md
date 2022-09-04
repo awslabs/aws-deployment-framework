@@ -64,7 +64,7 @@ can always be updated later via the `adfconfig.yml` file.
 between versions of adf*
 - **MainNotificationEndpoint:**
 An optional Email Address that will receive notifications in regards to the
-bootstrapping pipeline on the master account. *This is not required when
+bootstrapping pipeline on the management account. *This is not required when
 performing an update between versions of adf*
 - **ProtectedOUs:**
 An optional comma separated list of OU ids that you may want to protect against

@@ -55,7 +55,7 @@ sorganization.
 Once we have created the new OU, we can move our newly created account into this
 OU. Since we did not define a specific CloudFormation template for the
 `banking/source` OU, ADF will recursively search and attempt to find an
-appropriate base template *(`global.yml` or regional.yml)* in our bootstrap S3
+appropriate base template *(`global.yml` or `regional.yml`)* in our bootstrap S3
 Bucket. Firstly, the bootstrap process will check in the `banking` folder and
 then, if nothing found, in the root. You define the templates and their
 associated OUs in the `aws-deployment-framework-bootstrap` repository on the
@@ -63,7 +63,7 @@ Management Account. By default, there is a `global.yml` in the root of the
 *bootstrap_repository* repository that can act as a fall back *(default)* and
 be append to as required.
 
-If we look at AWS Step Functions in the master account in *us-east-1* we can see
+If we look at AWS Step Functions in the management account in `us-east-1` we can see
 the progress of the bootstrap process.
 
 ![run-state-machine](./images/run-state-machine.png)

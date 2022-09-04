@@ -11,13 +11,13 @@ in the us-east-1 region within the AWS Organizations Master AWS Account.
 ## Installation Instructions
 
 1. Ensure you have setup [AWS CloudTrail](https://aws.amazon.com/cloudtrail/)
-*(Not the default trail)* in your Master Account that spans **all regions**,
+*(Not the default trail)* in your Management Account that spans **all regions**,
 the trail itself can be created in any region. Events
 [triggered via CloudTrail](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_incident-response.html)
 for AWS Organizations can only be acted upon in the US East (N. Virginia)
 Region.
 
-2. In the AWS Console from your master account within `us-east-1`, head over
+2. In the AWS Console from your management account within `us-east-1`, head over
 to the Serverless Application Repository *(SAR)*. From there, search for
 `aws-deployment-framework` *(or "adf")* (ensure the checkbox *"Show apps that
 create custom IAM roles or resource policies"* is checked). If you are
@@ -39,7 +39,7 @@ updates about the bootstrap process. When you have entered all required
 information press **'Deploy'**.
 
 3. As the stack *serverlessrepo-aws-deployment-framework* completes you can now
-open AWS CodePipeline from within the master account in `us-east-1` and see that
+open AWS CodePipeline from within the management account in `us-east-1` and see that
 there is an initial pipeline execution that has been started. When ADF is
 deployed for the first time, it will make the initial commit with the skeleton
 structure of the *aws-deployment-framework-bootstrap* CodeCommit repository.
@@ -57,7 +57,7 @@ the Organization console, or add your deployment account into a `.yml` file
 within the **adf-accounts** folder *(see docs)*. This action will trigger
 [AWS Step Functions](https://aws.amazon.com/step-functions/) to run and start
 the bootstrap process for the deployment account. You can view the progress of
-this in the AWS Step Functions console from the master account in the
+this in the AWS Step Functions console from the management account in the
 `us-east-1` region.
 
 5. Once the Step Function has completed, switch roles over to the newly
