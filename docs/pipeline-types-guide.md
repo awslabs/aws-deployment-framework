@@ -4,8 +4,8 @@
   - [Adding a new pipeline type](#adding-a-new-pipeline-type)
     - [Source Code](#source-code)
       - [adf-build/shared/cdk/cdk_stacks/custom_pipeline.py](#adf-buildsharedcdkcdk_stackscustom_pipelinepy)
-        - [adf-build/shared/cdk/cdk_stacks/main.py](#adf-buildsharedcdkcdk_stacksmainpy)
-          - [adf-build/shared/schema_validation.py](#adf-buildsharedschema_validationpy)
+      - [adf-build/shared/cdk/cdk_stacks/main.py](#adf-buildsharedcdkcdk_stacksmainpy)
+      - [adf-build/shared/schema_validation.py](#adf-buildsharedschema_validationpy)
   - [Using a custom pipeline type](#using-a-custom-pipeline-type)
 
 In order to enhance the flexibility of ADF, it is possible to define custom
@@ -15,15 +15,17 @@ bootstrap repository).
 The pipeline type can be (optionally) configured in the parameter section of
 the pipeline deployment map.
 
-__Please note__:
+**Please note**:
 Pipeline types is a feature aimed at advanced users and developers of ADF.
 Any custom changes made to the adf-bootstrap repository will have to be merged
 in when updating ADF versions.
 
 ## Adding a new pipeline type
 
-A pipeline can either be added manually into the [cdk_stacks](../src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks)
-folder as a separate python file or installed via [requirements.txt](../src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt)
+A pipeline can either be added manually into the
+[cdk_stacks](../src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/cdk/cdk_stacks)
+folder as a separate python file or installed via
+[requirements.txt](../src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/requirements.txt)
 in the adf-build folder.
 
 ### Source Code
@@ -47,25 +49,25 @@ This file is where the pipeline type is used to select what CDK stack to
 deploy. Import your generate function and pipeline type in and add it to the
 file as shown below.
 
-##### adf-build/shared/cdk/cdk_stacks/main.py
+#### adf-build/shared/cdk/cdk_stacks/main.py
 
 ```python
-
 from custom_pipeline import generate_custom_pipeline, PIPELINE_TYPE as CUSTOM_PIPELINE
+
 # ...
 # removed for brevity.
 # ...
 
-def generate_pipeline(self, _pipeline_type, stack_input):
-  # ...
-  if _pipeline_type == CUSTOM_PIPELINE:
-    generate_custom_pipeline(self, stack_input)
 
+def generate_pipeline(self, _pipeline_type, stack_input):
+    # ...
+    if _pipeline_type == CUSTOM_PIPELINE:
+        generate_custom_pipeline(self, stack_input)
 ```
 
 Add your new pipeline type here.
 
-###### adf-build/shared/schema_validation.py
+#### adf-build/shared/schema_validation.py
 
 ```python
 PARAM_SCHEMA: {
@@ -80,7 +82,7 @@ in the deployment map as shown below.
 
 ## Using a custom pipeline type
 
-```YAML
+```yaml
 pipelines:
   - name: example-pipeline
     default_providers:
