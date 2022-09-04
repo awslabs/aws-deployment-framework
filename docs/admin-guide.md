@@ -44,7 +44,9 @@ git repositories. One of the repositories _(bootstrap)_ lives on your
 bootstrap AWS CloudFormation templates for your Organization that are used for
 setting up AWS Accounts with a foundation of resources to suit your needs.
 These templates are automatically applied to AWS accounts within specific AWS
-Organizations Organizational Units. The other repository _(pipelines)_ lives on
+Organizations Organizational Units.
+
+The _(pipelines)_ repository lives on
 your _deployment_ account and holds the various definitions that are used to
 facilitate deploying your applications and resources across many AWS Account
 and Regions. These two repositories will be automatically committed to AWS
@@ -55,7 +57,7 @@ definitions in them as desired.
 ## adfconfig
 
 The `adfconfig.yml` file resides on the
-[management account](#management-account)vCodeCommit Repository _(in us-east-1)_
+[management account](#management-account) CodeCommit Repository (in `us-east-1`)
 and defines the general high-level configuration for the AWS Deployment
 Framework.
 
@@ -65,7 +67,7 @@ Organization.
 
 Below is an example of an `adfconfig.yml` file. When you install ADF via the
 Serverless Application Repository, some of the information entered at the time
-of deployment will be passed into the`adfconfig.yml\` that is committed to the
+of deployment will be passed into the `adfconfig.yml` that is committed to the
 bootstrap repository as a starting point. You can always edit it and push it
 back into the bootstrap repository to update any values.
 
@@ -120,11 +122,9 @@ comes with Administrator Privileges in IAM.
 
 The Regions specification plays an important role in how ADF is laid out.
 You should choose a single `deployment-account` region that you would consider
-your primary region of choice.
-For any pipeline that did not configure a region to target specifically, it
-will default to the primary region only.
-This region is also used as the region where the deployment pipelines will be
-located.
+your primary region of choice. For any pipeline that did not configure a region
+to target specifically, it will default to the primary region only. This region
+is also used as the region where the deployment pipelines will be located.
 
 If you want to deploy to other regions next to the primary region, you should
 also define these as `target` regions.
@@ -148,13 +148,13 @@ and deployed into via AWS CodePipeline.
 Config has five components in `main-notification-endpoint`, `scp`, `scm`,
 `moves` and `protected`.
 
-- **main-notification-endpoint** is the main notification endpoint for the
+- `main-notification-endpoint` is the main notification endpoint for the
 bootstrapping pipeline and deployment account pipeline creation pipeline. This
 value should be a valid email address or [slack](#integrating-slack) channel
 that will receive updates about the status _(Success/Failure)_ of CodePipeline
 that is associated with bootstrapping and creation/updating of all pipelines
 throughout your organization.
-- **moves** is configuration related to moving accounts within your AWS
+- `moves` is configuration related to moving accounts within your AWS
 Organization. Currently the only configuration options for `moves` is named
 _to-root_ and allows either `safe` or `remove_base`. If you specify _safe_ you
 are telling the framework that when an AWS Account is moved from whichever OU
@@ -165,24 +165,24 @@ If you specify `remove_base` for this option and move an account to the root of
 your organization it will attempt to remove the base CloudFormation stacks
 _(regional and global)_ from the account and then update any associated
 pipeline.
-- **protected** is a configuration that allows you to specify a list of OUs
+- `protected` is a configuration that allows you to specify a list of OUs
 that are not configured by the AWS Deployment Framework bootstrapping process.
 You can move accounts to the protected OUs which will skip the standard
 bootstrapping process. This is useful for migrating existing accounts into
 being managed by The ADF.
-- **scp** allows the definition of configuration options that relate to Service
+- `scp` allows the definition of configuration options that relate to Service
 Control Policies. Currently the only option for _scp_ is _keep-default-scp_
 which can either be _enabled_ or _disabled_. This option determines if the
-default FullAWSAccess Service Control Policy should stay attached to OUs that
+default `FullAWSAccess` Service Control Policy should stay attached to OUs that
 are managed by an _scp.json_ or if it should be removed to make way for a more
 specific SCP, by default this is _enabled_. Its important to understand how
 SCPs work before setting this setting to disabled. Please read
 [How SCPs work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_about-scps.html)
 for more information.
-- **scm** tracks all source code management configuration.
-  - **auto-create-repositories** enables the automation aspect of creating AWS
+- `scm` tracks all source code management configuration.
+  - `auto-create-repositories` enables the automation aspect of creating AWS
   CodeCommit repositories automatically when creating a new Pipeline via ADF.
-  **This option is only relevant if** you are using the _source_account_id_
+  **This option is only relevant if** you are using the `source_account_id`
   parameter in your Pipeline Parameters. If this value is `enabled`, ADF will
   automatically create the AWS CodeCommit Repository on the Source Account with
   the same name of the associated pipeline. **If the Repository already exists**
@@ -204,10 +204,11 @@ for more information.
 
 ### Management account
 
-The management account is the owner of the AWS Organization. This account is
-the only account that is allowed to access AWS Organizations and make changes
-such as creating accounts or moving accounts the Organization. Because of this,
-it is important that you keep the account safe and
+The [management account](https://aws.amazon.com/organizations/faqs/#Core_concepts)
+is the owner of the AWS Organization. This account is the only account that is
+allowed to access AWS Organizations and make changes such as creating accounts
+or moving accounts the Organization. Because of this,it is important that you
+keep the account safe and
 [well structured](https://docs.aws.amazon.com/aws-technical-content/latest/cost-optimization-laying-the-foundation/aws-account-structure.html)
 when it comes to IAM access and controls. The AWS Deployment Framework does
 deploy minimal resources into the management account  to allow processes such as
@@ -363,7 +364,7 @@ adf-bootstrap <-- This folder lives in the bootstrap repo on management account
 ```
 
 What we have done is removed two folder representations of the Organizational
-Units and moved our generic `test & dev` base stacks into the root of our
+Units and moved our generic `test` & `dev` base stacks into the root of our
 repository _(as a single template)_. This means that any account move into an
 OU that cannot find its `regional.yml` or `global.yml` will recursively search
 one level up until it reaches the root. This same logic is applied for
@@ -419,12 +420,12 @@ frameworks functionality _(Roles)_ which can be built upon if required.
 
 #### Pipeline Parameters
 
-The name you specify in the _deployment_map.yml_ (or other map files) will be
+The name you specify in the `deployment_map.yml` (or other map files) will be
 automatically linked to a repository of the same name _(in the source account
 you chose)_ so be sure to name your pipeline in the map correctly. The
 Notification endpoint is simply an endpoint that you will receive updates on
 when this pipeline has state changes _(via slack or email)_. The
-_source_account_id_ plays an important role by linking this specific pipeline
+`source_account_id` plays an important role by linking this specific pipeline
 to a specific account in which it can receive resources. For example, let's say
 we are in a team that deploys the AWS CloudFormation template that contains the
 base networking and security to the Organization. In this case, this team may
@@ -434,9 +435,9 @@ develops applications for the banking sector of the company.
 The pipeline for this CloudFormation template should only ever be triggered by
 changes on the repository in that specific teams account. In this case, the AWS
 Account Id for the team that is responsible for this specific CloudFormation
-will be entered in the parameters as **source_account_id** value.
+will be entered in the parameters as `source_account_id` value.
 
-When you enter the _source_account_id_ in the _deployment_map.yml_, you are
+When you enter the `source_account_id` in the `deployment_map.yml`, you are
 saying that this pipeline can only receive content _(trigger a run)_ from a
 change on that specific repository in that specific account and on a specific
 branch _(defaults to
@@ -468,7 +469,7 @@ pipelines:
 
 Here is an example of passing in a parameter to a pipeline to override the
 default branch that is used to trigger the pipeline from, this time using
-Github as a source _(No need for source_account_id)_.
+Github as a source _(No need for `source_account_id`)_.
 
 ```yaml
 pipelines:
@@ -579,7 +580,7 @@ pipelines:
 
 Sometimes its a requirement to chain pipelines together, when one finishes
 you might want another one to start. Because of this, we have a
-_completion_trigger_ property which can be added to any pipeline within your
+`completion_trigger` property which can be added to any pipeline within your
 deployment map files. Chaining works by creating a CloudWatch event that
 triggers on completion of the pipeline to start one or many others. For example:
 
@@ -679,8 +680,8 @@ information, see [here](https://docs.aws.amazon.com/organizations/latest/usergui
 
 ### Integrating with Slack using Lambda
 
-The ADF allows alternate _notification_endpoint_ values that can be used to
-notify the status of a specific pipeline _(in deployment_map.yml)_. You can
+The ADF allows alternate `notification_endpoint` values that can be used to
+notify the status of a specific pipeline (in `deployment_map.yml`). You can
 specify an email address in the deployment map and notifications will be
 emailed directly to that address. However, if you specify a slack channel name
 _(eg team-bugs)_ as the value, the notifications will be forwarded to that
@@ -770,7 +771,7 @@ account in us-east-1. Check the CloudFormation stack output or tag of the
 ### Latest ADF version that is available
 
 If you want to check which version is the latest one available, go to the
-management account in us-east-1:
+management account in `us-east-1`:
 
 1. Navigate to the AWS Deployment Framework Serverless Application Repository
 _(SAR)_, it can be found
@@ -780,7 +781,7 @@ _(SAR)_, it can be found
 
 ## Updating Between Versions
 
-Go to the management account in us-east-1:
+Go to the management account in `us-east-1`:
 
 1. Navigate to the AWS Deployment Framework Serverless Application Repository
 _(SAR)_, it can be found
@@ -798,7 +799,7 @@ CloudFormation. Leave the browser window open until it changes pages.
 Your `serverlessrepo-aws-deployment-framework` stack is updating
 with new changes that were included in that release of ADF.
 
-To check the progress in the management account in us-east-1, follow these
+To check the progress in the management account in `us-east-1`, follow these
 steps:
 
 1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=serverlessrepo-aws-deployment-framework&viewNested=true&hideStacks=false)
@@ -858,7 +859,7 @@ to test it.
 insights into the failure. Please report the step where it failed and include a
 copy of the logs when it fails here.
 
-Once finished, it will trigger the aws-deployment-framework-_pipelines_
+Once finished, it will trigger the `aws-deployment-framework-pipelines`
 pipeline in the _deployment account_ in _your main region_:
 
 1. Open your deployment account.
@@ -915,11 +916,11 @@ After it moves into DELETE_FAILED, you can right-click on the stack and hit
 delete again while selecting to skip the Bucket the stack will successfully
 delete, you can then manually delete the bucket and its contents. After the
 main stack has been removed you can remove the base stack in the deployment
-account _adf-global-base-deployment_ and any associated regional deployment
+account `adf-global-base-deployment` and any associated regional deployment
 account base stacks. After you have deleted these stacks, you can manually
 remove any base stacks from accounts that were bootstrapped. Alternatively
-prior to removing the initial _serverlessrepo-aws-deployment-framework_ stack,
-you can set the _moves_ section of the _adfconfig.yml_ file to _remove-base_
+prior to removing the initial `serverlessrepo-aws-deployment-framework` stack,
+you can set the _moves_ section of the `adfconfig.yml` file to _remove-base_
 which would automatically clean up the base stack when the account is moved to
 the Root of the AWS Organization.
 
@@ -931,7 +932,7 @@ account setup, if you re-install ADF with this parameter set with a value,
 ADF will attempt an assume role to the account to do some work, which will fail
 since that role will not be on the account at that point.
 
-There is also a CloudFormation stack named _adf-global-base-adf-build_ which
+There is also a CloudFormation stack named `adf-global-base-adf-build` which
 lives on the management account in your main deployment region. This stack
 creates two roles on the management account  after the deployment account has
 been setup. These roles allow the deployment accounts CodeBuild role to assume a
@@ -942,7 +943,7 @@ account will not be able to assume a role to the management account  to query
 AWS Organizations. This is because this specific stack creates IAM roles with a
 strict trust relationship to the CodeBuild role on the deployment account, if
 that role gets deleted _(Which is will when you delete
-adf-global-base-deployment)_ then this stack references invalid IAM roles that
+`adf-global-base-deployment`)_ then this stack references invalid IAM roles that
 no longer exist. If you forget to remove this stack and notice the trust
 relationship of the IAM roles referenced in the stack are no longer valid,
 you can delete the stack and re-run the main bootstrap pipeline which will
