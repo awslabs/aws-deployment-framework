@@ -52,7 +52,7 @@ Resources:
       Roles:
         - !Ref OrganizationsReadOnlyRole
   OrganizationsRole:
-    # Only required if you intend to bootstrap the master account.
+    # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Ref CrossAccountAccessRole
