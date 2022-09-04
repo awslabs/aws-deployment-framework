@@ -39,7 +39,7 @@ PIPELINE_TYPE = "yourCustomTypeHere"
 LOGGER = configure_logger(__name__)
 
 
-def generate_custom_pipeline(scope: core.Stack, stack_input) -> None: #pylint: disable=R0912, R0915
+def generate_custom_pipeline(scope: core.Stack, stack_input) -> None:
   # your custom CDK code here
 ```
 

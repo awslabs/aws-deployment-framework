@@ -208,9 +208,9 @@ The management account is the owner of the AWS Organization. This account is
 the only account that is allowed to access AWS Organizations and make changes
 such as creating accounts or moving accounts the Organization. Because of this,
 it is important that you keep the account safe and
-[well structured](https://docs.aws.amazon.com/aws-technical-content/latest/cost-optimization-laying-the-foundation/aws-account-structure.html) when it
-comes to IAM access and controls. The AWS Deployment Framework does deploy
-minimal resources into the management account  to allow processes such as
+[well structured](https://docs.aws.amazon.com/aws-technical-content/latest/cost-optimization-laying-the-foundation/aws-account-structure.html)
+when it comes to IAM access and controls. The AWS Deployment Framework does
+deploy minimal resources into the management account  to allow processes such as
 [bootstrapping](#bootstrapping-accounts) and to take advantage of changes of
 structure within your AWS Organization. The CodeCommit repository on the
 management account s holds bootstrapping templates and parameters along with
@@ -390,12 +390,14 @@ Similar to [Regional Bootstrapping](#regional-bootstrapping) however defined at
 a global level. Resources such as IAM roles and other account wide resources
 should be placed in the `global.yaml` and optional associated parameters in
 `global-params.json` in order to have them applied to accounts. Any global
-stack is deployed in same region you choose to deploy your [deployment account](#deployment-account) into. Global stacks are deployed and updated first
-whenever the bootstrapping or updating process occur to allow for any exports
-to be defined prior to regional stacks executing. The Deployment account has a
-minimum required `global.yml` file that is included as part of the initial
-commit. More can be added to this template as required however, the default
-resources should not be removed.
+stack is deployed in same region you choose to deploy your
+[deployment account](#deployment-account) into.
+
+Global stacks are deployed and updated first whenever the bootstrapping or
+updating process occur to allow for any exports to be defined prior to regional
+stacks executing. The Deployment account has a minimum required `global.yml`
+file that is included as part of the initial commit. More can be added to this
+template as required however, the default resources should not be removed.
 
 #### Bootstrapping Regions
 
@@ -524,7 +526,8 @@ into new Buckets in other AWS Accounts.
           object_key: another/path/output.zip
 ```
 
-In this example, we want to take our `input.zip` file from the Amazon S3 Bucket `banking-etl-bucket-source` that lives in the account `111111111111`. When the
+In this example, we want to take our `input.zip` file from the Amazon S3 Bucket
+`banking-etl-bucket-source` that lives in the account `111111111111`. When the
 data lands in the bucket we want to run our pipeline which will run some ETL
 scripts _(see samples folder)_ against the data and output `output.zip`. We
 then want to deploy this artifact into other Amazon S3 Buckets that live in
@@ -621,7 +624,8 @@ accounts stay within your organization’s access control guidelines. ADF allows
 SCPs to be applied in a similar fashion as base stacks. You can define your SCP
 definition in a file named `scp.json` and place it in a folder that represents
 your Organizational Unit (or OU/AccountName path if you are wanting to apply an
-account-specific SCP) within the `adf-bootstrap` folder from the `aws-deployment-framework-bootstrap` repository on the management account.
+account-specific SCP) within the `adf-bootstrap` folder from the
+`aws-deployment-framework-bootstrap` repository on the management account.
 
 For example, if you have an account named `my_banking_account` under the
 `banking/dev` OU that needs a specific SCP, and another SCP defined for the
@@ -650,9 +654,9 @@ The file `adf-bootstrap/deployment/scp.json` applies the defined SCP to the
 to the `my_banking_account` _account_.
 
 SCPs are available only in an organization that has
-[all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features
-within your Organization, ADF can manage and automate the application and
-updating process of the SCPs.
+[all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html).
+Once you have enabled all features within your Organization, ADF can manage and
+automate the application and updating process of the SCPs.
 
 ## Tagging Policies
 
@@ -666,10 +670,10 @@ on the management account . Tagging policies can also be applied to single
 account using the same approach described above for SCPs.
 
 Tag Policies are available only in an organization that has
-[all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html). Once you have enabled all features
-within your Organization, ADF can manage and automate the application and
-updating process of the Tag Policies. For more information, see
-[here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
+[all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html).
+Once you have enabled all features within your Organization, ADF can manage and
+automate the application and updating process of the Tag Policies. For more
+information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
 ## Integrating Slack
 
@@ -730,9 +734,9 @@ ChatBot. This allows pipeline notifications to scale and provides a consistent
 Slack notification across different AWS services.
 
 In order to use AWS ChatBot, first you must configure an
-[AWS ChatBot Client](https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients) for your desired Slack workspace. Once the client has been
-created. You will need to manually create a channel configuration that will be
-used by the ADF.
+[AWS ChatBot Client](https://us-east-2.console.aws.amazon.com/chatbot/home?region=eu-west-1#/chat-clients)
+for your desired Slack workspace. Once the client has been created. You will
+need to manually create a channel configuration that will be used by the ADF.
 
 Currently, dynamically creating channel configurations is not supported. In the
 deployment map, you can configure a unique channel via the notification
@@ -760,7 +764,8 @@ account in us-east-1. Check the CloudFormation stack output or tag of the
 `serverlessrepo-aws-deployment-framework` Stack.
 
 - In the outputs tab, it will show the version as the `ADFVersionNumber`.
-- In the tags on the CloudFormation stack, it is presented as `serverlessrepo:semanticVersion`.
+- In the tags on the CloudFormation stack, it is presented as
+`serverlessrepo:semanticVersion`.
 
 ### Latest ADF version that is available
 
@@ -796,7 +801,8 @@ with new changes that were included in that release of ADF.
 To check the progress in the management account in us-east-1, follow these
 steps:
 
-1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=serverlessrepo-aws-deployment-framework&viewNested=true&hideStacks=false) searching for the aws-deployment-framework stack.
+1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=serverlessrepo-aws-deployment-framework&viewNested=true&hideStacks=false)
+searching for the aws-deployment-framework stack.
 2. Open the stack named: `serverlessrepo-aws-deployment-framework`.
 3. In the overview of the stack, it reports it current state, `UPDATE_COMPLETE`
 with a recent `Updated time` is what you want to see.
@@ -831,7 +837,8 @@ Alternatively, you can also perform the update using the AWS CLI.
 
 In the management account in us-east-1:
 
-1. Go to the [Pull Request section of the aws-deployment-framework-bootstrap CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
+1. Go to the Pull Request section of the `aws-deployment-framework-bootstrap`
+[CodeCommit repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=us-east-1&status=OPEN)
 2. There might be a pull request if the `aws-deployment-framework-bootstrap`
 repository that you have has to be updated to apply recent changes of ADF. This
 would show up with the version that you deployed recently, for example `v3.1.2`.
@@ -857,12 +864,13 @@ pipeline in the _deployment account_ in _your main region_:
 1. Open your deployment account.
 2. Make sure you are in the main deployment region, where all your pipelines
 are located.
-3. Go to the CodePipeline console and search for `aws-deployment-framework-pipelines`.
+3. Go to the CodePipeline console and search for
+`aws-deployment-framework-pipelines`.
 4. This should progress and turn up as green. If any of these steps fail,
 it could be that one of your pipelines could not be updated. You can click on
 the `Details` link to get more insights into the failure. Please report the
-step where it failed by opening an issue [here](https://github.com/awslabs/aws-deployment-framework/issues) and include a copy of the logs when it fails
-here.
+step where it failed by opening an issue [here](https://github.com/awslabs/aws-deployment-framework/issues)
+and include a copy of the logs when it fails here.
 
 If this last pipeline turned green, to be sure that all went well, you can
 release changes in a pipeline of your choice to test them.
@@ -952,20 +960,20 @@ set the `Log Level` parameter of the ADF Stack to `DEBUG`.
 There are two ways to enable this:
 
 1. If you installed/upgraded to the latest version and that failed, you can
-    follow the [installation docs](./installation-guide.md). When you are about
-    to deploy the latest version again, set the `Log Level` to `DEBUG` to get
-    extra logging information about the issue you are experiencing.
+follow the [installation docs](./installation-guide.md). When you are about
+to deploy the latest version again, set the `Log Level` to `DEBUG` to get
+extra logging information about the issue you are experiencing.
 2. If you are running an older version of ADF, please navigate to the
-    CloudFormation Console in `us-east-1` of the AWS Management account.
+CloudFormation Console in `us-east-1` of the AWS Management account.
 3. Update the stack.
 4. For any ADF deployment of v3.2.0 and later, please change the `Log Level`
-     parameter and set it to `DEBUG`. Deploy those changes and revert them
-     after you gathered the information required to report or fix the issue.
+parameter and set it to `DEBUG`. Deploy those changes and revert them
+after you gathered the information required to report or fix the issue.
 5. If you are running a version prior to v3.2.0, you will need to update the
-     template using the CloudFormation Designer. Search for `INFO` and replace
-     that with `DEBUG`. Deploy the updated version and reverse this process
-     after you found the logging information you needed to report the issue
-     or resolve it.
+template using the CloudFormation Designer. Search for `INFO` and replace
+that with `DEBUG`. Deploy the updated version and reverse this process
+after you found the logging information you needed to report the issue
+or resolve it.
 
 Please trace the failed component and dive into/report the debug information.
 
@@ -978,12 +986,13 @@ The main components to look at are:
 to install the latest version changes of ADF is merged into your default branch for
 the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
 5. The [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
-6. The [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines).
+6. The [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines)
     - Look at the previous executions of the State Machine.
     - When you find one that has a failed execution, check the components
     that are marked orange/red in the diagram.
-7. In the AWS Deployment Account in the deployment region:
-8. The [CodePipeline execution of the `aws-deployment-framework-pipelines` (ADF pipelines) repository](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1)
+7. In the AWS Deployment Account in the deployment region the
+[CodePipeline execution](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1)
+of the `aws-deployment-framework-pipeline` (ADF pipelines) repository
 **Important:** link points to `eu-west-1`, please change that to your own
 deployment region.
 

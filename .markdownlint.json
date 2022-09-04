@@ -1,4 +1,10 @@
 {
+    "emphasis-style": {
+        "style": "consistent"
+    },
+    "no-duplicate-header": {
+        "allow_different_nesting": true
+    },
     "heading-style": {
         "style": "consistent"
     },
@@ -12,7 +18,6 @@
         "tables": false,
         "code_blocks": true,
         "headings": true,
-        "headers": true,
         "line_length": 80,
         "heading_line_length": 80,
         "code_block_line_length": 80

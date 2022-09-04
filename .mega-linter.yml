@@ -32,6 +32,7 @@ SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass
 
+# Install pluging for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
   - command: npm install prettier-plugin-multiline-arrays@1.1.0
     cwd: "workspace"
@@ -39,3 +40,4 @@ JSON_PRETTIER_PRE_COMMANDS:
 CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
 EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: '.ecrc.json'
 MARKDOWN_MARKDOWN_LINK_CHECK_ARGUMENTS: '-q'
+MARKDOWN_MARKDOWNLINT_DISABLE_ERRORS: false
