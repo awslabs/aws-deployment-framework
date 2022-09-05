@@ -2,6 +2,7 @@
 Pipeline Management Lambda Function
 Compares pipeline definitions in S3 to the definitions stored in SSM Param Store.
 Any that exist in param store but not S3 are marked for removal.
+Uses the /deployment/S3/ prefix to make a decision on if a pipeline is stored in S3 or not
 """
 
 import os
@@ -42,7 +43,7 @@ def download_deployment_maps(resource, prefix, local):
 
 
 def get_current_pipelines(parameter_store):
-    return parameter_store.fetch_parameters_by_path("/deployment/")
+    return parameter_store.fetch_parameters_by_path("/deployment/S3/")
 
 
 def identify_out_of_date_pipelines(pipeline_names, current_pipelines):
@@ -60,7 +61,7 @@ def delete_ssm_params(out_of_date_pipelines, parameter_store):
             pipeline,
         )
         parameter_store.delete_parameter(
-            f"/deployment/{pipeline.get('pipeline').removeprefix(ADF_PIPELINE_PREFIX)}/regions"
+            f"/deployment/S3/{pipeline.get('pipeline').removeprefix(ADF_PIPELINE_PREFIX)}/regions"
         )
 
 
