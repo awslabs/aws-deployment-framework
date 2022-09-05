@@ -18,7 +18,7 @@ patch_all()
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 AWS_PARTITION = os.getenv("AWS_PARTITION")
-EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.Alias")
+EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement")
 
 
 def delete_account_aliases(account, iam_client, current_aliases):
@@ -80,7 +80,7 @@ def lambda_handler(event, _):
             "adf_account_alias_config",
         )
         ensure_account_has_alias(event, role.client("iam"))
-        EVENTS.put_event(detail=json.dumps(event), detailType="ACCOUNT_ALIAS_CONFIGURED", resources=[account_id])
+        EVENTS.put_event(detail=json.dumps({"account_id": account_id, "alias_value": event.get("alias")}), detailType="ACCOUNT_ALIAS_CONFIGURED", resources=[account_id])
     else:
         LOGGER.info(
             "Account: %s does not need an alias",

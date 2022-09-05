@@ -27,6 +27,10 @@ Parameters:
     Type: String
     MinLength: "1"
 
+  RootAccountRegion:
+    Type: String
+    MinLength: "1"
+
   CodeBuildImage:
     Type: String
     MinLength: "1"
@@ -61,8 +65,19 @@ Globals:
     Tracing: Active
     Layers:
       - !Ref LambdaLayer
+      - !Ref PipelineManagementLayerVersion
 
 Resources:
+  PipelineManagementLayerVersion:
+    Type: "AWS::Serverless::LayerVersion"
+    Properties:
+      ContentUri: "../../adf-build/shared/"
+      CompatibleRuntimes:
+        - python3.9
+      Description: "Common dependencies for ADF Pipeline Management Functions"
+      LayerName: pipeline_management_layer
+    Metadata:
+      BuildMethod: python3.9
   ADFPipelineMangementLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -79,6 +94,10 @@ Resources:
               - "xray:PutTraceSegments"
               - "cloudwatch:PutMetricData"
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - "events:PutEvents"
+            Resource: !Sub "arn:${AWS::Partition}:events:*:${RootAccountId}:event-bus/ADF-Event-Bus"
       Roles:
         - !Ref DeploymentMapProcessingLambdaRole
         - !Ref CreateOrUpdateRuleLambdaRole
@@ -823,6 +842,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           PIPELINE_MANAGEMENT_STATE_MACHINE: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
+          ADF_EVENTBUS_ARN: !Sub "arn:${AWS::Partition}:events:${RootAccountRegion}:${RootAccountId}:event-bus/ADF-Event-Bus"
+          ADF_EVENTBUS_REGION: !Ref RootAccountRegion
       FunctionName: DeploymentMapProcessorFunction
       Role: !GetAtt DeploymentMapProcessingLambdaRole.Arn
       Events:
@@ -861,6 +882,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
+          ADF_EVENTBUS_ARN: !Sub "arn:${AWS::Partition}:events:${RootAccountRegion}:${RootAccountId}:event-bus/ADF-Event-Bus"
+          ADF_EVENTBUS_REGION: !Ref RootAccountRegion
       FunctionName: ADFPipelineCreateOrUpdateRuleFunction
       Role: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
 
@@ -877,6 +900,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
           S3_BUCKET_NAME: !Ref PipelineBucket
+          ADF_EVENTBUS_ARN: !Sub "arn:${AWS::Partition}:events:${RootAccountRegion}:${RootAccountId}:event-bus/ADF-Event-Bus"
+          ADF_EVENTBUS_REGION: !Ref RootAccountRegion
       FunctionName: ADFPipelineCreateRepositoryFunction
       Role: !GetAtt CreateRepositoryLambdaRole.Arn
 

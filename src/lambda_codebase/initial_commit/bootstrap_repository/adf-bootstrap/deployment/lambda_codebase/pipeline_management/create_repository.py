@@ -4,12 +4,14 @@ Creates or Updates a CodeCommit Repository
 """
 
 import os
+import json
 import boto3
 from repo import Repo
 
 from logger import configure_logger
 from cloudwatch import ADFMetrics
 from parameter_store import ParameterStore
+from events import ADFEvents
 
 
 CLOUDWATCH = boto3.client("cloudwatch")
@@ -17,6 +19,8 @@ METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/REPO")
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+EVENTS = ADFEvents(boto3.client("events", region_name=os.getenv("ADF_EVENTBUS_REGION")), "PipelineManagement")
+
 
 
 def lambda_handler(pipeline, _):
@@ -52,5 +56,15 @@ def lambda_handler(pipeline, _):
             METRICS.put_metric_data(
                 {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
             )
+            EVENTS.put_event(
+                detail=json.dumps({
+                "repository_account_id": code_account_id,
+                "stack_name": repo.stack_name
+                }),
+                detailType="REPOSITORY_CREATED_OR_UPDATED",
+                resources=[
+                    f'{code_account_id}:{pipeline.get("name")}'
+                    ]
+                )
 
     return pipeline

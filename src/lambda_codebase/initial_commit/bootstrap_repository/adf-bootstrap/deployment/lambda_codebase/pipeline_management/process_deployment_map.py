@@ -14,8 +14,10 @@ from yaml.error import YAMLError
 import boto3
 from botocore.exceptions import ClientError
 from logger import configure_logger
+from aws_xray_sdk.core import patch_all
 
 
+patch_all()
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]

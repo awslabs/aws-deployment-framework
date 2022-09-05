@@ -263,6 +263,9 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              - Effect: "Allow"
+                Action: "events:PutEvents"
+                Resource: !GetAtt ADFEventBus.Arn
               - Effect: Allow
                 Action:
                   - "xray:PutTelemetryRecords"
@@ -636,6 +639,11 @@ Resources:
 
   AccountManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - I3042  # Seems to be incorrectly thinking there's a hard-coded ARN in the definition
     Properties:
       RoleArn: !GetAtt StateMachineExecutionRole.Arn
       TracingConfiguration:
@@ -791,7 +799,7 @@ Resources:
                   "Next": "GetAccountDefaultRegionsFunction"
                 }
               ],
-              "Default": "Success"
+              "Default": "PublishCompleteEvent"
             },
             "GetAccountDefaultRegionsFunction": {
               "Type": "Task",
@@ -819,7 +827,7 @@ Resources:
             },
             "DeleteDefaultVPCMap": {
               "Type": "Map",
-              "Next": "Success",
+              "Next": "PublishCompleteEvent",
               "Iterator": {
                 "StartAt": "DeleteDefaultVPC",
                   "States": {
@@ -856,6 +864,21 @@ Resources:
                 },
                 "ResultPath": null
               },
+            "PublishCompleteEvent": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::events:putEvents",
+              "Parameters": {
+                "Entries": [
+                  {
+                    "Detail.$": "$",
+                    "DetailType": "ACCOUNT_CREATION_COMPLETE",
+                    "EventBusName": "ADF-Event-Bus",
+                    "Source": "ADF.AccountManagement.AccountCreation"
+                  }
+                ]
+              },
+              "Next": "Success"
+                },
               "Success": {
                 "Type": "Succeed"
               }
@@ -1889,6 +1912,22 @@ Resources:
     Type: AWS::Events::EventBus
     Properties:
       Name: ADF-Event-Bus
+
+  DeploymentAcountPutEventsPolicy:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      StatementId: "DeploymentAccountPutEventStatement"
+      Statement:
+        Effect: "Allow"
+        Principal: "*"
+        Action: "events:PutEvents"
+        Resource: !GetAtt ADFEventBus.Arn
+        Condition:
+          ArnLike:
+            aws:PrincipalArn:
+              - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:role/adf-automation/*"
+      EventBusName:
+        Ref: ADFEventBus
 
 Outputs:
   ADFVersionNumber:

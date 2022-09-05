@@ -37,5 +37,5 @@ class ADFEvents:
         }
         trace_id = os.getenv("_X_AMZN_TRACE_ID")
         if trace_id:
-            payload["TraceHeader"] = trace_id
+            payload["TraceHeader"] = trace_id.split(";")[0]
         self.events.put_events(Entries=[payload])

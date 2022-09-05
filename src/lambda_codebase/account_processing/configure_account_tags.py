@@ -19,7 +19,7 @@ from logger import configure_logger
 from events import ADFEvents
 
 patch_all()
-EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.Tags")
+EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement")
 LOGGER = configure_logger(__name__)
 
 
@@ -40,7 +40,7 @@ def lambda_handler(event, _):
             event.get("tags"),
             organizations,
         )
-        EVENTS.put_event(detail=json.dumps(event), detailType="ACCOUNT_TAGS_CONFIGURED", resources=[event.get('account_id')])
+        EVENTS.put_event(detail=json.dumps({"tags": event.get("tags"), "account_id": event.get("account_id")}), detailType="ACCOUNT_TAGS_CONFIGURED", resources=[event.get('account_id')])
     else:
         LOGGER.info(
             "Account: %s does not need tags configured",

@@ -13,8 +13,10 @@ from parameter_store import ParameterStore
 from sts import STS
 from logger import configure_logger
 from partition import get_partition
+from aws_xray_sdk.core import patch_all
 
 
+patch_all()
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]

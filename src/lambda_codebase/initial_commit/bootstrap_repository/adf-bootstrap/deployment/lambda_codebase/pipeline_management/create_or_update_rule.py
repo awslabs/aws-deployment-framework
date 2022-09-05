@@ -5,20 +5,25 @@ If the source account != the Deplyment account
 """
 
 import os
+import json
 import boto3
 
 from cache import Cache
 from rule import Rule
 from logger import configure_logger
 from cloudwatch import ADFMetrics
+from events import ADFEvents
+from aws_xray_sdk.core import patch_all
 
 
+patch_all()
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv("PIPELINE_MANAGEMENT_STATEMACHINE_ARN")
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
+EVENTS = ADFEvents(boto3.client("events", region_name=os.getenv("ADF_EVENTBUS_REGION")), "PipelineManagement")
 
 _cache = None
 
@@ -56,5 +61,6 @@ def lambda_handler(pipeline, _):
         METRICS.put_metric_data(
             {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
         )
+        EVENTS.put_event(detail=json.dumps({"source_account_id": _source_account_id}), detailType="CROSS_ACCOUNT_RULE_CREATED_OR_UPDATED", resources=[DEPLOYMENT_ACCOUNT_ID])
 
     return pipeline

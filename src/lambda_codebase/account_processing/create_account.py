@@ -18,7 +18,7 @@ patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
-EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.AccountProvisioning")
+EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement")
 
 
 
