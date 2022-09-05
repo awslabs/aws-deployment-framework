@@ -5,15 +5,20 @@
 Deletes the default VPC in a particular region
 """
 import os
+import json
+import boto3
 from sts import STS
 from aws_xray_sdk.core import patch_all
 from logger import configure_logger
+from events import ADFEvents
 
 patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 AWS_PARTITION = os.getenv("AWS_PARTITION")
+EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.VPC")
+
 
 
 def assume_role(account_id):
@@ -62,6 +67,7 @@ def delete_default_vpc(ec2_resource, ec2_client, default_vpc_id):
 
 
 
+
 def lambda_handler(event, _):
     event = event.get("Payload")
     LOGGER.info("Checking for default VPC: %s", event.get('account_full_name'))
@@ -78,5 +84,7 @@ def lambda_handler(event, _):
         )
         ec2_resource = role.resource("ec2", region_name=event.get("region"))
         delete_default_vpc(ec2_resource, ec2_client, default_vpc_id)
+        EVENTS.put_event(detail=json.dumps(event), detailType="DEFAULT_VPC_DELETED", resources=[event.get("account_id"), default_vpc_id])
+
 
     return {"Payload": event}

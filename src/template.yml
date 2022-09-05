@@ -233,6 +233,9 @@ Resources:
               - "xray:PutTelemetryRecords"
               - "xray:PutTraceSegments"
             Resource: "*"
+          - Effect: "Allow"
+            Action: "events:PutEvents"
+            Resource: !GetAtt ADFEventBus.Arn
       Roles:
         - !Ref AccountProcessingLambdaRole
         - !Ref GetAccountRegionsFunctionRole
@@ -363,6 +366,7 @@ Resources:
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
+          ADF_EVENTBUS_ARN: !GetAtt ADFEventBus.Arn
       FunctionName: AccountAliasConfigurationFunction
       Role: !GetAtt AccountAliasConfigFunctionRole.Arn
 
@@ -1880,6 +1884,11 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-bootstrap
+
+  ADFEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: ADF-Event-Bus
 
 Outputs:
   ADFVersionNumber:

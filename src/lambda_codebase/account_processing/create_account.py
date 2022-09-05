@@ -6,14 +6,20 @@ Creates an account within your organisation.
 """
 
 import os
+import json
 from aws_xray_sdk.core import patch_all
 import boto3
+
 from logger import configure_logger
+from events import ADFEvents
+
 
 patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
+EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.AccountProvisioning")
+
 
 
 def create_account(account, adf_role_name, org_client):
@@ -42,4 +48,5 @@ def create_account(account, adf_role_name, org_client):
 
 def lambda_handler(event, _):
     org_client = boto3.client("organizations")
-    return create_account(event, ADF_ROLE_NAME, org_client)
+    details = create_account(event, ADF_ROLE_NAME, org_client)
+    EVENTS.put_event(detail=json.dumps(details), detailType="ACCOUNT_PROVISIONED", resources=[details.get("account_id")])
