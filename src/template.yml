@@ -254,7 +254,7 @@ Resources:
               Service:
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-state-machine-role-policy"
           PolicyDocument:
@@ -333,7 +333,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-lambda-create-account-alias-policy"
           PolicyDocument:
@@ -377,7 +377,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-lambda-tag-resource-policy"
           PolicyDocument:
@@ -439,7 +439,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-lambda-policy-move-ou"
           PolicyDocument:
@@ -488,7 +488,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
 
   DeleteDefaultVPCFunction:
     Type: 'AWS::Serverless::Function'
@@ -523,7 +523,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
 
   CreateAccountFunction:
     Type: 'AWS::Serverless::Function'
@@ -557,7 +557,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-lambda-create-account-policy"
           PolicyDocument:
@@ -600,7 +600,7 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-management/"
       Policies:
         - PolicyName: "adf-lambda-support-access-policy"
           PolicyDocument:
@@ -1410,7 +1410,7 @@ Resources:
                 - lambda.amazonaws.com
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/"
+      Path: "/aws-deployment-framework/account-bootstrapping/"
       Policies:
         - PolicyName: "adf-state-machine-role-policy"
           PolicyDocument:
@@ -1420,7 +1420,13 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                   - "states:StartExecution"
-                Resource: "*"
+                Resource:
+                  - !GetAtt DetermineEventFunction.Arn
+                  - !GetAtt CrossAccountExecuteFunction.Arn
+                  - !GetAtt MovedToRootActionFunction.Arn
+                  - !GetAtt StackWaiterFunction.Arn
+                  - !GetAtt RoleStackDeploymentFunction.Arn
+                  - !GetAtt UpdateResourcePoliciesFunction.Arn
 
   AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
