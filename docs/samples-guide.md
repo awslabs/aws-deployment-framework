@@ -5,7 +5,7 @@ pipelines, Container Workloads, Serverless Application or standard line of
 business applications running on Amazon EC2.
 
 Because of the range of capabilities, we have included some sample repositories
-to get you started. Each sample contains a *readme.md* to explain the details of
+to get you started. Each sample contains a `README.md` to explain the details of
 the sample along with a description of how the sample pipeline could be defined
 within a deployment map file. If you have any samples that you use and find
 useful, please contribute to this repository.
@@ -29,14 +29,18 @@ place, we can deploy a ECS Cluster that will run our sample NodeJS application.
 
 ADF supports multiple source types *(Github, CodeCommit, S3, CodeStar)* for
 pipelines, in this example we will use AWS CodeCommit as the source for our
-pipelines. Firstly, we will need to define an AWS Account where our source code
+pipelines.
+
+First, we will need to define an AWS Account where our source code
 originates from. In a real world example, we should assume that the account
 where the source code is kept and maintained is different from that which
 performs the deploy action, and again, different from that which actually
-runs the application. The regions used in this guide *(us-west-2, eu-west-1)*
-have been defined as target regions in `adfconfig.yml` and the deployment
-account has been bootstrapped as defined in the
-[installation guide](./installation-guide.md).
+runs the application.
+
+The regions used in this guide (`us-west-2`, `eu-west-1`) should have already
+been defined as target regions in `adfconfig.yml` and the deployment account
+must have been bootstrapped as defined in the [installation
+guide](./installation-guide.md).
 
 Let's create a new AWS Account called `banking-source` via AWS Organizations
 that will act as a point of entry for our sample code. The role name we choose
@@ -48,7 +52,7 @@ when we create a new account must match that of the one we define in out
 Lets also create a new OU called `banking/source`. On this account, teams would
 work from different AWS CodeCommit repositories and build applications,
 resources and projects related to the banking section of this hypothetical
-sorganization.
+organization.
 
 ![create-ou](./images/create-ou.png)
 
@@ -56,12 +60,14 @@ Once we have created the new OU, we can move our newly created account into this
 OU. Since we did not define a specific CloudFormation template for the
 `banking/source` OU, ADF will recursively search and attempt to find an
 appropriate base template *(`global.yml` or `regional.yml`)* in our bootstrap S3
-Bucket. Firstly, the bootstrap process will check in the `banking` folder and
-then, if nothing found, in the root. You define the templates and their
+Bucket.
+
+First, the bootstrap process will check the `banking` folder and
+then, if nothing was found, the root. You define the templates and their
 associated OUs in the `aws-deployment-framework-bootstrap` repository on the
 Management Account. By default, there is a `global.yml` in the root of the
-*bootstrap_repository* repository that can act as a fall back *(default)* and
-be append to as required.
+*bootstrap_repository* repository that can act as a fall-back *(default)* and
+be appended to as required.
 
 If we look at AWS Step Functions in the management account in `us-east-1`
 we can see the progress of the bootstrap process.
@@ -111,7 +117,7 @@ pipelines:
         regions: us-west-2
 ```
 
-The *account_id* will be the Account Id of the account we created in the
+The `account_id` will be the Account Id of the account we created in the
 `banking/source` OU. In this pipeline we have specified we want to deploy to
 two different regions as part of the stages. If you wish to deploy to the
 *"default"* region *(the one your deployment account is setup globally in)*
@@ -160,7 +166,7 @@ Tags:
 
 ```
 
-In this case, `global.yml` will act as a fall back and will also merge the
+In this case, `global.yml` will act as a fall-back and will also merge the
 `CostCenter` property into the lower level account specific parameter files.
 This means that the `banking-testing` account will get a copy of the parameters
 in `global.yml` since we didn't explicitly specify any parameters for it
@@ -281,11 +287,12 @@ Notice this time we are passing in which **image** *(overriding the default)*
 we want AWS CodeBuild to use during its build phase. Parameters from the
 definition like this are passed directly into the AWS CDK as input to generate
 our pipeline in a specific way. During the *Build* phase of this pipeline,
-CodeBuild will build the *Dockerfile* in the `sample-fargate-node-app` project
+CodeBuild will build the `Dockerfile` in the `sample-fargate-node-app` project
 and push the image into the ECR Repository we created on the Deployment Account.
 We are also using an *action* of **replace_on_failure** as part of our
 deployment stages. There are numerous types of CloudFormation action types
-[you can choose from](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html#w2ab1c13c13b9).
+[you can choose
+from](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline-action-reference.html#w2ab1c13c13b9).
 Add and commit this new pipeline to the pipelines repository on the deployment
 account.
 
@@ -304,6 +311,6 @@ Accessing the *ExternalUrl* output in your web browser, you should be greeted
 with the application running inside AWS Fargate.
 
 For more samples, please see the other pipeline/resource definitions in the
-`samples` folder, or check out the numerous CloudFormation resource savailable
+`samples` folder, or check out the numerous CloudFormation resource available
 on [Github](https://github.com/awslabs/aws-cloudformation-templates) which
 can be used with ADF.
