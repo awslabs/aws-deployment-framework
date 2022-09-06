@@ -94,7 +94,8 @@ After hitting **Deploy** the base AWS Deployment Framework
 [CloudFormation stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks)
 will be created.
 
-This Stack contains a few notable resources such as
+This Stack contains a few notable resources such as:
+
 - an [AWS CodeCommit
   Repository](https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/browse?region=us-east-1)
 - along with an associated [AWS CodeBuild
