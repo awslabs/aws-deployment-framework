@@ -1,4 +1,4 @@
-# ADF Account Provisionion
+# ADF Account Provisioning
 
 This directory contains `.yml` file(s) that will make up your AWS Account
 ecosystem. This Account Provisioning process is a declarative approach to

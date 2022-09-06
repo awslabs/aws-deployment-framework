@@ -61,25 +61,26 @@ Before sending us a pull request, please ensure that:
 
 1. You are working against the latest source on the *master* branch.
 2. You check existing open, and recently merged, pull requests to make sure
-someone else hasn't addressed the problem already.
+   someone else hasn't addressed the problem already.
 3. You open an issue to discuss any significant work - we would hate for your
-time to be wasted.
+   time to be wasted.
 
 To send us a pull request, please:
 
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing.
-If you also reformat all the code, it will be hard for us to focus on your
-change.
+   If you also reformat all the code, it will be hard for us to focus on your
+   change.
 3. Make sure your editor is configured to use
-[editorconfig](https://editorconfig.org/), this helps maintain consistent coding
-styles and prevents linter findings later.
-4. Ensure local tests and linters pass.
+   [editorconfig](https://editorconfig.org/), this helps maintain consistent
+   coding styles and prevents linter findings later.
+4. Ensure local [tests](#running-tests-locally) and
+   [linters](#running-linters-locally) pass.
 5. Commit to your fork using clear commit messages.
 6. Send us a pull request, answering any default questions in the pull request
-interface.
-7. Pay attention to any automated CI failures reported in the pull request,
-and stay involved in the conversation.
+   interface.
+7. Pay attention to any automated CI failures reported in the pull request, and
+   stay involved in the conversation.
 
 GitHub provides additional document on
 [forking a repository](https://help.github.com/articles/fork-a-repo/) and
