@@ -307,6 +307,106 @@ Provider type: `codebuild`.
   > Note: Either specify the `spec_inline` or the `spec_filename` in the
   > properties block. If both are supplied, the pipeline generator will throw
   > an error instead.
+- *vpc_id* *(String)* defaults to none.
+  > Configure the `vpc_id` if the CodeBuild instance needs to connect through
+  > a VPC. You will need to set the `subnet_ids` property as well. Plus,
+  > optionally, you can configure the `security_group_ids` to specify what
+  > security groups the instance should use.
+  >
+  > Please note:
+  > VPC support can be added to a CodeBuild step in the pipeline, but cannot
+  > be removed that easily.
+  >
+  > In case you want to remove VPC support after adding it first:
+  > You need to delete the pipeline CloudFormation stack of the pipeline that
+  > should be updated. Then *release a change* in the
+  > `aws-deployment-framework-pipelines` in CodePipeline to regenerate the
+  > stack without the VPC support.
+  >
+  > An example of a `vpc_id` value: `vpc-01234567890abcdef`
+- *subnet_ids* *(List of Strings)* **(with VPC usage only)** defaults to none.
+  > The list of subnet ids that the CodeBuild instance is configured to use.
+  > These subnets need to be part of the VPC that is configured by the `vpc_id`
+  > property of the same provider.
+  >
+  > Please note:
+  > Only configure the `subnet_ids` when the `vpc_id` is also configured.
+  > Make sure there are multiple subnets listed that are hosted in separate
+  > availability zones to ensure a reliable service.
+  >
+  > An example of a list of `subnet_ids` is:
+  > `["subnet-1234567890abcdef0", "subnet-bcdef01234567890a"]`
+- *security_group_ids* *(List of Strings)* **(with VPC usage only)** defaults to none.
+  > The list of security group ids that the CodeBuild instance is configured to use.
+  > These security groups need to be part of the VPC that is configured by the `vpc_id`
+  > property of the same provider.
+  >
+  > ADF will generate a default security group when you configured a `vpc_id`
+  > but did not configure any `security_group_ids`. The default security
+  > group has an allow all egress traffic rule. It is recommended that you
+  > make use of specific security groups instead.
+  >
+  > Typically, one security group would be sufficient, unless you need to
+  > combine multiple security groups to grant the build environment all access
+  > it needs.
+  >
+  > Please note:
+  > Only configure the `security_group_ids` when the `vpc_id` is also configured.
+  > To configure access securely, you need to create and specify the exact
+  > security group to use on a pipeline per pipeline basis. Such that pipelines
+  > will only have access to the resources they are allowed to access and
+  > nothing more.
+  >
+  > An example of a list of `security_group_ids` is:
+  > `["sg-234567890abcdef01", "sg-cdef01234567890ab"]`
+
+#### Setup permissions for CodeBuild VPC usage
+
+When you want to configure CodeBuild to use a specific VPC, you can make use of
+the `vpc_id`, `subnet_ids`, and/or `security_group_ids` properties.
+
+However, before you do so, you need to make sure that ADF is allowed to deploy
+CodeBuild in the specific VPC that you want.
+
+You need to update the `aws-deployment-framework-bootstrap` repository once
+to grant it access to deploy. To grant access, follow these instructions
+closely:
+
+1. Open the `aws-deployment-framework-bootstrap` repository.
+2. Navigate to the `adf-bootstrap/deployment` folder.
+3. Check whether the following file exists inside that directory
+   `global-iam.yml`: The full path for this file in that repository would be
+   `adf-bootstrap/deployment/global-iam.yml`.
+4. If it does not exist, you need to create a copy of the
+   `example-global-iam.yml` that is stored inside that directory and store it
+   as `global-iam.yml`. You can comment out the `CloudFormationDeploymentPolicy`
+   block that is added by the example or tweak it to your needs.
+5. Compare the content of the `global-iam.yml` file against the
+   `example-global-iam.yml` file.
+   The section that you are interested in starts off with:
+```yaml
+##
+# Begin of VPC CodeBuild support IAM permissions
+##
+```
+  Until the end is commented as:
+```yaml
+##
+# End of VPC CodeBuild support IAM permissions
+##
+```
+
+  The `PipelineProvisionerResourcePolicy` and `CodeBuildResourcePolicy`
+  resources should be listed and configured to allow the use of VPCs in the
+  CodeBuild provider deployed by ADF. Ensure these are not commented out and
+  match same IAM policy as defined in the `example-global-iam.yml` file.
+
+7. If necessary, commit the changes you made to the repository and have them
+   peer reviewed and merged into the main branch of the
+   `aws-deployment-framework-bootstrap` repository.
+8. You should be allowed to use VPCs in CodeBuild once the
+   `aws-deployment-framework-bootstrap` pipeline finished deploying your
+   changes.
 
 ### Jenkins
 

@@ -26,7 +26,6 @@ ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 def main():
     LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
-    _threads = []
     _templates = glob.glob("cdk_inputs/*.json")
     for template_path in _templates:
         with open(template_path, encoding="utf-8") as template:
