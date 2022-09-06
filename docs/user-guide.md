@@ -1027,4 +1027,4 @@ pipelines:
 By passing in the Repository name *(repository)* we are overriding the
 **name** property which normally is the name of our associated repository.
 This will tie both of these pipelines to the single *sample-vpc* repository on
-the *111111111111* AWS Account.
+the `111111111111` AWS Account.
