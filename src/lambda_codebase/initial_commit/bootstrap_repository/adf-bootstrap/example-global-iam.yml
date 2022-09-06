@@ -50,12 +50,15 @@ Resources:
 #       Statement:
 #         - Effect: Allow
 #           Sid: "AssumeRole"
-#           Principal:
-#             AWS:
+#           Condition:
+#             StringEquals:
+#               'aws:PrincipalArn':
 #               # This would allow all codebuild projects to be able to assume this role
-#               # - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role
-#               - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/my-custom-codebuild-role
+#               #  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role
+#                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/my-custom-codebuild-role
 #               # The above role would be created on the deployment account for the purpose deploying this custom resource via codebuild
+#           Principal:
+#             AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
 #           Action:
 #             - sts:AssumeRole
 #     Path: /
