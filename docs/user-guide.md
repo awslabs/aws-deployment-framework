@@ -764,8 +764,8 @@ parameters from the pipeline itself.
 There is also the concept of optionally resolving or importing values. This can
 be achieved by ending the import or resolve function with a **?**. For example,
 if you want to resolve a value from Parameter Store that might or might not yet
-exist you can use an optional resolve (e.g. `resolve:/my/path/to/myMagicKey?)`.
-If the key *myMagicKey* does not exist in Parameter Store then an empty string
+exist you can use an optional resolve (e.g. `resolve:/my/path/to/myMagicKey?`).
+If the key `myMagicKey` does not exist in Parameter Store then an empty string
 will be returned as the value.
 
 #### Importing output values
