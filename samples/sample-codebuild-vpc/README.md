@@ -2,8 +2,8 @@
 
 This pipeline will demonstrate how-to setup CodeBuild to use a specific VPC.
 
-**Please note**: Before you can deploy CodeBuild in a VPC, you need to follow the
-instructions as described in the CodeBuild provider documentation at:
+**Please note**: Before you can deploy CodeBuild in a VPC, you need to follow
+the instructions as described in the CodeBuild provider documentation at:
 [docs/providers-guide.md](../../docs/providers-guide.md#setup-permissions-for-codebuild-vpc-usage)
 This is only required once to allow the CodeBuild service to locate and create
 the required resources. Once configured, the permissions allow any pipeline to
@@ -20,7 +20,7 @@ this sample folder.
 Update the `vpc_id`, `subnet_ids`, and `security_group_ids` attributes to match
 your own VPC and subnets that are operational in the deployment account.
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-codebuild-vpc

@@ -408,10 +408,10 @@ closely:
    CodeBuild provider deployed by ADF. Ensure these are not commented out and
    match same IAM policy as defined in the `example-global-iam.yml` file.
 
-7. If necessary, commit the changes you made to the repository and have them
+6. If necessary, commit the changes you made to the repository and have them
    peer reviewed and merged into the main branch of the
    `aws-deployment-framework-bootstrap` repository.
-8. You should be allowed to use VPCs in CodeBuild once the
+7. You should be allowed to use VPCs in CodeBuild once the
    `aws-deployment-framework-bootstrap` pipeline finished deploying your
    changes.
 
