@@ -8,26 +8,25 @@ ADF pipeline.
 ![Architecture](./meta/custom-configs.png)
 
 - As a first step it requires to have a Source code repository to store our
-code. In this pattern we are using CodeCommit repository. This repository
-created by as a part of the pipeline definition in the ADF's
-`deployment_map.yml`. Example of the pipeline definition is in the ADF setup
-section.
+  code. In this pattern we are using CodeCommit repository. This repository
+  created by as a part of the pipeline definition in the ADF's
+  `deployment_map.yml`. Example of the pipeline definition is in the ADF setup
+  section.
 - ADF pipeline definition creates a pipeline that will deploy Lambda function(s)
-into the compliance account and Custom Config rule(s) to Target accounts.
+  into the compliance account and Custom Config rule(s) to Target accounts.
 - When a Custom Config rule get pushed into the CodeCommit repository;
   - CodeBuild will find the RDK rule(s) recursively in the `config-rules`
-  directory then zip each single rule one by one and upload into ADF bucket.
-  Buildspec is utilising a helper script called `lambda_helper.py` to achieve
-  this task. ADF populates bucket names into SSM Parameter store on the
-  Installation. `lambda_helper.py` fetches the bucket name from the SSM
-  Parameter Store. Parameter name looks like
-  `/cross_region/s3_regional_bucket/{region}`.
+    directory then zip each single rule one by one and upload into ADF bucket.
+    Buildspec is using a helper script called `lambda_helper.py` to achieve
+    this task. ADF populates bucket names into SSM Parameter store on the
+    installation. `lambda_helper.py` fetches the bucket name from the SSM
+    Parameter Store. Parameter name looks like
+    `/cross_region/s3_regional_bucket/{region}`.
   - Then CodeBuild will generate 2 CloudFormation templates one for Lambda
-  function(s) deployment and other for the Custom Config rule(s) deployment.
-
-- When a Lambda function get invokes by a Target account Custom config rule;
-it will assume the Config role in Target account then put config Evaluations
-into the Target account's Config rule.
+    function(s) deployment and other for the Custom Config rule(s) deployment.
+- When a Lambda function get invokes by a Target account Custom config rule; it
+  will assume the Config role in the target account then put config Evaluations
+  into the Target account's Config rule.
 
 ### ADF setup
 
@@ -63,14 +62,24 @@ Sample pipeline definition looks like below:
 ## Development setup
 
 After you clone the repo following file/folder structure will be there;
-| Name               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| config-rules       | This folder will contain all the custom config rules created by `rdk create ...`. Make sure to setup correct details in the `parameters.json` file(ex: SourceRuntime)                                                                                                                                                                                                                                                                                     |
-| params             | Contains parameters we need for the generated CloudFormation templates. You must set the account id of the Compliance account in `LambdaAccountId` and Target accounts Config role arn as a pattern in `ConfigRoleArnToAssume`. These will be used as parameters when it deploys config-rule into Target accounts to refer Lambda function from the Compliance account. [Refer this link](../../docs/user-guide.md#cloudformation-parameters-and-tagging) |
-| templates          | This folder contains all the cloudformation template pieces that required to build cfn template for the lambda function deployment.                                                                                                                                                                                                                                                                                                                       |
-| `buildspec.yml`    | Buildspec file to generate Cloudformation templates for the Lambda and Custom Config rules                                                                                                                                                                                                                                                                                                                                                                |
-| `lambda_helper.py` | This is the helper file that pack and upload the lambda code recursively in the config-rules folder                                                                                                                                                                                                                                                                                                                                                       |
-| `requirements.txt` | Requirements for the `lambda_helper.py` script.                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+- `config-rules`: This folder will contain all the custom config rules created
+  by `rdk create ...`. Make sure to setup correct details in the
+  `parameters.json` file(ex: SourceRuntime)
+- `params`: Contains parameters we need for the generated CloudFormation
+  templates. You must set the account id of the Compliance account in
+  `LambdaAccountId` and Target accounts Config role arn as a pattern in
+  `ConfigRoleArnToAssume`. These will be used as parameters when it deploys
+  config-rule into Target accounts to refer Lambda function from the Compliance
+  account. [Refer this
+  link](../../docs/user-guide.md#cloudformation-parameters-and-tagging)
+- `templates`: This folder contains all the CloudFormation (CFn) template pieces
+  that required to build CFn template for the lambda function deployment.
+- `buildspec.yml`: Buildspec file to generate CloudFormation templates for the
+  Lambda and Custom Config rules
+- `lambda_helper.py`: This is the helper file that pack and upload the lambda
+  code recursively in the config-rules folder
+- `requirements.txt`: Requirements for the `lambda_helper.py` script.
 
 ## Lambda function implementation requirements
 
@@ -115,10 +124,11 @@ account. If not lambda execution will be failed.
 
 - This solution does not setup config or config recorder.
 - When this solution deploys the config-rule to a target account; it expects
-config is enabled in the target account.
+  config is enabled in the target account.
 - Each target account's config role should be able assume by
-`<account-that-has-the-lambda-function>` to put evaluations into each target
-account's config. AKA config role in target account(2222222222) should have the
-lambda-function-account-id(1111111111) as trusted entity as below.
+  `<account-that-has-the-lambda-function>` to put evaluations into each target
+  account's config. AKA config role in the target account (`2222222222`) should
+  have the `lambda-function-account-id` (`1111111111`) as trusted entity as
+  below.
 
 ![Trusted entiry](./meta/lambda-account-id-trusted-entiry.png)
