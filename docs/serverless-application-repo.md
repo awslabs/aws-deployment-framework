@@ -115,7 +115,7 @@ by moving it into the deployment OU within AWS Organizations.
 
 Before bootstrapping an AWS Account its important to understand how ADF handles
 AWS Account provisioning. Read more about [AWS Account
-Provisioning](./admin-guide.md) in the admin guide.
+Provisioning](./admin-guide.md#account-provisioning) in the admin guide.
 
 ## Upgrading between versions?
 

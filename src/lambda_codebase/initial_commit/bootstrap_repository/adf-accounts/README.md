@@ -57,7 +57,7 @@ a `/` (see examples above).
   Currently ADF only supports basic or enterprise.
   **NB: This is for activating enterprise support on account creation only.
   As a prerequisite your organization management account must already have
-  enterprise support activated**
+  enterprise support activated.**
 - `alias`: AWS account alias. Must be unique globally otherwise cannot be
   created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html)
   for further details. If the account alias is not created or already exists,

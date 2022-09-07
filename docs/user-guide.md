@@ -791,7 +791,7 @@ since it is considered optional.
 
 #### Uploading assets
 
-Another built-in function is **upload**, You can use *upload* to perform an
+Another built-in function is `upload:`, You can use `upload:` to perform an
 automated upload of a resource such as a template or file into Amazon S3 as
 part of the build process.
 
@@ -802,16 +802,16 @@ For example, If you are deploying products that will be made available via
 Service Catalog to many teams throughout your organization *(see samples)*
 you will need to reference the AWS CloudFormation template URL of the product
 as part of the template that creates the product definition. The problem that
-the **upload** function is solving in this case is that the template URL of the
+the `upload:` function is solving in this case is that the template URL of the
 product cannot exist at this point, since the file has not yet been uploaded to
 S3.
 
 ```yaml
 Parameters:
-    ProductYTemplateURL: 'upload:path:productY/template.yml'
+  ProductYTemplateURL: 'upload:path:productY/template.yml'
 ```
 
-In the above example, we are calling the **upload** function on a file called
+In the above example, we are calling the `upload:` function on a file called
 `template.yml` that lives in the `productY` folder within our repository and
 then returning the path style URL from S3 (indicated by the word *path* in the
 string). The string `upload:path:productY/template.yml` will be replaced by the
@@ -1001,7 +1001,7 @@ For more advanced yaml usage, see
 ### One to many relationships
 
 If required, it is possible to create multiple Pipelines that are tied to the
-same Repository.
+same repository.
 
 ```yaml
 pipelines:
