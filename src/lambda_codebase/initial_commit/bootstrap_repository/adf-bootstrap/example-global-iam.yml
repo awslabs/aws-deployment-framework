@@ -51,7 +51,7 @@ Resources:
 #         - Effect: Allow
 #           Sid: "AssumeRole"
 #           Condition:
-#             StringEquals:
+#             ArnEquals:
 #               'aws:PrincipalArn':
 #               # This would allow all codebuild projects to be able to assume this role
 #               #  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role

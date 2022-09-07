@@ -35,8 +35,8 @@ Resources:
         Statement:
           - Effect: Allow
             Condition:
-              StringEquals:
-                'aws:PrincipalArn': !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role"
             Principal:
               AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
@@ -205,8 +205,8 @@ Resources:
           - Effect: Allow
             Sid: "AssumeRoleLambda"
             Condition:
-              StringEquals:
-                'aws:PrincipalArn': !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-lambda-role
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-lambda-role"
             Principal:
               AWS:
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
@@ -220,11 +220,9 @@ Resources:
             Action:
               - sts:AssumeRole
             Condition:
-              Fn::And:
-                - ArnEquals:
-                    "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
-                - StringEquals:
-                    'aws:PrincipalArn': !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role"
       Path: /
 
   AdfAutomationRole:
@@ -241,11 +239,11 @@ Resources:
           - Effect: Allow
             Sid: "AssumeRole"
             Condition:
-              StringEquals:
-                'aws:PrincipalArn': !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:root"
             Action:
               - sts:AssumeRole
       Path: /
@@ -346,8 +344,8 @@ Resources:
           - Effect: Allow
             Sid: "AssumeRole"
             Condition:
-              StringEquals:
-                'aws:PrincipalArn': !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
             Principal:
               AWS:
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
