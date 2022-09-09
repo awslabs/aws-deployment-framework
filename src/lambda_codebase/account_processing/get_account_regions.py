@@ -16,6 +16,24 @@ LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 AWS_PARTITION = os.getenv("AWS_PARTITION")
 
+def get_default_regions_for_account(ec2_client):
+    default_regions = [
+    region["RegionName"]
+    for region in ec2_client.describe_regions(
+        AllRegions=False,
+        Filters=[
+            {
+                "Name": "opt-in-status",
+                "Values": [
+                    "opt-in-not-required",
+                    "opted-in"
+                ],
+            }
+        ],
+    )["Regions"]
+    ]
+    return default_regions
+
 
 def lambda_handler(event, _):
     LOGGER.info("Fetching Default regions %s", event.get('account_full_name'))
@@ -25,23 +43,8 @@ def lambda_handler(event, _):
         f"arn:{AWS_PARTITION}:iam::{account_id}:role/{ADF_ROLE_NAME}",
         "adf_account_get_regions",
     )
+    default_regions = get_default_regions_for_account(role.client("ec2"))
 
-    ec2_client = role.client("ec2")
-    default_regions = [
-        region["RegionName"]
-        for region in ec2_client.describe_regions(
-            AllRegions=False,
-            Filters=[
-                {
-                    "Name": "opt-in-status",
-                    "Values": [
-                        "opt-in-not-required",
-                        "opted-in"
-                    ],
-                }
-            ],
-        )["Regions"]
-    ]
     LOGGER.debug("Default regions for %s: %s", account_id, default_regions)
     return {
         **event,

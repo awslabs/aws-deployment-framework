@@ -344,17 +344,6 @@ class Organizations:  # pylint: disable=R0904
             DestinationParentId=ou_id
         )
 
-    def create_account_tags(self, account_id, tags):
-        formatted_tags = [
-            {'Key': str(key), 'Value': str(value)}
-            for tag in tags
-            for key, value in tag.items()
-        ]
-        self.client.tag_resource(
-            ResourceId=account_id,
-            Tags=formatted_tags
-        )
-
     @staticmethod
     def create_account_alias(account_alias, role):
         iam_client = role.client('iam')
