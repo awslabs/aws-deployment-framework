@@ -19,7 +19,7 @@ REGION_DEFAULT = os.environ["AWS_REGION"]
 def lambda_handler(event, _):
     parameters = ParameterStore(region=REGION_DEFAULT, role=boto3)
     account_id = event.get('detail').get('requestParameters').get('accountId')
-    organizations = Organizations(role=Organizations.create, account_id=account_id)
+    organizations = Organizations(role=boto3, account_id=account_id)
     parsed_event = Event(
         event=event,
         parameter_store=parameters,

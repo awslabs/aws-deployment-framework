@@ -20,6 +20,9 @@ from partition import get_organization_api_region
 LOGGER = configure_logger(__name__)
 AWS_REGION = os.getenv('AWS_REGION')
 
+class OrganizationsException(Exception):
+    pass
+
 
 class Organizations:  # pylint: disable=R0904
     """
@@ -28,17 +31,14 @@ class Organizations:  # pylint: disable=R0904
 
     _config = Config(retries=dict(max_attempts=30))
 
-    def create_org_client_with_role(role):
-        return role.client('organizations', config=Organizations._config)      
-
     def __init__(self, role=None, account_id=None, org_client=None, tagging_client=None):
         if role:
             LOGGER.warning("Using a role in the organisations client is being deprecated. Please provide the relevant clients to remove this warning")
         if not role:
             if not org_client:
-                raise ClientError("If a role isn't provided, please provide an org_client")
+                raise OrganizationsException("If a role isn't provided, please provide an org_client")
             if not tagging_client:
-                raise ClientError("If a role isn't provided, please provide a tagging_client")                
+                raise OrganizationsException("If a role isn't provided, please provide a tagging_client")
         self.client = role.client(
             'organizations',
             config=Organizations._config

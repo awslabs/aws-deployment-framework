@@ -11,7 +11,7 @@ from pytest import fixture
 from stubs import stub_organizations
 from mock import Mock, patch
 from cache import Cache
-from organizations import Organizations
+from organizations import Organizations, OrganizationsException
 from botocore.stub import Stubber
 import unittest
 
@@ -164,3 +164,10 @@ class OUPathsHappyTestCases(unittest.TestCase):
         response = organizations.dir_to_ou("/production/banking")
         
         self.assertListEqual(expected_response, list(response))
+
+class OrgClientInitTestCases(unittest.TestCase):
+    def test_init(self):
+        with self.assertRaises(OrganizationsException) as context:
+            Organizations() 
+        assert Organizations(role=boto3) 
+                       
