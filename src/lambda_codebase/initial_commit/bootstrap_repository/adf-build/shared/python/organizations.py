@@ -229,7 +229,7 @@ class Organizations:  # pylint: disable=R0904
     def get_ou_root_id(self):
         return self.client.list_roots().get('Roots')[0].get('Id')
 
-    def dir_to_ou(self, path):
+    def ou_path_to_id(self, path):
         p = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
@@ -241,8 +241,25 @@ class Organizations:  # pylint: disable=R0904
                     break
             else:
                 raise Exception(f"Path {path} failed to return a child OU at '{p[0]}'")
-        else: # pylint: disable=W0120
-            return self.get_accounts_for_parent(ou_id)
+        return ou_id
+
+    def dir_to_ou(self, path):
+        LOGGER.warning("The method dir_to_ou() is deprecated, use get_accounts_in_path() instead")
+        return self.get_accounts_in_path(path)
+
+    def get_accounts_in_path(self, path, resolve_children=False, ou_id=None):
+        ou_id = self.ou_path_to_id(path) if not ou_id else ou_id
+        accounts = []
+        for page in self.get_accounts_for_parent(ou_id):
+            accounts.append(page)
+        if resolve_children:
+            LOGGER.info("Resolving OUs for %s (%s)", path, ou_id)
+            child_query = self.get_child_ous(ou_id)
+            LOGGER.info(child_query)
+            for child in child_query:
+                LOGGER.info(child)
+                accounts.extend(self.get_accounts_in_path(f"{path}/{child.get('Name')}", resolve_children, child.get("Id")))
+        return accounts
 
     def build_account_path(self, ou_id, account_path, cache):
         """

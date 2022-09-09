@@ -74,7 +74,7 @@ def test_build_account_path(cls):
     assert cls.build_account_path('some_ou_id', [], cache) == 'some_ou_name'
 
 class OUPathsHappyTestCases(unittest.TestCase):
-    def test_nested_ou_paths(self):
+    def test_original_ou_paths(self):
         org_client = boto3.client("organizations")
         org_stubber = Stubber(org_client)
         tagging_client = boto3.client("organizations")
@@ -105,7 +105,21 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Arn": "",
                 "Name": "banking"
             }]
-        }    
+        }  
+
+        list_organisational_units_for_banking_response = {
+            "OrganizationalUnits": [{
+                "Id": "ou-09092022",
+                "Arn": "",
+                "Name": "investment"
+            }]
+        } 
+
+        list_organisational_units_for_investment_response = {
+            "OrganizationalUnits": [
+
+            ]
+        }                     
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -133,6 +147,19 @@ class OUPathsHappyTestCases(unittest.TestCase):
             ]
         }
 
+        list_accounts_for_investment_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "3333333333",
+                    "Arn": "",
+                    "Email": "account+3@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                }                  
+            ]
+        }        
+
         expected_response = [
                 {
                     "Id": "11111111111",
@@ -157,6 +184,10 @@ class OUPathsHappyTestCases(unittest.TestCase):
         org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_production_response, {"ParentId": "ou-123456"})
         org_stubber.add_response("list_accounts_for_parent", list_accounts_for_banking_response_page_0, {"ParentId": "ou-080922"})
         org_stubber.add_response("list_accounts_for_parent", list_accounts_for_banking_response_page_1, {"ParentId": "ou-080922", "NextToken": "PAGE1"})
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_banking_response, {"ParentId": "ou-080922"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_investment_response_page_0, {"ParentId": "ou-09092022"})
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_investment_response, {"ParentId": "ou-09092022"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_investment_response_page_0, {"ParentId": "ou-09092022"})
 
         org_stubber.activate()
         tag_stubber.activate()
@@ -164,6 +195,136 @@ class OUPathsHappyTestCases(unittest.TestCase):
         response = organizations.dir_to_ou("/production/banking")
         
         self.assertListEqual(expected_response, list(response))
+
+    def test_original_nested_paths(self):
+        org_client = boto3.client("organizations")
+        org_stubber = Stubber(org_client)
+        tagging_client = boto3.client("organizations")
+        tag_stubber = Stubber(tagging_client)
+
+        list_roots_response = {
+                "Roots": [
+                    {
+                        "Id": "r-1337",
+                        "Arn": "arn:aws:organizations::root/r-1337",
+                        "Name": "/",
+                        "PolicyTypes": [],
+                    }
+                ]
+        }
+
+        list_organisational_units_for_root_response = {
+            "OrganizationalUnits": [{
+                "Id": "ou-123456",
+                "Arn": "",
+                "Name": "production"
+            }]
+        }
+
+        list_organisational_units_for_production_response = {
+            "OrganizationalUnits": [{
+                "Id": "ou-080922",
+                "Arn": "",
+                "Name": "banking"
+            }]
+        }  
+
+        list_organisational_units_for_banking_response = {
+            "OrganizationalUnits": [{
+                "Id": "ou-09092022",
+                "Arn": "",
+                "Name": "investment"
+            }]
+        } 
+
+        list_organisational_units_for_investment_response = {
+            "OrganizationalUnits": [
+
+            ]
+        }                     
+
+        list_accounts_for_banking_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "11111111111",
+                    "Arn": "",
+                    "Email": "account+1@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                }
+            ],
+            "NextToken": "PAGE1"
+        }
+        list_accounts_for_banking_response_page_1 = {
+            "Accounts": [
+                {
+                    "Id": "22222222222",
+                    "Arn": "",
+                    "Email": "account+2@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                }
+            ]
+        }
+
+        list_accounts_for_investment_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "3333333333",
+                    "Arn": "",
+                    "Email": "account+3@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                }                
+            ]
+        }        
+
+        expected_response = [
+                {
+                    "Id": "11111111111",
+                    "Arn": "",
+                    "Email": "account+1@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                },            
+                {
+                    "Id": "22222222222",
+                    "Arn": "",
+                    "Email": "account+2@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                },
+                {
+                    "Id": "3333333333",
+                    "Arn": "",
+                    "Email": "account+3@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9)
+                }                  
+            ]
+
+        org_stubber.add_response("list_roots", list_roots_response)
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_root_response, {"ParentId": "r-1337"})
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_production_response, {"ParentId": "ou-123456"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_banking_response_page_0, {"ParentId": "ou-080922"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_banking_response_page_1, {"ParentId": "ou-080922", "NextToken": "PAGE1"})
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_banking_response, {"ParentId": "ou-080922"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_investment_response_page_0, {"ParentId": "ou-09092022"})
+        org_stubber.add_response("list_organizational_units_for_parent", list_organisational_units_for_investment_response, {"ParentId": "ou-09092022"})
+        org_stubber.add_response("list_accounts_for_parent", list_accounts_for_investment_response_page_0, {"ParentId": "ou-09092022"})
+
+        org_stubber.activate()
+        tag_stubber.activate()
+        organizations = Organizations(role=None, org_client=org_client, tagging_client=tagging_client)
+        response = organizations.get_accounts_in_path("/production/banking", resolve_children=True)
+        
+        self.assertListEqual(expected_response, list(response))        
 
 class OrgClientInitTestCases(unittest.TestCase):
     def test_init(self):
