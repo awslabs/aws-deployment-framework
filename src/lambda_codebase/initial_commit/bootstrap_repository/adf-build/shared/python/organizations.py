@@ -28,17 +28,27 @@ class Organizations:  # pylint: disable=R0904
 
     _config = Config(retries=dict(max_attempts=30))
 
-    def __init__(self, role, account_id=None):
+    def create_org_client_with_role(role):
+        return role.client('organizations', config=Organizations._config)      
+
+    def __init__(self, role=None, account_id=None, org_client=None, tagging_client=None):
+        if role:
+            LOGGER.warning("Using a role in the organisations client is being deprecated. Please provide the relevant clients to remove this warning")
+        if not role:
+            if not org_client:
+                raise ClientError("If a role isn't provided, please provide an org_client")
+            if not tagging_client:
+                raise ClientError("If a role isn't provided, please provide a tagging_client")                
         self.client = role.client(
             'organizations',
             config=Organizations._config
-        )
+        ) if not org_client else org_client
         organization_api_region = get_organization_api_region(AWS_REGION)
         self.tags_client = role.client(
             'resourcegroupstaggingapi',
             region_name=organization_api_region,
             config=Organizations._config
-        )
+        ) if not tagging_client else tagging_client
         self.account_id = account_id
         self.account_ids = []
         self.root_id = None
