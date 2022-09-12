@@ -247,7 +247,7 @@ class Organizations:  # pylint: disable=R0904
         LOGGER.warning("The method dir_to_ou() is deprecated, use get_accounts_in_path() instead")
         return self.get_accounts_in_path(path)
 
-    def get_accounts_in_path(self, path, resolve_children=False, ou_id=None):
+    def get_accounts_in_path(self, path, resolve_children=False, ou_id=None, excluded_paths=[]):
         ou_id = self.ou_path_to_id(path) if not ou_id else ou_id
         accounts = []
         for page in self.get_accounts_for_parent(ou_id):
@@ -258,7 +258,8 @@ class Organizations:  # pylint: disable=R0904
             LOGGER.info(child_query)
             for child in child_query:
                 LOGGER.info(child)
-                accounts.extend(self.get_accounts_in_path(f"{path}/{child.get('Name')}", resolve_children, child.get("Id")))
+                if f"{path}/{child.get('Name')}" not in excluded_paths:
+                    accounts.extend(self.get_accounts_in_path(f"{path}/{child.get('Name')}", resolve_children, child.get("Id")))
         return accounts
 
     def build_account_path(self, ou_id, account_path, cache):
