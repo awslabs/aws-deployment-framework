@@ -97,14 +97,14 @@ Examples:
     local deployment_map.yml file is missing:
 
         $ python sync_to_s3.py -d deployment_map.yml \\
-              s3://deploy-bucket/root_deployment_map.yml
+            s3://deploy-bucket/root_deployment_map.yml
 
     Copy all .yml files from the deployment_maps folder to an S3 bucket where
     the objects are prefixed with the `deployment_map/`, deleting the .yml
     objects inside the deployment_map that no longer exist locally.
 
         $ python sync_to_s3.py -d -e .yml -r deployment_maps \\
-              s3://deploy-bucket/deployment_maps
+            s3://deploy-bucket/deployment_maps
 """
 
 import os
@@ -593,9 +593,9 @@ def get_full_local_path(local_path: str) -> Path:
 
     Returns:
         Path: The full Path instance pointing to the local_path
-              relative to the directory this command was executed from. Or the
-              Path instance pointing to the local_path if that is an absolute
-              path already.
+            relative to the directory this command was executed from. Or the
+            Path instance pointing to the local_path if that is an absolute
+            path already.
     """
     path = Path(local_path)
     if path.is_absolute():
