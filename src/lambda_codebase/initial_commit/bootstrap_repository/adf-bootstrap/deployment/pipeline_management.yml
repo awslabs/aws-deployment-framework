@@ -3,7 +3,7 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Stack for processing deployment maps.
 
 Parameters:
-  OrganizationID:
+  OrganizationId:
     Type: String
     MinLength: "1"
 
@@ -615,7 +615,7 @@ Resources:
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
           - Name: ORGANIZATION_ID
-            Value: !Ref OrganizationID
+            Value: !Ref OrganizationId
           - Name: CLOUDFORMATION_ROLE_ARN
             Value: !GetAtt ADFPipelineMangementCloudFormationRole.Arn
         Type: LINUX_CONTAINER
@@ -818,7 +818,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           PIPELINE_MANAGEMENT_STATE_MACHINE: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
@@ -856,7 +856,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -872,7 +872,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -888,7 +888,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -905,7 +905,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -922,7 +922,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
