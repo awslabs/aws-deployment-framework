@@ -118,13 +118,14 @@ import base64
 import boto3
 from docopt import docopt
 
-from logger import configure_logger
-
 
 ADF_VERSION = os.environ.get("ADF_VERSION")
 ADF_LOG_LEVEL = os.environ.get("ADF_LOG_LEVEL", "INFO")
-LOGGER = configure_logger(__name__)
 NON_RECURSIVE_KEY = '%%-single-match-%%'
+
+logging.basicConfig(level=logging.INFO)
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(ADF_LOG_LEVEL)
 
 
 class GenericFileData(TypedDict):
