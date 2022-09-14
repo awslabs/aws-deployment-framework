@@ -1,6 +1,6 @@
-# ADF Account Provisionion
+# ADF Account Provisioning
 
-This directory contains *.yml* file(s) that will make up your AWS Account
+This directory contains `.yml` file(s) that will make up your AWS Account
 ecosystem. This Account Provisioning process is a declarative approach to
 defining AWS Accounts along with where they will live within your AWS
 Organization. This process enables to end-to-end bootstrapping and associated
@@ -9,12 +9,12 @@ and setup AWS Accounts via ADF.
 
 ## Overview
 
-When setting ADF for the first time you will have an auto-generated *adf.yml*
+When setting ADF for the first time you will have an auto-generated `adf.yml`
 file within the *adf-accounts* folder. This is processed by the bootstrap
 process to ensure the deployment account exists and is in the Organizational
 unit that corresponds to the definition (*/deployment*).
 
-For creating additional accounts, you can create any *.yml* file within the
+For creating additional accounts, you can create any `.yml` file within the
 *adf-accounts* folder. This will be processed and the accounts will be created
 and moved into the desired OU.
 
@@ -56,8 +56,8 @@ a `/` (see examples above).
   to an existing AWS support subscription when an account is created.
   Currently ADF only supports basic or enterprise.
   **NB: This is for activating enterprise support on account creation only.
-  As a prerequisite your organization master account must already have
-  enterprise support activated**
+  As a prerequisite your organization management account must already have
+  enterprise support activated.**
 - `alias`: AWS account alias. Must be unique globally otherwise cannot be
   created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html)
   for further details. If the account alias is not created or already exists,
@@ -66,13 +66,13 @@ a `/` (see examples above).
 
 ### Examples
 
-You can create as many *.yml* files as required and split them up into groups as
+You can create as many `.yml` files as required and split them up into groups as
 required. As mentioned above, when deploying ADF initially you will get an
-*adf.yml* file which will hold the information for the initial deployment
+`adf.yml` file which will hold the information for the initial deployment
 account. If you are upgrading from a previous version of ADF you may need to
-create the *adf.yml* yourself if you want to manage the deployment account
+create the `adf.yml` yourself if you want to manage the deployment account
 itself via ADF. You can create other files to create the structure you desire,
-as an example, we might create a *prod.yml* and *test.yml* which hold their
+as an example, we might create a `prod.yml` and `test.yml` which hold their
 respective environments AWS Accounts.
 
 #### prod.yml
