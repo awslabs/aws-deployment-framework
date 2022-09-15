@@ -784,17 +784,12 @@ def main():  # pylint: disable=R0915
     LOGGER.debug("Input arguments: %s", options)
 
     local_path = options.get('SOURCE_PATH')
-    # file_extension = options.get('--extension') or ""
     file_extension = options.get('--extension') or ""
     s3_url = options.get('DESTINATION_S3_URL')
     recursive = options.get('--recursive', False)
     delete = options.get('--delete', False)
 
     # Convert metadata key and value lists into a dictionary
-    # metadata_key_values = dict(map(
-    #     lambda idx: (options['<key>'][idx], options['<value>'][idx]),
-    #     range(len(options['<key>'])),
-    # ))
     metadata_key_values = dict(map(
         lambda kv_pair: (
             kv_pair[:kv_pair.find("=")],
