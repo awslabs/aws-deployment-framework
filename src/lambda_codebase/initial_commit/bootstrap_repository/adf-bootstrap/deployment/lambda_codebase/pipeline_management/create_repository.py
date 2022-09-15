@@ -19,16 +19,15 @@ METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/REPO")
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-EVENTS = ADFEvents(boto3.client("events", region_name=os.getenv("ADF_EVENTBUS_REGION")), "PipelineManagement")
-
+EVENTS = ADFEvents("PipelineManagement")
 
 
 def lambda_handler(pipeline, _):
     """Main Lambda Entry point"""
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     auto_create_repositories = parameter_store.fetch_parameter(
-                "auto_create_repositories"
-            )
+        "auto_create_repositories"
+    )
     LOGGER.info(auto_create_repositories)
     if auto_create_repositories == "enabled":
         code_account_id = (
@@ -57,14 +56,14 @@ def lambda_handler(pipeline, _):
                 {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
             )
             EVENTS.put_event(
-                detail=json.dumps({
-                "repository_account_id": code_account_id,
-                "stack_name": repo.stack_name
-                }),
+                detail=json.dumps(
+                    {
+                        "repository_account_id": code_account_id,
+                        "stack_name": repo.stack_name,
+                    }
+                ),
                 detailType="REPOSITORY_CREATED_OR_UPDATED",
-                resources=[
-                    f'{code_account_id}:{pipeline.get("name")}'
-                    ]
-                )
+                resources=[f'{code_account_id}:{pipeline.get("name")}'],
+            )
 
     return pipeline

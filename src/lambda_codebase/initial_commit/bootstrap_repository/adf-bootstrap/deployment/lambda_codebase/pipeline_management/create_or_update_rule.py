@@ -23,7 +23,7 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv("PIPELINE_MANAGEMENT_STATEMACHINE_ARN")
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
-EVENTS = ADFEvents(boto3.client("events", region_name=os.getenv("ADF_EVENTBUS_REGION")), "PipelineManagement")
+EVENTS = ADFEvents("PipelineManagement")
 
 _cache = None
 

@@ -18,12 +18,11 @@ patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
-EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement")
-
+EVENTS = ADFEvents("AccountManagement")
 
 
 def create_account(account, adf_role_name, org_client):
-    LOGGER.info("Creating account %s", account.get('account_full_name'))
+    LOGGER.info("Creating account %s", account.get("account_full_name"))
     allow_billing = "ALLOW" if account.get("allow_billing", False) else "DENY"
     response = org_client.create_account(
         Email=account.get("email"),
@@ -49,4 +48,8 @@ def create_account(account, adf_role_name, org_client):
 def lambda_handler(event, _):
     org_client = boto3.client("organizations")
     details = create_account(event, ADF_ROLE_NAME, org_client)
-    EVENTS.put_event(detail=json.dumps(details), detailType="ACCOUNT_PROVISIONED", resources=[details.get("account_id")])
+    EVENTS.put_event(
+        detail=json.dumps(details),
+        detailType="ACCOUNT_PROVISIONED",
+        resources=[details.get("account_id")],
+    )

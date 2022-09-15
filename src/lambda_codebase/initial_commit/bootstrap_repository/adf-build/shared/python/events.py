@@ -9,7 +9,7 @@ import boto3
 
 class ADFEvents:
     def __init__(
-        self, client: boto3.client, service, namespace="ADF", eventbus_arn=None
+        self, service, namespace="adf", eventbus_arn=None, client: boto3.client = None
     ) -> None:
         """
         Client: Any Boto3 EventBridge client
@@ -18,7 +18,14 @@ class ADFEvents:
         eventbus_arn: Optionally specify a custom EventBridge ARN. If no ARN is specified, and no ENV variable set, will default to ADF-Event-Bus
 
         """
-        self.events = client
+        self.events = (
+            client
+            if client
+            else boto3.client(
+                "events",
+                region_name=os.getenv("ADF_EVENTBUS_REGION", os.getenv("AWS_REGION")),
+            )
+        )
         self.source = f"{namespace}.{service}"
         self.eventbus_arn = (
             os.environ.get("ADF_EVENTBUS_ARN", "ADF-Event-Bus")
@@ -27,7 +34,7 @@ class ADFEvents:
         )
 
     # This dict isn't mutated. So it's safe to default to this
-    def put_event(self, detailType, detail, resources=[]): # pylint: disable=W0102
+    def put_event(self, detailType, detail, resources=[]):  # pylint: disable=W0102
         payload = {
             "Source": self.source,
             "Resources": resources,

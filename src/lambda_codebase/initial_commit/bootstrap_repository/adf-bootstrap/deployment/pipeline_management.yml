@@ -97,7 +97,7 @@ Resources:
           - Effect: Allow
             Action:
               - "events:PutEvents"
-            Resource: !Sub "arn:${AWS::Partition}:events:*:${RootAccountId}:event-bus/ADF-Event-Bus"
+            Resource: !Sub "arn:${AWS::Partition}:events:${RootAccountRegion}:${RootAccountId}:event-bus/ADF-Event-Bus"
       Roles:
         - !Ref DeploymentMapProcessingLambdaRole
         - !Ref CreateOrUpdateRuleLambdaRole

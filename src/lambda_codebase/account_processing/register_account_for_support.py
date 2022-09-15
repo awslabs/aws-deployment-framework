@@ -18,7 +18,7 @@ from aws_xray_sdk.core import patch_all
 
 
 LOGGER = configure_logger(__name__)
-EVENTS =  ADFEvents(boto3.client("events"), "AccountManagement.Support")
+EVENTS =  ADFEvents("AccountManagement")
 patch_all()
 
 
