@@ -12,30 +12,30 @@ from sync_to_s3 import *
 # pylint: skip-file
 
 S3_PREFIX = "s3-prefix"
-CURRENT_VERSION = "This is the current version on S3"
-NEW_VERSION = "This will be uploaded to S3"
-CURRENT_HASH = b64encode(sha256(CURRENT_VERSION.encode("utf-8")).digest())
-NEW_HASH = b64encode(sha256(NEW_VERSION.encode("utf-8")).digest())
+CURRENT_VERSION = "This is the current version on S3".encode("utf-8")
+NEW_VERSION = "This will be uploaded to S3".encode("utf-8")
+CURRENT_HASH = str(b64encode(sha256(CURRENT_VERSION).digest()))
+NEW_HASH = str(b64encode(sha256(NEW_VERSION).digest()))
 
 EXAMPLE_LOCAL_FILES: Mapping[str, LocalFileData] = {
     "first-file.yml": {
         "key": "first-file.yml",
-        "full_path": "/full/path/first-file.yml",
+        "file_path": "/full/path/first-file.yml",
         "sha256_hash": CURRENT_HASH,
     },
-    "second-file.yml": {
-        "key": "second-file.yml",
-        "full_path": "/full/path/second-file.yml",
+    "second-file.yaml": {
+        "key": "second-file.yaml",
+        "file_path": "/full/path/second-file.yaml",
         "sha256_hash": CURRENT_HASH,
     },
     "updated-file.yml": {
         "key": "updated-file.yml",
-        "full_path": "/full/path/updated-file.yml",
+        "file_path": "/full/path/updated-file.yml",
         "sha256_hash": NEW_HASH,
     },
     "missing-file.yml": {
         "key": "missing-file.yml",
-        "full_path": "/full/path/missing-file.yml",
+        "file_path": "/full/path/missing-file.yml",
         "sha256_hash": NEW_HASH,
     },
 }
@@ -44,8 +44,8 @@ EXAMPLE_S3_OBJECTS: Mapping[str, GenericFileData] = {
         "key": f"{S3_PREFIX}/first-file.yml",
         "sha256_hash": CURRENT_HASH,
     },
-    "second-file.yml": {
-        "key": f"{S3_PREFIX}/second-file.yml",
+    "second-file.yaml": {
+        "key": f"{S3_PREFIX}/second-file.yaml",
         "sha256_hash": CURRENT_HASH,
     },
     "updated-file.yml": {
@@ -61,11 +61,15 @@ EXAMPLE_S3_OBJECTS: Mapping[str, GenericFileData] = {
 
 @patch("sync_to_s3.get_full_local_path")
 def test_get_local_files_empty_directory(get_full_local_path):
-    file_extension = ".yml"
+    file_extensions = [".yml"]
     with tempfile.TemporaryDirectory() as directory_path:
         get_full_local_path.return_value = Path(directory_path)
 
-        get_local_files(directory_path, file_extension, recursive=True) == {}
+        assert get_local_files(
+            directory_path,
+            file_extensions,
+            recursive=True,
+        ) == {}
 
         get_full_local_path.assert_called_once_with(directory_path)
 
@@ -76,9 +80,9 @@ def test_get_local_files_non_recursive_missing_file(get_full_local_path):
         local_path = Path(directory_path) / "missing-file.yml"
         get_full_local_path.return_value = local_path
 
-        get_local_files(
+        assert get_local_files(
             str(local_path),
-            file_extension="",
+            file_extensions=[],
             recursive=False,
         ) == {}
 
@@ -87,36 +91,39 @@ def test_get_local_files_non_recursive_missing_file(get_full_local_path):
 
 @patch("sync_to_s3.get_full_local_path")
 def test_get_local_files_recursive(get_full_local_path):
-    file_extension = ".yml"
+    file_extensions = [".yml", ".yaml"]
     example_local_files = deepcopy(EXAMPLE_LOCAL_FILES)
-    return_local_files = deepcopy(example_local_files)
     example_local_files["README.md"] = {
         "key": "README.md",
-        "full_path": "/full/path/README.md",
+        "file_path": "/full/path/README.md",
         "sha256_hash": NEW_HASH,
     }
     example_local_files["some-other-config.json"] = {
         "key": "some-other-config.json",
-        "full_path": "/full/path/some-other-config.json",
-        "sha256_hash": NEW_HASH,
+        "file_path": "/full/path/some-other-config.json",
+        "sha256_hash": CURRENT_HASH,
     }
     with tempfile.TemporaryDirectory() as directory_path:
         get_full_local_path.return_value = Path(directory_path)
 
         for file in example_local_files.values():
             tmp_file_path = Path(directory_path) / file.get("key")
-            with open(tmp_file_path, "w", encoding="utf-8") as file_pointer:
-                file["full_path"] = Path(directory_path) / file.get("key")
+            with open(tmp_file_path, "wb", buffering=0) as file_pointer:
+                file["file_path"] = str(Path(directory_path) / file.get("key"))
                 file_pointer.write(
-                    CURRENT_VERSION if file.get("key") in [
+                    NEW_VERSION if file.get("key") in [
                         "updated-file.yml",
                         "missing-file.yml",
-                    ] else NEW_VERSION
+                        "README.md"
+                    ] else CURRENT_VERSION
                 )
+        return_local_files = deepcopy(example_local_files)
+        del return_local_files["README.md"]
+        del return_local_files["some-other-config.json"]
 
-        get_local_files(
+        assert get_local_files(
             directory_path,
-            file_extension,
+            file_extensions,
             recursive=True,
         ) == return_local_files
 
@@ -124,36 +131,101 @@ def test_get_local_files_recursive(get_full_local_path):
 
 
 @patch("sync_to_s3.get_full_local_path")
-def test_get_local_files_recursive_no_filter(get_full_local_path):
-    file_extension = ""
+def test_get_local_files_recursive_any(get_full_local_path):
+    file_extensions = []
     example_local_files = deepcopy(EXAMPLE_LOCAL_FILES)
     example_local_files["README.md"] = {
         "key": "README.md",
-        "full_path": "/full/path/README.md",
+        "file_path": "/full/path/README.md",
         "sha256_hash": NEW_HASH,
     }
     example_local_files["some-other-config.json"] = {
         "key": "some-other-config.json",
-        "full_path": "/full/path/some-other-config.json",
-        "sha256_hash": NEW_HASH,
+        "file_path": "/full/path/some-other-config.json",
+        "sha256_hash": CURRENT_HASH,
     }
     with tempfile.TemporaryDirectory() as directory_path:
         get_full_local_path.return_value = Path(directory_path)
 
         for file in example_local_files.values():
             tmp_file_path = Path(directory_path) / file.get("key")
-            with open(tmp_file_path, "w", encoding="utf-8") as file_pointer:
-                file["full_path"] = Path(directory_path) / file.get("key")
+            with open(tmp_file_path, "wb", buffering=0) as file_pointer:
+                file["file_path"] = str(Path(directory_path) / file.get("key"))
                 file_pointer.write(
-                    CURRENT_VERSION if file.get("key") in [
+                    NEW_VERSION if file.get("key") in [
                         "updated-file.yml",
                         "missing-file.yml",
-                    ] else NEW_VERSION
+                        "README.md"
+                    ] else CURRENT_VERSION
                 )
 
-        get_local_files(
+        assert get_local_files(
             directory_path,
-            file_extension,
+            file_extensions,
+            recursive=True,
+        ) == example_local_files
+
+        get_full_local_path.assert_called_once_with(directory_path)
+
+
+@patch("sync_to_s3.get_full_local_path")
+def test_get_local_files_recursive_unrelated_only(get_full_local_path):
+    file_extensions = [".xml"]
+    example_local_files = deepcopy(EXAMPLE_LOCAL_FILES)
+    with tempfile.TemporaryDirectory() as directory_path:
+        get_full_local_path.return_value = Path(directory_path)
+
+        for file in example_local_files.values():
+            tmp_file_path = Path(directory_path) / file.get("key")
+            with open(tmp_file_path, "wb", buffering=0) as file_pointer:
+                file["file_path"] = str(Path(directory_path) / file.get("key"))
+                file_pointer.write(
+                    NEW_VERSION if file.get("key") in [
+                        "updated-file.yml",
+                        "missing-file.yml",
+                    ] else CURRENT_VERSION
+                )
+
+        assert get_local_files(
+            directory_path,
+            file_extensions,
+            recursive=True,
+        ) == {}
+
+        get_full_local_path.assert_called_once_with(directory_path)
+
+
+@patch("sync_to_s3.get_full_local_path")
+def test_get_local_files_recursive_no_filter(get_full_local_path):
+    file_extensions = []
+    example_local_files = deepcopy(EXAMPLE_LOCAL_FILES)
+    example_local_files["README.md"] = {
+        "key": "README.md",
+        "file_path": "/full/path/README.md",
+        "sha256_hash": CURRENT_HASH,
+    }
+    example_local_files["some-other-config.json"] = {
+        "key": "some-other-config.json",
+        "file_path": "/full/path/some-other-config.json",
+        "sha256_hash": CURRENT_HASH,
+    }
+    with tempfile.TemporaryDirectory() as directory_path:
+        get_full_local_path.return_value = Path(directory_path)
+
+        for file in example_local_files.values():
+            tmp_file_path = Path(directory_path) / file.get("key")
+            with open(tmp_file_path, "wb", buffering=0) as file_pointer:
+                file["file_path"] = str(Path(directory_path) / file.get("key"))
+                file_pointer.write(
+                    NEW_VERSION if file.get("key") in [
+                        "updated-file.yml",
+                        "missing-file.yml",
+                    ] else CURRENT_VERSION
+                )
+
+        assert get_local_files(
+            directory_path,
+            file_extensions,
             recursive=True,
         ) == example_local_files
 
@@ -163,31 +235,34 @@ def test_get_local_files_recursive_no_filter(get_full_local_path):
 @patch("sync_to_s3.get_full_local_path")
 def test_get_local_file_non_recursive(get_full_local_path):
     example_local_files = {}
+    file_name = "updated-file.yml"
     example_local_files[NON_RECURSIVE_KEY] = (
-        deepcopy(EXAMPLE_LOCAL_FILES['updated-file.yml'])
+        deepcopy(EXAMPLE_LOCAL_FILES[file_name])
     )
-    with tempfile.NamedTemporaryFile() as file_path:
-        tmp_file_path = Path(file_path.name)
+    with tempfile.TemporaryDirectory() as directory_path:
+        tmp_file_path = Path(directory_path) / file_name
         get_full_local_path.return_value = tmp_file_path
 
-        with open(tmp_file_path, "w", encoding="utf-8") as file_pointer:
-            example_local_files[NON_RECURSIVE_KEY]["full_path"] = tmp_file_path
+        with open(tmp_file_path, mode="wb", buffering=0) as file_pointer:
+            example_local_files[NON_RECURSIVE_KEY]["file_path"] = str(
+                tmp_file_path,
+            )
             file_pointer.write(NEW_VERSION)
 
-        get_local_files(
-            file_path,
-            file_extension="",
-            recursive=False,
-        ) == example_local_files
+            assert get_local_files(
+                file_pointer.name,
+                file_extensions=[],
+                recursive=False,
+            ) == example_local_files
 
-        get_full_local_path.assert_called_once_with(file_path)
+            get_full_local_path.assert_called_once_with(file_pointer.name)
 
 
 def test_get_s3_objects_recursive_empty_bucket():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = S3_PREFIX
-    file_extension = ".yml"
+    file_extensions = [".yml"]
 
     paginator = Mock()
     s3_client.get_paginator.return_value = paginator
@@ -199,7 +274,7 @@ def test_get_s3_objects_recursive_empty_bucket():
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive=True,
     ) == {}
 
@@ -208,7 +283,7 @@ def test_get_s3_objects_recursive_unrelated_files_only():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = S3_PREFIX
-    file_extension = ".yml"
+    file_extensions = [".yml"]
 
     paginator = Mock()
     s3_client.get_paginator.return_value = paginator
@@ -220,6 +295,9 @@ def test_get_s3_objects_recursive_unrelated_files_only():
                 },
                 {
                     "Key": "other-file.json",
+                },
+                {
+                    "Key": "another-file.yaml",
                 }
             ],
         },
@@ -229,7 +307,7 @@ def test_get_s3_objects_recursive_unrelated_files_only():
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive=True,
     ) == {}
 
@@ -238,7 +316,7 @@ def test_get_s3_objects_non_recursive_missing_object():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_object_key = f"{S3_PREFIX}/missing-file.yml"
-    file_extension = ""
+    file_extensions = []
 
     s3_client.exceptions.NoSuchKey = Exception
     s3_client.get_object.side_effect = s3_client.exceptions.NoSuchKey()
@@ -247,7 +325,7 @@ def test_get_s3_objects_non_recursive_missing_object():
         s3_client,
         s3_bucket,
         s3_object_key,
-        file_extension,
+        file_extensions,
         recursive=False,
     ) == {}
 
@@ -257,7 +335,7 @@ def test_get_s3_objects_recursive_success():
     s3_bucket = "your-bucket"
     s3_prefix = S3_PREFIX
     example_s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
-    file_extension = ".yml"
+    file_extensions = [".yml", ".yaml"]
 
     paginator = Mock()
     s3_client.get_paginator.return_value = paginator
@@ -306,7 +384,7 @@ def test_get_s3_objects_recursive_success():
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive=True,
     ) == example_s3_objects
 
@@ -334,7 +412,7 @@ def test_get_s3_objects_non_recursive_success():
     example_s3_objects[NON_RECURSIVE_KEY] = (
         deepcopy(EXAMPLE_S3_OBJECTS["first-file.yml"])
     )
-    file_extension = ""
+    file_extensions = []
 
     s3_client.get_object.return_value = {
         "Key": "first-file.yml",
@@ -347,7 +425,7 @@ def test_get_s3_objects_non_recursive_success():
         s3_client,
         s3_bucket,
         s3_object_key,
-        file_extension,
+        file_extensions,
         recursive=False,
     ) == example_s3_objects
 
@@ -368,8 +446,8 @@ def test_upload_changed_files_simple():
         "another-key": "another-value",
     }
 
-    with tempfile.NamedTemporaryFile() as file_pointer:
-        file_pointer.write(CURRENT_VERSION.encode("utf-8"))
+    with tempfile.NamedTemporaryFile(mode="wb", buffering=0) as file_pointer:
+        file_pointer.write(CURRENT_VERSION)
         for key in local_files.keys():
             local_files[key]["file_path"] = file_pointer.name
 
@@ -404,7 +482,7 @@ def test_upload_changed_files_simple():
                 }
             ),
         ])
-        s3_client.put_object.call_count == 2
+        assert s3_client.put_object.call_count == 2
 
 
 def test_upload_changed_files_no_updates():
@@ -416,8 +494,8 @@ def test_upload_changed_files_no_updates():
     del local_files["missing-file.yml"]
     s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
 
-    with tempfile.NamedTemporaryFile() as file_pointer:
-        file_pointer.write(CURRENT_VERSION.encode("utf-8"))
+    with tempfile.NamedTemporaryFile(mode="wb", buffering=0) as file_pointer:
+        file_pointer.write(CURRENT_VERSION)
         for key in local_files.keys():
             local_files[key]["file_path"] = file_pointer.name
 
@@ -443,8 +521,8 @@ def test_upload_changed_files_single_file():
         "another-key": "another-value",
     }
 
-    with tempfile.NamedTemporaryFile() as file_pointer:
-        file_pointer.write(CURRENT_VERSION.encode("utf-8"))
+    with tempfile.NamedTemporaryFile(mode="wb", buffering=0) as file_pointer:
+        file_pointer.write(CURRENT_VERSION)
         local_files = {
             "missing-file.yml": {
                 "key": s3_prefix,
@@ -474,7 +552,7 @@ def test_upload_changed_files_single_file():
                 }
             ),
         ])
-        s3_client.put_object.call_count == 1
+        assert s3_client.put_object.call_count == 1
 
 
 def test_delete_stale_objects_simple():
@@ -607,7 +685,7 @@ def test_ensure_valid_input_no_local_path(sys_exit):
     with pytest.raises(Exception) as exc_info:
         ensure_valid_input(
             local_path="",
-            file_extension=".yml",
+            file_extensions=[".yml"],
             s3_url=s3_url,
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
@@ -627,7 +705,7 @@ def test_ensure_valid_input_no_destination_s3_url(sys_exit):
     with pytest.raises(Exception) as exc_info:
         ensure_valid_input(
             local_path="/tmp/some-path",
-            file_extension=".yml",
+            file_extensions=[".yml"],
             s3_url="",
             s3_bucket="",
             s3_prefix="",
@@ -651,7 +729,7 @@ def test_ensure_valid_input_non_recursive_and_no_s3_prefix(sys_exit):
     with pytest.raises(Exception) as exc_info:
         ensure_valid_input(
             local_path="/tmp/some-path",
-            file_extension=".yml",
+            file_extensions=[".yml"],
             s3_url=s3_url,
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
@@ -675,7 +753,7 @@ def test_ensure_valid_input_recursive_and_path_does_not_exist(sys_exit):
     with pytest.raises(Exception) as exc_info:
         ensure_valid_input(
             local_path="/tmp/some-path",
-            file_extension=".yml",
+            file_extensions=[".yml"],
             s3_url=s3_url,
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
@@ -700,7 +778,7 @@ def test_ensure_valid_input_not_recursive_and_path_is_a_dir(sys_exit):
         with pytest.raises(Exception) as exc_info:
             ensure_valid_input(
                 local_path=directory_path,
-                file_extension=".yml",
+                file_extensions=[".yml"],
                 s3_url=s3_url,
                 s3_bucket=s3_bucket,
                 s3_prefix=s3_prefix,
@@ -726,7 +804,7 @@ def test_sync_files_recursive_delete(
 ):
     s3_client = Mock()
     local_path = "/tmp/some-path"
-    file_extension = ".yml"
+    file_extensions = [".yml"]
     s3_bucket = "your-bucket"
     s3_prefix = "your-prefix"
     s3_url = f"s3://{s3_bucket}/{s3_prefix}"
@@ -745,7 +823,7 @@ def test_sync_files_recursive_delete(
     sync_files(
         s3_client,
         local_path,
-        file_extension,
+        file_extensions,
         s3_url,
         recursive,
         delete,
@@ -754,14 +832,14 @@ def test_sync_files_recursive_delete(
 
     get_local_files.assert_called_once_with(
         local_path,
-        file_extension,
+        file_extensions,
         recursive,
     )
     get_s3_objects.assert_called_once_with(
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive,
     )
     upload_files.assert_called_once_with(
@@ -795,7 +873,7 @@ def test_sync_files_recursive_no_delete(
 ):
     s3_client = Mock()
     local_path = "/tmp/some-path"
-    file_extension = ".yml"
+    file_extensions = [".yml"]
     s3_bucket = "your-bucket"
     s3_prefix = "your-prefix"
     s3_url = f"s3://{s3_bucket}/{s3_prefix}"
@@ -814,7 +892,7 @@ def test_sync_files_recursive_no_delete(
     sync_files(
         s3_client,
         local_path,
-        file_extension,
+        file_extensions,
         s3_url,
         recursive,
         delete,
@@ -823,7 +901,7 @@ def test_sync_files_recursive_no_delete(
 
     ensure_valid_input.assert_called_once_with(
         local_path,
-        file_extension,
+        file_extensions,
         s3_url,
         s3_bucket,
         s3_prefix,
@@ -831,14 +909,14 @@ def test_sync_files_recursive_no_delete(
     )
     get_local_files.assert_called_once_with(
         local_path,
-        file_extension,
+        file_extensions,
         recursive,
     )
     get_s3_objects.assert_called_once_with(
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive,
     )
     upload_files.assert_called_once_with(

@@ -13,7 +13,7 @@ locally, it will clean it up too.
 
 Usage:
     sync_to_s3.py [-v... | --verbose...] [-r | --recursive] [-d | --delete]
-            [-e <extension> | --extension <extension>]
+            [-e <extension> | --extension <extension>]...
             [--upload-with-metadata <key>=<value>]...
             [--]
             SOURCE_PATH DESTINATION_S3_URL
@@ -109,7 +109,7 @@ Examples:
 
 import os
 import sys
-from typing import Mapping, TypedDict, Optional
+from typing import Mapping, TypedDict
 from pathlib import Path
 from urllib.parse import urlparse
 import hashlib
@@ -145,7 +145,7 @@ class LocalFileData(GenericFileData):
 
 def get_local_files(
     local_path: str,
-    file_extension: str,
+    file_extensions: [str],
     recursive: bool,
 ) -> Mapping[str, LocalFileData]:
     """
@@ -157,7 +157,8 @@ def get_local_files(
     Args:
         local_path (str): The local path to search in/lookup.
 
-        file_extension (Optional[str]): The file_extension to search for.
+        file_extensions ([str]): The file_extensions to search for, or empty
+            list if this filter should not be applied.
 
         recursive (bool): Whether to search recursively or not.
 
@@ -172,7 +173,7 @@ def get_local_files(
     if recursive:
         return _get_recursive_local_files(
             local_path,
-            f"**/*{file_extension}",
+            file_extensions,
         )
     return _get_single_local_file(
         local_path,
@@ -181,7 +182,7 @@ def get_local_files(
 
 def _get_recursive_local_files(
     local_path: str,
-    glob: Optional[str],
+    file_extensions: [str],
 ) -> Mapping[str, LocalFileData]:
     """
     Retrieve the files that are in the relative path local_path.
@@ -191,9 +192,11 @@ def _get_recursive_local_files(
     Args:
         local_path (str): The local files to search in.
 
-        glob (Optional[str]): The glob to search for files inside a specific
-            path.  For example, "**/*.yml" will return all YAML files,
-            including those in sub directories.
+        file_extensions ([str]): The file_extensions to search for, or empty
+            list if this filter should not be applied. This will be converted
+            to a glob search, where the extension ".yml" will match files with
+            the glob search "**/*.yml", returning any YAML file that ends with
+            .yml. Including those in subdirectories.
 
     Returns:
         Mapping[str, LocalFileData]: The map of the Local File Data objects
@@ -206,12 +209,22 @@ def _get_recursive_local_files(
     LOGGER.debug(
         "Searching for local files in %s matching %s",
         str(path),
-        glob,
+        file_extensions,
     )
     local_files = {}
-    for file_path in path.glob(glob):
-        local_file_data = _get_local_file_data(file_path, path)
-        local_files[local_file_data['key']] = local_file_data
+    globs_to_match = [
+        f"**/*{ext}"
+        for ext in (
+            # File extensions or a list of an empty string, so it either
+            # generates "**/*{ext}" for each extension in file_extensions
+            # or it generates "**/*"
+            file_extensions or [""]
+        )
+    ]
+    for glob in globs_to_match:
+        for file_path in path.glob(glob):
+            local_file_data = _get_local_file_data(file_path, path)
+            local_files[local_file_data['key']] = local_file_data
 
     LOGGER.debug(
         "Found %d local files: %s",
@@ -299,7 +312,7 @@ def get_s3_objects(
     s3_client: any,
     s3_bucket: str,
     s3_prefix: str,
-    file_extension: str,
+    file_extensions: [str],
     recursive: bool,
 ):
     """
@@ -314,7 +327,8 @@ def get_s3_objects(
         s3_bucket (str): The bucket name.
         s3_prefix (str): The prefix under which the objects are stored in
             the bucket.
-        file_extension (str): The file extension of objects that would match.
+        file_extensions ([str]): The file extensions of objects that would
+            match.
         recursive (bool): Whether to search recursively or not.
 
     Returns:
@@ -326,7 +340,7 @@ def get_s3_objects(
             s3_client,
             s3_bucket,
             s3_prefix,
-            file_extension,
+            file_extensions,
         )
 
     return _get_single_s3_object(
@@ -340,7 +354,7 @@ def _get_recursive_s3_objects(
     s3_client: any,
     s3_bucket: str,
     s3_prefix: str,
-    file_extension: str,
+    file_extensions: [str],
 ) -> Mapping[str, GenericFileData]:
     """
     Retrieve the objects that are stored inside the S3 bucket, which keys
@@ -352,7 +366,8 @@ def _get_recursive_s3_objects(
         s3_bucket (str): The bucket name.
         s3_prefix (str): The prefix under which the objects are stored in
             the bucket.
-        file_extension (str): The file extension of objects that would match.
+        file_extensions ([str]): The file extension of objects that would
+            match.
 
     Returns:
         Mapping[str, GenericFileData]: The map of the S3 objects that were
@@ -374,7 +389,16 @@ def _get_recursive_s3_objects(
     s3_objects = {}
     for response_data in s3_object_iterator:
         for obj in response_data.get("Contents", []):
-            if not obj.get("Key").endswith(file_extension):
+            matched_extensions = list(
+                # The filter matches its Key against the file_extensions
+                # to see if it ends with that specific extension.
+                # This will return an empty list if it did not match or
+                # if the file_extensions is empty.
+                filter(obj.get("Key").endswith, file_extensions)
+            )
+            if file_extensions and not matched_extensions:
+                # If we should filter on extensions and we did not match
+                # with any, we should skip this object.
                 continue
             index_key = convert_to_local_key(obj.get("Key"), s3_prefix)
             s3_objects[index_key] = _get_s3_object_data(
@@ -647,7 +671,7 @@ def convert_to_local_key(s3_key, s3_prefix):
 
 def ensure_valid_input(
     local_path: str,
-    file_extension: Optional[str],
+    file_extensions: [str],
     s3_url: str,
     s3_bucket: str,
     s3_prefix: str,
@@ -695,7 +719,7 @@ def ensure_valid_input(
         )
         sys.exit(5)
 
-    if file_extension and not recursive:
+    if file_extensions and not recursive:
         LOGGER.warning("Input warning: Ignoring file_extension filter.")
         LOGGER.warning(
             "Input warning: The file_extension filter is not applied "
@@ -709,7 +733,7 @@ def ensure_valid_input(
 def sync_files(
     s3_client: any,
     local_path: str,
-    file_extension: str,
+    file_extensions: [str],
     s3_url: str,
     recursive: bool,
     delete: bool,
@@ -722,9 +746,9 @@ def sync_files(
     Args:
         s3_client (Boto3.Client): The Boto3 S3 Client to interact with when
             a file needs to be deleted.
-        file_extension (str): The extension to search with for files inside a
-            specific path. For example, ".yml" will return all YAML files,
-            including those in sub directories.
+        file_extensions ([str]): The extensions to search for files inside a
+            specific path. For example, [".yml", ".yaml"] will return all
+            YAML files, including those in sub directories.
         s3_url (str): The S3 URL to use, for example
             S3://bucket/specific/prefix.
     """
@@ -734,20 +758,20 @@ def sync_files(
 
     ensure_valid_input(
         local_path,
-        file_extension,
+        file_extensions,
         s3_url,
         s3_bucket,
         s3_prefix,
         recursive,
     )
 
-    local_files = get_local_files(local_path, file_extension, recursive)
+    local_files = get_local_files(local_path, file_extensions, recursive)
 
     s3_objects = get_s3_objects(
         s3_client,
         s3_bucket,
         s3_prefix,
-        file_extension,
+        file_extensions,
         recursive,
     )
 
@@ -784,7 +808,8 @@ def main():  # pylint: disable=R0915
     LOGGER.debug("Input arguments: %s", options)
 
     local_path = options.get('SOURCE_PATH')
-    file_extension = options.get('--extension') or ""
+    # Remove duplicates from file extension list if there are any
+    file_extensions = list(set(options.get('--extension')))
     s3_url = options.get('DESTINATION_S3_URL')
     recursive = options.get('--recursive', False)
     delete = options.get('--delete', False)
@@ -802,7 +827,7 @@ def main():  # pylint: disable=R0915
     sync_files(
         s3_client,
         local_path,
-        file_extension,
+        file_extensions,
         s3_url,
         recursive,
         delete,
