@@ -772,7 +772,7 @@ Resources:
                 - mkdir -p deployment_maps
             build:
               commands:
-                - python adf-build/helpers/sync_to_s3.py --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
                 - python adf-build/helpers/sync_to_s3.py --extension .yml --extension .yaml --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
@@ -823,6 +823,14 @@ Resources:
                 - Name: "Source"
               Configuration:
                 ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: >-
+                  [
+                    {
+                      "name": "CODEPIPELINE_EXECUTION_ID",
+                      "value": "#{codepipeline.PipelineExecutionId}",
+                      "type": "PLAINTEXT"
+                    }
+                  ]
               RunOrder: 1
 
   PipelineSNSTopic:
