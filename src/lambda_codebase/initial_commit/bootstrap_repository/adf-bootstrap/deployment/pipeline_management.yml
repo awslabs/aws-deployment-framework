@@ -784,6 +784,12 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-*
               - Effect: Allow
+                Sid: "AllowPassRole"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/*
+              - Effect: Allow
                 Action:
                   - "events:PutRule"
                   - "events:PutTargets"
