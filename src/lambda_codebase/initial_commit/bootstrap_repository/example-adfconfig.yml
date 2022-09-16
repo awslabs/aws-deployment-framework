@@ -31,4 +31,4 @@ config:
 
 extensions:
   terraform:
-    enabled: False  # If true resources needed to run Terraform template will be deployed
+    enabled: false  # If true resources needed to run Terraform template will be deployed

@@ -17,7 +17,7 @@ Conditions:
   ADFTerraformExtensionEnabled:
     Fn::Equals:
       - !Ref ADFTerraformExtension
-      - True
+      - true
 
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
