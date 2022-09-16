@@ -1,50 +1,98 @@
 # Contributing Guidelines
 
-Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional 
-documentation, we greatly value feedback and contributions from our community.
+Thank you for your interest in contributing to our project. Whether it is a bug
+report, new feature, correction, or additional documentation, we greatly value
+feedback and contributions from our community.
 
-Please read through this document before submitting any issues or pull requests to ensure we have all the necessary 
-information to effectively respond to your bug report or contribution.
-
+Please read through this document before submitting any issues or pull requests
+to ensure we have all the necessary information to effectively respond to your
+bug report or contribution.
 
 ## Reporting Bugs/Feature Requests
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+We welcome you to use the GitHub issue tracker to report bugs or suggest
+features.
 
-When filing an issue, please check [existing open](https://github.com/awslabs/aws-deployment-framework/issues), or [recently closed](https://github.com/awslabs/aws-deployment-framework/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already 
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+When filing an issue, please check
+[existing open](https://github.com/awslabs/aws-deployment-framework/issues),
+and [recently closed](https://github.com/awslabs/aws-deployment-framework/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20)
+issues to make sure somebody else hasn't already reported the issue.
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you've made relevant to the bug
-* Anything unusual about your environment or deployment
+Please try to include as much information as you can.
+Details like these are incredibly useful:
 
+- A reproducible test case or series of steps
+- The version of our code being used
+- Any modifications you have made relevant to the bug
+- Anything unusual about your environment or deployment
+
+## Running tests locally
+
+In order to run the tests locally you need a virtual environment that is used
+by [tox](https://pypi.org/project/tox/).
+
+1. Create a virtual environment: `virtualenv .tox/env`
+2. Activate the virtual environment: `source .tox/env/bin/activate`
+3. Install dependencies: `make init`
+4. To run the tests, execute: `tox`
+
+## Running linters locally
+
+You need to have NodeJS and Docker installed on your computer to run MegaLinter
+locally with MegaLinter Runner.
+
+You can run mega-linter-runner without installation by using `npx` (Run from the
+root of the repository!).
+
+```sh
+npx mega-linter-runner
+```
+
+Some linters can automatically fix findings by running the command below.
+
+```sh
+npx mega-linter-runner --fix
+```
 
 ## Contributing via Pull Requests
 
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
+Contributions via pull requests are much appreciated.
+Before sending us a pull request, please ensure that:
 
 1. You are working against the latest source on the *master* branch.
-2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
+2. You check existing open, and recently merged, pull requests to make sure
+   someone else hasn't addressed the problem already.
+3. You open an issue to discuss any significant work - we would hate for your
+   time to be wasted.
 
 To send us a pull request, please:
 
 1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+2. Modify the source; please focus on the specific change you are contributing.
+   If you also reformat all the code, it will be hard for us to focus on your
+   change.
+3. Make sure your editor is configured to use
+   [editorconfig](https://editorconfig.org/), this helps maintain consistent
+   coding styles and prevents linter findings later.
+4. Ensure local [tests](#running-tests-locally) and
+   [linters](#running-linters-locally) pass.
+5. Commit to your fork using clear commit messages.
+6. Send us a pull request, answering any default questions in the pull request
+   interface.
+7. Pay attention to any automated CI failures reported in the pull request, and
+   stay involved in the conversation.
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and 
+GitHub provides additional document on
+[forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
-
 
 ## Finding contributions to work on
 
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/aws-deployment-framework/labels/help%20wanted) issues is a great place to start. 
-
+Looking at the existing issues is a great way to find something to contribute
+on. As our projects, by default, use the default GitHub issue labels
+(enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at
+any ['help wanted'](https://github.com/awslabs/aws-deployment-framework/labels/help%20wanted)
+issues is a great place to start.
 
 ## Use of examples
 
@@ -54,38 +102,43 @@ it is recommended to use one of the following examples instead:
 In case you want to specify an example email address, please make use of one of
 the following email addresses:
 
-* `jane@example.com`
-* `john@example.com`
-* `janes_team@example.com`
-* Or another `@example.com`
-* For tests that could potentially create accounts (if mocks failed to work),
+- `jane@example.com`
+- `john@example.com`
+- `janes_team@example.com`
+- Or another `@example.com`
+- For tests that could potentially create accounts (if mocks failed to work),
   please use `test@amazon.com` instead.
 
 When you want to write documentation/tests and need an example account id, the
 following account ids may be used:
 
-* `111111111111`
-* `222222222222`
-* ... to ...
-* `999999999999`
-* or to show the length more easily:
-* `012345678910`
-* `012345671234`
-* `123456789012`
-
+- `111111111111`
+- `222222222222`
+- ... to ...
+- `999999999999`
+- or to show the length more easily:
+- `012345678910`
+- `012345671234`
+- `123456789012`
 
 ## Code of Conduct
 
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct). 
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact 
+This project has adopted the
+[Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
+For more information see the
+[Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
 opensource-codeofconduct@amazon.com with any additional questions or comments.
-
 
 ## Security issue notifications
 
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+If you discover a potential security issue in this project we ask that you
+notify AWS/Amazon Security via our
+[vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/).
 
+Please do **not** create a public GitHub issue.
 
 ## Licensing
 
-See the [LICENSE](https://github.com/awslabs/aws-deployment-framework/blob/master/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](LICENSE.txt)
+file for our project's licensing. We will ask you to confirm the licensing of
+your contribution.

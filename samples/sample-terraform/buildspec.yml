@@ -2,7 +2,8 @@ version: 0.2
 
 env:
   variables:
-    TERRAFORM_VERSION: "1.0.10" # Terraform version to use. ADF supports Terraform version v0.13.0 and later.
+    # Terraform version to use. ADF supports Terraform version v0.13.0 and later.
+    TERRAFORM_VERSION: "1.0.10"
 phases:
   install:
     commands:

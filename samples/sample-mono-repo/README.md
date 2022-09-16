@@ -20,7 +20,7 @@ from the other sample ADF deployments. Although the sample below shows two,
 you could use the same technique to create tens of pipelines from the same
 repository.
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-mono-repo-alpha
@@ -33,7 +33,7 @@ repository.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           spec_filename: apps/alpha/buildspec.yml
       deploy:
         provider: cloudformation
@@ -53,7 +53,7 @@ repository.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           spec_filename: apps/beta/buildspec.yml
       deploy:
         provider: cloudformation

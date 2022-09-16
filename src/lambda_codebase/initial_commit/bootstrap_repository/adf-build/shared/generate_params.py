@@ -1,9 +1,10 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""This file is pulled into CodeBuild containers
-   and used to build the parameters for CloudFormation stacks based on
-   param files in the params folder
+"""
+This file is pulled into CodeBuild containers
+and used to build the parameters for CloudFormation stacks based on
+param files in the params folder
 """
 
 import json

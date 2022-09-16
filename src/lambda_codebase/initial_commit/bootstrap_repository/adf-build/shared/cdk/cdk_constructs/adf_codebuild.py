@@ -11,6 +11,7 @@ from aws_cdk import (
     aws_iam as _iam,
     aws_kms as _kms,
     aws_ecr as _ecr,
+    aws_ec2 as _ec2,
     core
 )
 
@@ -39,22 +40,32 @@ class CodeBuild(core.Construct):
             _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = target.get('properties', {}).get('timeout') or map_params['default_providers']['deploy'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=CodeBuild.determine_build_image(scope, target, map_params),
+                build_image=CodeBuild.determine_build_image(
+                    codebuild_id=id,
+                    scope=scope,
+                    target=target,
+                    map_params=map_params,
+                ),
                 compute_type=target.get(
                     'properties', {}).get(
                         'size') or getattr(
-                            _codebuild.ComputeType, map_params['default_providers']['build'].get(
+                            _codebuild.ComputeType,
+                            map_params['default_providers']['deploy'].get(
                                 'properties', {}).get(
                                     'size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params, target),
-                privileged=target.get('properties', {}).get('privileged', False) or map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
+                privileged=target.get('properties', {}).get(
+                    'privileged',
+                    map_params['default_providers']['deploy'].get(
+                        'properties', {}).get('privileged', False),
+                )
             )
             build_spec = CodeBuild.determine_build_spec(
                 id,
                 map_params['default_providers']['deploy'].get('properties', {}),
                 target,
             )
-            _codebuild.PipelineProject(
+            self.pipeline_project = _codebuild.PipelineProject(
                 self,
                 'project',
                 environment=_env,
@@ -64,6 +75,10 @@ class CodeBuild(core.Construct):
                 timeout=core.Duration.minutes(_timeout),
                 role=_iam.Role.from_role_arn(self, 'build_role', role_arn=_build_role, mutable=False),
                 build_spec=build_spec,
+            )
+            self._setup_vpc(
+                map_params['default_providers']['deploy'],
+                target=target,
             )
             self.deploy = Action(
                 name=id,
@@ -81,7 +96,12 @@ class CodeBuild(core.Construct):
             _build_role = f'arn:{stack.partition}:iam::{ADF_DEPLOYMENT_ACCOUNT_ID}:role/{_role_name}' if _role_name else ADF_DEFAULT_BUILD_ROLE
             _timeout = map_params['default_providers']['build'].get('properties', {}).get('timeout') or ADF_DEFAULT_BUILD_TIMEOUT
             _env = _codebuild.BuildEnvironment(
-                build_image=CodeBuild.determine_build_image(scope, target, map_params),
+                build_image=CodeBuild.determine_build_image(
+                    codebuild_id=id,
+                    scope=scope,
+                    target=target,
+                    map_params=map_params
+                ),
                 compute_type=getattr(_codebuild.ComputeType, map_params['default_providers']['build'].get('properties', {}).get('size', "SMALL").upper()),
                 environment_variables=CodeBuild.generate_build_env_variables(_codebuild, shared_modules_bucket, map_params),
                 privileged=map_params['default_providers']['build'].get('properties', {}).get('privileged', False)
@@ -92,7 +112,7 @@ class CodeBuild(core.Construct):
                 id,
                 map_params['default_providers']['build'].get('properties', {})
             )
-            _codebuild.PipelineProject(
+            self.pipeline_project = _codebuild.PipelineProject(
                 self,
                 'project',
                 environment=_env,
@@ -103,6 +123,7 @@ class CodeBuild(core.Construct):
                 build_spec=build_spec,
                 role=_iam.Role.from_role_arn(self, 'default_build_role', role_arn=_build_role, mutable=False)
             )
+            self._setup_vpc(map_params['default_providers']['build'])
             self.build = _codepipeline.CfnPipeline.StageDeclarationProperty(
                 name="Build",
                 actions=[
@@ -115,6 +136,63 @@ class CodeBuild(core.Construct):
                         action_name="build"
                     ).config
                 ]
+            )
+
+    def _setup_vpc(self, default_provider, target=None):
+        default_props = default_provider.get('properties', {})
+        # This will either be empty (build stage) or configured (deploy stage)
+        target_props = (target or {}).get('properties', {})
+        vpc_id = target_props.get('vpc_id', default_props.get('vpc_id'))
+        subnet_ids = target_props.get(
+            'subnet_ids',
+            default_props.get('subnet_ids', []),
+        )
+        security_group_ids = target_props.get(
+            'security_group_ids',
+            default_props.get('security_group_ids', []),
+        )
+        if vpc_id:
+            if not subnet_ids:
+                raise Exception(
+                    "CodeBuild environment of "
+                    f"{self.pipeline_project.project_name} has a "
+                    f"VPC Id ({vpc_id}) set, but no subnets are configured. "
+                    "When specifying the VPC Id for a given CodeBuild "
+                    "environment, you also need to specify the subnet_ids "
+                    "and optionally the security_group_ids that should be "
+                    "used by the CodeBuild instance."
+                )
+            if not security_group_ids:
+                default_security_group = _ec2.CfnSecurityGroup(
+                    self,
+                    'sg',
+                    group_description=(
+                        f"The default security group for {self.node.id}"
+                    ),
+                    security_group_egress=[
+                        {
+                            "cidrIp": "0.0.0.0/0",
+                            "ipProtocol": "-1",
+                        }
+                    ],
+                    vpc_id=vpc_id,
+                )
+                security_group_ids = [
+                    default_security_group.get_att("GroupId"),
+                ]
+            self.pipeline_project.node.default_child.add_property_override(
+                "VpcConfig",
+                {
+                    "VpcId": vpc_id,
+                    "Subnets": subnet_ids,
+                    "SecurityGroupIds": security_group_ids,
+                },
+            )
+        elif subnet_ids or security_group_ids:
+            raise Exception(
+                "CodeBuild environment of "
+                f"{self.pipeline_project.project_name} requires a VPC Id when "
+                "configured to connect to specific subnets."
             )
 
     @staticmethod
@@ -172,7 +250,7 @@ class CodeBuild(core.Construct):
         )
 
     @staticmethod
-    def determine_build_image(scope, target, map_params):
+    def determine_build_image(codebuild_id, scope, target, map_params):
         specific_image = None
         if target:
             specific_image = (
@@ -188,7 +266,7 @@ class CodeBuild(core.Construct):
         if isinstance(specific_image, dict):
             repo_arn = _ecr.Repository.from_repository_arn(
                 scope,
-                'custom_repo',
+                f'custom_repo_{codebuild_id}',
                 specific_image.get('repository_arn', ''),
             )
             return _codebuild.LinuxBuildImage.from_ecr_repository(

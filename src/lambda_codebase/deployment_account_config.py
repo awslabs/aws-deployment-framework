@@ -4,13 +4,13 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-Executes as part of the bootstrap process
-for when the Deployment Account is initially
-created and moved into its OU. This step creates
-a AWS CloudFormation stack on the Master account (containing IAM roles)
-In the same region defined as the Deployment Account
-Region that allows the Deployment Account access to
-query AWS Organizations when it needs to create pipelines.
+Executes as part of the bootstrap process when the Deployment Account
+is initially created and moved into its OU.  This step creates a AWS
+CloudFormation stack on the management account (containing IAM roles).
+
+It is deployed in the same region defined as the Deployment Account
+Region that allows the DeploymentAccount access to query AWS
+Organizations when it needs to create pipelines.
 """
 
 import os

@@ -108,6 +108,9 @@ CODEBUILD_IMAGE_PROPS = {
     Optional("tag"): str,   # defaults to latest
 }
 CODEBUILD_PROPS = {
+    Optional("vpc_id"): str,
+    Optional("subnet_ids"): [str],
+    Optional("security_group_ids"): [str],
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
     Optional("size"): Or('small', 'medium', 'large'),
     Optional("spec_filename"): str,
@@ -146,17 +149,17 @@ PARAM_OVERRIDE_SCHEMA = {
     "key_name": str
 }
 CLOUDFORMATION_ACTIONS = Or(
-        'CHANGE_SET_EXECUTE',
-        'CHANGE_SET_REPLACE',
-        'CREATE_UPDATE',
-        'DELETE_ONLY',
-        'REPLACE_ON_FAILURE',
-        'change_set_execute',
-        'change_set_replace',
-        'create_update',
-        'delete_only',
-        'replace_on_failure'
-    )
+    'CHANGE_SET_EXECUTE',
+    'CHANGE_SET_REPLACE',
+    'CREATE_UPDATE',
+    'DELETE_ONLY',
+    'REPLACE_ON_FAILURE',
+    'change_set_execute',
+    'change_set_replace',
+    'create_update',
+    'delete_only',
+    'replace_on_failure'
+)
 
 CLOUDFORMATION_PROPS = {
     Optional("stack_name"): str,
@@ -324,8 +327,8 @@ COMPLETION_TRIGGERS_SCHEMA = {
 }
 PIPELINE_TRIGGERS_SCHEMA = {
     Optional("code_artifact"): {
-      "repository": str,
-      Optional("package"): str,
+        "repository": str,
+        Optional("package"): str,
     }
 }
 TRIGGERS_SCHEMA = {
@@ -335,6 +338,7 @@ TRIGGERS_SCHEMA = {
 PIPELINE_SCHEMA = {
     "name": And(str, len),
     "default_providers": PROVIDER_SCHEMA,
+    Optional("description"): str,
     Optional("params"): PARAM_SCHEMA,
     Optional("tags"): dict,
     Optional("targets"): [Or(str, int, TARGET_SCHEMA, TARGET_LIST_SCHEMA)],
@@ -348,6 +352,7 @@ TOP_LEVEL_SCHEMA = {
     # ADF will ignore these, but users can use them to define anchors in one place.
     Optional(Regex('^[x][-_].*')): object
 }
+
 
 class SchemaValidation:
     def __init__(self, map_input: dict):

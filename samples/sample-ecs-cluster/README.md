@@ -1,6 +1,6 @@
-## Sample ECS Cluster to showcase ADF Pipelines
+# Sample ECS Cluster to showcase ADF Pipelines
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-ecs-cluster
@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0" # So we can specify which Python version we need
+          image: "STANDARD_5_0" # So we can specify which Python version we need
     targets:
       - 222222222222
       - path: 333333333333

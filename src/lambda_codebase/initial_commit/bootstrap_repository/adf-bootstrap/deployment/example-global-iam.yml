@@ -3,12 +3,14 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
+
 Resources:
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
     # within the target account. You should scope this policy depending
     # On what you would like to deploy within certain Organizational Units.
-    # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+    # NOTE: below is a sample IAM policy. This policies should NOT be used
+    # for purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-cloudformation-deployment-role-policy"
@@ -17,7 +19,7 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action: # These are examples..
+            Action:  # These are examples..
               - "s3:*"
               - "ecr:*"
             Resource:
@@ -25,13 +27,16 @@ Resources:
       Roles:
         - adf-cloudformation-deployment-role
 
+  ##
+  # Begin of Terraform resources
+  ##
   # ADFTerraformRole:
-  #   # This is the role that will be used to deploy Terraform resources from within 
-  #   # the target account. You should scope this policy depending on what you would 
+  #   # This is the role that will be used to deploy Terraform resources from within
+  #   # the target account. You should scope this policy depending on what you would
   #   # like to deploy within certain Organizational Units.
   #   # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
   #   # Uncomment the `ADFTerraformRole` and `ADFTerraformPolicy` resources if you want to enable Terraform support in ADF
-  #   # and deploy resources in Deployment account using Terraform. If you need to push to other account, you don't need to 
+  #   # and deploy resources in Deployment account using Terraform. If you need to push to other account, you don't need to
   #   # add this policy
   #   Type: AWS::IAM::Role
   #   Properties:
@@ -72,3 +77,69 @@ Resources:
   #             - "*"
   #     Roles:
   #       - !Ref ADFTerraformRole
+  ##
+  # End of Terraform resources
+  ##
+
+  ##
+  # Begin of VPC CodeBuild support IAM permissions
+  ##
+  PipelineProvisionerResourcePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-pipeline-provisioner-codebuild-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CodeBuildVPC"
+            Action:
+              - "ec2:AuthorizeSecurityGroupEgress"
+              - "ec2:AuthorizeSecurityGroupIngress"
+              - "ec2:CreateSecurityGroup"
+              - "ec2:CreateTags"
+              - "ec2:DeleteSecurityGroup"
+              - "ec2:DeleteSecurityGroup"
+              - "ec2:DeleteTags"
+              - "ec2:Describe*"
+              - "ec2:List*"
+              - "ec2:RevokeSecurityGroupEgress"
+              - "ec2:RevokeSecurityGroupIngress"
+            Resource:
+              - "*"
+      Roles:
+        - adf-pipeline-provisioner-codebuild-role
+
+  CodeBuildResourcePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-codebuild-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "CodeBuildVPC"
+            Action:
+              - "ec2:CreateNetworkInterface"
+              - "ec2:DescribeDhcpOptions"
+              - "ec2:DescribeNetworkInterfaces"
+              - "ec2:DeleteNetworkInterface"
+              - "ec2:DescribeSubnets"
+              - "ec2:DescribeSecurityGroups"
+              - "ec2:DescribeVpcs"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "CodeBuildENI"
+            Action:
+              - "ec2:CreateNetworkInterfacePermission"
+            Resource:
+              - "*"
+            Condition:
+              StringEquals:
+                ec2:AuthorizedService: "codebuild.amazonaws.com"
+      Roles:
+        - adf-codebuild-role
+  ##
+  # End of VPC CodeBuild support IAM permissions
+  ##

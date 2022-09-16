@@ -222,7 +222,7 @@ notes=FIXME,XXX
 
 # Minimum lines number of a similarity.
 # Temp 500 until we merge initial_commit into shared codebase.
-min-similarity-lines=500 
+min-similarity-lines=500
 
 # Ignore comments when computing similarities.
 ignore-comments=yes

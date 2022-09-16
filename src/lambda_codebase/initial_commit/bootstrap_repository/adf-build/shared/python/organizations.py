@@ -15,9 +15,10 @@ from botocore.exceptions import ClientError
 from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
+from partition import get_organization_api_region
 
 LOGGER = configure_logger(__name__)
-REGION_DEFAULT = os.getenv('AWS_REGION')
+AWS_REGION = os.getenv('AWS_REGION')
 
 
 class Organizations:  # pylint: disable=R0904
@@ -32,9 +33,10 @@ class Organizations:  # pylint: disable=R0904
             'organizations',
             config=Organizations._config
         )
+        organization_api_region = get_organization_api_region(AWS_REGION)
         self.tags_client = role.client(
             'resourcegroupstaggingapi',
-            region_name=REGION_DEFAULT,
+            region_name=organization_api_region,
             config=Organizations._config
         )
         self.account_id = account_id
@@ -154,7 +156,6 @@ class Organizations:  # pylint: disable=R0904
         self.client.delete_policy(
             PolicyId=policy_id
         )
-
 
     def get_accounts(self):
         for account in paginator(self.client.list_accounts):

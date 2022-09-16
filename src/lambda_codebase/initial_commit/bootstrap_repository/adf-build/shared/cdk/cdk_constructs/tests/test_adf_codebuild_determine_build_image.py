@@ -14,9 +14,9 @@ from cdk_constructs.adf_codebuild import CodeBuild, DEFAULT_CODEBUILD_IMAGE
 SIMPLE_TARGET = {
     'properties': {},
 }
-SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_3_0'
-SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_2_0'
-SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_1_0'
+SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_5_0'
+SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_4_0'
+SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_3_0'
 SPECIFIC_CODEBUILD_IMAGE_ECR = {
     'repository_arn': 'arn:aws:ecr:region:111111111111:repository/test',
     'tag': 'specific',
@@ -77,6 +77,7 @@ def test_determine_build_image_build_defaults(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -115,6 +116,7 @@ def test_determine_build_image_build_str(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -160,6 +162,7 @@ def test_determine_build_image_build_ecr(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -168,7 +171,7 @@ def test_determine_build_image_build_ecr(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         SPECIFIC_CODEBUILD_IMAGE_ECR.get('repository_arn'),
     )
     build_image.from_ecr_repository.assert_called_once_with(
@@ -212,6 +215,7 @@ def test_determine_build_image_build_ecr_no_tag(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -220,7 +224,7 @@ def test_determine_build_image_build_ecr_no_tag(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         SPECIFIC_CODEBUILD_IMAGE_ECR.get('repository_arn'),
     )
     build_image.from_ecr_repository.assert_called_once_with(
@@ -254,6 +258,7 @@ def test_determine_build_image_deploy_defaults(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -291,6 +296,7 @@ def test_determine_build_image_deploy_target_str(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -329,6 +335,7 @@ def test_determine_build_image_deploy_str(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -367,6 +374,7 @@ def test_determine_build_image_deploy_target_str_too(ecr_repo, build_image):
         CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -412,6 +420,7 @@ def test_determine_build_image_deploy_ecr(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -420,7 +429,7 @@ def test_determine_build_image_deploy_ecr(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         SPECIFIC_CODEBUILD_IMAGE_ECR.get('repository_arn'),
     )
     build_image.from_ecr_repository.assert_called_once_with(
@@ -462,6 +471,7 @@ def test_determine_build_image_deploy_ecr_too(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -470,7 +480,7 @@ def test_determine_build_image_deploy_ecr_too(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         target['properties']['image']['repository_arn'],
     )
     build_image.from_ecr_repository.assert_called_once_with(
@@ -514,6 +524,7 @@ def test_determine_build_image_deploy_ecr_no_tag(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -522,7 +533,7 @@ def test_determine_build_image_deploy_ecr_no_tag(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         SPECIFIC_CODEBUILD_IMAGE_ECR.get('repository_arn'),
     )
     build_image.from_ecr_repository.assert_called_once_with(
@@ -567,6 +578,7 @@ def test_determine_build_image_deploy_ecr_no_tag_too(ecr_repo, build_image):
     build_image.from_ecr_repository.return_value = from_ecr_repo_return_value
 
     result = CodeBuild.determine_build_image(
+        codebuild_id='some_id',
         scope=scope,
         target=target,
         map_params=map_params,
@@ -575,7 +587,7 @@ def test_determine_build_image_deploy_ecr_no_tag_too(ecr_repo, build_image):
     assert result == from_ecr_repo_return_value
     ecr_repo.from_repository_arn.assert_called_once_with(
         scope,
-        'custom_repo',
+        'custom_repo_some_id',
         target['properties']['image']['repository_arn'],
     )
     build_image.from_ecr_repository.assert_called_once_with(

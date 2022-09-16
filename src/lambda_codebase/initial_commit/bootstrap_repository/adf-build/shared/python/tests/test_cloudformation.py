@@ -65,7 +65,9 @@ def test_get_stack_regional_outputs(global_cls):
     global_cls.client = Mock()
     global_cls.client.describe_stacks.return_value = stub_cloudformation.describe_stack
     assert global_cls.get_stack_regional_outputs() == {
-        'kms_arn': 'some_key_arn', 's3_regional_bucket': 'some_bucket_name'}
+        'kms_arn': 'some_key_arn',
+        's3_regional_bucket': 'some_bucket_name',
+    }
 
 
 def test_get_stack_status(global_cls):

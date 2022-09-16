@@ -137,4 +137,4 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
 
     target_2_wave_1 = code_pipeline["Properties"]["Stages"][4]
     assert target_2_wave_1["Name"] == "deployment-stage-2-wave-0"
-    assert len(target_2_wave_1["Actions"]) == 1    
+    assert len(target_2_wave_1["Actions"]) == 1

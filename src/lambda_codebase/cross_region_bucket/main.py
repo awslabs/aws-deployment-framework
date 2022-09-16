@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Cross Region S3 Bucket main that is called when ADF is installed to create the bucket in the master account in the deployment region
+The Cross Region S3 Bucket main that is called when ADF is installed to create
+the bucket in the management account in the deployment region
 """
 
 
@@ -84,7 +85,9 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
 
 @update()
 def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
-    previously_created = PhysicalResource.from_json(event["PhysicalResourceId"]).created
+    previously_created = (
+        PhysicalResource.from_json(event["PhysicalResourceId"]).created
+    )
     region = determine_region(event)
     policy = event["ResourceProperties"].get("PolicyDocument")
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
@@ -122,14 +125,20 @@ def delete_(event: Mapping[str, Any], _context: Any) -> None:
 
 
 def determine_region(event: Mapping[str, Any]):
-    if "Region" in event["ResourceProperties"] and event["ResourceProperties"]["Region"]:
+    if (
+        "Region" in event["ResourceProperties"]
+        and event["ResourceProperties"]["Region"]
+    ):
         return event["ResourceProperties"]["Region"]
     try:
-        get_parameter = SSM_CLIENT.get_parameter(Name="deployment_account_region")
+        get_parameter = SSM_CLIENT.get_parameter(
+            Name="deployment_account_region",
+        )
         return get_parameter["Parameter"]["Value"]
     except SSM_CLIENT.exceptions.ParameterNotFound:
         raise RegionNotSpecifiedError(
-            "Region must be provided as Resource Property or be available in Parameter Store as 'deployment_account_region'"
+            "Region must be provided as Resource Property or be available in "
+            "Parameter Store as 'deployment_account_region'"
         ) from None
 
 
@@ -171,8 +180,12 @@ def ensure_bucket_encryption(bucket_name: str, region: str) -> None:
         Bucket=bucket_name,
         ServerSideEncryptionConfiguration={
             "Rules": [
-                {"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
-            ]
+                {
+                    "ApplyServerSideEncryptionByDefault": {
+                        "SSEAlgorithm": "AES256",
+                    },
+                },
+            ],
         },
     )
 
@@ -190,7 +203,11 @@ def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
     )
 
 
-def ensure_bucket_policy(bucket_name: str, region: str, policy: MutableMapping) -> None:
+def ensure_bucket_policy(
+    bucket_name: str,
+    region: str,
+    policy: MutableMapping
+) -> None:
     partition = get_partition(region)
 
     s3_client = get_s3_client(region)

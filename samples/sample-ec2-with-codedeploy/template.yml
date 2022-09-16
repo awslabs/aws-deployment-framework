@@ -5,16 +5,22 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (EC2 Application with CodeDeploy Components)
 Metadata:
   License: Apache-2.0
+
 Parameters:
   CodeDeployAgentInstallScript:
     Type: "String"
     Description: "The S3 Object URL for the installation script of CodeDeploy"
-  JavaInstallScript:  # This is an example file that we're install in UserData but could be moved to the AMI creation process
+
+  JavaInstallScript:
+    # This is an example file that we're install in UserData but could be moved to the
+    # AMI creation process
     Type: "String"
     Description: "The S3 Object URL for the Java deps install script"
+
   ApplicationName:
     Type: "String"
     Description: "The name of our CodeDeploy Application we would like to create"
+
   Environment:
     Type: "String"
     AllowedValues:
@@ -23,16 +29,20 @@ Parameters:
     Default: "testing"
     ConstraintDescription: "Must be one of the values from the list."
     Description: "Environment in which resources are deployed."
+
   InstanceMaxSize:
     Type: "String"
     Description: "Maximum number of instances in the auto-scaling group"
+
   InstanceMinSize:
     Type: "String"
     Description: "Minimum number of instances in the auto-scaling group"
+
   ImageId:
     Type: "AWS::EC2::Image::Id"
     ConstraintDescription: "Must be a valid AMI id"
     Description: "The AMI id of the EC2 Instance"
+
   InstanceType:
     Type: "String"
     AllowedValues:
@@ -41,9 +51,11 @@ Parameters:
       - "t3.medium"
     ConstraintDescription: "Must be one of the values from the list."
     Description: "Instance type for the EC2 instances."
+
   KeyPair:
     Description: "Amazon EC2 Key Pair"
     Type: "AWS::EC2::KeyPair::KeyName"
+
 Resources:
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
@@ -71,10 +83,12 @@ Resources:
             Fn::Sub: ${Environment}-private-subnet-1b
         - Fn::ImportValue:
             Fn::Sub: ${Environment}-private-subnet-1c
+
   CodeDeployApplication:
     Type: "AWS::CodeDeploy::Application"
     Properties:
       ApplicationName: !Ref ApplicationName
+
   CodeDeployDeploymentGroup:
     Type: "AWS::CodeDeploy::DeploymentGroup"
     Properties:
@@ -93,6 +107,7 @@ Resources:
           - Name: !GetAtt ApplicationLoadBalancerTargetGroup.TargetGroupName
       AutoScalingGroups:
         - !Ref "AutoScalingGroup"
+
   LaunchConfiguration:
     Type: "AWS::AutoScaling::LaunchConfiguration"
     Properties:
@@ -126,7 +141,8 @@ Resources:
       GroupDescription: Access to the Instance
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
+
   SecurityGroupIngressFromPublicALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -134,6 +150,7 @@ Resources:
       GroupId: !Ref 'PrivateSecurityGroup'
       IpProtocol: -1
       SourceSecurityGroupId: !Ref 'PublicLoadBalancerSG'
+
   SecurityGroupIngressFromSelf:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -141,33 +158,36 @@ Resources:
       GroupId: !Ref 'PrivateSecurityGroup'
       IpProtocol: -1
       SourceSecurityGroupId: !Ref 'PrivateSecurityGroup'
+
   PublicLoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to the public facing load balancer
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
       SecurityGroupIngress:
-          # Allow access to ALB from anywhere on the internet
-          - CidrIp: 0.0.0.0/0
-            IpProtocol: -1
+        # Allow access to ALB from anywhere on the internet
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Scheme: internet-facing
       LoadBalancerAttributes:
-      - Key: idle_timeout.timeout_seconds
-        Value: '30'
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
       Subnets:
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1a
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1b
-          - Fn::ImportValue:
-              Fn::Sub: ${Environment}-public-subnet-1c
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1a
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1b
+        - Fn::ImportValue:
+            Fn::Sub: ${Environment}-public-subnet-1c
       SecurityGroups:
         - !Ref 'PublicLoadBalancerSG'
+
   ApplicationLoadBalancerHTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -177,6 +197,7 @@ Resources:
       LoadBalancerArn: !Ref "PublicLoadBalancer"
       Port: 80
       Protocol: "HTTP"
+
   ApplicationLoadBalancerTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
@@ -197,7 +218,8 @@ Resources:
           Value: "5"
       VpcId:
         Fn::ImportValue:
-            Fn::Sub: ${Environment}-vpc-id
+          Fn::Sub: ${Environment}-vpc-id
+
   ScaleDownCloudWatchAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -214,6 +236,7 @@ Resources:
       Period: 60
       Statistic: "Average"
       Threshold: 30
+
   ScaleDownScalingPolicy:
     Type: "AWS::AutoScaling::ScalingPolicy"
     Properties:
@@ -222,6 +245,7 @@ Resources:
       Cooldown: 900
       PolicyType: "SimpleScaling"
       ScalingAdjustment: -1
+
   ScaleUpCloudWatchAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -238,6 +262,7 @@ Resources:
       Period: 60
       Statistic: "Average"
       Threshold: 80
+
   ScaleUpScalingPolicy:
     Type: "AWS::AutoScaling::ScalingPolicy"
     Properties:
@@ -246,9 +271,10 @@ Resources:
       Cooldown: 300
       PolicyType: "SimpleScaling"
       ScalingAdjustment: 1
+
 Outputs:
   LoadBalancerExternalUrl:
     Description: The url of the external load balancer
-    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Value: !Sub http://${PublicLoadBalancer.DNSName}
     Export:
       Name: 'LoadBalancerExternalUrl'

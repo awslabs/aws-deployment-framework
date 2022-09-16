@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Deploys the Custom Resource for deleting the default VPC in all regions
+
 Resources:
   LambdaVPCPolicyRole:
     Type: "AWS::IAM::Role"
@@ -25,6 +26,7 @@ Resources:
                 Action:
                   - "ec2:DescribeRegions"
                 Resource: "*"
+
   DeleteVPCLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -37,6 +39,7 @@ Resources:
       Environment:
         Variables:
           region_name: !Ref "AWS::Region"
+
   DeleteVPCCustom:
     Type: Custom::DeleteVPC
     Properties:

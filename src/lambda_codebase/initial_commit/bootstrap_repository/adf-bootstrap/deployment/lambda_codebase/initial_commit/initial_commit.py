@@ -1,12 +1,12 @@
 """
-The Initial Commit main that is called when ADF is installed to commit the initial bootstrap repository content
+The Initial Commit main that is called when ADF is installed to commit the
+initial pipelines repository content.
 """
 
 from typing import Mapping, Optional, Union, List, Dict, Any, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from enum import Enum
 from pathlib import Path
-import os
 import re
 import boto3
 import jinja2
@@ -24,21 +24,32 @@ HERE = Path(__file__).parent
 NOT_YET_CREATED = "NOT_YET_CREATED"
 CC_CLIENT = boto3.client("codecommit")
 CONFIG_FILE_REGEX = re.compile(r"\A.*[.](yaml|yml|json)\Z", re.I)
+EXECUTABLE_FILES = []
 
-PR_DESCRIPTION = """ADF Version {0} from https://github.com/awslabs/aws-deployment-framework
+PR_DESCRIPTION = """ADF Version {0}
 
-This PR was automatically created when you deployed version {0} of the AWS Deployment Framework through the Serverless Application Repository.
+You can find the changelog at:
+https://github.com/awslabs/aws-deployment-framework/releases/tag/v{0}
 
-Review this PR to understand what changes will be made to your bootstrapping repository. If you also made changes to the repository yourself, you might have to resolve merge conflicts before you can merge this PR.
+This PR was automatically created when you deployed version {0} of the
+AWS Deployment Framework through the Serverless Application Repository.
 
-Merge this PR to complete the deployment of the version {0} of the AWS Deployment Framework.
+Review this PR to understand what changes will be made to your bootstrapping
+repository. If you also made changes to the repository yourself,
+you might have to resolve merge conflicts before you can merge this PR.
+
+Merge this PR to complete the deployment of the version {0} of the
+AWS Deployment Framework.
 """
+
+
 @dataclass
 class CustomResourceProperties:
     ServiceToken: str
     RepositoryArn: str
     DirectoryName: str
     Version: str
+    DefaultBranchName: Optional[str] = None
     CrossAccountAccessRole: Optional[str] = None
     DeploymentAccountRegion: Optional[str] = None
     TargetRegions: Optional[List[str]] = None
@@ -56,6 +67,12 @@ class CustomResourceProperties:
             )
 
 
+def to_dict(datacls_or_dict: Any) -> dict:
+    if isinstance(datacls_or_dict, CustomResourceProperties):
+        return datacls_or_dict.__dict__
+    return datacls_or_dict
+
+
 @dataclass
 class Event:
     RequestType: str
@@ -68,8 +85,18 @@ class Event:
     ResourceProperties: CustomResourceProperties
 
     def __post_init__(self):
+        # Used to filter out any properties that this class does not know about
+        custom_resource_fields = list(map(
+            lambda a: a.name,
+            fields(CustomResourceProperties),
+        ))
         self.ResourceProperties = CustomResourceProperties(
-            **self.ResourceProperties # pylint: disable=not-a-mapping
+            **{
+                key: value for key, value in to_dict(
+                    self.ResourceProperties
+                ).items()
+                if key in custom_resource_fields
+            }
         )
 
 
@@ -101,9 +128,11 @@ class FileToDelete:
             "filePath": self.filePath
         }
 
+
 @dataclass
 class CreateEvent(Event):
     pass
+
 
 @dataclass
 class UpdateEvent(Event):
@@ -111,12 +140,20 @@ class UpdateEvent(Event):
     OldResourceProperties: CustomResourceProperties
 
     def __post_init__(self):
-        self.ResourceProperties = CustomResourceProperties(
-            **self.ResourceProperties # pylint: disable=not-a-mapping
-        )
+        super().__post_init__()
+        custom_resource_fields = list(map(
+            lambda a: a.name,
+            fields(CustomResourceProperties),
+        ))
         self.OldResourceProperties = CustomResourceProperties(
-            **self.OldResourceProperties # pylint: disable=not-a-mapping
+            **{
+                key: value for key, value in to_dict(
+                    self.OldResourceProperties
+                ).items()
+                if key in custom_resource_fields
+            }
         )
+
 
 def generate_create_branch_input(event, repo_name, commit_id):
     return {
@@ -125,17 +162,20 @@ def generate_create_branch_input(event, repo_name, commit_id):
         "commitId": commit_id
     }
 
+
 def generate_delete_branch_input(event, repo_name):
     return {
         "repositoryName": repo_name,
         "branchName": event.ResourceProperties.Version
     }
 
+
 def chunks(list_to_chunk, number_to_chunk_into):
     number_of_chunks = max(1, number_to_chunk_into)
     return (list_to_chunk[item:item + number_of_chunks] for item in range(0, len(list_to_chunk), number_of_chunks))
 
-def generate_pull_request_input(event, repo_name):
+
+def generate_pull_request_input(event, repo_name, default_branch_name):
     return {
         "title": f'ADF {event.ResourceProperties.Version} Automated Update PR',
         "description": PR_DESCRIPTION.format(event.ResourceProperties.Version),
@@ -143,12 +183,13 @@ def generate_pull_request_input(event, repo_name):
             {
                 'repositoryName': repo_name,
                 'sourceReference': event.ResourceProperties.Version,
-                'destinationReference': 'master'
+                'destinationReference': default_branch_name,
             },
         ]
     }
 
-def generate_commit_input(repo_name, index, branch="master", parent_commit_id=None, puts=None, deletes=None):
+
+def generate_commit_input(repo_name, index, branch="main", parent_commit_id=None, puts=None, deletes=None):
     commit_action = "Delete" if deletes else "Create"
     output = {
         "repositoryName": repo_name,
@@ -163,15 +204,17 @@ def generate_commit_input(repo_name, index, branch="master", parent_commit_id=No
         output["parentCommitId"] = parent_commit_id
     return output
 
+
 @create()
 def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], Data]:
     create_event = CreateEvent(**event)
     repo_name = repo_arn_to_name(create_event.ResourceProperties.RepositoryArn)
+    default_branch_name = create_event.ResourceProperties.DefaultBranchName
     directory = create_event.ResourceProperties.DirectoryName
     try:
         commit_id = CC_CLIENT.get_branch(
             repositoryName=repo_name,
-            branchName="master",
+            branchName=default_branch_name,
         )["branch"]["commitId"]
         CC_CLIENT.create_branch(
             repositoryName=repo_name,
@@ -190,7 +233,11 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
                 )["commitId"]
 
         CC_CLIENT.create_pull_request(
-            **generate_pull_request_input(create_event, repo_name)
+            **generate_pull_request_input(
+                create_event,
+                repo_name,
+                default_branch_name,
+            )
         )
         return event.get("PhysicalResourceId"), {}
 
@@ -216,16 +263,18 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
 
         return commit_id, {}
 
+
 @update()
 def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[PhysicalResourceId, Data]: #pylint: disable=R0912, R0915
     update_event = UpdateEvent(**event)
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
+    default_branch_name = update_event.ResourceProperties.DefaultBranchName
     files_to_delete = get_files_to_delete(repo_name)
     files_to_commit = get_files_to_commit(update_event.ResourceProperties.DirectoryName)
 
     commit_id = CC_CLIENT.get_branch(
         repositoryName=repo_name,
-        branchName="master",
+        branchName=default_branch_name,
     )["branch"]["commitId"]
     CC_CLIENT.create_branch(
         **generate_create_branch_input(update_event, repo_name, commit_id)
@@ -257,7 +306,13 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
         except (CC_CLIENT.exceptions.FileEntryRequiredException, CC_CLIENT.exceptions.NoChangeException):
             pass
     if create_pr or files_to_delete:
-        CC_CLIENT.create_pull_request(**generate_pull_request_input(update_event, repo_name))
+        CC_CLIENT.create_pull_request(
+            **generate_pull_request_input(
+                update_event,
+                repo_name,
+                default_branch_name,
+            )
+        )
     else:
         CC_CLIENT.delete_branch(**generate_delete_branch_input(update_event, repo_name))
 
@@ -268,8 +323,10 @@ def update_(event: Mapping[str, Any], _context: Any, create_pr=False) -> Tuple[P
 def delete_(_event, _context):
     pass
 
+
 def repo_arn_to_name(repo_arn: str) -> str:
     return repo_arn.split(":")[-1]
+
 
 def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
     differences = CC_CLIENT.get_differences(
@@ -284,8 +341,12 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
         if not CONFIG_FILE_REGEX.match(file['afterBlob']['path'])
     ]
 
-    # 31: trimming off /var/task/pipelines_repository so we can compare correctly
-    blobs = [str(filename)[31:] for filename in Path('/var/task/pipelines_repository/').rglob('*')]
+    # 31: trimming off /var/task/pipelines_repository so
+    # we can compare correctly
+    blobs = [
+        str(filename)[31:]
+        for filename in Path('/var/task/pipelines_repository/').rglob('*')
+    ]
 
     return [
         FileToDelete(
@@ -297,13 +358,23 @@ def get_files_to_delete(repo_name: str) -> List[FileToDelete]:
     ]
 
 
+def determine_file_mode(entry, directoryName):
+    if str(get_relative_name(entry, directoryName)) in EXECUTABLE_FILES:
+        return FileMode.EXECUTABLE
+
+    return FileMode.NORMAL
+
+
 def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
     path = HERE / directoryName
 
     return [
         FileToCommit(
             str(get_relative_name(entry, directoryName)),
-            FileMode.NORMAL if not os.access(entry, os.X_OK) else FileMode.EXECUTABLE,
+            determine_file_mode(
+                entry,
+                directoryName,
+            ),
             entry.read_bytes(),
         )
         for entry in path.glob("**/*")
@@ -313,7 +384,7 @@ def get_files_to_commit(directoryName: str) -> List[FileToCommit]:
 
 def get_relative_name(path: Path, directoryName: str) -> Path:
     """
-    Search for the last occurance of <directoryName> in <path> and return only the trailing part of <path>
+    Search for the last occurrence of <directoryName> in <path> and return only the trailing part of <path>
 
     >>> get_relative_name(Path('/foo/test/bar/test/xyz/abc.py') ,'test')
     Path('xyz/abc.py')
@@ -332,4 +403,5 @@ def create_adf_config_file(props: CustomResourceProperties) -> FileToCommit:
 
     with open("/tmp/adfconfig.yml", mode="wb") as file:
         file.write(adf_config)
+
     return FileToCommit("adfconfig.yml", FileMode.NORMAL, adf_config)

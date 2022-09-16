@@ -2,7 +2,9 @@
 # // SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ADF CloudFormation Template - Role to be assumed by CodePipeline in Deployment Account
+Description: >-
+  ADF CloudFormation Template - Role to be assumed by CodePipeline in Deployment Account
+
 Parameters:
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
@@ -12,6 +14,7 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: The role used to allow cross account access
     Default: cross_account_access_role
+
 Resources:
   OrganizationsReadOnlyRole:
     Type: AWS::IAM::Role
@@ -26,6 +29,7 @@ Resources:
                 - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-provisioner-generate-inputs"
             Action:
               - sts:AssumeRole
       Path: /
@@ -48,7 +52,8 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref OrganizationsReadOnlyRole
-  OrganizationsRole: # Only required if you intend to bootstrap the master account.
+  OrganizationsRole:
+    # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Ref CrossAccountAccessRole
@@ -58,11 +63,14 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" # To update the master account
+                # To update the management account:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
             Action:
               - sts:AssumeRole
       Path: /
-  OrganizationsPolicy: # Only required if you intend to bootstrap the master account.
+
+  OrganizationsPolicy:
+    # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: "adf-master-account-bootstrap-policy"

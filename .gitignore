@@ -138,6 +138,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+megalinter-reports/
+
 ### Terraform ###
 # Local .terraform directories
 **/.terraform/*

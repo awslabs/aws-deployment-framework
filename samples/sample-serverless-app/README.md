@@ -1,6 +1,6 @@
-## Sample Serverless Python based Application
+# Sample Serverless Python based Application
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-serverless-app
@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
           environment_variables:
             CONTAINS_TRANSFORM: True
     targets:

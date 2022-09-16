@@ -6,6 +6,12 @@ Transform: AWS::Serverless-2016-10-31
 Description: ADF CloudFormation Sample Template (Serverless Application)
 Metadata:
   License: Apache-2.0
+  cfn-lint:
+    config:
+      ignore_checks:
+        # https://github.com/aws/serverless-application-model/issues/1590
+        - I3042
+
 Resources:
   ExampleServerlessApp:
     Type: 'AWS::Serverless::Function'

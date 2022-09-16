@@ -3,21 +3,27 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Regional) for Deployment Account
+
 Parameters:
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
+
   ADFTerraformExtension:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: /adf/extensions/terraform/enabled
+
 Conditions:
-  ADFTerraformExtensionEnabled: !Equals
-    - !Ref ADFTerraformExtension
-    - True
+  ADFTerraformExtensionEnabled:
+    Fn::Equals:
+      - !Ref ADFTerraformExtension
+      - True
+
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -30,6 +36,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   DeploymentFrameworkRegionalPipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -50,6 +57,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
             Principal:
               AWS: "*"
+
   DeploymentFrameworkRegionalKMSKey:
     Type: AWS::KMS::Key
     Properties:
@@ -96,9 +104,12 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+
   TerraformLockTable:
     Condition: ADFTerraformExtensionEnabled
     Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: LockID
@@ -108,12 +119,14 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: adf-tflocktable
+
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
     Description: The S3 Bucket used for cross region codepipeline deployments
     Value: !Ref DeploymentFrameworkRegionalS3Bucket
     Export:
       Name: !Sub "S3Bucket-${AWS::Region}"
+
   DeploymentFrameworkRegionalKMSKey:
     Description: The KMSKey used for cross region codepipeline deployments
     Value: !GetAtt DeploymentFrameworkRegionalKMSKey.Arn

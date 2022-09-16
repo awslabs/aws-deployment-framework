@@ -25,6 +25,7 @@ S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 LOGGER = configure_logger(__name__)
+DEPLOY_TIME_IN_MS = 5 * 60 * 1000
 
 
 def configure_generic_account(sts, event, region, role):
@@ -37,19 +38,22 @@ def configure_generic_account(sts, event, region, role):
     try:
         deployment_account_id = event['deployment_account_id']
         cross_account_access_role = event['cross_account_access_role']
-        role_arn = f'arn:{PARTITION}:iam::{deployment_account_id}:role/{cross_account_access_role}'
+        role_arn = (
+            f'arn:{PARTITION}:iam::{deployment_account_id}:'
+            f'role/{cross_account_access_role}'
+        )
 
         deployment_account_role = sts.assume_cross_account_role(
             role_arn=role_arn,
-            role_session_name='configure_generic'
+            role_session_name='configure_generic',
         )
         parameter_store_deployment_account = ParameterStore(
             event['deployment_account_region'],
-            deployment_account_role
+            deployment_account_role,
         )
         parameter_store_target_account = ParameterStore(
             region,
-            role
+            role,
         )
         kms_arn = parameter_store_deployment_account.fetch_parameter(f'/cross_region/kms_arn/{region}')
         bucket_name = parameter_store_deployment_account.fetch_parameter(f'/cross_region/s3_regional_bucket/{region}')
@@ -66,8 +70,9 @@ def configure_generic_account(sts, event, region, role):
 
 def configure_master_account_parameters(event):
     """
-    Update the Master account parameter store in us-east-1 with the deployment_account_id
-    then updates the main deployment region with that same value
+    Update the management account parameter store in us-east-1 with the
+    deployment_account_id then updates the main deployment region
+    with that same value
     """
     parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
     parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
@@ -78,10 +83,16 @@ def configure_master_account_parameters(event):
 def configure_deployment_account_parameters(event, role):
     """
     Applies the Parameters from adfconfig plus other essential
-    Parameters to the Deployment Account in each region as defined in
-    adfconfig.yml
+    Parameters to the Deployment Account in each region as defined
+    in adfconfig.yml
     """
-    for region in list(set([event["deployment_account_region"]] + event["regions"])):
+    regions = list(
+        set(
+            [event["deployment_account_region"]]
+            + event["regions"]
+        )
+    )
+    for region in regions:
         parameter_store = ParameterStore(region, role)
         for key, value in event['deployment_account_parameters'].items():
             parameter_store.put_parameter(
@@ -91,19 +102,24 @@ def configure_deployment_account_parameters(event, role):
 
 
 def is_inter_ou_account_move(event):
-    return not event["source_ou_id"].startswith('r-') and not event["destination_ou_id"].startswith('r-')
+    return (
+        not event["source_ou_id"].startswith('r-')
+        and not event["destination_ou_id"].startswith('r-')
+    )
 
 
-def lambda_handler(event, _):
+def lambda_handler(event, context):
     sts = STS()
 
     account_id = event["account_id"]
     cross_account_access_role = event["cross_account_access_role"]
-    role_arn = f'arn:{PARTITION}:iam::{account_id}:role/{cross_account_access_role}'
+    role_arn = (
+        f'arn:{PARTITION}:iam::{account_id}:role/{cross_account_access_role}'
+    )
 
     role = sts.assume_cross_account_role(
         role_arn=role_arn,
-        role_session_name='management_lambda'
+        role_session_name='management_lambda',
     )
 
     if event['is_deployment_account']:
@@ -112,12 +128,37 @@ def lambda_handler(event, _):
 
     s3 = S3(
         region=REGION_DEFAULT,
-        bucket=S3_BUCKET
+        bucket=S3_BUCKET,
     )
 
-    for region in list(set([event["deployment_account_region"]] + event["regions"])):
+    regions = list(
+        set(
+            [event["deployment_account_region"]]
+            + event["regions"]
+        )
+    )
+    LOGGER.debug(
+        "Looping through regions to deploy the base stack in %s, regions: %s",
+        event["account_id"],
+        regions,
+    )
+    for region in regions:
+        if context.get_remaining_time_in_millis() < DEPLOY_TIME_IN_MS:
+            LOGGER.info(
+                "Cannot deploy another region, as the time available for this "
+                "lambda execution is less than the time required to deploy."
+            )
+            raise GenericAccountConfigureError(
+                'Execution time remaining is not sufficient to deploy '
+                'another region, aborting this execution so it can restart.'
+            )
         if not event["is_deployment_account"]:
             configure_generic_account(sts, event, region, role)
+        LOGGER.info(
+            "Creating/updating base stack in %s %s",
+            event["account_id"],
+            region,
+        )
         cloudformation = CloudFormation(
             region=region,
             deployment_account_region=event["deployment_account_region"],

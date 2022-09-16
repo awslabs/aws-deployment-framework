@@ -5,6 +5,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (IAM)
 Metadata:
   License: Apache-2.0
+
 Resources:
   DevelopersIAMGroup:
     Type: AWS::IAM::Group
@@ -16,12 +17,14 @@ Resources:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCloudFormationReadOnlyAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCodeCommitFullAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3ReadOnlyAccess"
+
   GlobalInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Path: "/"
       Roles:
         - !Ref "GlobalInstanceRole"
+
   GlobalInstanceRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -37,6 +40,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref "DefaultInstanceManagedPolicy"
       RoleName: "global-instance-role"
+
   DefaultInstanceManagedPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -62,6 +66,7 @@ Resources:
               - "s3:GetObjectVersion"
             Resource:
               - "*"
+
   CodeDeployServiceRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -77,19 +82,23 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole"
       RoleName: "codedeploy-service-role"
+
 Outputs:
   DevelopersIAMGroup:
     Description: The ARN of the Developers IAM Group to be exported.
     Export:
       Name: SampleDevelopersIAMGroupArn
     Value: !GetAtt DevelopersIAMGroup.Arn
+
   CodeDeployRole:
     Description: The ARN of the CodeDeploy Service Role Arn to be exported.
     Export:
       Name: CodeDeployRoleArn
     Value: !GetAtt CodeDeployServiceRole.Arn
+
   GlobalInstanceProfile:
-    Description: "The ARN of the Default EC2 Instance Role to be imported into application stacks"
+    Description: >-
+      The ARN of the Default EC2 Instance Role to be imported into application stacks.
     Value: !Ref GlobalInstanceProfile
     Export:
       Name: GlobalInstanceProfileName

@@ -55,8 +55,8 @@ class SuccessTestCase(unittest.TestCase):
                 {
                     "account_full_name": "mynewaccountname",
                     "needs_created": True,
-                }
-            ]
+                },
+            ],
         )
 
 

@@ -28,15 +28,20 @@ def lambda_handler(event, _):
     )
     cache = Cache()
 
-    account_path = "ROOT" if parsed_event.moved_to_root else parsed_event.organizations.build_account_path(
-        parsed_event.destination_ou_id,
-        [],  # Initial empty array to hold OU Path,
-        cache
+    account_path = (
+        "ROOT" if parsed_event.moved_to_root
+        else parsed_event.organizations.build_account_path(
+            parsed_event.destination_ou_id,
+            [],  # Initial empty array to hold OU Path,
+            cache,
+        )
     )
 
     if parsed_event.moved_to_root or parsed_event.moved_to_protected:
-        return parsed_event.create_output_object("adf-bootstrap/" + account_path)
+        return parsed_event.create_output_object(
+            f"adf-bootstrap/{account_path}"
+        )
 
     parsed_event.set_destination_ou_name()
 
-    return parsed_event.create_output_object("adf-bootstrap/" + account_path)
+    return parsed_event.create_output_object(f"adf-bootstrap/{account_path}")

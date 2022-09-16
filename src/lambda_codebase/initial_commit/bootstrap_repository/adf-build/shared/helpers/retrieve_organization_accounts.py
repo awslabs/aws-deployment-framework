@@ -97,10 +97,10 @@ def main():
     the following arguments to fetch the details:
 
     ```bash
-      python adf-build/helpers/retrieve_organization_accounts.py -v \
-          -o src/custom_resource/invite_members/member_accounts.json \
-          -f Id \
-          -f Email
+    python adf-build/helpers/retrieve_organization_accounts.py -v \
+    -o src/custom_resource/invite_members/member_accounts.json \
+    -f Id \
+    -f Email
     ```
 
     This will write the JSON file directly inside the code base of the
@@ -131,7 +131,7 @@ def main():
 
     # In case the user asked for verbose logging, increase
     # the log level to debug.
-    if options['--verbose'] > 0:
+    if options["--verbose"] > 0:
         logging.basicConfig(level=logging.DEBUG)
         LOGGER.setLevel(logging.DEBUG)
 
@@ -157,10 +157,10 @@ def _get_partition(region_name: str) -> str:
     :return: Returns the partition name as a string.
     """
 
-    if region_name.startswith('us-gov'):
-        return 'aws-us-gov'
+    if region_name.startswith("us-gov"):
+        return "aws-us-gov"
 
-    return 'aws'
+    return "aws"
 
 
 def _get_billing_account_id():
@@ -170,9 +170,9 @@ def _get_billing_account_id():
     Returns:
         str: The AWS Account Id as a string.
     """
-    org_client = boto3.client('organizations')
+    org_client = boto3.client("organizations")
     response = org_client.describe_organization()
-    return response['Organization']['MasterAccountId']
+    return response["Organization"]["MasterAccountId"]
 
 
 def _get_member_accounts(billing_account_id, options):
@@ -194,26 +194,26 @@ def _get_member_accounts(billing_account_id, options):
         options=options,
     )
     billing_account_session = boto3.Session(
-        aws_access_key_id=assumed_credentials['AccessKeyId'],
-        aws_secret_access_key=assumed_credentials['SecretAccessKey'],
-        aws_session_token=assumed_credentials['SessionToken'],
+        aws_access_key_id=assumed_credentials["AccessKeyId"],
+        aws_secret_access_key=assumed_credentials["SecretAccessKey"],
+        aws_session_token=assumed_credentials["SessionToken"],
     )
-    org_client = billing_account_session.client('organizations')
-    list_accounts_paginator = org_client.get_paginator('list_accounts')
+    org_client = billing_account_session.client("organizations")
+    list_accounts_paginator = org_client.get_paginator("list_accounts")
     accounts = []
     for page in list_accounts_paginator.paginate():
-        accounts.extend(
-            page['Accounts']
-        )
+        accounts.extend(page["Accounts"])
 
     # Remove any account that is not actively part of this organization yet.
-    only_active_accounts = filter(lambda a: a['Status'] == 'ACTIVE', accounts)
+    only_active_accounts = filter(lambda a: a["Status"] == "ACTIVE", accounts)
 
     # Only return the key: value pairs that are defined in the --field option.
-    only_certain_fields_of_active = list(map(
-        lambda a: {k: v for k, v in a.items() if k in options['--field']},
-        only_active_accounts
-    ))
+    only_certain_fields_of_active = list(
+        map(
+            lambda a: {k: v for k, v in a.items() if k in options["--field"]},
+            only_active_accounts,
+        )
+    )
     return only_certain_fields_of_active
 
 
@@ -230,14 +230,14 @@ def _flush_out(accounts, options):
     """
     json_accounts = json.dumps(accounts, indent=2, default=str)
 
-    if options['--output-file'] == '-':
+    if options["--output-file"] == "-":
         LOGGER.info(
             "Accounts JSON: %s",
             json_accounts,
         )
         return
 
-    with open(options['--output-file'], mode='w', encoding='utf-8') as output_file:
+    with open(options["--output-file"], mode="w", encoding="utf-8") as output_file:
         output_file.write(json_accounts)
 
 
@@ -265,21 +265,21 @@ def _request_sts_credentials(billing_account_id, options):
         session = boto3.session.Session()
         region_name = session.region_name
         partition = _get_partition(region_name)
-        sts_client = session.client('sts')
+        sts_client = session.client("sts")
 
-        role_name = options['--role-name']
-        role_arn = f'arn:{partition}:iam::{billing_account_id}:role/{role_name}'
+        role_name = options["--role-name"]
+        role_arn = f"arn:{partition}:iam::{billing_account_id}:role/{role_name}"
         response = sts_client.assume_role(
             RoleArn=role_arn,
-            RoleSessionName=options['--session-name'],
-            DurationSeconds=int(options['--session-ttl']),
+            RoleSessionName=options["--session-name"],
+            DurationSeconds=int(options["--session-ttl"]),
         )
-        return response['Credentials']
+        return response["Credentials"]
     except ClientError as client_error:
         LOGGER.error("Failed to assume into role")
         LOGGER.exception(client_error)
         raise
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -173,7 +173,7 @@ def test_put_object_no_checks_always_upload(does_exist, perform_put,
     assert return_value == object_path
 
     does_exist.assert_not_called()
-    perform_put.assert_called_once_with(object_key, file_path)
+    perform_put.assert_called_once_with(object_key, file_path, 'private')
     build_path.assert_called_once_with(path_style, object_key)
 
 
@@ -199,7 +199,7 @@ def test_put_object_do_check_upload_when_missing(
     assert return_value == object_path
 
     does_exist.assert_called_once_with(object_key)
-    perform_put.assert_called_once_with(object_key, file_path)
+    perform_put.assert_called_once_with(object_key, file_path, 'private')
     build_path.assert_called_once_with(path_style, object_key)
 
 
@@ -301,7 +301,7 @@ def test_perform_put_object_success(logger, boto3_resource):
         )
         mock_file.assert_called_with(file_path, mode='rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
-        s3_object.put.assert_called_once_with(Body=mock_file.return_value)
+        s3_object.put.assert_called_once_with(ACL='private', Body=mock_file.return_value)
 
     logger.info.assert_called_once_with(
         "Uploading %s as %s to S3 Bucket %s in %s",
@@ -393,7 +393,7 @@ def test_perform_put_object_failed(logger, boto3_resource):
 
         mock_file.assert_called_with(file_path, mode='rb')
         s3_resource.Object.assert_called_once_with(s3_cls.bucket, object_key)
-        s3_object.put.assert_called_once_with(Body=mock_file.return_value)
+        s3_object.put.assert_called_once_with(ACL='private', Body=mock_file.return_value)
 
     logger.info.assert_called_once_with(
         "Uploading %s as %s to S3 Bucket %s in %s",

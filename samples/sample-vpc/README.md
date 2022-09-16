@@ -1,6 +1,6 @@
-## Sample VPC to showcase ADF Pipelines
+# Sample VPC to showcase ADF Pipelines
 
-### Deployment Map example
+## Deployment Map example
 
 ```yaml
   - name: sample-vpc
@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_4_0"
+          image: "STANDARD_5_0"
     params:
       restart_execution_on_update: True
     targets:
