@@ -40,8 +40,8 @@ Currently - events are emitted for the following states:
 - `REPOSITORY_CREATED_OR_UPDATED`
     Emitted when a codecommit repository is created.
     The details sections contains:
-    - the repository_account_id
-    - the CloudFormation stack name
+     the repository_account_id
+     the CloudFormation stack name
 
     The resource section contains an almagamation of the account_id and the
     pipeline name.
