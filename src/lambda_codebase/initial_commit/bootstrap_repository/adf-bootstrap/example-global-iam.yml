@@ -128,3 +128,7 @@ Resources:
 #             - "*"
 #     Roles:
 #       - !Ref MyExampleCustomRole
+
+Outputs:
+  DeploymentAccountId:
+    Value: !Ref DeploymentAccountId

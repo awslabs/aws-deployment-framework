@@ -275,7 +275,7 @@ Resources:
               - dynamodb:DeleteItem
               - dynamodb:DescribeTable
             Resource:
-              - !Sub "arn:aws:dynamodb:*:${AWS::AccountId}:table/adf-tflocktable*"
+              - !Sub "arn:${AWS::Partition}:dynamodb:*:${AWS::AccountId}:table/adf-tflocktable*"
           - Effect: Allow
             Sid: "S3"
             Action:

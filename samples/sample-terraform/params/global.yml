@@ -1,2 +1,2 @@
 Parameters:
-  ProjectName: "sample-terraform" # $ADF_PROJECT_NAME
+  ProjectName: "sample-terraform"
