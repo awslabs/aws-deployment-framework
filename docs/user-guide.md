@@ -1039,6 +1039,7 @@ the `111111111111` AWS Account.
 #### Prerequisites
 
 To enable ADF Terraform extension the following steps are required:
+
 - Enable ADF Terraform extension. Set the parameter
   `extensions > terraform > enabled` to `True` in the `adfconfig.yml` file,
   as shown in the `example-adfconfig.yml`, to deploy all the necessary
@@ -1096,8 +1097,7 @@ pipeline for more details in the setup and integration.
 
 #### Deployment procedure
 
-1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as in the
-   example:
+Example Terraform deployment map:
 
 ```yaml
 - name: sample-terraform
@@ -1132,6 +1132,7 @@ pipeline for more details in the setup and integration.
         spec_filename: tf_apply.yml  # Terraform apply
 ```
 
+1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.
 2. Add the project name in `params/global.yml` file.
 3. Add Terraform code to the `tf` folder. **Please note**: Do not make changes
    to `backend.tf` file and `main.tf` in the root folder of the sample.
@@ -1144,7 +1145,7 @@ pipeline for more details in the setup and integration.
    - Local variables (per account) can be configured using the following
      naming convention
 
-     ```
+     ```txt
      tfvars <-- This folder contains the structure to define Terraform
      │          variables
      │

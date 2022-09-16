@@ -3,7 +3,7 @@
 ## Overview
 
 Please read the[user guide on ADF's support for
-Terraform](../docs/user-guide.md#terraform-pipeline) before you proceed.
+Terraform](../../docs/user-guide.md#terraform-pipeline) before you proceed.
 
 ## Deployment procedure
 

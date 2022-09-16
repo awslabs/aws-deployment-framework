@@ -2,7 +2,7 @@
 PATH=$PATH:$(pwd)
 export PATH
 CURRENT=$(pwd)
-terraform --version 
+terraform --version
 echo "Terraform stage: $TF_STAGE"
 
 tfinit(){
@@ -21,17 +21,17 @@ tfinit(){
         -backend-config "region=$AWS_REGION" \
         -backend-config "key=$ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate" \
         -backend-config "dynamodb_table=adf-tflocktable"
-    
+
     echo "Bucket: $S3_BUCKET_REGION_NAME"
     echo "Region: $AWS_REGION"
     echo "Key:    $ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate"
     echo "DynamoDB table: adf-tflocktable"
 }
-tfplan(){  
+tfplan(){
     DATE=$(date +%Y-%m-%d)
     TS=$(date +%Y%m%d%H%M%S)
     bash "$CURRENT/adf-build/helpers/sts.sh" "$TF_VAR_TARGET_ACCOUNT_ID" "$TF_VAR_TARGET_ACCOUNT_ROLE"
-    terraform plan -out "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}" 2>&1 | tee -a "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"        
+    terraform plan -out "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}" 2>&1 | tee -a "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"
     # Save Terraform plan results to the S3 bucket
     aws s3 cp "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" "s3://${S3_BUCKET_REGION_NAME}/${ADF_PROJECT_NAME}/tf-plan/${DATE}/${TF_VAR_TARGET_ACCOUNT_ID}/${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"
     echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
@@ -60,7 +60,7 @@ tfrun(){
         tfplan
         tfapply
         set +e
-    else 
+    else
         echo "Invalid Terraform stage: TF_STAGE = $TF_STAGE"
         exit 1
     fi
@@ -73,14 +73,14 @@ then
 fi
 echo "List of target regions: $REGIONS"
 for REGION in $(echo "$REGIONS" | sed "s/,/ /g")
-do  
+do
     AWS_REGION=$(echo -n "$REGION" | sed 's/^[ \t]*//;s/[ \t]*$//')  # sed trims whitespaces
     export TF_VAR_TARGET_REGION=$AWS_REGION
     # if TARGET_ACCOUNTS and TARGET_OUS are not defined apply to all accounts
     if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]]
     then
-        echo "Apply to all accounts" 
-        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts.json" | sed 's/"//g' ) 
+        echo "Apply to all accounts"
+        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts.json" | sed 's/"//g' )
         do
             tfrun
         done
@@ -91,15 +91,15 @@ do
         # apply only on a subset of accounts (TARGET_ACCOUNTS)
         echo "List of target account: $TARGET_ACCOUNTS"
         for ACCOUNT_ID in $(echo "$TARGET_ACCOUNTS" | sed "s/,/ /g")
-        do  
+        do
             tfrun
         done
     fi
 
     if ! [[ -z "$TARGET_OUS" ]]
     then
-        echo "List target OUs: $TARGET_OUS" 
-        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_ous.json" | sed 's/"//g' ) 
+        echo "List target OUs: $TARGET_OUS"
+        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_ous.json" | sed 's/"//g' )
         do
             tfrun
         done
