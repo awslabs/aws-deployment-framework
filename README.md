@@ -36,4 +36,5 @@ within the AWS Console.
 - Refer to the [User Guide](docs/user-guide.md) for using ADF once it is setup.
 - Refer to the [Samples Guide](docs/samples-guide.md) for a detailed walk
   through of the provided samples.
-- Refer to the [Integrations Guide](docs/integrations-guide.md) for information on events produced by the ADF.
+- Refer to the [Integrations Guide](docs/integrations-guide.md) for information
+  on events produced by the ADF.
