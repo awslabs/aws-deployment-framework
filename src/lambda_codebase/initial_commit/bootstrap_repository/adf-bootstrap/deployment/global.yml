@@ -770,7 +770,7 @@ Resources:
             build:
               commands:
                 - bash -c "[[ -e deployment_map.yml ]] && echo 'Copying deployment_map.yml' && aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml || echo 'No deployment_map.yml, skipping copy'"
-                - bash -c "[[ -e deployment_maps ]] && echo 'Syncing deployment_maps folder' && aws s3 sync deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps --size-only --delete || echo 'No deployment_maps folder, skipping sync'"
+                - bash -c "[[ -e deployment_maps ]] && echo 'Syncing deployment_maps folder' && aws s3 sync deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps  || echo 'No deployment_maps folder, skipping sync'"
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
