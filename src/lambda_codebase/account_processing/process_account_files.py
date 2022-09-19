@@ -28,6 +28,8 @@ LOGGER = configure_logger(__name__)
 ACCOUNT_MANAGEMENT_STATEMACHINE = os.getenv(
     "ACCOUNT_MANAGEMENT_STATEMACHINE_ARN",
 )
+ADF_VERSION = os.getenv("ADF_VERSION")
+ADF_VERSION_METADATA_KEY = "adf_version"
 
 
 class S3ObjectLocation(TypedDict):
@@ -67,6 +69,22 @@ def get_file_from_s3(
             s3_object_location.get('bucket_name'),
         )
         s3_object = s3_resource.Object(**s3_object_location)
+        object_adf_version = s3_object.metadata.get(
+            ADF_VERSION_METADATA_KEY,
+            "n/a",
+        )
+        if object_adf_version != ADF_VERSION:
+            LOGGER.info(
+                "Skipping S3 object: %s as it is generated with "
+                "an older ADF version ('adf_version' metadata = '%s')",
+                s3_object_location,
+                object_adf_version,
+            )
+            return {
+                "content": {},
+                "execution_id": ""
+            }
+
         with tempfile.TemporaryFile(mode='w+b') as file_pointer:
             s3_object.download_fileobj(file_pointer)
 
@@ -170,13 +188,14 @@ def lambda_handler(event, context):
 
     processed_account_list = process_account_list(
         all_accounts=all_accounts,
-        accounts_in_file=account_file.get("content", {}).get("accounts"),
+        accounts_in_file=account_file.get("content", {}).get("accounts", []),
     )
 
-    start_executions(
-        sfn_client,
-        processed_account_list,
-        codepipeline_execution_id=account_file.get("execution_id"),
-        request_id=context.aws_request_id,
-    )
+    if processed_account_list:
+        start_executions(
+            sfn_client,
+            processed_account_list,
+            codepipeline_execution_id=account_file.get("execution_id"),
+            request_id=context.aws_request_id,
+        )
     return event
