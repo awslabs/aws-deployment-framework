@@ -14,6 +14,7 @@ locally, it will clean it up too.
 Usage:
     sync_to_s3.py [-v... | --verbose...] [-r | --recursive] [-d | --delete]
             [-e <extension> | --extension <extension>]...
+            [--metadata <key>=<value>]...
             [--upload-with-metadata <key>=<value>]...
             [--]
             SOURCE_PATH DESTINATION_S3_URL
@@ -44,6 +45,12 @@ Options:
 
     -h, --help  Show this help message.
 
+    --metadata <key>=<value>
+                The key and value pairs that are passed with this argument
+                will be added to the metadata. If the metadata set using this
+                argument does not match the metadata on the S3 object, it will
+                perform an update too.
+
     -r, --recursive
                 Indicating that the <source_path> is a directory, and it
                 should recursively walk through the source directories and sync
@@ -51,7 +58,10 @@ Options:
 
     --upload-with-metadata <key>=<value>
                 When a file is uploaded, the key and value pairs that are
-                passed with this argument will be added.
+                passed with this argument will be added. It will only apply
+                these metadata properties if the file is missing, or the
+                content of the file or any of the `--metadata` properties did
+                not match.
 
     -v, --verbose
                 Show verbose logging information.
@@ -105,6 +115,17 @@ Examples:
 
         $ python sync_to_s3.py -d -e .yml -r deployment_maps \\
             s3://deploy-bucket/deployment_maps
+
+    Copy all .yml files from folder source_folder to the to an S3 bucket where
+    the objects are prefixed with the `object_folder/`, deleting the .yml
+    objects inside the YAML files that no longer exist locally. Additionally,
+    all files will get the metadata set to include `adf_version`. And if the
+    file is uploaded/updated, it will also apply the `execution_id` metadata.
+
+        $ python sync_to_s3.py -d -e .yml -r source_folder \\
+            --metadata "adf_version=x.y.z" \\
+            --upload-with-metadata "execution_id=$EXEC_ID" \\
+            s3://deploy-bucket/object_folder
 """
 
 import os
@@ -133,7 +154,6 @@ class GenericFileData(TypedDict):
     Generic File or Object Data class.
     """
     key: str
-    sha256_hash: str
 
 
 class LocalFileData(GenericFileData):
@@ -141,6 +161,19 @@ class LocalFileData(GenericFileData):
     Local File Data class, extended from the GenericFileData.
     """
     file_path: str
+    sha256_hash: str
+
+
+class S3ObjectData(GenericFileData):
+    """
+    S3 Object Data class, extended from the GenericFileData.
+    """
+    metadata: dict[str, str]
+
+
+class MetadataToCheck(TypedDict):
+    always_apply: dict[str, str]
+    upon_upload_apply: dict[str, str]
 
 
 def get_local_files(
@@ -332,7 +365,7 @@ def get_s3_objects(
         recursive (bool): Whether to search recursively or not.
 
     Returns:
-        Mapping[str, GenericFileData]: The map of the S3 objects that were
+        Mapping[str, S3ObjectData]: The map of the S3 objects that were
             found.
     """
     if recursive:
@@ -355,7 +388,7 @@ def _get_recursive_s3_objects(
     s3_bucket: str,
     s3_prefix: str,
     file_extensions: [str],
-) -> Mapping[str, GenericFileData]:
+) -> Mapping[str, S3ObjectData]:
     """
     Retrieve the objects that are stored inside the S3 bucket, which keys
     start with the specified s3_prefix.
@@ -370,7 +403,7 @@ def _get_recursive_s3_objects(
             match.
 
     Returns:
-        Mapping[str, GenericFileData]: The map of the S3 objects that were
+        Mapping[str, S3ObjectData]: The map of the S3 objects that were
             found. The keys of the map are derived from the object key relative
             to the s3_prefix. Unless the key is equal to the s3_prefix, in that
             case the full object key is used as the key. The value of the map
@@ -421,7 +454,7 @@ def _get_single_s3_object(
     s3_client: any,
     s3_bucket: str,
     s3_object_key: str,
-) -> Mapping[str, GenericFileData]:
+) -> Mapping[str, S3ObjectData]:
     """
     Retrieve a single object that is stored inside the S3 bucket, which object
     key equals the specified s3_object_key.
@@ -434,7 +467,7 @@ def _get_single_s3_object(
             should be stored in the bucket.
 
     Returns:
-        Mapping[str, GenericFileData]: The map of the S3 objects that were
+        Mapping[str, S3ObjectData]: The map of the S3 objects that were
             found. The keys of the map is set to the non recursive identifier.
             The value of the map is the S3 Object Data.
     """
@@ -465,13 +498,13 @@ def _get_single_s3_object(
 
 def _get_s3_object_data(s3_client, s3_bucket, key):
     try:
-        obj_data = s3_client.get_object(
+        obj_data = s3_client.head_object(
             Bucket=s3_bucket,
             Key=key,
         )
         return {
             "key": key,
-            "sha256_hash": obj_data.get("Metadata", {}).get("sha256_hash"),
+            "metadata": obj_data.get("Metadata", {}),
         }
     except s3_client.exceptions.NoSuchKey:
         LOGGER.debug(
@@ -487,8 +520,8 @@ def upload_changed_files(
     s3_bucket: str,
     s3_prefix: str,
     local_files: Mapping[str, LocalFileData],
-    s3_objects: Mapping[str, GenericFileData],
-    metadata_key_values: dict[str, str],
+    s3_objects: Mapping[str, S3ObjectData],
+    metadata_to_check: MetadataToCheck,
 ):
     """
     Upload changed files, by looping over the local files found and checking
@@ -499,31 +532,50 @@ def upload_changed_files(
     Args:
         s3_client (Boto3.Client): The Boto3 S3 Client to interact with when
             a file needs to be deleted.
+
         s3_bucket (str): The bucket name.
+
         s3_prefix (str): The prefix under which the objects are stored in
             the bucket.
+
         local_files (Mapping[str, LocalFileData]): The map of LocalFileData
             objects, representing the files that were found locally.
-        s3_objects (Mapping[str, GenericFileData]): The map of GenericFileData
+
+        s3_objects (Mapping[str, S3ObjectData]): The map of S3ObjectData
             objects representing the objects that were found in the S3 bucket.
+
+        metadata_to_check (MetadataToCheck): The metadata that needs to be
+            applied all the time and upon upload only.
     """
     for key, local_file in local_files.items():
         s3_file = s3_objects.get(key)
-        if (
-            s3_file is None
-            or s3_file.get("sha256_hash") != local_file.get("sha256_hash")
-        ):
+
+        object_is_missing = s3_file is None
+        s3_metadata = {} if object_is_missing else s3_file["metadata"]
+        content_changed = (
+            s3_metadata.get("sha256_hash") != local_file.get("sha256_hash")
+        )
+        metadata_changed = (
+            dict(filter(
+                lambda item: item[0] in metadata_to_check["always_apply"],
+                s3_metadata.items(),
+            )) != metadata_to_check["always_apply"]
+        )
+        if (object_is_missing or content_changed or metadata_changed):
             with open(local_file.get("file_path"), "rb") as file_pointer:
                 s3_key = convert_to_s3_key(key, s3_prefix)
 
                 LOGGER.info(
-                    "Uploading file %s to s3://%s/%s because %s",
+                    "Uploading file %s to s3://%s/%s because the %s",
                     local_file.get("file_path"),
                     s3_bucket,
                     s3_key,
                     (
-                        "file is missing" if s3_file is None
-                        else "file content changed"
+                        "object does not exist yet" if object_is_missing
+                        else (
+                            "file content changed" if content_changed
+                            else "metadata changed"
+                        )
                     ),
                 )
                 s3_client.put_object(
@@ -531,7 +583,8 @@ def upload_changed_files(
                     Bucket=s3_bucket,
                     Key=s3_key,
                     Metadata={
-                        **metadata_key_values,
+                        **metadata_to_check['always_apply'],
+                        **metadata_to_check['upon_upload_apply'],
                         "sha256_hash": local_file.get("sha256_hash"),
                     }
                 )
@@ -542,7 +595,7 @@ def delete_stale_objects(
     s3_bucket: str,
     s3_prefix: str,
     local_files: Mapping[str, LocalFileData],
-    s3_objects: Mapping[str, GenericFileData],
+    s3_objects: Mapping[str, S3ObjectData],
 ):
     """
     Delete stale files, by looping over the objects found in S3 and checking
@@ -557,7 +610,7 @@ def delete_stale_objects(
             the bucket.
         local_files (Mapping[str, LocalFileData]): The map of LocalFileData
             objects, representing the files that were found locally.
-        s3_objects (Mapping[str, GenericFileData]): The map of GenericFileData
+        s3_objects (Mapping[str, S3ObjectData]): The map of S3ObjectData
             objects representing the objects that were found in the S3 bucket.
     """
     to_delete = []
@@ -737,7 +790,7 @@ def sync_files(
     s3_url: str,
     recursive: bool,
     delete: bool,
-    metadata_key_values: dict[str, str],
+    metadata_to_check: MetadataToCheck,
 ):
     """
     Sync files using the S3 client from the local_path, matching the local_glob
@@ -746,11 +799,24 @@ def sync_files(
     Args:
         s3_client (Boto3.Client): The Boto3 S3 Client to interact with when
             a file needs to be deleted.
+
+        local_path (str): The local path where the source files are stored.
+
         file_extensions ([str]): The extensions to search for files inside a
             specific path. For example, [".yml", ".yaml"] will return all
             YAML files, including those in sub directories.
+
         s3_url (str): The S3 URL to use, for example
             S3://bucket/specific/prefix.
+
+        recursive (bool): Whether to search the source directory recursively
+            or not.
+
+        delete (bool): Whether to delete stale objects from the S3 bucket if
+            the source file no longer exists.
+
+        metadata_to_check (MetadataToCheck): The metadata that needs to be
+            applied all the time and upon upload only.
     """
     s3_url_details = urlparse(s3_url)
     s3_bucket = s3_url_details.netloc
@@ -781,7 +847,7 @@ def sync_files(
         s3_prefix,
         local_files,
         s3_objects,
-        metadata_key_values,
+        metadata_to_check,
     )
     if delete:
         delete_stale_objects(
@@ -815,13 +881,22 @@ def main():  # pylint: disable=R0915
     delete = options.get('--delete', False)
 
     # Convert metadata key and value lists into a dictionary
-    metadata_key_values = dict(map(
-        lambda kv_pair: (
-            kv_pair[:kv_pair.find("=")],
-            kv_pair[(kv_pair.find("=") + 1):]
-        ),
-        options['--upload-with-metadata'],
-    ))
+    metadata_to_check: MetadataToCheck = {
+        'always_apply': dict(map(
+            lambda kv_pair: (
+                kv_pair[:kv_pair.find("=")],
+                kv_pair[(kv_pair.find("=") + 1):]
+            ),
+            options['--metadata'],
+        )),
+        'upon_upload_apply': dict(map(
+            lambda kv_pair: (
+                kv_pair[:kv_pair.find("=")],
+                kv_pair[(kv_pair.find("=") + 1):]
+            ),
+            options['--upload-with-metadata'],
+        )),
+    }
 
     s3_client = boto3.client("s3")
     sync_files(
@@ -831,7 +906,7 @@ def main():  # pylint: disable=R0915
         s3_url,
         recursive,
         delete,
-        metadata_key_values,
+        metadata_to_check,
     )
     LOGGER.info("All done.")
 

@@ -772,8 +772,8 @@ Resources:
                 - mkdir -p deployment_maps
             build:
               commands:
-                - python adf-build/helpers/sync_to_s3.py --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
-                - python adf-build/helpers/sync_to_s3.py --extension .yml --extension .yaml --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
+                - python adf-build/helpers/sync_to_s3.py --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
