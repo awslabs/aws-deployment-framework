@@ -4,7 +4,6 @@
 # pylint: skip-file
 
 import os
-from pickle import TRUE
 from errors import InvalidConfigError
 
 from pytest import fixture, raises

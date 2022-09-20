@@ -775,11 +775,14 @@ Resources:
               commands:
                 - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
-                - pip install -r adf-build/requirements.txt -q -t ./adf-build
+                - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
+            pre_build:
+              commands:
+                - mkdir -p deployment_maps
             build:
               commands:
-                - bash -c "[[ -e deployment_map.yml ]] && echo 'Copying deployment_map.yml' && aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml || echo 'No deployment_map.yml, skipping copy'"
-                - bash -c "[[ -e deployment_maps ]] && echo 'Syncing deployment_maps folder' && aws s3 sync deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps || echo 'No deployment_maps folder, skipping sync'"
+                - python adf-build/helpers/sync_to_s3.py --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
@@ -829,6 +832,14 @@ Resources:
                 - Name: "Source"
               Configuration:
                 ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: >-
+                  [
+                    {
+                      "name": "CODEPIPELINE_EXECUTION_ID",
+                      "value": "#{codepipeline.PipelineExecutionId}",
+                      "type": "PLAINTEXT"
+                    }
+                  ]
               RunOrder: 1
 
   PipelineSNSTopic:

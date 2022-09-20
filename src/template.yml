@@ -1287,7 +1287,8 @@ Resources:
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
                 # Base templates:
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete
-                - aws s3 sync ./adf-accounts s3://$ACCOUNT_BUCKET --quiet
+                # Upload account files to the ACCOUNT_BUCKET
+                - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
                 # Updates config, updates (or creates) base stacks:
                 - python adf-build/main.py
         Type: CODEPIPELINE
@@ -1333,6 +1334,14 @@ Resources:
                 - Name: "TemplateSource"
               Configuration:
                 ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: >-
+                  [
+                    {
+                      "name": "CODEPIPELINE_EXECUTION_ID",
+                      "value": "#{codepipeline.PipelineExecutionId}",
+                      "type": "PLAINTEXT"
+                    }
+                  ]
               RunOrder: 1
 
   CodePipelineRole:

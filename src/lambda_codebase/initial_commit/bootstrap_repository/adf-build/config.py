@@ -123,7 +123,7 @@ class Config:
         self.notification_channel = (
             None if self.notification_type == "email" else self.notification_endpoint
         )
-        self.extensions = self.config_contents.get("extensions", dict())
+        self.extensions = self.config_contents.get("extensions", {})
         self._configure_default_extensions_behavior()
 
         self._validate()
