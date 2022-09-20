@@ -148,10 +148,10 @@ def start_executions(
     codepipeline_execution_id: str,
     request_id: str,
 ):
-    run_id = (
-        f"{codepipeline_execution_id, 'no-exec-id'}-"
-        f"{request_id}"
-    )
+    if not codepipeline_execution_id:
+        codepipeline_execution_id = "no-codepipeline-exec-id-found"
+    short_request_id = request_id[-12:]
+    run_id = f"{codepipeline_execution_id}-{short_request_id}"
     LOGGER.info(
         "Invoking Account Management State Machine (%s) -> %s",
         ACCOUNT_MANAGEMENT_STATEMACHINE,
@@ -159,7 +159,12 @@ def start_executions(
     )
     for account in processed_account_list:
         full_account_name = account.get('account_full_name', 'no-account-name')
-        sfn_execution_name = f"{full_account_name}-{run_id}"
+        # AWS Step Functions supports max 80 characters.
+        # Since the run_id equals 49 characters plus the dash, we have 30
+        # characters available. To ensure we don't run over, lets use a
+        # truncated version instead:
+        truncated_account_name = full_account_name[:30]
+        sfn_execution_name = f"{truncated_account_name}-{run_id}"
 
         LOGGER.debug(
             "Payload for %s: %s",
