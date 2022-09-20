@@ -10,6 +10,7 @@ import os
 from thread import PropagatingThread
 
 import boto3
+import time
 
 from botocore.exceptions import ClientError
 from logger import configure_logger
@@ -33,6 +34,13 @@ ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+CODEPIPELINE_EXECUTION_ID = os.environ.get("CODEPIPELINE_EXECUTION_ID")
+ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN = os.environ.get(
+    "ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN"
+)
+ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
+    "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
+)
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 LOGGER = configure_logger(__name__)
 
@@ -252,9 +260,64 @@ def worker_thread(
         return
 
 
+def await_sfn_executions(sfn_client):
+    _await_running_sfn_executions(
+        sfn_client,
+        ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
+        filter_lambda=lambda item: (
+            item.name.find(CODEPIPELINE_EXECUTION_ID) > 0
+        ),
+        status_filter='RUNNING',
+    )
+    _await_running_sfn_executions(
+        sfn_client,
+        ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
+        filter_lambda=None,
+        status_filter='RUNNING',
+    )
+
+
+def _await_running_sfn_executions(sfn_client, sfn_arn, filter_lambda, status_filter):
+    while _sfn_execution_is_running(
+        sfn_client, sfn_arn, filter_lambda,
+        status_filter
+    ):
+        LOGGER.info(
+            "Waiting for 30 seconds for the executions of %s to finish.",
+            sfn_arn,
+        )
+        time.sleep(30)
+
+
+def _sfn_execution_is_running(sfn_client, sfn_arn, filter_lambda, status_filter):
+    request_params = {
+        "stateMachineArn": sfn_arn,
+    }
+    if status_filter:
+        request_params["statusFilter"] = status_filter
+
+    paginator = sfn_client.get_paginator('list_executions')
+    for page in paginator.paginate(**request_params):
+        filtered = (
+            list(filter(filter_lambda, page["executions"])) if filter_lambda
+            else page["executions"]
+        )
+        if filtered:
+            LOGGER.info(
+                "Found %d state machine %s that are running.",
+                len(filtered),
+                "executions" if len(filtered) > 1 else "execution",
+            )
+            return True
+
+    return False
+
+
 def main():  # pylint: disable=R0915
     LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
+
+    await_sfn_executions(boto3.client('stepfunctions'))
 
     policies = OrganizationPolicy()
     config = Config()

@@ -1171,6 +1171,12 @@ Resources:
             Resource: "*"
           - Effect: "Allow"
             Action:
+              - "states:ListExecutions"
+            Resource:
+              - !Ref AccountManagementStateMachine
+              - !Ref AccountBootstrappingStateMachine
+          - Effect: "Allow"
+            Action:
               - "cloudformation:CreateStack"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:DeleteStack"
@@ -1262,6 +1268,10 @@ Resources:
             Value: !GetAtt Organization.OrganizationId
           - Name: ADF_LOG_LEVEL
             Value: !Ref LogLevel
+          - Name: ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN
+            Value: !Ref AccountManagementStateMachine
+          - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
+            Value: !Ref AccountBootstrappingStateMachine
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
