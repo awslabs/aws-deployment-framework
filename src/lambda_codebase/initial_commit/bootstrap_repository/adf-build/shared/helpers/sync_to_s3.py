@@ -23,6 +23,41 @@ Usage:
 
     sync_to_s3.py --version
 
+Arguments:
+    SOURCE_PATH
+                The source path where the original files are stored that should
+                by synced to the destination bucket. When you specify a
+                directory as the source path it will copy the files inside the
+                directory to the S3 bucket if you also specify the recursive
+                flag. Otherwise it will treat the source path as a file, when a
+                directory is detected instead it will abort with an error.
+                If the source path is a directory, the object keys that are
+                derived from the files inside the directory will be relative to
+                the <source_path>. For example, if the <source_path> equals
+                `./adf-accounts`, which contains a file named
+                `adf-accounts/adf.yml`, it will copy the file as `adf.yml`.
+                If the prefix of the s3 bucket is set to `adf-s3-accounts`, the
+                final key of that specific file will be:
+                `adf-s3-accounts/adf.yml`.
+                If the <source_path> is a file and
+                the recursive flag is not specified, it will expect that the
+                s3 prefix is the new object name instead. In this case, if
+                <source_path> equals `./deployment_map.yml` and the s3 prefix
+                is `root_deployment_map.yml`, it will copy the file to the s3
+                prefix key.
+
+    DESTINATION_S3_URL
+                The destination bucket and its prefix where the files should be
+                copied to. The s3 bucket and its optional prefix should be
+                specified as: s3://your-bucket-name/your-optional-prefix.
+                In this case, `your-bucket-name` is the name of the bucket.
+                While `your-optional-prefix` is the name of the prefix used for
+                all files that are copied to S3. If a directory is copied, i.e.
+                recursive is set, it will prepend the prefix to the object
+                keys of the files that are synced. If a file is copied instead,
+                i.e. no --recurdive, it will use the s3 prefix as the target
+                object key to use for that file.
+
 Options:
     -d, --delete
                 Delete stale files that are located in the destination bucket
@@ -66,40 +101,6 @@ Options:
     -v, --verbose
                 Show verbose logging information.
 
-    <source_path>
-                The source path where the original files are stored that should
-                by synced to the destination bucket. When you specify a
-                directory as the source path it will copy the files inside the
-                directory to the S3 bucket if you also specify the recursive
-                flag. Otherwise it will treat the source path as a file, when a
-                directory is detected instead it will abort with an error.
-                If the source path is a directory, the object keys that are
-                derived from the files inside the directory will be relative to
-                the <source_path>. For example, if the <source_path> equals
-                `./adf-accounts`, which contains a file named
-                `adf-accounts/adf.yml`, it will copy the file as `adf.yml`.
-                If the prefix of the s3 bucket is set to `adf-s3-accounts`, the
-                final key of that specific file will be:
-                `adf-s3-accounts/adf.yml`.
-                If the <source_path> is a file and
-                the recursive flag is not specified, it will expect that the
-                s3 prefix is the new object name instead. In this case, if
-                <source_path> equals `./deployment_map.yml` and the s3 prefix
-                is `root_deployment_map.yml`, it will copy the file to the s3
-                prefix key.
-
-    <destination_s3_url>
-                The destination bucket and its prefix where the files should be
-                copied to. The s3 bucket and its optional prefix should be
-                specified as: s3://your-bucket-name/your-optional-prefix.
-                In this case, `your-bucket-name` is the name of the bucket.
-                While `your-optional-prefix` is the name of the prefix used for
-                all files that are copied to S3. If a directory is copied, i.e.
-                recursive is set, it will prepend the prefix to the object
-                keys of the files that are synced. If a file is copied instead,
-                i.e. no --recurdive, it will use the s3 prefix as the target
-                object key to use for that file.
-
 Examples:
 
     Copy the deployment_map.yml file to an S3 bucket as
@@ -115,17 +116,6 @@ Examples:
 
         $ python sync_to_s3.py -d -e .yml -r deployment_maps \\
             s3://deploy-bucket/deployment_maps
-
-    Copy all .yml files from folder source_folder to the to an S3 bucket where
-    the objects are prefixed with the `object_folder/`, deleting the .yml
-    objects inside the YAML files that no longer exist locally. Additionally,
-    all files will get the metadata set to include `adf_version`. And if the
-    file is uploaded/updated, it will also apply the `execution_id` metadata.
-
-        $ python sync_to_s3.py -d -e .yml -r source_folder \\
-            --metadata "adf_version=x.y.z" \\
-            --upload-with-metadata "execution_id=$EXEC_ID" \\
-            s3://deploy-bucket/object_folder
 """
 
 import os
