@@ -132,7 +132,7 @@ class Config:
     def _store_cross_region_config(self):
         """
         Stores cross_account_access_role Parameter
-        in Parameter Store on the master account
+        in Parameter Store on the management account
         in deployment account main region.
         """
         self.client_deployment_region = ParameterStore(
@@ -151,7 +151,7 @@ class Config:
     def _store_config(self):
         """
         Stores the required configuration in Parameter Store on
-        The master account in us-east-1.
+        The management account in us-east-1.
         """
         for key, value in self.__dict__.items():
             if key not in (

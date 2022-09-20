@@ -108,6 +108,9 @@ CODEBUILD_IMAGE_PROPS = {
     Optional("tag"): str,   # defaults to latest
 }
 CODEBUILD_PROPS = {
+    Optional("vpc_id"): str,
+    Optional("subnet_ids"): [str],
+    Optional("security_group_ids"): [str],
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
     Optional("size"): Or('small', 'medium', 'large'),
     Optional("spec_filename"): str,

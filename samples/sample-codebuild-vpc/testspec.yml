@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+
+  build:
+    commands:
+      # A sample API call to an internal only service to perform the
+      # integration tests.
+      - curl https://integration-test-url.internal/test

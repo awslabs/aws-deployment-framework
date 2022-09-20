@@ -3,7 +3,7 @@
 
 """
 Main entry point for main.py execution which
-is executed from within AWS CodeBuild in the Master Account
+is executed from within AWS CodeBuild in the management account
 """
 
 import os
@@ -105,7 +105,7 @@ def update_deployment_account_output_parameters(
 def prepare_deployment_account(sts, deployment_account_id, config):
     """
     Ensures configuration is up to date on the deployment account
-    and returns the role that can be assumed by the master account
+    and returns the role that can be assumed by the management account
     to access the deployment account
     """
     deployment_account_role = sts.assume_cross_account_role(
@@ -320,7 +320,7 @@ def main():  # pylint: disable=R0915
             if region == config.deployment_account_region:
                 cloudformation.create_iam_stack()
 
-        # Updating the stack on the master account in deployment region
+        # Updating the stack on the management account in deployment region
         cloudformation = CloudFormation(
             region=config.deployment_account_region,
             deployment_account_region=config.deployment_account_region,
