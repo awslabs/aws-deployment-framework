@@ -1299,6 +1299,9 @@ Resources:
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 # Upload account files to the ACCOUNT_BUCKET
                 - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                # Sleep for 10 seconds so the state machine is able to kick start the processing
+                # of these newly uploaded files if any.
+                - sleep 10
                 # Updates config, updates (or creates) base stacks:
                 - python adf-build/main.py
         Type: CODEPIPELINE
