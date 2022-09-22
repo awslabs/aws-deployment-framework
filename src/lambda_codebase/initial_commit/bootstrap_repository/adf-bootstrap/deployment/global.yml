@@ -179,7 +179,7 @@ Resources:
       Parameters:
         LambdaLayer: !Ref LambdaLayerVersion
         ADFVersion: !Ref ADFVersion
-        OrganizationID: !Ref OrganizationId
+        OrganizationId: !Ref OrganizationId
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
         RootAccountId: !Ref MasterAccountId
