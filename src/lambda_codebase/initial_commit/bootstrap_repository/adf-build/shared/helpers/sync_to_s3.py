@@ -127,6 +127,7 @@ import hashlib
 import logging
 import base64
 import boto3
+from botocore.exceptions import ClientError
 from docopt import docopt
 
 
@@ -496,7 +497,9 @@ def _get_s3_object_data(s3_client, s3_bucket, key):
             "key": key,
             "metadata": obj_data.get("Metadata", {}),
         }
-    except s3_client.exceptions.NoSuchKey:
+    except ClientError as client_error:
+        if int(client_error.response["Error"]["Code"]) != 404:
+            raise
         LOGGER.debug(
             "Could not find s3://%s/%s",
             s3_bucket,

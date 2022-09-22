@@ -10,8 +10,8 @@ import os
 import sys
 import time
 from math import floor
-from thread import PropagatingThread
 from datetime import datetime
+from thread import PropagatingThread
 
 import boto3
 
