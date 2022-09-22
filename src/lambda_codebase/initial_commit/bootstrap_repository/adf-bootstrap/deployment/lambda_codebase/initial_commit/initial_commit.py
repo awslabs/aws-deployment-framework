@@ -26,7 +26,7 @@ HERE = Path(__file__).parent
 NOT_YET_CREATED = "NOT_YET_CREATED"
 CC_CLIENT = boto3.client("codecommit")
 CONFIG_FILE_REGEX = re.compile(r"\A.*[.](yaml|yml|json)\Z", re.I)
-EXECUTABLE_FILES = []
+EXECUTABLE_FILES: List[str] = []
 ADF_LOG_LEVEL = os.environ.get("ADF_LOG_LEVEL", "INFO")
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -410,22 +410,30 @@ def get_files_to_delete(
     repo_name: str,
     directory_path: Path,
 ) -> List[FileToDelete]:
-    differences = CC_CLIENT.get_differences(
+    paginator = CC_CLIENT.get_paginator('get_differences')
+    page_iterator = paginator.paginate(
         repositoryName=repo_name,
-        afterCommitSpecifier='HEAD'
-    )['differences']
+        afterCommitSpecifier='HEAD',
+    )
+    unfiltered_file_paths = []
+    for page in page_iterator:
+        unfiltered_file_paths.extend(list(
+            map(
+                lambda obj: Path(obj['afterBlob']['path']),
+                page['differences'],
+            ),
+        ))
 
-    # We never want to delete JSON or YAML files
-    file_paths = [
-        Path(file['afterBlob']['path'])
-        for file in differences
-        if not CONFIG_FILE_REGEX.match(file['afterBlob']['path'])
-    ]
+    file_paths = list(filter(
+        # We never want to delete JSON or YAML files
+        lambda path: not CONFIG_FILE_REGEX.match(str(path)),
+        unfiltered_file_paths,
+    ))
 
     blobs = [
         # Get the paths relative to the directory path so we can compare them
         # correctly.
-        filename.relative_to(directory_path)
+        str(filename.relative_to(directory_path))
         for filename in directory_path.rglob('*')
     ]
 

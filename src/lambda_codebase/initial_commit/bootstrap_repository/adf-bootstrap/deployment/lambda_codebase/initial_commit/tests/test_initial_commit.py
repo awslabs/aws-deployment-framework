@@ -3,6 +3,8 @@
 
 # pylint: skip-file
 
+import os
+import tempfile
 from pathlib import Path
 import pytest
 from mock import Mock, patch
@@ -33,6 +35,7 @@ SHOULD_NOT_DELETE_FILES = FILES_IN_UPSTREAM_REPO + FILES_ADDED_BY_USER
 SHOULD_NOT_DELETE_DIRS = [
     'deployment_maps',
     'deployment',
+    'samples',
 ]
 SHOULD_DELETE_PATHS = [
     'other.txt',
@@ -56,9 +59,8 @@ class GenericPathMocked():
         return self.path in SHOULD_NOT_DELETE_DIRS
 
 
-@patch('initial_commit.Path')
 @patch('initial_commit.CC_CLIENT')
-def test_get_files_to_delete(cc_client, path_cls):
+def test_get_files_to_delete(cc_client):
     repo_name = 'some-repo-name'
     difference_paths = (
         SHOULD_NOT_DELETE_FILES +
@@ -69,32 +71,46 @@ def test_get_files_to_delete(cc_client, path_cls):
         lambda x: {'afterBlob': {'path': x}},
         difference_paths,
     ))
-    cc_client.get_differences.return_value = {
-        'differences': differences,
-    }
-    path_rglob_mock = Mock()
-    path_rglob_mock.rglob.return_value = list(map(
-        lambda path: "/var/task/pipelines_repository/{}".format(path),
-        FILES_IN_UPSTREAM_REPO,
-    ))
-    path_cls.side_effect = lambda path: (
-        path_rglob_mock if path == '/var/task/pipelines_repository/'
-        else GenericPathMocked(path)
+    paginator = Mock()
+    cc_client.get_paginator.return_value = paginator
+    paginator.paginate.return_value = [
+        {
+            'differences': differences[:2],
+        },
+        {
+            'differences': differences[2:],
+        },
+    ]
+    with tempfile.TemporaryDirectory() as temp_dir_path:
+        directory_path = Path(temp_dir_path)
+        for dir_name in SHOULD_NOT_DELETE_DIRS:
+            os.mkdir(str(directory_path / dir_name))
+        for file_name in SHOULD_NOT_DELETE_FILES:
+            with open(str(directory_path / file_name), "wb") as file_p:
+                file_p.write("Test".encode('utf-8'))
+
+        result = get_files_to_delete(repo_name, directory_path)
+
+    cc_client.get_paginator.assert_called_once_with(
+        'get_differences',
     )
-
-    result = get_files_to_delete(repo_name)
-
-    cc_client.get_differences.assert_called_once_with(
+    paginator.paginate.assert_called_once_with(
         repositoryName=repo_name,
         afterCommitSpecifier='HEAD',
     )
 
-    path_cls.assert_called_with(
-        '/var/task/pipelines_repository/'
-    )
-    path_rglob_mock.rglob.assert_called_once_with('*')
-
     assert all(isinstance(x, FileToDelete) for x in result)
+
+    # Extract paths from result FileToDelete objects to make querying easier
+    result_paths = list(map(lambda x: x.filePath, result))
+
+    # Should not delete JSON, YAML, and directories
+    assert all(x not in result_paths for x in SHOULD_NOT_DELETE_FILES)
+    assert all(x not in result_paths for x in SHOULD_NOT_DELETE_DIRS)
+
+    # Should delete all other
+    assert result_paths == SHOULD_DELETE_PATHS
+    assert len(result_paths) == len(SHOULD_DELETE_PATHS)
 
     # Extract paths from result FileToDelete objects to make querying easier
     result_paths = list(map(lambda x: x.filePath, result))
@@ -110,19 +126,19 @@ def test_get_files_to_delete(cc_client, path_cls):
 
 @pytest.mark.parametrize("entry", SHOULD_NOT_BE_EXECUTABLE)
 def test_determine_file_mode_normal(entry):
-    base_path = "test"
-    new_entry = f"/some/{base_path}/{entry}"
+    base_path = Path("/some/test")
+    new_entry = base_path / entry
     assert determine_file_mode(
-        Path(new_entry),
+        new_entry,
         base_path,
     ) == FileMode.NORMAL
 
 
 @pytest.mark.parametrize("entry", EXECUTABLE_FILES)
 def test_determine_file_mode_executable(entry):
-    base_path = "test"
-    new_entry = f"/some/{base_path}/{entry}"
+    base_path = Path("/some/test")
+    new_entry = base_path / entry
     assert determine_file_mode(
-        Path(new_entry),
+        new_entry,
         base_path,
     ) == FileMode.EXECUTABLE
