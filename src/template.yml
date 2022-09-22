@@ -1284,7 +1284,7 @@ Resources:
                 python: 3.9
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt --quiet
+                - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:
