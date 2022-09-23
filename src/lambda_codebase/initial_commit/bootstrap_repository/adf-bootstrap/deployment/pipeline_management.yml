@@ -150,6 +150,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-create-update-rule"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -164,6 +165,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-create-repository"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1006,3 +1008,9 @@ Resources:
 Outputs:
   Bucket:
     Value: !Ref ADFPipelineBucket
+
+  CreateOrUpdateRuleLambdaRoleArn:
+    Value: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
+
+  CreateRepositoryLambdaRoleArn:
+    Value: !GetAtt CreateRepositoryLambdaRole.Arn
