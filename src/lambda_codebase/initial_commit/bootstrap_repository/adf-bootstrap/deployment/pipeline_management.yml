@@ -579,7 +579,7 @@ Resources:
               },
               "MaxConcurrency": 10,
               "Next": "Success",
-              "ItemsPath": "$.pipelines_to_be_deleted"
+              "ItemsPath": "$"
             },
             "Success": {
               "Type": "Succeed"
