@@ -688,12 +688,24 @@ Resources:
                 Action:
                   - cloudformation:CreateStack
                   - cloudformation:UpdateStack
-                  - cloudformation:UpdateTerminationProtection
                 Resource:
                   - "*"
                 Condition:
                   StringEquals:
                     'aws:RequestTag/createdBy': "ADF"
+        - PolicyName: "adf-deploy-cloudformation-delete"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:DeleteStack
+                  - cloudformation:UpdateTerminationProtection
+                Resource:
+                  - "*"
+                Condition:
+                  StringEquals:
+                    'aws:ResourceTag/createdBy': "ADF"
         - PolicyName: "adf-deploy-cloudformation-template"
           PolicyDocument:
             Version: "2012-10-17"
@@ -784,6 +796,12 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-*
               - Effect: Allow
+                Sid: "AllowPassRole"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/*
+              - Effect: Allow
                 Action:
                   - "events:PutRule"
                   - "events:PutTargets"
@@ -807,7 +825,8 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - "iam:TagResource"
+                  - "iam:TagPolicy"
+                  - "iam:TagRole"
                 Resource: "*"
 
   DeploymentMapProcessingFunction:
