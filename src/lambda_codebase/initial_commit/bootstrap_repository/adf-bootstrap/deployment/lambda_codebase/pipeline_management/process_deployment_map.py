@@ -74,6 +74,7 @@ def start_executions(sfn_client, deployment_map):
     )
     for pipeline in deployment_map.get("pipelines"):
         LOGGER.debug("Payload: %s", pipeline)
+        pipeline = {**pipeline, "deployment_map_source": "S3"}
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             input=json.dumps(pipeline),

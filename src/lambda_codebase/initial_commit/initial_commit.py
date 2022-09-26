@@ -35,6 +35,7 @@ EXECUTABLE_FILES = [
     "adf-build/shared/helpers/package_transform.sh",
     "adf-build/shared/helpers/retrieve_organization_accounts.py",
     "adf-build/shared/helpers/sts.sh",
+    "adf-build/shared/helpers/terraform/install_terraform.sh",
 ]
 
 PR_DESCRIPTION = """ADF Version {0}
