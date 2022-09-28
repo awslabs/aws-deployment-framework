@@ -387,6 +387,175 @@ class OUPathsHappyTestCases(unittest.TestCase):
 
         self.assertListEqual(expected_response, list(response))
 
+    def test_nested_paths_with_exclusions(self):
+        org_client = boto3.client("organizations")
+        org_stubber = Stubber(org_client)
+        tagging_client = boto3.client("organizations")
+        tag_stubber = Stubber(tagging_client)
+
+        list_roots_response = {
+            "Roots": [
+                {
+                    "Id": "r-1337",
+                    "Arn": "arn:aws:organizations::root/r-1337",
+                    "Name": "/",
+                    "PolicyTypes": [],
+                }
+            ]
+        }
+
+        list_organisational_units_for_root_response = {
+            "OrganizationalUnits": [
+                {"Id": "ou-123456", "Arn": "", "Name": "production"}
+            ]
+        }
+
+        list_organisational_units_for_production_response = {
+            "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
+        }
+
+        list_organisational_units_for_banking_response = {
+            "OrganizationalUnits": [
+                {"Id": "ou-09092022", "Arn": "", "Name": "investment"},
+                {"Id": "ou-26092022", "Arn": "", "Name": "commercial"},
+            ]
+        }
+
+        list_organisational_units_for_investment_response = {"OrganizationalUnits": []}
+
+        list_organisational_units_for_commercial_response = {"OrganizationalUnits": []}
+
+        list_accounts_for_banking_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "11111111111",
+                    "Arn": "",
+                    "Email": "account+1@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9),
+                }
+            ],
+            "NextToken": "PAGE1",
+        }
+        list_accounts_for_banking_response_page_1 = {
+            "Accounts": [
+                {
+                    "Id": "22222222222",
+                    "Arn": "",
+                    "Email": "account+2@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9),
+                }
+            ]
+        }
+
+        list_accounts_for_investment_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "3333333333",
+                    "Arn": "",
+                    "Email": "account+3@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 8, 9),
+                }
+            ]
+        }
+
+        list_accounts_for_commercial_response_page_0 = {
+            "Accounts": [
+                {
+                    "Id": "444444444",
+                    "Arn": "",
+                    "Email": "account+4@example.com",
+                    "Status": "ACTIVE",
+                    "JoinedMethod": "Invited",
+                    "JoinedTimestamp": datetime(2022, 9, 26),
+                }
+            ]
+        }
+
+        expected_response = [
+            {
+                "Id": "11111111111",
+                "Arn": "",
+                "Email": "account+1@example.com",
+                "Status": "ACTIVE",
+                "JoinedMethod": "Invited",
+                "JoinedTimestamp": datetime(2022, 8, 9),
+            },
+            {
+                "Id": "22222222222",
+                "Arn": "",
+                "Email": "account+2@example.com",
+                "Status": "ACTIVE",
+                "JoinedMethod": "Invited",
+                "JoinedTimestamp": datetime(2022, 8, 9),
+            },
+            {
+                "Id": "444444444",
+                "Arn": "",
+                "Email": "account+4@example.com",
+                "Status": "ACTIVE",
+                "JoinedMethod": "Invited",
+                "JoinedTimestamp": datetime(2022, 9, 26),
+            },
+        ]
+
+        org_stubber.add_response("list_roots", list_roots_response)
+        org_stubber.add_response(
+            "list_organizational_units_for_parent",
+            list_organisational_units_for_root_response,
+            {"ParentId": "r-1337"},
+        )
+        org_stubber.add_response(
+            "list_organizational_units_for_parent",
+            list_organisational_units_for_production_response,
+            {"ParentId": "ou-123456"},
+        )
+        org_stubber.add_response(
+            "list_accounts_for_parent",
+            list_accounts_for_banking_response_page_0,
+            {"ParentId": "ou-080922"},
+        )
+        org_stubber.add_response(
+            "list_accounts_for_parent",
+            list_accounts_for_banking_response_page_1,
+            {"ParentId": "ou-080922", "NextToken": "PAGE1"},
+        )
+        org_stubber.add_response(
+            "list_organizational_units_for_parent",
+            list_organisational_units_for_banking_response,
+            {"ParentId": "ou-080922"},
+        )
+
+        org_stubber.add_response(
+            "list_accounts_for_parent",
+            list_accounts_for_commercial_response_page_0,
+            {"ParentId": "ou-26092022"},
+        )
+
+        org_stubber.add_response(
+            "list_organizational_units_for_parent",
+            list_organisational_units_for_commercial_response,
+            {"ParentId": "ou-26092022"},
+        )
+
+        org_stubber.activate()
+        tag_stubber.activate()
+        organizations = Organizations(
+            role=None, org_client=org_client, tagging_client=tagging_client
+        )
+        response = organizations.get_accounts_in_path(
+            "/production/banking",
+            resolve_children=True,
+            excluded_paths=["/production/banking/investment"],
+        )
+
+        self.assertListEqual(expected_response, list(response))
+
 
 class OrgClientInitTestCases(unittest.TestCase):
     def test_init(self):

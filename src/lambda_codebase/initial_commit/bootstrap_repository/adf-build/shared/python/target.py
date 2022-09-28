@@ -23,8 +23,9 @@ class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
         self.account_list = []
-        self.wave = target.get('wave', {}) if isinstance(target, dict) else {}
-        self.exclude = target.get('exclude', []) if isinstance(target, dict) else []
+        self.wave = target.get("wave", {}) if isinstance(target, dict) else {}
+        exclusions = target.get("exclude", []) if isinstance(target, dict) else []
+        self.exclude = [exclusion.removesuffix("/") for exclusion in exclusions]
 
     @staticmethod
     def _define_target_type(target):
@@ -36,69 +37,67 @@ class TargetStructure:
         if isinstance(target, (int, str)):
             target = [{"path": [target]}]
         if isinstance(target, dict):
-            if target.get('target'):
-                target["path"] = target.get('target')
-            if not target.get('path') and not target.get('tags'):
-                target["path"] = '/deployment'
-                LOGGER.debug('No path/target detected, defaulting to /deployment')
-            if not isinstance(target.get('path', []), list):
-                target["path"] = [target.get('path')]
+            if target.get("target"):
+                target["path"] = target.get("target")
+            if not target.get("path") and not target.get("tags"):
+                target["path"] = "/deployment"
+                LOGGER.debug("No path/target detected, defaulting to /deployment")
+            if not isinstance(target.get("path", []), list):
+                target["path"] = [target.get("path")]
         if not isinstance(target, list):
             target = [target]
         return target
 
     def generate_waves(self):
-        wave_size = self.wave.get('size', 50)
+        wave_size = self.wave.get("size", 50)
         wave = []
         length = len(self.account_list)
         for index in range(0, length, wave_size):
-            wave.append(self.account_list[index:min(index + wave_size, length)])
+            wave.append(self.account_list[index : min(index + wave_size, length)])
         return wave
-
 
 
 class Target:
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
-        self.step_name = step.get('name', '')
-        self.provider = step.get('provider', {})
-        self.properties = step.get('properties', {})
+        self.step_name = step.get("name", "")
+        self.provider = step.get("provider", {})
+        self.properties = step.get("properties", {})
         self.regions = [regions] if not isinstance(regions, list) else regions
         self.target_structure = target_structure
         self.organizations = organizations
 
     @staticmethod
     def _account_is_active(account):
-        return bool(account.get('Status') == 'ACTIVE')
+        return bool(account.get("Status") == "ACTIVE")
 
     def _create_target_info(self, name, account_id):
         return {
             "id": account_id,
-            "name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', name),
+            "name": re.sub(r"[^A-Za-z0-9.@\-_]+", "", name),
             "path": self.path,
             "properties": self.properties,
             "provider": self.provider,
             "regions": self.regions,
-            "step_name": re.sub(r'[^A-Za-z0-9.@\-_]+', '', self.step_name)
+            "step_name": re.sub(r"[^A-Za-z0-9.@\-_]+", "", self.step_name),
         }
 
     def _target_is_approval(self):
         self.target_structure.account_list.append(
-            self._create_target_info(
-                'approval',
-                'approval'
-            )
+            self._create_target_info("approval", "approval")
         )
 
     def _create_response_object(self, responses):
         _entities = 0
         for response in responses:
             _entities += 1
-            if Target._account_is_active(response) and not response.get('Id') in self.target_structure.exclude:
+            if (
+                Target._account_is_active(response)
+                and not response.get("Id") in self.target_structure.exclude
+            ):
                 self.target_structure.account_list.append(
                     self._create_target_info(
-                        response.get('Name'),
-                        str(response.get('Id'))
+                        response.get("Name"), str(response.get("Id"))
                     )
                 )
         if _entities == 0:
@@ -107,41 +106,46 @@ class Target:
     def _target_is_account_id(self):
         responses = self.organizations.client.describe_account(
             AccountId=str(self.path)
-        ).get('Account')
+        ).get("Account")
         self._create_response_object([responses])
 
     def _target_is_tags(self):
         responses = self.organizations.get_account_ids_for_tags(self.path)
         accounts = []
         for response in responses:
-            if response.startswith('ou-'):
+            if response.startswith("ou-"):
                 accounts.extend(self.organizations.get_accounts_for_parent(response))
             else:
-                account = self.organizations.client.describe_account(AccountId=response).get('Account')
+                account = self.organizations.client.describe_account(
+                    AccountId=response
+                ).get("Account")
                 accounts.append(account)
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
-        responses = self.organizations.get_accounts_for_parent(
-            str(self.path)
+        responses = self.organizations.get_accounts_for_parent(str(self.path))
+        self._create_response_object(responses)
+
+    def _target_is_ou_path(self, resolve_children=False):
+        responses = self.organizations.get_accounts_in_path(
+            self.path,
+            resolve_children=resolve_children,
+            ou_id=None,
+            excluded_paths=[],
         )
         self._create_response_object(responses)
 
-    def _target_is_ou_path(self):
-        responses = self.organizations.dir_to_ou(self.path)
-        self._create_response_object(responses)
-
     def _target_is_null_path(self):
-        self.path = '/deployment' # TODO we will fetch this from parameter store
+        self.path = "/deployment"  # TODO we will fetch this from parameter store
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
 
     def fetch_accounts_for_target(self):
-        if self.path == 'approval':
+        if self.path == "approval":
             return self._target_is_approval()
         if isinstance(self.path, dict):
             return self._target_is_tags()
-        if str(self.path).startswith('ou-'):
+        if str(self.path).startswith("ou-"):
             return self._target_is_ou_id()
         if AWS_ACCOUNT_ID_REGEX.match(str(self.path)):
             return self._target_is_account_id()
@@ -161,13 +165,13 @@ class Target:
                 # Optimistically convert the path from 10-base to octal 8-base
                 # Then remove the use of the 'o' char, as it will output
                 # in the correct way, starting with: 0o.
-                str(oct(int(self.path))).replace('o', ''),
+                str(oct(int(self.path))).replace("o", ""),
             )
-        if str(self.path).startswith('/'):
-            return self._target_is_ou_path()
+        if str(self.path).startswith("/"):
+            return self._target_is_ou_path(
+                resolve_children=str(self.path).endswith("/**/*")
+            )
         if self.path is None:
             # No path/target has been passed, path will default to /deployment
             return self._target_is_null_path()
-        raise InvalidDeploymentMapError(
-            f"Unknown definition for target: {self.path}"
-        )
+        raise InvalidDeploymentMapError(f"Unknown definition for target: {self.path}")
