@@ -17,6 +17,7 @@ from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
+RECURSIVE_SUFFIX = "/**/*"
 
 
 class TargetStructure:
@@ -169,7 +170,7 @@ class Target:
             )
         if str(self.path).startswith("/"):
             return self._target_is_ou_path(
-                resolve_children=str(self.path).endswith("/**/*")
+                resolve_children=str(self.path).endswith(RECURSIVE_SUFFIX)
             )
         if self.path is None:
             # No path/target has been passed, path will default to /deployment
