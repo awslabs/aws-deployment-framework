@@ -364,6 +364,11 @@ Resources:
                 Condition:
                   StringEquals:
                     'aws:ResourceTag/createdBy': "ADF"
+              - Effect: Allow
+                Action:
+                  - "ssm:DeleteParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment/*"
 
   PipelineManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -572,16 +577,26 @@ Resources:
                   "DeleteStack": {
                     "Type": "Task",
                     "Parameters": {
-                      "StackName.$": "$.pipeline"
+                      "StackName.$": "$.full_pipeline_name"
                     },
                     "Resource": "arn:${AWS::Partition}:states:::aws-sdk:cloudformation:deleteStack",
+                    "ResultPath": "$.cfn_delete_stack.result",
+                    "Next": "DeletePipelineParams"
+                  },
+                  "DeletePipelineParams": {
+                    "Type": "Task",
+                    "Parameters": {
+                      "Name.$": "States.Format('/deployment/{}/regions', $.pipeline_name)"
+                    },
+                    "Resource": "arn:${AWS::Partition}:states:::aws-sdk:ssm:deleteParameter",
+                    "ResultPath": "$.ssm_delete_param.result",
                     "End": true
                   }
                 }
               },
               "MaxConcurrency": 10,
               "Next": "Success",
-              "ItemsPath": "$.pipelines_to_be_deleted"
+              "ItemsPath": "$"
             },
             "Success": {
               "Type": "Succeed"
