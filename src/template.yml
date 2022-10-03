@@ -1171,6 +1171,12 @@ Resources:
             Resource: "*"
           - Effect: "Allow"
             Action:
+              - "states:ListExecutions"
+            Resource:
+              - !Ref AccountManagementStateMachine
+              - !Ref AccountBootstrappingStateMachine
+          - Effect: "Allow"
+            Action:
               - "cloudformation:CreateStack"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:DeleteStack"
@@ -1262,6 +1268,10 @@ Resources:
             Value: !GetAtt Organization.OrganizationId
           - Name: ADF_LOG_LEVEL
             Value: !Ref LogLevel
+          - Name: ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN
+            Value: !Ref AccountManagementStateMachine
+          - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
+            Value: !Ref AccountBootstrappingStateMachine
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
@@ -1274,7 +1284,7 @@ Resources:
                 python: 3.9
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt --quiet
+                - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:
@@ -1289,6 +1299,9 @@ Resources:
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 # Upload account files to the ACCOUNT_BUCKET
                 - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                # Sleep for 10 seconds so the state machine is able to kick start the processing
+                # of these newly uploaded files if any.
+                - sleep 10
                 # Updates config, updates (or creates) base stacks:
                 - python adf-build/main.py
         Type: CODEPIPELINE

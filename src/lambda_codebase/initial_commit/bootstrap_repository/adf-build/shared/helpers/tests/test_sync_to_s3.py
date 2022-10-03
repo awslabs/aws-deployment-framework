@@ -7,6 +7,7 @@ import pytest
 from base64 import b64encode
 from hashlib import sha256
 import tempfile
+from botocore.exceptions import ClientError
 from sync_to_s3 import *
 
 # pylint: skip-file
@@ -375,8 +376,14 @@ def test_get_s3_objects_non_recursive_missing_object():
     s3_object_key = f"{S3_PREFIX}/missing-file.yml"
     file_extensions = []
 
-    s3_client.exceptions.NoSuchKey = Exception
-    s3_client.head_object.side_effect = s3_client.exceptions.NoSuchKey()
+    s3_client.head_object.side_effect = ClientError(
+        {
+            "Error": {
+                "Code": 404,
+            },
+        },
+        "HeadObject",
+    )
 
     assert get_s3_objects(
         s3_client,
