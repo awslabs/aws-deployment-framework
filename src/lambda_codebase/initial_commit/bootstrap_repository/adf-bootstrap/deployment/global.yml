@@ -617,6 +617,8 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt PipelineProvisionerCodeBuildRole.Arn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Action:
               - sts:AssumeRole
       Path: /

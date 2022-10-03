@@ -40,13 +40,19 @@ class Repo:
 
     def repo_exists(self):
         try:
-            codecommit = self.session.client('codecommit', DEPLOYMENT_ACCOUNT_REGION)
+            codecommit = self.session.client(
+                'codecommit',
+                DEPLOYMENT_ACCOUNT_REGION,
+            )
             repository = codecommit.get_repository(repositoryName=self.name)
             if repository['repositoryMetadata']['Arn']:
                 return True
-        except Exception: # pylint: disable=broad-except
-            LOGGER.debug('Attempted to find the repo %s but it failed.', self.name)
-        return False  # Return False if the Repo Doesnt Exist
+        except Exception:  # pylint: disable=broad-except
+            LOGGER.debug(
+                'Attempted to find the repo %s but it failed.',
+                self.name,
+            )
+        return False  # Return False if the repository does not exist
 
     def define_repo_parameters(self):
         return [{
@@ -78,8 +84,14 @@ class Repo:
         _repo_exists = self.repo_exists()
         _stack_exists = cloudformation.get_stack_status()
         if _repo_exists and not _stack_exists:
-            # return when the repository exists without a stack (previously made)
+            # No need to create or update the CloudFormation stack to
+            # deploy the repository if the repo exists already and it was not
+            # created with the ADF CodeCommit Repository stack.
             return
 
-        LOGGER.info(f"Ensuring State for CodeCommit Repository Stack {self.name} on Account {self.account_id}")
+        LOGGER.info(
+            "Ensuring State for CodeCommit Repository Stack %s on Account %s",
+            self.name,
+            self.account_id,
+        )
         cloudformation.create_stack()
