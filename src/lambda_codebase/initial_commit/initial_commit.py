@@ -269,11 +269,14 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
     version = event.ResourceProperties.Version
     default_branch_name = event.ResourceProperties.DefaultBranchName
     branch_name = version
-    CC_CLIENT.create_branch(
-        repositoryName=repo_name,
-        branchName=branch_name,
-        commitId=parent_commit_id
-    )
+    if parent_commit_id:
+        CC_CLIENT.create_branch(
+            repositoryName=repo_name,
+            branchName=branch_name,
+            commitId=parent_commit_id,
+        )
+    else:
+        branch_name = default_branch_name
 
     # CodeCommit only allows 100 files per commit, so we chunk them up here
     files_to_commit = get_files_to_commit(directory_path)
@@ -350,23 +353,24 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
             ):
                 pass
 
-    if commits_created:
-        CC_CLIENT.create_pull_request(
-            title=f'ADF {version} Automated Update PR',
-            description=PR_DESCRIPTION.format(version),
-            targets=[
-                {
-                    'repositoryName': repo_name,
-                    'sourceReference': branch_name,
-                    'destinationReference': default_branch_name,
-                },
-            ],
-        )
-    else:
-        CC_CLIENT.delete_branch(
-            repositoryName=repo_name,
-            branchName=branch_name,
-        )
+    if branch_name != default_branch_name:
+        if commits_created:
+            CC_CLIENT.create_pull_request(
+                title=f'ADF {version} Automated Update PR',
+                description=PR_DESCRIPTION.format(version),
+                targets=[
+                    {
+                        'repositoryName': repo_name,
+                        'sourceReference': branch_name,
+                        'destinationReference': default_branch_name,
+                    },
+                ],
+            )
+        else:
+            CC_CLIENT.delete_branch(
+                repositoryName=repo_name,
+                branchName=branch_name,
+            )
 
     return commits_created
 
