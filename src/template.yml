@@ -981,7 +981,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
-      Timeout: 600
+      Timeout: 900
 
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
@@ -1515,7 +1515,8 @@ Resources:
                     "Lambda.ServiceException",
                     "Lambda.AWSLambdaException",
                     "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
+                    "Lambda.TooManyRequestsException",
+                    "States.Timeout"
                   ],
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
@@ -1530,7 +1531,7 @@ Resources:
                 }
               ],
               "Next": "WaitUntilBootstrapComplete",
-              "TimeoutSeconds": 600
+              "TimeoutSeconds": 900
             },
             "MovedToRootAction": {
               "Type": "Task",
