@@ -1049,7 +1049,7 @@ Resources:
             - MoveAccount
       Targets:
         - Arn: !Ref AccountBootstrappingStateMachine
-          RoleArn: !GetAtt StatesExecutionRole.Arn
+          RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
   CodeCommitRole:
@@ -1428,8 +1428,6 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - events.amazonaws.com
-                - lambda.amazonaws.com
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/aws-deployment-framework/account-bootstrapping/"
@@ -1441,7 +1439,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "lambda:InvokeFunction"
-                  - "states:StartExecution"
                 Resource:
                   - !GetAtt DetermineEventFunction.Arn
                   - !GetAtt CrossAccountExecuteFunction.Arn
@@ -1449,6 +1446,29 @@ Resources:
                   - !GetAtt StackWaiterFunction.Arn
                   - !GetAtt RoleStackDeploymentFunction.Arn
                   - !GetAtt UpdateResourcePoliciesFunction.Arn
+
+  AccountBootstrapStartExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/aws-deployment-framework/account-bootstrapping/"
+      Policies:
+        - PolicyName: "adf-start-state-machine"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource:
+                  - !Ref AccountBootstrappingStateMachine
 
   AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
