@@ -33,6 +33,7 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: /
+
   OrganizationsReadOnlyPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -51,6 +52,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref OrganizationsReadOnlyRole
+
   OrganizationsRole:
     # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Role
@@ -110,7 +112,7 @@ Resources:
               - iam:GetRole
               - iam:GetRolePolicy
               - iam:DeleteRole
-              - iam:TagResource
+              - iam:TagRole
               - iam:PutRolePolicy
               - iam:DeleteRolePolicy
             Resource:
