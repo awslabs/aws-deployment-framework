@@ -372,9 +372,10 @@ def _sfn_execution_exists_with(
         )
         if filtered:
             LOGGER.info(
-                "Found %d state machine %s that are running.",
+                "Found %d state machine %s that %s running.",
                 len(filtered),
                 "executions" if len(filtered) > 1 else "execution",
+                "are" if len(filtered) > 1 else "is",
             )
             return True
 

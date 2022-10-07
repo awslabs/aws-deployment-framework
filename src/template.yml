@@ -1531,6 +1531,13 @@ Resources:
                   "MaxAttempts": 45
                 }, {
                   "ErrorEquals": [
+                    "AccountCreationNotFinishedError"
+                  ],
+                  "IntervalSeconds": 10,
+                  "BackoffRate": 1.1,
+                  "MaxAttempts": 45
+                }, {
+                  "ErrorEquals": [
                     "Lambda.Unknown",
                     "Lambda.ServiceException",
                     "Lambda.AWSLambdaException",
