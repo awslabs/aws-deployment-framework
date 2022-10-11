@@ -1,7 +1,7 @@
 ---
 name: 🚀 Feature Request
 description: Suggest an idea for this project
-title: "(short feature description)"
+title: "[Feat]: <insert feature description>"
 labels: [feature]
 assignees: []
 body:
