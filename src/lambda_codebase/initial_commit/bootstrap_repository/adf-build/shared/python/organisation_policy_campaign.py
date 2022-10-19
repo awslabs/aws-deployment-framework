@@ -15,6 +15,12 @@ from typing import List
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
 ENABLE_V2 = os.getenv("ENABLE_V2", True)
+DEFAULT_POLICY_ID = "p-FullAWSAccess"
+
+
+class PolicyTargetNotFoundException(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 
 class OrganizationPolicyTarget:
@@ -52,7 +58,7 @@ class OrganizationPolicyTarget:
         return existing_policy_ids
 
     def attach_policy(self, policy_id, policy_name):
-        LOGGER.info("Existing Policy Ids: %s", self.existing_policy_ids)
+        LOGGER.debug("Existing Policy Ids: %s", self.existing_policy_ids)
         if policy_id not in self.existing_policy_ids:
             self.organizations_client.attach_policy(
                 PolicyId=policy_id, TargetId=self.id
@@ -62,12 +68,13 @@ class OrganizationPolicyTarget:
             LOGGER.info(
                 f"Policy {policy_name} ({policy_id}) already attached to {self}"
             )
+
         if (
-            "p-FullAWSAccess" in self.existing_policy_ids.keys()
+            DEFAULT_POLICY_ID in self.existing_policy_ids.keys()
             and self.config.get("keep-default-scp", "enabled") == "disabled"
         ):
             self.organizations_client.detach_policy(
-                PolicyId="p-FullAWSAccess", TargetId=self.id
+                PolicyId=DEFAULT_POLICY_ID, TargetId=self.id
             )
 
 
@@ -82,7 +89,7 @@ class OrganizationalPolicyCampaignPolicy:
     policy_has_changed: bool
     targets_not_scheduled_for_deletion: list()
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.name} ({self.id}) ({self.type})"
 
     def __init__(
@@ -141,23 +148,25 @@ class OrganizationalPolicyCampaignPolicy:
                 self.targets_requiring_attachment[target.id] = target
 
     def update_targets(self):
-        LOGGER.info(
-            "Attaching the policy (%s) to the following targets: %s",
-            self.name,
-            self.targets_requiring_attachment,
-        )
+        if self.targets_requiring_attachment.values():
+            LOGGER.info(
+                "Attaching the policy (%s) to the following targets: %s",
+                self.name,
+                self.targets_requiring_attachment,
+            )
         for target in self.targets_requiring_attachment.values():
-            LOGGER.info(type(target))
             target.attach_policy(self.id, self.name)
 
         targets_to_detach = set(self.current_targets) - set(
             self.targets_not_scheduled_for_deletion
         )
-        LOGGER.info(
-            "Removing the policy (%s) from the following targets: %s",
-            self.name,
-            targets_to_detach,
-        )
+
+        if targets_to_detach:
+            LOGGER.info(
+                "Removing the policy (%s) from the following targets: %s",
+                self.name,
+                targets_to_detach,
+            )
 
         for target_id in targets_to_detach:
             LOGGER.info("Detaching policy (%s) from target (%s)", self.name, target_id)
@@ -191,7 +200,8 @@ class OrganizationalPolicyCampaignPolicy:
         self.update_targets()
 
     def delete(self):
-        pass
+        self.update_targets()
+        self.organizations_client.delete_policy(PolicyId=self.id)
 
 
 class OrganizationPolicyApplicationCampaign:
@@ -201,6 +211,7 @@ class OrganizationPolicyApplicationCampaign:
     organizational_mapping: dict
     policies_to_be_created: List[OrganizationalPolicyCampaignPolicy]
     policies_to_be_updated: List[OrganizationalPolicyCampaignPolicy]
+    policies_to_be_deleted: List[OrganizationalPolicyCampaignPolicy]
 
     def __init__(
         self, type, organizational_mapping, campaign_config, organisations_client
@@ -211,6 +222,7 @@ class OrganizationPolicyApplicationCampaign:
         self.organizations = organisations_client
         self.policies_to_be_created = []
         self.policies_to_be_updated = []
+        self.policies_to_be_deleted = []
         self.existing_policy_lookup = self.get_existing_policys()
         self.campaign_config = campaign_config
 
@@ -227,13 +239,20 @@ class OrganizationPolicyApplicationCampaign:
 
     def get_target(self, target: str) -> OrganizationPolicyTarget:
         if target not in self.targets:
-            self.targets[target] = OrganizationPolicyTarget(
-                target_path=target,
-                type=self.type,
-                id=self.organizational_mapping[target],
-                config=self.campaign_config,
-                organizations_client=self.organizations,
-            )
+            try:
+                self.targets[target] = OrganizationPolicyTarget(
+                    target_path=target,
+                    type=self.type,
+                    id=self.organizational_mapping[target],
+                    config=self.campaign_config,
+                    organizations_client=self.organizations,
+                )
+            except KeyError as e:
+                LOGGER.critical(f"The target {e} was not found in the OU target Map")
+                LOGGER.info("Current OU map: %s", self.organizational_mapping)
+                raise PolicyTargetNotFoundException(
+                    f"The target {e} was not found in the OU target Map"
+                )
         return self.targets[target]
 
     def get_policy(self, policy_name, policy_body):
@@ -278,16 +297,59 @@ class OrganizationPolicyApplicationCampaign:
 
         return policy
 
+    def delete_policy(self, policy_name):
+        if policy_name in self.existing_policy_lookup:
+            policy = OrganizationalPolicyCampaignPolicy(
+                policy_name,
+                {},
+                self.type,
+                self.campaign_config,
+                self.existing_policy_lookup[policy_name],
+                False,
+                self.organizations,
+            )
+            self.policies_to_be_deleted.append(policy)
+
     def apply(self):
-        LOGGER.info(
-            "The following policies need to be created: %s",
-            [policy.name for policy in self.policies_to_be_created],
-        )
+        if self.policies_to_be_created:
+            LOGGER.info(
+                "The following policies need to be created: %s",
+                [policy.name for policy in self.policies_to_be_created],
+            )
         for policy in self.policies_to_be_created:
             policy.create()
-        LOGGER.info(
-            "The following policies (may) need to be updated: %s",
-            [policy.name for policy in self.policies_to_be_updated],
-        )
+
+        if self.policies_to_be_updated:
+            LOGGER.info(
+                "The following policies (may) need to be updated: %s",
+                [policy.name for policy in self.policies_to_be_updated],
+            )
         for policy in self.policies_to_be_updated:
             policy.update()
+
+        policies_defined_from_files = set(
+            [policy.name for policy in self.policies_to_be_updated]
+        )
+        adf_managed_policy_names = set(self.existing_policy_lookup.keys())
+        self.policies_to_be_deleted.extend(
+            [
+                OrganizationalPolicyCampaignPolicy(
+                    p,
+                    {},
+                    self.type,
+                    self.campaign_config,
+                    self.existing_policy_lookup[p],
+                    False,
+                    self.organizations,
+                )
+                for p in adf_managed_policy_names - policies_defined_from_files
+            ]
+        )
+        if self.policies_to_be_deleted:
+            LOGGER.info(
+                "The following policies will be deleted as they are no longer defined in a file: %s",
+                self.policies_to_be_deleted,
+            )
+
+        for policy in self.policies_to_be_deleted:
+            policy.delete()

@@ -7,7 +7,7 @@ Organizations Policy module used throughout the ADF.
 
 import glob
 import os
-import os
+import ast
 import json
 import boto3
 
@@ -18,20 +18,25 @@ from organisation_policy_campaign import (
     OrganizationalPolicyCampaignPolicy,
     OrganizationPolicyApplicationCampaign,
 )
+from errors import ParameterNotFoundError
+
 
 from organizations import Organizations
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
 ENABLE_V2 = os.getenv("ENABLE_V2", True)
+DEFAULT_ADF_POLICIES_DIR = "./adf-policies"
 
 
 class OrganizationPolicy:
-    def __init__(self):
-        pass
+    adf_policies_dir: str
+
+    def __init__(self, adf_policies_dir=None):
+        self.adf_policies_dir = adf_policies_dir or DEFAULT_ADF_POLICIES_DIR
 
     @staticmethod
-    def _find_all(policy):
+    def _find_all_legacy_policies(policy):
         _files = list(
             glob.iglob(
                 f"./adf-bootstrap/**/{policy}.json",
@@ -40,28 +45,14 @@ class OrganizationPolicy:
         )
         return [f.replace("./adf-bootstrap", ".") for f in _files]
 
-    @staticmethod
-    def _find_all_polices_v2(policy):
+    def _find_all_polices(self, policy):
         _files = list(
             glob.iglob(
-                f"./adf-bootstrap/{policy}/*.json",
+                f"{self.adf_policies_dir}/{policy}/*.json",
                 recursive=True,
             )
         )
-        return [f.replace("./adf-bootstrap", ".") for f in _files]
-
-    @staticmethod
-    def _compare_ordered_policy(obj):
-        LOGGER.info(obj)
-        if isinstance(obj, dict):
-            return sorted(
-                (k, OrganizationPolicy._compare_ordered_policy(v))
-                for k, v in obj.items()
-            )
-        if isinstance(obj, list):  # pylint: disable=R1705
-            return sorted(OrganizationPolicy._compare_ordered_policy(x) for x in obj)
-        else:
-            return obj
+        return [f.replace(f"{self.adf_policies_dir}", ".") for f in _files]
 
     @staticmethod
     def _trim_scp_file_name(policy):
@@ -81,56 +72,11 @@ class OrganizationPolicy:
         """
         return region.startswith("us-gov")
 
-    @staticmethod
-    def set_scp_attachment(access_identifer, organization_mapping, path, organizations):
-        if access_identifer:
-            if access_identifer.get("keep-default-scp") != "enabled":
-                try:
-                    organizations.detach_policy(
-                        "p-FullAWSAccess", organization_mapping[path]
-                    )
-                except organizations.client.exceptions.PolicyNotAttachedException:
-                    LOGGER.info(
-                        "FullAWSAccess will stay detached since "
-                        "keep-default-scp is not enabled. Path is: %s",
-                        path,
-                    )
-            else:
-                try:
-                    organizations.attach_policy(
-                        "p-FullAWSAccess", organization_mapping[path]
-                    )
-                except organizations.client.exceptions.DuplicatePolicyAttachmentException:
-                    LOGGER.info(
-                        "FullAWSAccess will stay attached since "
-                        "keep-default-scp is enabled. Path is: %s",
-                        path,
-                    )
-
-    @staticmethod
-    def clean_and_remove_policy_attachment(
-        organization_mapping, path, organizations, policy_type
-    ):
-        policy_id = organizations.describe_policy_id_for_target(
-            organization_mapping[path],
-            policy_type,
-        )
-        if policy_type == "SERVICE_CONTROL_POLICY":
-            try:
-                organizations.attach_policy(
-                    "p-FullAWSAccess",
-                    organization_mapping[path],
-                )
-            except organizations.client.exceptions.DuplicatePolicyAttachmentException:
-                pass
-        organizations.detach_policy(policy_id, organization_mapping[path])
-        organizations.delete_policy(policy_id)
-        LOGGER.info(
-            "Policy (%s) %s will be deleted. Path is: %s",
-            policy_type,
-            organization_mapping[path],
-            path,
-        )
+    def get_policy_body(self, path):
+        with open(
+            f"{self.adf_policies_dir}/{path}", mode="r", encoding="utf-8"
+        ) as policy:
+            return json.dumps(json.load(policy))
 
     def apply(
         self, organizations, parameter_store, config
@@ -143,18 +89,6 @@ class OrganizationPolicy:
             )
             return
 
-        LOGGER.info(
-            "Determining if Organization Policy changes are required. "
-            "(Tagging or Service Controls)",
-        )
-        LOGGER.info("Building organization map")
-        organization_mapping = organizations.get_organization_map(
-            {
-                "/": organizations.get_ou_root_id(),
-            }
-        )
-        LOGGER.info("Organization map built")
-
         supported_policies = {
             "scp": "SERVICE_CONTROL_POLICY",
             "tagging-policy": "TAG_POLICY",
@@ -164,6 +98,18 @@ class OrganizationPolicy:
             supported_policies = {
                 "scp": "SERVICE_CONTROL_POLICY",
             }
+
+        LOGGER.info("Currently supported policy types: %s", supported_policies.values())
+        for _, policy_type in supported_policies.items():
+            organizations.enable_organization_policies(policy_type)
+
+        LOGGER.info("Building organization map")
+        organization_mapping = organizations.get_organization_map(
+            {
+                "/": organizations.get_ou_root_id(),
+            }
+        )
+        LOGGER.info("Organization map built!")
 
         self.apply_policies(
             organizations,
@@ -188,14 +134,37 @@ class OrganizationPolicy:
                 _type,
                 organization_mapping,
                 config.get("scp"),
-                boto3.client("organizations"),
+                organizations,
             )
-            organizations.enable_organization_policies(_type)
-
-            _legacy_policies = OrganizationPolicy._find_all(policy)
+            _legacy_policies = OrganizationPolicy._find_all_legacy_policies(policy)
             LOGGER.info(
                 "Discovered the following legacy policies: %s", _legacy_policies
             )
+            try:
+                current_stored_policy = ast.literal_eval(
+                    parameter_store.fetch_parameter(policy)
+                )
+                for stored_policy in current_stored_policy:
+                    path = (
+                        OrganizationPolicy._trim_scp_file_name(stored_policy)
+                        if policy == "scp"
+                        else OrganizationPolicy._trim_tagging_policy_file_name(
+                            stored_policy
+                        )
+                    )
+                    if stored_policy not in _legacy_policies:
+                        # Schedule Policy deletion
+                        LOGGER.info(
+                            "Scheduling policy: %s for deletion because it no longer exists in codebase",
+                            stored_policy,
+                        )
+                        campaign.delete_policy(f"adf-{policy}-{path}")
+            except ParameterNotFoundError:
+                LOGGER.debug(
+                    "Parameter %s was not found in Parameter Store, continuing.",
+                    policy,
+                )
+                pass
             for _policy in _legacy_policies:
                 LOGGER.info("Loading policy: %s", _policy)
                 proposed_policy = json.loads(Organizations.get_policy_body(_policy))
@@ -206,7 +175,7 @@ class OrganizationPolicy:
                     else OrganizationPolicy._trim_tagging_policy_file_name(_policy)
                 )
                 proposed_policy_name = f"adf-{policy}-{path}"
-                LOGGER.info(proposed_policy)
+                LOGGER.debug(proposed_policy)
                 policy_instance = campaign.get_policy(
                     proposed_policy_name, proposed_policy
                 )
@@ -215,18 +184,18 @@ class OrganizationPolicy:
 
                 LOGGER.info(target)
 
-            _policies = OrganizationPolicy._find_all_polices_v2(policy)
+            _policies = self._find_all_polices(policy)
             LOGGER.info("Discovered the following policies: %s", _policies)
             for _policy in _policies:
-                policy_definition = json.loads(Organizations.get_policy_body(_policy))
+                policy_definition = json.loads(self.get_policy_body(_policy))
                 # TODO: Schema validation here
-                LOGGER.info(policy_definition)
+                LOGGER.debug(policy_definition)
                 proposed_policy = policy_definition.get("Policy")
                 proposed_policy_name = policy_definition.get("PolicyName")
-                policy = campaign.get_policy(proposed_policy_name, proposed_policy)
+                campaign_policy = campaign.get_policy(
+                    proposed_policy_name, proposed_policy
+                )
                 targets = policy_definition.get("Targets", [])
-
-                LOGGER.info(organization_mapping)
-                policy.set_targets([campaign.get_target(t) for t in targets])
+                campaign_policy.set_targets([campaign.get_target(t) for t in targets])
             campaign.apply()
-            # parameter_store.put_parameter(policy, str(_policies))
+            parameter_store.put_parameter(policy, str(_legacy_policies))

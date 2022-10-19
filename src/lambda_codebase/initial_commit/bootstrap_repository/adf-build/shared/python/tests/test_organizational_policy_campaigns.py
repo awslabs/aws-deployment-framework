@@ -662,4 +662,104 @@ class HappyTestCases(unittest.TestCase):
             self.assertEqual(1, len(policy.targets_requiring_attachment))
 
         policy_campaign.apply()
-        assert 1 == 2
+
+    def test_scp_campaign_creation_one_existing_policy_not_in_definitions(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        # One pre-existing ADF managed policy
+        stubber.add_response(
+            "list_policies",
+            {
+                "Policies": [
+                    {
+                        "Id": "fake-policy-1",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    }
+                ]
+            },
+        )
+
+        stubber.add_response(
+            "list_policies_for_target",
+            {"Policies": []},
+            {"TargetId": "09876543210", "Filter": "SERVICE_CONTROL_POLICY"},
+        )
+
+        # Creates the second policy and attaches the policy to the target
+        stubber.add_response(
+            "create_policy",
+            {
+                "Policy": {
+                    "PolicySummary": {
+                        "Id": "fake-policy-id-2",
+                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Name": "MySecondPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    },
+                    "Content": "fake-policy-content",
+                }
+            },
+            {
+                "Content": ANY,
+                "Description": "ADF Managed scp",
+                "Name": "MySecondPolicy",
+                "Type": "SERVICE_CONTROL_POLICY",
+            },
+        )
+        stubber.add_response(
+            "attach_policy",
+            {},
+            {"PolicyId": "fake-policy-id-2", "TargetId": "09876543210"},
+        )
+
+        stubber.add_response(
+            "list_targets_for_policy",
+            {
+                "Targets": [
+                    {
+                        "TargetId": "11223344556",
+                        "Arn": "arn:aws:organizations:account11223344556",
+                        "Name": "MyThirdOrg",
+                        "Type": "ORGANIZATIONAL_UNIT",
+                    }
+                ]
+            },
+            {"PolicyId": "fake-policy-1"},
+        )
+
+        stubber.add_response(
+            "detach_policy",
+            {},
+            {"PolicyId": "fake-policy-1", "TargetId": "11223344556"},
+        )
+        stubber.add_response(
+            "delete_policy",
+            {},
+            {"PolicyId": "fake-policy-1"},
+        )
+        stubber.activate()
+
+        policy_campaign = OrganizationPolicyApplicationCampaign(
+            "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+        )
+
+        for _policy in POLICY_DEFINITIONS[1:]:
+            policy = policy_campaign.get_policy(
+                _policy.get("PolicyName"), _policy.get("Policy")
+            )
+            self.assertEqual(0, len(policy.targets_requiring_attachment))
+            policy.set_targets(
+                [policy_campaign.get_target(t) for t in _policy.get("Targets")]
+            )
+            self.assertEqual(1, len(policy.targets_requiring_attachment))
+
+        policy_campaign.apply()
+        stubber.assert_no_pending_responses()
