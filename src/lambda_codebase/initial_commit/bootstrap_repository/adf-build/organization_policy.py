@@ -8,8 +8,6 @@ Organizations Policy (SCP/Tagging) module used throughout the ADF.
 import glob
 import ast
 import os
-import json
-import string
 
 from organizations import Organizations
 from errors import ParameterNotFoundError
@@ -17,7 +15,7 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
-ENABLE_V2 = os.getenv("ENABLE_V2", True)
+ENABLE_V2 = os.getenv("ENABLE_V2", None)
 
 
 class OrganizationPolicy:
@@ -147,22 +145,13 @@ class OrganizationPolicy:
         if self._is_govcloud(REGION_DEFAULT):
             supported_policies = ["scp"]
 
-        if ENABLE_V2:
-            self.apply_policies_v2(
-                organizations,
-                parameter_store,
-                config,
-                organization_mapping,
-                supported_policies,
-            )
-        else:
-            self.apply_policies_v1(
-                organizations,
-                parameter_store,
-                config,
-                organization_mapping,
-                supported_policies,
-            )
+        self.apply_policies_v1(
+            organizations,
+            parameter_store,
+            config,
+            organization_mapping,
+            supported_policies,
+        )
 
     def apply_policies_v1(
         self,

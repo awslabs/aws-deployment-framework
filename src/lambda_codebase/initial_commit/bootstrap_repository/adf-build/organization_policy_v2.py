@@ -9,13 +9,9 @@ import glob
 import os
 import ast
 import json
-import boto3
 
 from logger import configure_logger
-from typing import List
 from organisation_policy_campaign import (
-    OrganizationPolicyTarget,
-    OrganizationalPolicyCampaignPolicy,
     OrganizationPolicyApplicationCampaign,
 )
 from errors import ParameterNotFoundError
@@ -25,7 +21,7 @@ from organizations import Organizations
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
-ENABLE_V2 = os.getenv("ENABLE_V2", True)
+ENABLE_V2 = os.getenv("ENABLE_V2", None)
 DEFAULT_ADF_POLICIES_DIR = "./adf-policies"
 
 

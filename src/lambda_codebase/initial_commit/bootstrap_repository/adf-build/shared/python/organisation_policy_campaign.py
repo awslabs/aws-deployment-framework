@@ -7,18 +7,26 @@ Organizations Policy module used throughout the ADF.
 
 import os
 import json
+from typing import List
 import boto3
 
 from logger import configure_logger
-from typing import List
+
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
-ENABLE_V2 = os.getenv("ENABLE_V2", True)
+ENABLE_V2 = os.getenv("ENABLE_V2")
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
 
+# pylint: disable=W1508. R1735, W0235, R1734
 
-class PolicyTargetNotFoundException(Exception):
+
+class OrganisationPolicyException(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class PolicyTargetNotFoundException(OrganisationPolicyException):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
@@ -34,12 +42,12 @@ class OrganizationPolicyTarget:
         return f"{self.path} ({self.id}) ({self.type})"
 
     def __init__(
-        self, target_path, type, id, config, organizations_client=None
+        self, target_path, policy_type, policy_id, config, organizations_client=None
     ) -> None:
 
         self.path = target_path
-        self.type = type
-        self.id = id
+        self.type = policy_type
+        self.id = policy_id
         self.config = config
         self.organizations_client = (
             organizations_client
@@ -96,16 +104,16 @@ class OrganizationalPolicyCampaignPolicy:
         self,
         policy_name,
         policy_body,
-        type,
+        policy_type,
         config,
-        id=None,
+        policy_id=None,
         policy_has_changed=False,
         organizations_client=None,
     ):
         self.name = policy_name
         self.body = policy_body
-        self.id = id
-        self.type = type
+        self.id = policy_id
+        self.type = policy_type
         self.campaign_config = config
         self.organizations_client = (
             organizations_client
@@ -119,13 +127,58 @@ class OrganizationalPolicyCampaignPolicy:
 
     def get_current_targets_for_policy(self):
         if self.id:
-            current_targets = [
-                t.get("TargetId")
-                for t in self.organizations_client.list_targets_for_policy(
-                    PolicyId=self.id
-                ).get("Targets")
-            ]
-            return current_targets
+            try:
+                current_targets = [
+                    t.get("TargetId")
+                    for t in self.organizations_client.list_targets_for_policy(
+                        PolicyId=self.id
+                    ).get("Targets")
+                ]
+                return current_targets
+            except self.organizations_client.exceptions.AccessDeniedException as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Access Denied"
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    f"Error fetching targets for policy {self.name} {self.id}: Access Denied"
+                ) from e
+            except self.organizations_client.exceptions.AWSOrganizationsNotInUseException as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Organisations not in use"
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException("Organizations not in use") from e
+            except self.organizations_client.exceptions.InvalidInputException as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Invalid Input"
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    f"Error fetching targets for policy {self.name} {self.id}: Invalid Input"
+                ) from e
+            except self.organizations_client.exceptions.ServiceException as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Service Exception "
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    f"Error fetching targets for policy {self.name} {self.id}: Service Exception "
+                ) from e
+            except self.organizations_client.exceptions.TooManyRequestsException as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Too Many Requests "
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    "Too Many Requests to Organizations API"
+                ) from e
+            except Exception as e:
+                LOGGER.critical(
+                    f"Error fetching targets for policy {self.name} {self.id}: Unexpected exception"
+                )
+                LOGGER.error(e)
+                raise e
         else:
             return []
 
@@ -139,13 +192,12 @@ class OrganizationalPolicyCampaignPolicy:
                 )
                 self.targets_not_scheduled_for_deletion.append(target.id)
                 continue
-            else:
-                LOGGER.info(
-                    "%s is not a target for: %s, marking it for attachment",
-                    target.id,
-                    self.name,
-                )
-                self.targets_requiring_attachment[target.id] = target
+            LOGGER.info(
+                "%s is not a target for: %s, marking it for attachment",
+                target.id,
+                self.name,
+            )
+            self.targets_requiring_attachment[target.id] = target
 
     def update_targets(self):
         if self.targets_requiring_attachment.values():
@@ -170,22 +222,99 @@ class OrganizationalPolicyCampaignPolicy:
 
         for target_id in targets_to_detach:
             LOGGER.info("Detaching policy (%s) from target (%s)", self.name, target_id)
-            self.organizations_client.detach_policy(
-                PolicyId=self.id, TargetId=target_id
-            )
+            try:
+                self.organizations_client.detach_policy(
+                    PolicyId=self.id, TargetId=target_id
+                )
+            except self.organizations_client.exceptions.AccessDeniedException as e:
+                LOGGER.critical(
+                    f"Error detaching policy {self.name} ({self.id}) from target {target_id}: Access Denied"
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    f"Error detatching policy: {self.name} {self.id} from {target_id}: Access Denied"
+                ) from e
+            except self.organizations_client.exceptions.PolicyNotAttachedException as e:
+                LOGGER.warning(
+                    f"Error detaching policy {self.name} ({self.id}) from target {target_id}: Policy Not Attached"
+                )
+                LOGGER.info(e)
+                return
+            except self.organizations_client.exceptions.TargetNotFoundException as e:
+                LOGGER.critical(
+                    f"Error detaching policy {self.name} ({self.id}) from target {target_id}: Target Not Found"
+                )
+                LOGGER.error(e)
+                raise OrganisationPolicyException(
+                    f"Error detaching policy {self.name} {self.id}: Target {target_id} Not Found"
+                ) from e
+            except Exception as e:
+                LOGGER.critical(
+                    f"Error detaching policy {self.name} {self.id}: Unexpected Exception"
+                )
+                LOGGER.error(e)
+                raise e
 
     def create(self):
         policy_type_name = (
             "scp" if self.type == "SERVICE_CONTROL_POLICY" else "tagging-policy"
         )
-        response = self.organizations_client.create_policy(
-            Content=json.dumps(self.body),
-            Description=f"ADF Managed {policy_type_name}",
-            Name=self.name,
-            Type=self.type,
-        )
-
-        self.id = response.get("Policy").get("PolicySummary").get("Id")
+        try:
+            self.id = (
+                self.organizations_client.create_policy(
+                    Content=json.dumps(self.body),
+                    Description=f"ADF Managed {policy_type_name}",
+                    Name=self.name,
+                    Type=self.type,
+                )
+                .get("Policy")
+                .get("PolicySummary")
+                .get("Id")
+            )
+        except self.organizations_client.exceptions.AccessDeniedException as e:
+            LOGGER.critical(f"Error creating policy {self.name}: Access Denied")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Access Denied"
+            ) from e
+        except self.organizations_client.exceptions.ConcurrentModificationException as e:
+            LOGGER.critical(
+                f"Error creating policy {self.name}: Concurrent Modification Ongoing"
+            )
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Concurrent Modification Ongoing"
+            ) from e
+        except self.organizations_client.exceptions.ConstraintViolationException as e:
+            LOGGER.critical(f"Error creating policy {self.name}: Constraint Violation")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Constraint Violation"
+            ) from e
+        except self.organizations_client.exceptions.DuplicatePolicyException as e:
+            LOGGER.warning(f"Error creating policy {self.name}: Duplicate Policy")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Duplicate Policy"
+            ) from e
+        except self.organizations_client.exceptions.InvalidInputException as e:
+            LOGGER.warning(f"Error creating policy {self.name}: Invalid Input")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Invalid Input"
+            ) from e
+        except self.organizations_client.exceptions.MalformedPolicyDocumentException as e:
+            LOGGER.warning(
+                f"Error creating policy {self.name}: Policy Content Malformed"
+            )
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Error creating policy {self.name}: Policy Content Malformed"
+            ) from e
+        except Exception as e:
+            LOGGER.critical(f"Error creating policy {self.name}: Unexpected Exception")
+            LOGGER.error(e)
+            raise e
         LOGGER.info("Policy %s created with id: %s", self.name, self.id)
         self.update_targets()
 
@@ -214,10 +343,10 @@ class OrganizationPolicyApplicationCampaign:
     policies_to_be_deleted: List[OrganizationalPolicyCampaignPolicy]
 
     def __init__(
-        self, type, organizational_mapping, campaign_config, organisations_client
+        self, policy_type, organizational_mapping, campaign_config, organisations_client
     ) -> None:
         self.targets = {}
-        self.type = type
+        self.type = policy_type
         self.organizational_mapping = organizational_mapping
         self.organizations = organisations_client
         self.policies_to_be_created = []
@@ -227,7 +356,42 @@ class OrganizationPolicyApplicationCampaign:
         self.campaign_config = campaign_config
 
     def get_existing_policys(self):
-        response = self.organizations.list_policies(Filter=self.type)
+        try:
+            # TODO: Implement paginator here
+            response = self.organizations.list_policies(Filter=self.type)
+        except self.organizations.exceptions.AccessDeniedException as e:
+            LOGGER.critical("Error fetching existing policies: Access Denied")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Access Denied when fetching existing policies ({self.type})"
+            ) from e
+        except self.organizations.exceptions.AWSOrganizationsNotInUseException as e:
+            LOGGER.critical("Error fetching existing policies: AWS Orgs not in use")
+            LOGGER.error(e)
+            raise OrganisationPolicyException("Organizations not in use") from e
+        except self.organizations.exceptions.InvalidInputException as e:
+            LOGGER.critical("Error fetching existing policies: Invalid Input")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Invalid input fetching existing policies: {self.type}"
+            ) from e
+        except self.organizations.exceptions.ServiceException as e:
+            LOGGER.critical("Error fetching existing policies: Service Exception")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                "Service Error when fetching existing Org Policies"
+            ) from e
+        except self.organizations.exceptions.TooManyRequestsException as e:
+            LOGGER.critical("Error fetching existing policies: Too Many Requests")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                "Too Many Requests to Organizations API"
+            ) from e
+        except Exception as e:
+            LOGGER.critical("Unexpected exception when fetching existing policies")
+            LOGGER.error(e)
+            raise e
+
         policy_type_name = (
             "scp" if self.type == "SERVICE_CONTROL_POLICY" else "tagging-policy"
         )
@@ -242,8 +406,8 @@ class OrganizationPolicyApplicationCampaign:
             try:
                 self.targets[target] = OrganizationPolicyTarget(
                     target_path=target,
-                    type=self.type,
-                    id=self.organizational_mapping[target],
+                    policy_type=self.type,
+                    policy_id=self.organizational_mapping[target],
                     config=self.campaign_config,
                     organizations_client=self.organizations,
                 )
@@ -252,7 +416,7 @@ class OrganizationPolicyApplicationCampaign:
                 LOGGER.info("Current OU map: %s", self.organizational_mapping)
                 raise PolicyTargetNotFoundException(
                     f"The target {e} was not found in the OU target Map"
-                )
+                ) from e
         return self.targets[target]
 
     def get_policy(self, policy_name, policy_body):
@@ -274,14 +438,46 @@ class OrganizationPolicyApplicationCampaign:
         return policy
 
     def update_policy(self, policy_name, policy_body):
-
-        current_policy = json.loads(
-            self.organizations.describe_policy(
-                PolicyId=self.existing_policy_lookup[policy_name]
+        current_policy = {}
+        try:
+            current_policy = json.loads(
+                self.organizations.describe_policy(
+                    PolicyId=self.existing_policy_lookup[policy_name]
+                )
+                .get("Policy")
+                .get("Content")
             )
-            .get("Policy")
-            .get("Content")
-        )
+        except self.organizations.exceptions.AccessDeniedException as e:
+            LOGGER.critical("Error describing existing policy: Access Denied")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Access Denied when fetching existing policy : {policy_name}{self.existing_policy_lookup[policy_name]} ({self.type})"
+            ) from e
+        except self.organizations.exceptions.AWSOrganizationsNotInUseException as e:
+            LOGGER.critical("Error describing existing policy: AWS Orgs not in use")
+            LOGGER.error(e)
+            raise OrganisationPolicyException("Organizations not in use") from e
+        except self.organizations.exceptions.InvalidInputException as e:
+            LOGGER.critical("Error fetching existing policies: Invalid Input")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Invalid input fetching existing policy: {self.type}"
+            ) from e
+        except self.organizations.exceptions.ServiceException as e:
+            LOGGER.critical("Error fetching existing policy: Service Exception")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                f"Service Error when fetching existing policy {policy_name}"
+            ) from e
+        except self.organizations.exceptions.TooManyRequestsException as e:
+            LOGGER.critical("Error describing policy: Too Many Requests")
+            LOGGER.error(e)
+            raise OrganisationPolicyException(
+                "Too Many Requests to Organizations API"
+            ) from e
+        except Exception as e:  # pylint: disable=W0703
+            LOGGER.critical("Unexpected exception when describing existing policy")
+            LOGGER.error(e)
 
         policy_has_changed = current_policy != policy_body
         policy = OrganizationalPolicyCampaignPolicy(
@@ -327,9 +523,10 @@ class OrganizationPolicyApplicationCampaign:
         for policy in self.policies_to_be_updated:
             policy.update()
 
-        policies_defined_from_files = set(
-            [policy.name for policy in self.policies_to_be_updated]
-        )
+        policies_defined_from_files = {
+            policy.name for policy in self.policies_to_be_updated
+        }
+
         adf_managed_policy_names = set(self.existing_policy_lookup.keys())
         self.policies_to_be_deleted.extend(
             [

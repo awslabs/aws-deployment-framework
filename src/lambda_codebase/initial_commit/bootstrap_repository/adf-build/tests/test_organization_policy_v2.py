@@ -1,3 +1,6 @@
+"""
+Tests for organisational policy v2
+"""
 import unittest
 import os
 import boto3
@@ -10,7 +13,7 @@ POLICY_PATH = "/src/lambda_codebase/initial_commit/bootstrap_repository/adf-buil
 
 
 class FakeParamStore:
-    params: dict()
+    params: dict()  # pylint: disable=R1735
 
     def __init__(self) -> None:
         self.params = {}
@@ -72,13 +75,15 @@ class HappyTestCases(unittest.TestCase):
         org_stubber.activate()
 
         param_store = FakeParamStore()
-        # No existing SCPs have been put
+        # No existing (legacy) SCPs have been put
         param_store.put_parameter("scp", "[]")
 
         policy_dir = f"{os.getcwd()}{POLICY_PATH}"
 
         org_policies_client = OrganizationPolicy(policy_dir)
-        org_policies_client.apply_policies(
-            org_client, param_store, {}, {"TestOrg": "ou-123456789"}, SCP_ONLY
-        )
+        with self.assertLogs("organisation_policy_campaign") as log:
+            org_policies_client.apply_policies(
+                org_client, param_store, {}, {"TestOrg": "ou-123456789"}, SCP_ONLY
+            )
+            self.assertGreater(len(log.records), 0)
         org_stubber.assert_no_pending_responses()

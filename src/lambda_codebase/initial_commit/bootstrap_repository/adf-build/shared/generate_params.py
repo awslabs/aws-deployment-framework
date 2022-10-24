@@ -12,9 +12,10 @@ import secrets
 import string  # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
 import os
 import ast
+import sys
 import yaml
 import boto3
-import sys
+
 
 from resolver import Resolver
 from s3 import S3
@@ -138,9 +139,8 @@ class Parameters:
             return resolver.upload(value, key, self.file_name)
         return False
 
-    def _determine_parameter_structure(
-        self, parameters, resolver
-    ):  # pylint: disable=inconsistent-return-statements
+    # pylint: disable=inconsistent-return-statements
+    def _determine_parameter_structure(self, parameters, resolver):
         try:
             for key, value in parameters.items():
                 if isinstance(value, dict):

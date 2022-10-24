@@ -1,10 +1,17 @@
+"""
+Tests creation and execution of organizational policy campaigns
+"""
 import unittest
 import json
+
 import boto3
 from botocore.stub import Stubber, ANY
 
 
-from organisation_policy_campaign import OrganizationPolicyApplicationCampaign
+from organisation_policy_campaign import (
+    OrganizationPolicyApplicationCampaign,
+    OrganisationPolicyException,
+)
 
 POLICY_DEFINITIONS = [
     {
@@ -51,6 +58,8 @@ POLICY_DEFINITIONS = [
         },
     },
 ]
+
+# pylint: disable=too-many-lines
 
 
 class HappyTestCases(unittest.TestCase):
@@ -140,6 +149,136 @@ class HappyTestCases(unittest.TestCase):
             {"PolicyId": "fake-policy-id-2", "TargetId": "09876543210"},
         )
 
+        stubber.activate()
+
+        policy_campaign = OrganizationPolicyApplicationCampaign(
+            "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+        )
+
+        for _policy in POLICY_DEFINITIONS:
+            policy = policy_campaign.get_policy(
+                _policy.get("PolicyName"), _policy.get("Policy")
+            )
+            self.assertEqual(0, len(policy.targets_requiring_attachment))
+            policy.set_targets(
+                [policy_campaign.get_target(t) for t in _policy.get("Targets")]
+            )
+            self.assertEqual(1, len(policy.targets_requiring_attachment))
+
+        policy_campaign.apply()
+
+    def test_scp_campaign_creation_one_existing_policy_different_content(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        # One pre-existing ADF managed policy
+        stubber.add_response(
+            "list_policies",
+            {
+                "Policies": [
+                    {
+                        "Id": "fake-policy-1",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    }
+                ]
+            },
+        )
+
+        # When a preexisting policy is loaded - describe policy is used to get
+        # the existing policy content.
+        stubber.add_response(
+            "describe_policy",
+            {
+                "Policy": {
+                    "PolicySummary": {},
+                    "Content": json.dumps({"old-policy": "content"}),
+                }
+            },
+            {"PolicyId": "fake-policy-1"},
+        )
+
+        # When loading a policy object that exists already, this API call is
+        # used to populate the list of existing targets.
+        stubber.add_response(
+            "list_targets_for_policy",
+            {"Targets": []},
+            {"PolicyId": "fake-policy-1"},
+        )
+
+        # Creation of target object - Query for existing policies
+        stubber.add_response(
+            "list_policies_for_target",
+            {"Policies": []},
+            {"TargetId": "123456789012", "Filter": "SERVICE_CONTROL_POLICY"},
+        )
+        stubber.add_response(
+            "list_policies_for_target",
+            {"Policies": []},
+            {"TargetId": "09876543210", "Filter": "SERVICE_CONTROL_POLICY"},
+        )
+
+        # Creates the second policy and attaches the policy to the target
+        stubber.add_response(
+            "create_policy",
+            {
+                "Policy": {
+                    "PolicySummary": {
+                        "Id": "fake-policy-id-2",
+                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Name": "MySecondPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    },
+                    "Content": "fake-policy-content",
+                }
+            },
+            {
+                "Content": ANY,
+                "Description": "ADF Managed scp",
+                "Name": "MySecondPolicy",
+                "Type": "SERVICE_CONTROL_POLICY",
+            },
+        )
+        stubber.add_response(
+            "attach_policy",
+            {},
+            {"PolicyId": "fake-policy-id-2", "TargetId": "09876543210"},
+        )
+
+        # Update the content of the existing policy
+        stubber.add_response(
+            "update_policy",
+            {
+                "Policy": {
+                    "PolicySummary": {
+                        "Id": "fake-policy-1",
+                        "Arn": "arn:aws:organisations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    },
+                    "Content": "fake-policy-content",
+                }
+            },
+            {
+                "PolicyId": "fake-policy-1",
+                "Content": json.dumps(POLICY_DEFINITIONS[0].get("Policy")),
+            },
+        )
+
+        # Attach 1st policy to the target as part of the update process.
+        stubber.add_response(
+            "attach_policy",
+            {},
+            {"PolicyId": "fake-policy-1", "TargetId": "123456789012"},
+        )
         stubber.activate()
 
         policy_campaign = OrganizationPolicyApplicationCampaign(
@@ -762,4 +901,259 @@ class HappyTestCases(unittest.TestCase):
             self.assertEqual(1, len(policy.targets_requiring_attachment))
 
         policy_campaign.apply()
+        stubber.assert_no_pending_responses()
+
+
+class SadTestCases(unittest.TestCase):
+    def test_scp_campaign_creation_access_denied_error_fetching_policies(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        stubber.add_client_error(
+            method="list_policies",
+            service_error_code="AccessDeniedException",
+            service_message="Access Denied",
+        )
+
+        stubber.activate()
+        with self.assertRaises(OrganisationPolicyException):
+            OrganizationPolicyApplicationCampaign(
+                "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+            )
+
+    def test_scp_campaign_creation_orgs_not_in_use_fetching_policies(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        stubber.add_client_error(
+            method="list_policies",
+            service_error_code="AWSOrganizationsNotInUseException",
+            service_message="AWSOrganizationsNotInUseException",
+        )
+
+        stubber.activate()
+        with self.assertRaises(OrganisationPolicyException):
+            OrganizationPolicyApplicationCampaign(
+                "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+            )
+
+    def test_scp_campaign_creation_invalid_input_fetching_policies(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        stubber.add_client_error(
+            method="list_policies",
+            service_error_code="InvalidInputException",
+            service_message="InvalidInputException",
+        )
+
+        stubber.activate()
+        with self.assertRaises(OrganisationPolicyException):
+            OrganizationPolicyApplicationCampaign(
+                "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+            )
+
+    def test_scp_campaign_creations_service_exception_fetching_policies(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        stubber.add_client_error(
+            method="list_policies",
+            service_error_code="ServiceException",
+            service_message="ServiceException",
+        )
+
+        stubber.activate()
+        with self.assertRaises(OrganisationPolicyException):
+            OrganizationPolicyApplicationCampaign(
+                "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+            )
+
+    def test_scp_campaign_creations_too_many_requests_fetching_policies(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        stubber.add_client_error(
+            method="list_policies",
+            service_error_code="TooManyRequestsException",
+            service_message="TooManyRequestsException",
+        )
+
+        stubber.activate()
+        with self.assertRaises(OrganisationPolicyException):
+            OrganizationPolicyApplicationCampaign(
+                "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+            )
+
+    def test_scp_campaign_creation_load_policy_access_denied(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {"MyFirstOrg": "123456789012", "MySecondOrg": "09876543210"}
+        stubber = Stubber(org_client)
+
+        # One pre-existing ADF managed policy
+        stubber.add_response(
+            "list_policies",
+            {
+                "Policies": [
+                    {
+                        "Id": "fake-policy-1",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    }
+                ]
+            },
+        )
+
+        # When a preexisting policy is loaded - describe policy is used to get
+        # the existing policy content.
+        stubber.add_client_error(
+            method="describe_policy",
+            service_error_code="AccessDeniedException",
+            service_message="Access Denied",
+        )
+
+        # Attach 1st policy to the target as part of the update process.
+        stubber.add_response(
+            "attach_policy",
+            {},
+            {"PolicyId": "fake-policy-1", "TargetId": "123456789012"},
+        )
+        stubber.activate()
+
+        policy_campaign = OrganizationPolicyApplicationCampaign(
+            "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+        )
+
+        with self.assertRaises(OrganisationPolicyException):
+            for _policy in POLICY_DEFINITIONS:
+                policy_campaign.get_policy(
+                    _policy.get("PolicyName"), _policy.get("Policy")
+                )
+
+    def test_policy_detatchment_error_handling_access_denied(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {
+            "MyFirstOrg": "11223344556",
+        }
+        stubber = Stubber(org_client)
+
+        # One pre-existing ADF managed policy
+        stubber.add_response(
+            "list_policies",
+            {
+                "Policies": [
+                    {
+                        "Id": "fake-policy-3",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    }
+                ]
+            },
+        )
+
+        stubber.add_response(
+            "list_targets_for_policy",
+            {
+                "Targets": [
+                    {
+                        "TargetId": "11223344556",
+                        "Arn": "arn:aws:organizations:account11223344556",
+                        "Name": "MyFirstOrg",
+                        "Type": "ORGANIZATIONAL_UNIT",
+                    }
+                ]
+            },
+            {"PolicyId": "fake-policy-3"},
+        )
+
+        stubber.add_client_error(
+            method="detach_policy",
+            service_error_code="AccessDeniedException",
+            service_message="Access Denied",
+            expected_params={"PolicyId": "fake-policy-3", "TargetId": "11223344556"},
+        )
+
+        stubber.activate()
+        policy_campaign = OrganizationPolicyApplicationCampaign(
+            "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+        )
+        with self.assertRaises(OrganisationPolicyException):
+            policy_campaign.apply()
+
+        stubber.assert_no_pending_responses()
+
+    def test_policy_detatchment_error_handling_policy_not_attached(self):
+        org_client = boto3.client("organizations")
+        org_mapping = {
+            "MyFirstOrg": "11223344556",
+        }
+        stubber = Stubber(org_client)
+
+        # One pre-existing ADF managed policy
+        stubber.add_response(
+            "list_policies",
+            {
+                "Policies": [
+                    {
+                        "Id": "fake-policy-3",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
+                        "Name": "MyFirstPolicy",
+                        "Description": "ADF Managed scp",
+                        "Type": "SERVICE_CONTROL_POLICY",
+                        "AwsManaged": False,
+                    }
+                ]
+            },
+        )
+
+        stubber.add_response(
+            "list_targets_for_policy",
+            {
+                "Targets": [
+                    {
+                        "TargetId": "11223344556",
+                        "Arn": "arn:aws:organizations:account11223344556",
+                        "Name": "MyFirstOrg",
+                        "Type": "ORGANIZATIONAL_UNIT",
+                    }
+                ]
+            },
+            {"PolicyId": "fake-policy-3"},
+        )
+
+        stubber.add_client_error(
+            method="detach_policy",
+            service_error_code="PolicyNotAttachedException",
+            service_message="Policy Not Attached",
+            expected_params={"PolicyId": "fake-policy-3", "TargetId": "11223344556"},
+        )
+
+        stubber.add_response(
+            "delete_policy",
+            {},
+            {"PolicyId": "fake-policy-3"},
+        )
+
+        stubber.activate()
+        policy_campaign = OrganizationPolicyApplicationCampaign(
+            "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
+        )
+        with self.assertLogs("organisation_policy_campaign", "WARNING") as log:
+            policy_campaign.apply()
+            self.assertIn(
+                "WARNING:organisation_policy_campaign:Error detaching policy MyFirstPolicy (fake-policy-3) from target 11223344556: Policy Not Attached",
+                log.output,
+            )
+
         stubber.assert_no_pending_responses()
