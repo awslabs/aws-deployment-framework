@@ -16,6 +16,7 @@ Usage:
             [-e <extension> | --extension <extension>]...
             [--metadata <key>=<value>]...
             [--upload-with-metadata <key>=<value>]...
+            [-f | --force]
             [--]
             SOURCE_PATH DESTINATION_S3_URL
 
@@ -77,6 +78,13 @@ Options:
                 contains a README.md file, while the extension is configured
                 to match '.yml', it will not delete the README.md file as its
                 extension is not a match.
+
+    -f, --force
+                Force uploading of files that need to be synced. Regardless of
+                whether the target metadata matches the local one.
+                This also ignores the hash comparison. This is useful if you
+                want to force uploading a new copy of all local files to the
+                destination S3 bucket.
 
     -h, --help  Show this help message.
 
@@ -508,6 +516,23 @@ def _get_s3_object_data(s3_client, s3_bucket, key):
         return None
 
 
+def _get_upload_reason(
+    object_is_missing: bool,
+    content_changed: bool,
+    force: bool,
+) -> str:
+    if object_is_missing:
+        return "object does not exist yet"
+
+    if content_changed:
+        return "file content changed"
+
+    if force:
+        return "forced to update"
+
+    return "metadata changed"
+
+
 def upload_changed_files(
     s3_client: any,
     s3_bucket: str,
@@ -515,6 +540,7 @@ def upload_changed_files(
     local_files: Mapping[str, LocalFileData],
     s3_objects: Mapping[str, S3ObjectData],
     metadata_to_check: MetadataToCheck,
+    force: bool,
 ):
     """
     Upload changed files, by looping over the local files found and checking
@@ -539,6 +565,9 @@ def upload_changed_files(
 
         metadata_to_check (MetadataToCheck): The metadata that needs to be
             applied all the time and upon upload only.
+
+        force (bool): Whether to force uploading of files, even when the
+            metadata and hash data match.
     """
     for key, local_file in local_files.items():
         s3_file = s3_objects.get(key)
@@ -554,7 +583,7 @@ def upload_changed_files(
                 s3_metadata.items(),
             )) != metadata_to_check["always_apply"]
         )
-        if (object_is_missing or content_changed or metadata_changed):
+        if (force or object_is_missing or content_changed or metadata_changed):
             with open(local_file.get("file_path"), "rb") as file_pointer:
                 s3_key = convert_to_s3_key(key, s3_prefix)
 
@@ -563,12 +592,10 @@ def upload_changed_files(
                     local_file.get("file_path"),
                     s3_bucket,
                     s3_key,
-                    (
-                        "object does not exist yet" if object_is_missing
-                        else (
-                            "file content changed" if content_changed
-                            else "metadata changed"
-                        )
+                    _get_upload_reason(
+                        object_is_missing,
+                        content_changed,
+                        force,
                     ),
                 )
                 s3_client.put_object(
@@ -784,6 +811,7 @@ def sync_files(
     recursive: bool,
     delete: bool,
     metadata_to_check: MetadataToCheck,
+    force: bool,
 ):
     """
     Sync files using the S3 client from the local_path, matching the local_glob
@@ -810,6 +838,9 @@ def sync_files(
 
         metadata_to_check (MetadataToCheck): The metadata that needs to be
             applied all the time and upon upload only.
+
+        force (bool): Whether to force uploading of files, even when the
+            metadata and hash data match.
     """
     s3_url_details = urlparse(s3_url)
     s3_bucket = s3_url_details.netloc
@@ -841,6 +872,7 @@ def sync_files(
         local_files,
         s3_objects,
         metadata_to_check,
+        force,
     )
     if delete:
         delete_stale_objects(
@@ -872,6 +904,7 @@ def main():  # pylint: disable=R0915
     s3_url = options.get('DESTINATION_S3_URL')
     recursive = options.get('--recursive', False)
     delete = options.get('--delete', False)
+    force = options.get('--force', False)
 
     # Convert metadata key and value lists into a dictionary
     metadata_to_check: MetadataToCheck = {
@@ -900,6 +933,7 @@ def main():  # pylint: disable=R0915
         recursive,
         delete,
         metadata_to_check,
+        force,
     )
     LOGGER.info("All done.")
 
