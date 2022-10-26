@@ -390,7 +390,6 @@ def main():  # pylint: disable=R0915
 
     policies = OrganizationPolicy()
     config = Config()
-    config.store_config()
 
     try:
         parameter_store = ParameterStore(REGION_DEFAULT, boto3)
