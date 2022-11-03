@@ -122,10 +122,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         deployment_account_parameter_store.put_parameter(
             'organization_id', os.environ["ORGANIZATION_ID"]
         )
-        if hasattr(config, 'extensions'):
-            for extension, attributes in config.extensions.items():
-                for attribute in attributes:
-                    deployment_account_parameter_store.put_parameter(f"/adf/extensions/{extension}/{attribute}", str(attributes[attribute]))
+        _store_extension_parameters(deployment_account_parameter_store, config)
 
     deployment_account_parameter_store = ParameterStore(
         config.deployment_account_region,
@@ -170,12 +167,21 @@ def prepare_deployment_account(sts, deployment_account_id, config):
                 '/notification_endpoint/main' if item == 'notification_channel' else item,
                 str(getattr(config, item))
             )
-    if hasattr(config, 'extensions'):
-        for extension, attributes in config.extensions.items():
-            for attribute in attributes:
-                deployment_account_parameter_store.put_parameter(f"/adf/extensions/{extension}/{attribute}", str(attributes[attribute]))
+    _store_extension_parameters(deployment_account_parameter_store, config)
 
     return deployment_account_role
+
+
+def _store_extension_parameters(parameter_store, config):
+    if not hasattr(config, 'extensions'):
+        return
+
+    for extension, attributes in config.extensions.items():
+        for attribute in attributes:
+            parameter_store.put_parameter(
+                f"/adf/extensions/{extension}/{attribute}",
+                str(attributes[attribute]),
+            )
 
 
 def worker_thread(
