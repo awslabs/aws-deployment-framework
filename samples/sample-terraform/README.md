@@ -2,7 +2,7 @@
 
 ## Overview
 
-Please read the[user guide on ADF's support for
+Please read the [user guide on ADF's support for
 Terraform](../../docs/user-guide.md#terraform-pipeline) before you proceed.
 
 ## Deployment procedure
@@ -31,13 +31,13 @@ example:
           # "eu-west-1,us-east-1"
           REGIONS: eu-west-1
   targets:
-    - name: terraform-scan # optional
+    - name: terraform-scan  # optional
       properties:
         spec_filename: tf_scan.yml  # Terraform scan
     - name: terraform-plan
       properties:
         spec_filename: tf_plan.yml  # Terraform plan
-    - approval # manual approval
+    - approval  # manual approval
     - name: terraform-apply
       properties:
         spec_filename: tf_apply.yml  # Terraform apply
@@ -45,6 +45,6 @@ example:
 
 The sample uses the following configuration, please update accordingly:
 
-- Project name: sample-tf-module
-- Target accounts: 111111111111, 222222222222
-- Target regions: eu-west-1 (main ADF region), us-east-1
+- Project name: `sample-tf-module`
+- Target accounts: `111111111111` and `222222222222`
+- Target regions: `eu-west-1` (the main ADF deployment region) and `us-east-1`

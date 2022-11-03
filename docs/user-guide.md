@@ -77,7 +77,7 @@ pipelines:
     params:
       notification_endpoint: janes_team@example.com  # Optional
     tags:
-      foo: bar # Pipelines support tagging
+      foo: bar  # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1
@@ -105,7 +105,7 @@ pipelines:
       notification_endpoint: joes_team@example.com
     targets:
       - path: /banking/testing
-        name: fancy-name #Optional way to pass a name for this stage in the pipeline
+        name: fancy-name  # Optional way to pass a name for this stage in the pipeline
 ```
 
 In the above example we are creating two pipelines with AWS CodePipeline. The
@@ -251,7 +251,7 @@ targets:
 targets:
   - target: 9999999999 # Target and Path keys can be used interchangeably
     regions: eu-west-1
-    name: my-special-account # Defaults to adf-cloudformation-deployment-role
+    name: my-special-account  # Defaults to adf-cloudformation-deployment-role
     # If you intend to override the provider for this stage
     # (see providers guide for available providers)
     provider: some_provider
@@ -364,7 +364,7 @@ pipelines:
     triggers:
       on_complete:
         pipelines:
-          - my-web-app-pipeline # Start this pipeline
+          - my-web-app-pipeline  # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -395,7 +395,7 @@ pipelines:
     # and what should be triggered when it completes
     completion_triggers:
       pipelines:
-        - my-web-app-pipeline # Start this pipeline
+        - my-web-app-pipeline  # Start this pipeline
 
   - name: my-web-app-pipeline
     # Same configuration as defined above.
@@ -545,7 +545,7 @@ pipelines:
         provider: codebuild
         image:
           repository_arn: arn:aws:ecr:region:111111111111:repository/test
-          tag: latest # optional (defaults to latest)
+          tag: latest  # optional (defaults to latest)
     targets:
       - # ...
 ```
@@ -912,7 +912,7 @@ main `template.yml` in our like so:
   MyStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: another_template.yml # file path to the nested stack template
+      TemplateURL: another_template.yml  # file path to the nested stack template
 ```
 
 When the `package_transform.sh` command is executed, the file will be packaged
@@ -1120,13 +1120,13 @@ Example Terraform deployment map:
           # For example, "eu-west-1,us-east-1".
           REGIONS: eu-west-1
   targets:
-    - name: terraform-scan # optional
+    - name: terraform-scan  # optional
       properties:
         spec_filename: tf_scan.yml  # Terraform scan
     - name: terraform-plan
       properties:
         spec_filename: tf_plan.yml  # Terraform plan
-    - approval # manual approval
+    - approval  # manual approval
     - name: terraform-apply
       properties:
         spec_filename: tf_apply.yml  # Terraform apply
