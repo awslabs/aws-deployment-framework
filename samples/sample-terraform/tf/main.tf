@@ -11,6 +11,6 @@ terraform {
 }
 provider "aws" {
   assume_role {
-    role_arn     = "arn:${data.aws_partition.current}:iam::${var.TARGET_ACCOUNT_ID}:role/${var.TARGET_ACCOUNT_ROLE}"
+    role_arn = "arn:${data.aws_partition.current}:iam::${var.TARGET_ACCOUNT_ID}:role/${var.TARGET_ACCOUNT_ROLE}"
   }
 }

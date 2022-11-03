@@ -79,7 +79,8 @@ class Config:
         if isinstance(self.deployment_account_region, list):
             if len(self.deployment_account_region) > 1:
                 raise InvalidConfigError(
-                    "ADF currently only supports a single " "Deployment Account region"
+                    "ADF currently only supports a single "
+                    "Deployment Account region"
                 ) from None
             [self.deployment_account_region] = self.deployment_account_region
 

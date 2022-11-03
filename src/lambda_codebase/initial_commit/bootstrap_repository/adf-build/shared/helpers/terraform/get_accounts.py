@@ -37,11 +37,23 @@ def main():
         with open('accounts_from_ous.json', 'w', encoding='utf-8') as outfile:
             json.dump(accounts_from_ous, outfile)
 
+
 def list_organizational_units_for_parent(parent_ou):
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getOrganizationUnits')
+    organizations = get_boto3_client(
+        'organizations',
+        (
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
+            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+        ),
+        'getOrganizationUnits',
+    )
     organizational_units = [
         ou
-        for org_units in organizations.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
+        for org_units in (
+            organizations
+            .get_paginator("list_organizational_units_for_parent")
+            .paginate(ParentId=parent_ou)
+        )
         for ou in org_units['OrganizationalUnits']
     ]
     return organizational_units
@@ -53,11 +65,22 @@ def get_accounts():
         "Management Account ID: %s",
         MANAGEMENT_ACCOUNT_ID
     )
-    # Assume a role into the management accounts role to get account ID's and emails
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getaccountIDs')
+    # Assume a role into the management accounts role to get account ID's
+    # and emails
+    organizations = get_boto3_client(
+        'organizations',
+        (
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
+            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+        ),
+        'getaccountIDs',
+    )
     return list(
         map(
-            lambda account: {'AccountId': account['Id'], 'Email': account['Email']},
+            lambda account: {
+                'AccountId': account['Id'],
+                'Email': account['Email'],
+            },
             filter(
                 lambda account: account['Status'] == 'ACTIVE',
                 paginator(organizations.list_accounts)
@@ -69,7 +92,14 @@ def get_accounts():
 def get_accounts_from_ous():
     parent_ou_id = None
     account_list = []
-    organizations = get_boto3_client('organizations', f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly', 'getRootAccountIDs')
+    organizations = get_boto3_client(
+        'organizations',
+        (
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
+            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
+        ),
+        'getRootAccountIDs',
+    )
     # Read organization root id
     root_ids = list(
         map(
@@ -87,7 +117,9 @@ def get_accounts_from_ous():
         ou_hierarchy = path.strip('/').split('/')
         hierarchy_index = 0
         if path.strip() == '/':
-            account_list.extend(get_account_recursive(organizations, parent_ou_id, '/'))
+            account_list.extend(
+                get_account_recursive(organizations, parent_ou_id, '/')
+            )
         else:
             while hierarchy_index < len(ou_hierarchy):
                 org_units = list_organizational_units_for_parent(parent_ou_id)
@@ -97,10 +129,15 @@ def get_accounts_from_ous():
                         hierarchy_index += 1
                         break
                 else:
-                    raise ValueError(f'Could not find ou with name {ou_hierarchy} in OU list {org_units}.')
+                    raise ValueError(
+                        f'Could not find ou with name {ou_hierarchy} in '
+                        f'OU list {org_units}.'
+                    )
 
-            account_list.extend(get_account_recursive(organizations, parent_ou_id, '/'))
-        parent_ou_id=None
+            account_list.extend(
+                get_account_recursive(organizations, parent_ou_id, '/'),
+            )
+        parent_ou_id = None
     return account_list
 
 
@@ -128,7 +165,13 @@ def get_account_recursive(org_client: boto3.client, ou_id: str, path: str) -> li
     )
     for page in pages:
         for child in page['Children']:
-            account_list.extend(get_account_recursive(org_client, child['Id'], f"{path}{ou_id}/"))
+            account_list.extend(
+                get_account_recursive(
+                    org_client,
+                    child['Id'],
+                    f"{path}{ou_id}/",
+                )
+            )
 
     # Get Accounts
     pages = paginator_item.paginate(

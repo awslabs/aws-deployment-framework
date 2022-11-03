@@ -81,7 +81,11 @@ def test_extensions_default_configuration(cls):
 
 
 def test_extensions_default_configuration_with_custom(cls):
-    cls.config_contents["extensions"] = {"another_extensions": {"enabled": True}}
+    cls.config_contents["extensions"] = {
+        "another_extensions": {
+            "enabled": True,
+        },
+    }
     cls._parse_config()
     assert cls.extensions == {
         "another_extensions": {"enabled": True},
