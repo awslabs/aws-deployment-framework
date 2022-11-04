@@ -41,6 +41,15 @@ class GenericAccountConfigureError(Exception):
     pass
 
 
+class AccountCreationNotFinishedError(Exception):
+    """
+    When we interact with a Boto3 API call and it fails with the
+    SubscriptionRequiredException error code. This implies that the
+    account is still being created behind the scenes. To ease troubleshooting
+    we raise this Exception class instead. To clarify what is happening.
+    """
+
+
 class RootOUIDError(Exception):
     """
     Raised when an account is moved to the root of the organization

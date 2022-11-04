@@ -21,21 +21,22 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
 
 
-def store_regional_parameter_config(pipeline, parameter_store):
+def store_regional_parameter_config(pipeline, parameter_store, deployment_map_source):
     """
     Responsible for storing the region information for specific
     pipelines. These regions are defined in the deployment_map
     either as top level regions for a pipeline or stage specific regions
+    These are only used to track pipelines.
     """
     if pipeline.top_level_regions:
         parameter_store.put_parameter(
-            f"/deployment/{pipeline.name}/regions",
+            f"/deployment/{deployment_map_source}/{pipeline.name}/regions",
             str(list(set(pipeline.top_level_regions))),
         )
         return
 
     parameter_store.put_parameter(
-        f"/deployment/{pipeline.name}/regions",
+        f"/deployment/{deployment_map_source}/{pipeline.name}/regions",
         str(list(set(Pipeline.flatten_list(pipeline.stage_regions)))),
     )
 
@@ -62,6 +63,7 @@ def generate_pipeline_inputs(pipeline, organizations, parameter_store):
     data = {}
     pipeline_object = Pipeline(pipeline)
     regions = []
+
     for target in pipeline.get("targets", []):
         target_structure = TargetStructure(target)
         for step in target_structure.target:
@@ -98,7 +100,7 @@ def generate_pipeline_inputs(pipeline, organizations, parameter_store):
     )
     data["input"] = pipeline_object.input
     data['input']['default_scm_branch'] = data["ssm_params"].get('default_scm_branch')
-    store_regional_parameter_config(pipeline_object, parameter_store)
+    store_regional_parameter_config(pipeline_object, parameter_store, pipeline.get("deployment_map_source"))
     return data
 
 

@@ -19,7 +19,7 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action:  # These are examples..
+            Action: # These are examples..
               - "s3:*"
               - "ecr:*"
             Resource:
@@ -140,6 +140,3 @@ Resources:
                 ec2:AuthorizedService: "codebuild.amazonaws.com"
       Roles:
         - adf-codebuild-role
-  ##
-  # End of VPC CodeBuild support IAM permissions
-  ##

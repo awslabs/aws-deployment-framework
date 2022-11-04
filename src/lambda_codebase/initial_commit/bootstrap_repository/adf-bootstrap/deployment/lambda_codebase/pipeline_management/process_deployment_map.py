@@ -20,6 +20,8 @@ LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv("PIPELINE_MANAGEMENT_STATE_MACHINE")
+ADF_VERSION = os.getenv("ADF_VERSION")
+ADF_VERSION_METADATA_KEY = "adf_version"
 
 
 _cache = None
@@ -42,6 +44,19 @@ def get_file_from_s3(s3_details: dict, s3_resource: boto3.resource):
         s3_object = s3_resource.Object(
             s3_details.get("bucket_name"), s3_details.get("object_key")
         )
+        object_adf_version = s3_object.metadata.get(
+            ADF_VERSION_METADATA_KEY,
+            "n/a",
+        )
+        if object_adf_version != ADF_VERSION:
+            LOGGER.info(
+                "Skipping S3 object: %s as it is generated with "
+                "an older ADF version ('adf_version' metadata = '%s')",
+                s3_details,
+                object_adf_version,
+            )
+            return {}
+
         with tempfile.TemporaryFile() as file_pointer:
             s3_object.download_fileobj(file_pointer)
 
@@ -74,6 +89,7 @@ def start_executions(sfn_client, deployment_map):
     )
     for pipeline in deployment_map.get("pipelines"):
         LOGGER.debug("Payload: %s", pipeline)
+        pipeline = {**pipeline, "deployment_map_source": "S3"}
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             input=json.dumps(pipeline),
@@ -87,6 +103,7 @@ def lambda_handler(event, _):
     sfn_client = boto3.client("stepfunctions")
     s3_details = get_details_from_event(event)
     deployment_map = get_file_from_s3(s3_details, s3_resource)
-    deployment_map["definition_bucket"] = s3_details.get("object_key")
-    start_executions(sfn_client, deployment_map)
+    if deployment_map:
+        deployment_map["definition_bucket"] = s3_details.get("object_key")
+        start_executions(sfn_client, deployment_map)
     return output

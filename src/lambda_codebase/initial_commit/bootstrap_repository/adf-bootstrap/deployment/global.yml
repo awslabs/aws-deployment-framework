@@ -179,7 +179,7 @@ Resources:
       Parameters:
         LambdaLayer: !Ref LambdaLayerVersion
         ADFVersion: !Ref ADFVersion
-        OrganizationID: !Ref OrganizationId
+        OrganizationId: !Ref OrganizationId
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
         RootAccountId: !Ref MasterAccountId
@@ -453,7 +453,8 @@ Resources:
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-              - "iam:TagResource"
+              - "iam:TagPolicy"
+              - "iam:TagRole"
               - "ssm:DeleteParameter"
               - "ssm:GetParameter"
               - "ssm:GetParameters"
@@ -520,6 +521,11 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
               - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
+          - Effect: Allow
+            Action:
+              - "codepipeline:ListPipelineExecutions"
+            Resource:
+              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-pipelines
           - Effect: Allow
             Action:
               - "codestar-connections:GetConnection"
@@ -626,6 +632,8 @@ Resources:
             Principal:
               AWS:
                 - !GetAtt PipelineProvisionerCodeBuildRole.Arn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Action:
               - sts:AssumeRole
       Path: /
@@ -781,8 +789,9 @@ Resources:
                 - mkdir -p deployment_maps
             build:
               commands:
-                - python adf-build/helpers/sync_to_s3.py --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
-                - python adf-build/helpers/sync_to_s3.py --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEBUILD_BUILD_NUMBER} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
+                - python adf-build/helpers/describe_codepipeline_trigger.py --should-match StartPipelineExecution aws-deployment-framework-pipelines ${!CODEPIPELINE_EXECUTION_ID} && EXTRA_OPTS="--force" || EXTRA_OPTS=""
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."

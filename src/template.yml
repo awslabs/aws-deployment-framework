@@ -981,7 +981,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
-      Timeout: 600
+      Timeout: 900
 
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
@@ -1049,7 +1049,7 @@ Resources:
             - MoveAccount
       Targets:
         - Arn: !Ref AccountBootstrappingStateMachine
-          RoleArn: !GetAtt StatesExecutionRole.Arn
+          RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
   CodeCommitRole:
@@ -1171,6 +1171,12 @@ Resources:
             Resource: "*"
           - Effect: "Allow"
             Action:
+              - "states:ListExecutions"
+            Resource:
+              - !Ref AccountManagementStateMachine
+              - !Ref AccountBootstrappingStateMachine
+          - Effect: "Allow"
+            Action:
               - "cloudformation:CreateStack"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:DeleteStack"
@@ -1262,6 +1268,10 @@ Resources:
             Value: !GetAtt Organization.OrganizationId
           - Name: ADF_LOG_LEVEL
             Value: !Ref LogLevel
+          - Name: ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN
+            Value: !Ref AccountManagementStateMachine
+          - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
+            Value: !Ref AccountBootstrappingStateMachine
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
@@ -1274,7 +1284,7 @@ Resources:
                 python: 3.9
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt --quiet
+                - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:
@@ -1283,12 +1293,16 @@ Resources:
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
                     --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - python adf-build/store_config.py
                 # Shared Modules to be used with AWS CodeBuild:
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
                 # Base templates:
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 # Upload account files to the ACCOUNT_BUCKET
                 - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                # Sleep for 10 seconds so the state machine is able to kick start the processing
+                # of these newly uploaded files if any.
+                - sleep 10
                 # Updates config, updates (or creates) base stacks:
                 - python adf-build/main.py
         Type: CODEPIPELINE
@@ -1415,8 +1429,6 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - events.amazonaws.com
-                - lambda.amazonaws.com
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/aws-deployment-framework/account-bootstrapping/"
@@ -1428,7 +1440,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "lambda:InvokeFunction"
-                  - "states:StartExecution"
                 Resource:
                   - !GetAtt DetermineEventFunction.Arn
                   - !GetAtt CrossAccountExecuteFunction.Arn
@@ -1436,6 +1447,29 @@ Resources:
                   - !GetAtt StackWaiterFunction.Arn
                   - !GetAtt RoleStackDeploymentFunction.Arn
                   - !GetAtt UpdateResourcePoliciesFunction.Arn
+
+  AccountBootstrapStartExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/aws-deployment-framework/account-bootstrapping/"
+      Policies:
+        - PolicyName: "adf-start-state-machine"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource:
+                  - !Ref AccountBootstrappingStateMachine
 
   AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -1498,11 +1532,19 @@ Resources:
                   "MaxAttempts": 45
                 }, {
                   "ErrorEquals": [
+                    "AccountCreationNotFinishedError"
+                  ],
+                  "IntervalSeconds": 10,
+                  "BackoffRate": 1.1,
+                  "MaxAttempts": 45
+                }, {
+                  "ErrorEquals": [
                     "Lambda.Unknown",
                     "Lambda.ServiceException",
                     "Lambda.AWSLambdaException",
                     "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
+                    "Lambda.TooManyRequestsException",
+                    "States.Timeout"
                   ],
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
@@ -1517,7 +1559,7 @@ Resources:
                 }
               ],
               "Next": "WaitUntilBootstrapComplete",
-              "TimeoutSeconds": 600
+              "TimeoutSeconds": 900
             },
             "MovedToRootAction": {
               "Type": "Task",

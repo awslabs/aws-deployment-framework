@@ -7,6 +7,10 @@ is executed from within AWS CodeBuild in the management account
 """
 
 import os
+import sys
+import time
+from math import floor
+from datetime import datetime
 from thread import PropagatingThread
 
 import boto3
@@ -33,6 +37,24 @@ ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+CODEPIPELINE_EXECUTION_ID = os.environ.get("CODEPIPELINE_EXECUTION_ID")
+CODEBUILD_START_TIME_UNIXTS = floor(
+    int(
+        # Returns the unix timestamp in milliseconds
+        os.environ.get(
+            "CODEBUILD_START_TIME",
+            # Fall back to 10 minutes ago + convert Python timestamp from
+            # seconds to milliseconds:
+            floor(datetime.now().timestamp() - (10 * 60)) * 1000,
+        )
+    ) / 1000.0  # Convert milliseconds to seconds
+)
+ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN = os.environ.get(
+    "ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN",
+)
+ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
+    "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
+)
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 LOGGER = configure_logger(__name__)
 
@@ -266,13 +288,122 @@ def worker_thread(
         return
 
 
+def await_sfn_executions(sfn_client):
+    _await_running_sfn_executions(
+        sfn_client,
+        ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
+        filter_lambda=lambda item: (
+            item.get('name', '').find(CODEPIPELINE_EXECUTION_ID) > 0
+        ),
+        status_filter='RUNNING',
+    )
+    _await_running_sfn_executions(
+        sfn_client,
+        ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
+        filter_lambda=None,
+        status_filter='RUNNING',
+    )
+    if _sfn_execution_exists_with(
+        sfn_client,
+        ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
+        filter_lambda=lambda item: (
+            item.get('name', '').find(CODEPIPELINE_EXECUTION_ID) > 0
+            and item.get('status') in ['FAILED', 'TIMED_OUT', 'ABORTED']
+        ),
+        status_filter=None,
+    ):
+        LOGGER.error(
+            "Account Management State Machine encountered a failed, "
+            "timed out, or aborted execution. Please look into this problem "
+            "before retrying the bootstrap pipeline. You can navigate to: "
+            f"https://{REGION_DEFAULT}.console.aws.amazon.com/states/home?"
+            f"region={REGION_DEFAULT}#/statemachines/"
+            f"view/{ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN}"
+        )
+        sys.exit(1)
+    if _sfn_execution_exists_with(
+        sfn_client,
+        ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
+        filter_lambda=lambda item: (
+            (
+                item.get('startDate', datetime.now()).timestamp()
+                >= CODEBUILD_START_TIME_UNIXTS
+            )
+            and item.get('status') in ['FAILED', 'TIMED_OUT', 'ABORTED']
+        ),
+        status_filter=None,
+    ):
+        LOGGER.error(
+            "Account Bootstrapping State Machine encountered a failed, "
+            "timed out, or aborted execution. Please look into this problem "
+            "before retrying the bootstrap pipeline. You can navigate to: "
+            "https://%(region)s.console.aws.amazon.com/states/home"
+            "?region=%(region)s#/statemachines/view/%(sfn_arn)s",
+            {
+                "region": REGION_DEFAULT,
+                "sfn_arn": ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
+            },
+        )
+        sys.exit(2)
+
+
+def _await_running_sfn_executions(
+    sfn_client,
+    sfn_arn,
+    filter_lambda,
+    status_filter,
+):
+    while _sfn_execution_exists_with(
+        sfn_client,
+        sfn_arn,
+        filter_lambda,
+        status_filter
+    ):
+        LOGGER.info(
+            "Waiting for 30 seconds for the executions of %s to finish.",
+            sfn_arn,
+        )
+        time.sleep(30)
+
+
+def _sfn_execution_exists_with(
+    sfn_client,
+    sfn_arn,
+    filter_lambda,
+    status_filter,
+):
+    request_params = {
+        "stateMachineArn": sfn_arn,
+    }
+    if status_filter:
+        request_params["statusFilter"] = status_filter
+
+    paginator = sfn_client.get_paginator('list_executions')
+    for page in paginator.paginate(**request_params):
+        filtered = (
+            list(filter(filter_lambda, page["executions"])) if filter_lambda
+            else page["executions"]
+        )
+        if filtered:
+            LOGGER.info(
+                "Found %d state machine %s that %s running.",
+                len(filtered),
+                "executions" if len(filtered) > 1 else "execution",
+                "are" if len(filtered) > 1 else "is",
+            )
+            return True
+
+    return False
+
+
 def main():  # pylint: disable=R0915
     LOGGER.info("ADF Version %s", ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
 
+    await_sfn_executions(boto3.client('stepfunctions'))
+
     policies = OrganizationPolicy()
     config = Config()
-    config.store_config()
 
     try:
         parameter_store = ParameterStore(REGION_DEFAULT, boto3)

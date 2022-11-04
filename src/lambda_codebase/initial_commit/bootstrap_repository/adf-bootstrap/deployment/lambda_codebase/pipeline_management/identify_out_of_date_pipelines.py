@@ -2,6 +2,7 @@
 Pipeline Management Lambda Function
 Compares pipeline definitions in S3 to the definitions stored in SSM Param Store.
 Any that exist in param store but not S3 are marked for removal.
+Uses the /deployment/S3/ prefix to make a decision on if a pipeline is stored in S3 or not
 """
 
 import os
@@ -21,6 +22,8 @@ S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
+DEPLOYMENT_PREFIX = "/deployment/"
+S3_BACKED_DEPLOYMENT_PREFIX = f"{DEPLOYMENT_PREFIX}S3/"
 
 
 def download_deployment_maps(resource, prefix, local):
@@ -42,26 +45,17 @@ def download_deployment_maps(resource, prefix, local):
 
 
 def get_current_pipelines(parameter_store):
-    return parameter_store.fetch_parameters_by_path("/deployment/")
+    return parameter_store.fetch_parameters_by_path(S3_BACKED_DEPLOYMENT_PREFIX)
 
 
 def identify_out_of_date_pipelines(pipeline_names, current_pipelines):
     return [
-        {"pipeline": f"{ADF_PIPELINE_PREFIX}{d}"}
-        for d in current_pipelines.difference(pipeline_names)
+        {
+            "full_pipeline_name": f"{ADF_PIPELINE_PREFIX}{name}",
+            "pipeline_name": name,
+        }
+        for name in current_pipelines.difference(pipeline_names)
     ]
-
-
-def delete_ssm_params(out_of_date_pipelines, parameter_store):
-    for pipeline in out_of_date_pipelines:
-        LOGGER.debug(
-            "Deleting SSM regions parameter of stale pipeline: /deployment/%s/regions - %s",
-            pipeline.get('name'),
-            pipeline,
-        )
-        parameter_store.delete_parameter(
-            f"/deployment/{pipeline.get('pipeline').removeprefix(ADF_PIPELINE_PREFIX)}/regions"
-        )
 
 
 def lambda_handler(event, _):
@@ -89,7 +83,6 @@ def lambda_handler(event, _):
     out_of_date_pipelines = identify_out_of_date_pipelines(
         pipeline_names, current_pipelines
     )
-    delete_ssm_params(out_of_date_pipelines, parameter_store)
 
     output = {}
     if len(out_of_date_pipelines) > 0:

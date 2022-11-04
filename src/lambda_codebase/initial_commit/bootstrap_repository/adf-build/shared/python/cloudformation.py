@@ -50,6 +50,16 @@ class StackProperties:
         'DELETE_FAILED',
         'REVIEW_IN_PROGRESS',
     ]
+    in_progress_state_waiters = {
+        'UPDATE_IN_PROGRESS': 'stack_update_complete',
+        'CREATE_IN_PROGRESS': 'stack_create_complete',
+        'UPDATE_ROLLBACK_IN_PROGRESS': 'stack_rollback_complete',
+        'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS': (
+            'stack_rollback_complete'
+        ),
+        'DELETE_IN_PROGRESS': 'stack_delete_complete',
+        'REVIEW_IN_PROGRESS': 'change_set_create_complete',
+    }
 
     def __init__(
             self,
@@ -138,6 +148,18 @@ class CloudFormation(StackProperties):
             raise InvalidTemplateError(
                 f"{self.template_url}: {error}",
             ) from None
+
+    def _wait_if_in_progress(self):
+        status = self.get_stack_status()
+        if status not in StackProperties.in_progress_state_waiters:
+            return
+
+        waiter_type = StackProperties.in_progress_state_waiters[status]
+        if 'change_set' in waiter_type:
+            self._wait_change_set()
+            return
+
+        self._wait_stack(waiter_type, self.stack_name)
 
     def _wait_stack(self, waiter_type, stack_name):
         waiter = self.client.get_waiter(waiter_type)
@@ -379,6 +401,7 @@ class CloudFormation(StackProperties):
             self._create_template_path(self.s3_key_path, 'global-iam')
         )
         self.stack_name = 'adf-global-base-iam'
+        self._wait_if_in_progress()
         waiter = self._get_waiter_type()
         create_change_set = self._create_change_set()
         if create_change_set:
@@ -386,6 +409,7 @@ class CloudFormation(StackProperties):
             self._update_stack_termination_protection()
 
     def create_stack(self):
+        self._wait_if_in_progress()
         waiter = self._get_waiter_type()
         create_change_set = self._create_change_set()
         if create_change_set:
