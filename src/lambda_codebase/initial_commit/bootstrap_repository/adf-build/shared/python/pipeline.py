@@ -50,7 +50,8 @@ class Pipeline:
         with open(output_path, mode='w', encoding='utf-8') as file_handler:
             file_handler.write(output_template)
 
-    def _input_type_validation(self, params): #pylint: disable=R0201
+    @staticmethod
+    def _input_type_validation(params):
         if not params.get('default_providers', {}).get('build', {}):
             params['default_providers']['build'] = {}
             params['default_providers']['build']['provider'] = 'codebuild'

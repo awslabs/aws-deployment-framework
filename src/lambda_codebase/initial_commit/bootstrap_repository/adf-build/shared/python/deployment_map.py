@@ -41,7 +41,8 @@ class DeploymentMap:
                 LOGGER.debug('wave: %s', wave)
                 for wave_target in wave:
                     LOGGER.debug('wave_target: %s', wave_target)
-                    if wave_target.get('target'): # Allows target to be interchangeable with path
+                    if wave_target.get('target'):
+                        # Allows target to be interchangeable with path
                         wave_target['path'] = wave_target.pop('target')
                     if wave_target.get('path'):
                         self.account_ou_names.update(
@@ -51,8 +52,8 @@ class DeploymentMap:
                                 if item['name'] != 'approval'
                             }
                         )
-        with open(f'{pipeline.name}.json', mode='w', encoding='utf-8') as outfile:
-            json.dump(self.account_ou_names, outfile)
+        with open(f'{pipeline.name}.json', mode='w', encoding='utf-8') as file:
+            json.dump(self.account_ou_names, file)
         self.s3.put_object(
             f"adf-parameters/deployment/{pipeline.name}/account_ous.json",
             f'{pipeline.name}.json'
