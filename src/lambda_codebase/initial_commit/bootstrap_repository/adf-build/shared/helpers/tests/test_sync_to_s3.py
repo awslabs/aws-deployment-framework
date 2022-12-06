@@ -389,6 +389,88 @@ def test_get_s3_objects_non_recursive_missing_object():
     ) == {}
 
 
+def test_get_s3_objects_without_prefix():
+    s3_client = Mock()
+    s3_bucket = "your-bucket"
+    s3_prefix = ""
+    example_s3_objects = dict(map(
+        lambda kv: (
+            kv[0],
+            {
+                # Remove the prefix from the key
+                "key": kv[1]["key"][kv[1]["key"].find("/") + 1:],
+                "metadata": kv[1]["metadata"],
+            }
+        ),
+        deepcopy(EXAMPLE_S3_OBJECTS).items(),
+    ))
+    file_extensions = [".yml", ".yaml"]
+
+    paginator = Mock()
+    s3_client.get_paginator.return_value = paginator
+
+    s3_obj_keys = list(map(
+        lambda obj: {
+            "Key": obj["key"],
+        },
+        example_s3_objects.values(),
+    ))
+    s3_obj_data = dict(map(
+        lambda obj: (
+            obj["key"],
+            {
+                "Key": obj["key"],
+                "Metadata": obj["metadata"],
+            }
+        ),
+        example_s3_objects.values(),
+    ))
+    paginator.paginate.return_value = [
+        {
+            "Contents": s3_obj_keys[:2],
+        },
+        {
+            "Contents": [
+                {
+                    "Key": "README.md",
+                },
+                {
+                    "Key": "other-file.json",
+                }
+            ],
+        },
+        {
+            "Contents": s3_obj_keys[2:],
+        },
+    ]
+    s3_client.head_object.side_effect = (
+        lambda **kwargs: s3_obj_data[kwargs["Key"]]
+    )
+
+    assert get_s3_objects(
+        s3_client,
+        s3_bucket,
+        s3_prefix,
+        file_extensions,
+        recursive=True,
+    ) == example_s3_objects
+
+    s3_client.get_paginator.assert_called_once_with("list_objects_v2")
+    paginator.paginate.assert_called_once_with(
+        Bucket=s3_bucket,
+        Prefix="",
+    )
+    s3_client.head_object.assert_has_calls(
+        list(map(
+            lambda obj: call(
+                Bucket=s3_bucket,
+                Key=obj.get("key"),
+            ),
+            example_s3_objects.values(),
+        )),
+    )
+
+
 def test_get_s3_objects_recursive_success():
     s3_client = Mock()
     s3_bucket = "your-bucket"
