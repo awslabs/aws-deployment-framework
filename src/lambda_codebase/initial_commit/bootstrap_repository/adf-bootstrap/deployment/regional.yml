@@ -9,6 +9,16 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: organization_id
 
+  ADFTerraformExtension:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /adf/extensions/terraform/enabled
+
+Conditions:
+  ADFTerraformExtensionEnabled:
+    Fn::Equals:
+      - !Ref ADFTerraformExtension
+      - true
+
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
     Type: AWS::S3::Bucket
@@ -94,6 +104,21 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+
+  TerraformLockTable:
+    Condition: ADFTerraformExtensionEnabled
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: adf-tflocktable
 
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
