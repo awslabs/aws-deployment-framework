@@ -30,48 +30,69 @@ Parameters:
   CrossAccountAccessRoleName:
     Type: String
     Default: OrganizationAccountAccessRole
+    AllowedPattern: "\\A[a-zA-Z0-9_+=,.@\\-]+\\Z"
 
   MainNotificationEndpoint:
     Type: String
     Default: ""
-    Description: "Example -> jane@example.com"
+    Description: >-
+      Example -> jane@example.com. (Only required when installing ADF for the
+      first time.)
 
   DeploymentAccountName:
     Type: String
     Default: ""
-    Description: "The name of the new or existing deployment account"
+    Description: >-
+      The name of the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountEmailAddress:
     Type: String
     Default: ""
-    Description: "The email address for the new or existing deployment account"
+    Description: >-
+      The email address for the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountAlias:
     Type: String
     Default: ""
-    Description: "(Optional) Example -> companyname-deployment (must be globally unique)"
+    AllowedPattern: "\\A([a-z0-9]([a-z0-9]|-(?!-))*[a-z0-9])?\\Z"
+    MinLength: 0
+    MaxLength: 63
+    Description: >-
+      Example -> companyname-deployment (Must be globally unique. Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountId:
     Type: String
     Default: ""
     Description: >-
-      Example -> 123456789012  (Only required if you have an existing AWS Account
-      that you wish to use as the deployment account.)
+      Example -> 123456789012  (Only supported when installing ADF for the first time
+      and you have an existing AWS Account that you wish to use as the deployment
+      account. Leave blank otherwise.)
 
   DeploymentAccountMainRegion:
     Type: String
-    Default: ""
+    AllowedPattern: "\\A[a-z][a-z0-9\\-]*\\Z"
+    MinLength: 6
     Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
     Default: ""
-    Description: "(Optional) Example -> us-east-1, us-west-1, eu-west-3"
+    Description: >-
+      (Optional) Example -> us-east-1, us-west-1, eu-west-3. (Only supported when
+      installing ADF for the first time. If you would like to update this later,
+      please look at the adfconfig.yml file in the aws-deployment-framework-bootstrap
+      repository.)
 
   ProtectedOUs:
-    Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
+    Description: >-
+      (Optional) Example -> ou-123,ou-234 (Only supported when installing ADF for
+      the first time. If you would like to update this later, please look at the
+      adfconfig.yml file in the aws-deployment-framework-bootstrap repository.)
 
   LogLevel:
     Description: >-
