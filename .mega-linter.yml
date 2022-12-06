@@ -37,6 +37,7 @@ JSON_PRETTIER_PRE_COMMANDS:
   - command: npm install prettier-plugin-multiline-arrays@1.1.0
     cwd: "workspace"
 
+CLOUDFORMATION_CFN_LINT_CONFIG_FILE: '.cfnlintrc'
 CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
 EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: '.ecrc.json'
 MARKDOWN_MARKDOWN_LINK_CHECK_ARGUMENTS: '-q'

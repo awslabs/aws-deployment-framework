@@ -170,6 +170,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   PipelineManagementApplication:
     Type: AWS::Serverless::Application
     DeletionPolicy: Delete
