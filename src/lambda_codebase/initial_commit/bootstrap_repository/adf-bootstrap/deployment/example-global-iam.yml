@@ -19,7 +19,8 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action: # These are examples..
+            Action:
+              # These are examples, please update these to the least privilege policy required:
               - "s3:*"
               - "ecr:*"
             Resource:

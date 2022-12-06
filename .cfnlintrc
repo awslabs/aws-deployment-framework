@@ -13,3 +13,5 @@ ignore_templates:
   - ./**/params/*.yaml
 include_checks:
   - I
+ignore_checks:
+  - W3002
