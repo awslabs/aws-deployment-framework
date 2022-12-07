@@ -214,7 +214,7 @@ class Parameters:
             1. f"{account_name}_{region}" i.e. "security-account_eu-west-1"
             1. f"{account_name}" i.e. "security-account"
             1. f"{organization_unit_path}_{region}"
-               i.e. "/devsecops/security_eu-west-1"
+                i.e. "/devsecops/security_eu-west-1"
             1. f"{organization_unit_path}" i.e. "/devsecops/security"
             1. f"{global}_{region}" i.e. "global_eu-west-1"
             1. f"{global}" i.e. "global"
@@ -378,11 +378,11 @@ class Parameters:
 
         Args:
             new_params (ParametersAndTags): The new Parameters and Tags to
-               merge into the current_params.
+                merge into the current_params.
             current_params (ParametersAndTags): The current Parameters and Tags
-               which is cloned and returned with the new parameters and tags it
-               found in new_params. Unless current_params already contained the
-               Parameter or Tag, as described above.
+                which is cloned and returned with the new parameters and tags
+                it found in new_params. Unless current_params already
+                contained the Parameter or Tag, as described above.
 
         Returns:
             ParametersAndTags: A clone of the current_params and newly merged
