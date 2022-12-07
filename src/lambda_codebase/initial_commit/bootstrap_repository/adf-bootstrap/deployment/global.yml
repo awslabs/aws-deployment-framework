@@ -287,10 +287,17 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
+          - Effect: Allow
+            Sid: "S3ReadOnly"
+            Action:
+              - s3:Get*
+              - s3:GetBucketPolicy
+              - s3:List*
+            Resource:
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.DefinitionBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.DefinitionBucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -383,10 +390,17 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
+          - Effect: Allow
+            Sid: "S3ReadOnly"
+            Action:
+              - s3:Get*
+              - s3:GetBucketPolicy
+              - s3:List*
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:

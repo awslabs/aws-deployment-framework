@@ -986,6 +986,13 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+  DefinitionBucketParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/adf/pipeline_definition_bucket"
+      Type: "String"
+      Value: !Ref ADFDefinitionBucket
+
   ADFPipelineBucket:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Retain
@@ -1023,6 +1030,9 @@ Resources:
 Outputs:
   Bucket:
     Value: !Ref ADFPipelineBucket
+
+  DefinitionBucket:
+    Value: !Ref ADFDefinitionBucket
 
   CreateOrUpdateRuleLambdaRoleArn:
     Value: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
