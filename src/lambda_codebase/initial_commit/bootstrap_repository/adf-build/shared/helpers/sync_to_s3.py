@@ -416,7 +416,9 @@ def _get_recursive_s3_objects(
     s3_list_objects_paginator = s3_client.get_paginator("list_objects_v2")
     s3_object_iterator = s3_list_objects_paginator.paginate(
         Bucket=s3_bucket,
-        Prefix=f"{s3_prefix}/",
+        Prefix=(
+            f"{s3_prefix}/" if s3_prefix else ""
+        ),
     )
     s3_objects = {}
     for response_data in s3_object_iterator:
