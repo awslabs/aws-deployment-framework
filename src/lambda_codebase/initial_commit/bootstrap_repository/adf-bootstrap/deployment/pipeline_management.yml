@@ -646,7 +646,7 @@ Resources:
                 python: 3.9
                 nodejs: 14
               commands:
-                - npm install cdk@1.169 -g -y --quiet --no-progress
+                - npm install cdk@1.182 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
