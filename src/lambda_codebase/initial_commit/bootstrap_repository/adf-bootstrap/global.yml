@@ -307,8 +307,8 @@ Resources:
           - Effect: Allow
             Sid: "IAM"
             Action:
+              - "iam:AttachRolePolicy"
               - "iam:CreateRole"
-              - "iam:CreateRolePolicy"
               - "iam:DeleteRole"
               - "iam:DeleteRolePolicy"
               - "iam:GetRole"

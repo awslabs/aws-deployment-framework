@@ -497,8 +497,8 @@ Resources:
               - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-*
           - Effect: Allow
             Action:
+              - "iam:AttachRolePolicy"
               - "iam:CreateRole"
-              - "iam:CreateRolePolicy"
               - "iam:DeleteRole"
               - "iam:DeleteRolePolicy"
               - "iam:GetRole"
