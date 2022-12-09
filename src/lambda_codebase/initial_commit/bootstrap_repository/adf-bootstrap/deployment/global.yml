@@ -387,6 +387,8 @@ Resources:
               - s3:GetBucketPolicy
               - s3:List*
               - s3:PutObject
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
@@ -805,8 +807,8 @@ Resources:
             build:
               commands:
                 - python adf-build/helpers/describe_codepipeline_trigger.py --should-match StartPipelineExecution aws-deployment-framework-pipelines ${!CODEPIPELINE_EXECUTION_ID} && EXTRA_OPTS="--force" || EXTRA_OPTS=""
-                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
-                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --delete --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --delete --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
