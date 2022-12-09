@@ -280,33 +280,62 @@ class Action:
         raise Exception(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
-        account_id = self.map_params['default_providers']['source']['properties']['account_id']
+        account_id = (
+            self.map_params['default_providers']['source']
+            .get('properties', {})
+            .get('account_id', '')
+        )
 
-        if self.provider == "CodeCommit":
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
         if self.provider == "GitHub":
             return None
         if self.provider == "CodeStarSourceConnection":
             return None
         if self.provider == "CodeBuild":
             return None
+        if self.provider == "CodeCommit":
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
+                "role/adf-codecommit-role"
+            )
         if self.provider == "S3" and self.category == "Source":
-            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/adf-codecommit-role"
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
+                "role/adf-codecommit-role"
+            )
         if self.provider == "S3" and self.category == "Deploy":
-            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
+            # This could be changed to use a new role that is bootstrapped,
+            # ideally we rename adf-cloudformation-role to a
+            # generic deployment role name
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
+                "role/adf-cloudformation-role"
+            )
         if self.provider == "ServiceCatalog":
-            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
+            # This could be changed to use a new role that is bootstrapped,
+            # ideally we rename adf-cloudformation-role to a
+            # generic deployment role name
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
+                "role/adf-cloudformation-role"
+            )
         if self.provider == "CodeDeploy":
-            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
+            # This could be changed to use a new role that is bootstrapped,
+            # ideally we rename adf-cloudformation-role to a
+            # generic deployment role name
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
+                "role/adf-cloudformation-role"
+            )
         if self.provider == "Lambda":
-            # This could be changed to use a new role that is bootstrapped, ideally we rename adf-cloudformation-role to a generic deployment role name
+            # This could be changed to use a new role that is bootstrapped,
+            # ideally we rename adf-cloudformation-role to a
+            # generic deployment role name
             return None
         if self.provider == "CloudFormation":
-            return f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:role/adf-cloudformation-role"
+            return (
+                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
+                "role/adf-cloudformation-role"
+            )
         if self.provider == "Manual":
             return None
         raise Exception(f'Invalid Provider {self.provider}')
