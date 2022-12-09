@@ -73,9 +73,9 @@ def lambda_handler(event, _):
         )
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     current_pipelines = {
-            parameter.get("Name").split("/")[-2]
-            for parameter in get_current_pipelines(parameter_store)
-        }
+        parameter.get("Name").split("/")[-2]
+        for parameter in get_current_pipelines(parameter_store)
+    }
 
     pipeline_names = {
         p.get("name") for p in deployment_map.map_contents["pipelines"]

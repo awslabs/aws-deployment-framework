@@ -819,6 +819,15 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::*:role/*
               - Effect: Allow
+                Sid: "AllowCodeStarConnection"
+                Action:
+                  - "codestar-connections:PassConnection"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/*
+                Condition:
+                  StringEquals:
+                    'codestar-connections:PassedToService': 'codepipeline.amazonaws.com'
+              - Effect: Allow
                 Action:
                   - "events:PutRule"
                   - "events:PutTargets"
