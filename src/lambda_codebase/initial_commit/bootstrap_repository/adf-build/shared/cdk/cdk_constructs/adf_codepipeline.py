@@ -6,7 +6,6 @@
 
 import os
 import json
-import boto3
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
@@ -61,7 +60,11 @@ class Action:
         self.action_name = kwargs.get('action_name')
         self.action_mode = kwargs.get('action_mode', '').upper()
         self.region = kwargs.get('region') or ADF_DEPLOYMENT_REGION
-        self.account_id = self.map_params["default_providers"]["source"].get('properties', {}).get("account_id")
+        self.account_id = (
+            self.map_params["default_providers"]["source"]
+            .get('properties', {})
+            .get("account_id")
+        )
         self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
         self.default_scm_branch = self.map_params.get(
@@ -122,25 +125,41 @@ class Action:
                                         'object_key')
             }
         if self.provider == "CodeStarSourceConnection":
-            owner = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {})
-            repo = self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name']
-            codestar_connection_path = self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('codestar_connection_path', {})
-            ssm_client = boto3.client('ssm')
-            try:
-                response = ssm_client.get_parameter(Name=codestar_connection_path)
-            except Exception as e:
-                LOGGER.error(f"No parameter found at {codestar_connection_path}. Check the path/value.")
-                raise e
-            connection_arn = response['Parameter']['Value']
-            return {
-                "ConnectionArn": connection_arn,
+            default_source_props = (
+                self.map_params
+                .get('default_providers', {})
+                .get('source', {})
+                .get('properties', {})
+            )
+            owner = default_source_props.get('owner')
+            repo = (
+                default_source_props.get('repository')
+                or self.map_params['name']
+            )
+            if not default_source_props.get('codestar_connection_arn'):
+                raise Exception(
+                    "The CodeStar Connection Arn could not be resolved for "
+                    f"the {self.map_params['name']} pipeline. Please check "
+                    "whether the codestar_connection_path is setup correctly "
+                    "and validate that the Parameter it points to is properly "
+                    "configured in SSM Parameter Store."
+                )
+            props = {
+                "ConnectionArn": default_source_props.get(
+                    'codestar_connection_arn',
+                ),
                 "FullRepositoryId": f"{owner}/{repo}",
-                "BranchName": self.map_params.get('default_providers', {}).get(
-                    'source', {}).get('properties', {}).get(
-                        'branch',
-                        self.default_scm_branch
-                    )
+                "BranchName": default_source_props.get(
+                    'branch',
+                    self.default_scm_branch,
+                )
             }
+            output_artifact_format = default_source_props.get(
+                'output_artifact_format',
+            )
+            if output_artifact_format:
+                props["OutputArtifactFormat"] = output_artifact_format
+            return props
         if self.provider == "GitHub":
             return {
                 "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
@@ -273,7 +292,11 @@ class Action:
                     and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
                 )
             }
-            output_artifact_format = self.map_params['default_providers']['source'].get('properties', {}).get('output_artifact_format', None)
+            output_artifact_format = (
+                self.map_params['default_providers']['source']
+                .get('properties', {})
+                .get('output_artifact_format')
+            )
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props

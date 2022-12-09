@@ -211,6 +211,11 @@ Provider type: `codestar`.
     web hook as part of the pipeline. Read the CodeStar Connections
     documentation for more
     [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
+- *output_artifact_format* - *(String)* default: `CODE_ZIP`
+  - The output artifact format. Values can be either `CODEBUILD_CLONE_REF` or
+    `CODE_ZIP`. If unspecified, the default is `CODE_ZIP`.
+  - NB: The `CODEBUILD_CLONE_REF` value can only be used by CodeBuild
+    downstream actions.
 
 ## Build
 
