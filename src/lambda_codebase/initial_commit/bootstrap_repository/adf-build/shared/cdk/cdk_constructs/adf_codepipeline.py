@@ -149,6 +149,8 @@ class Action:
                     self.target
                     .get('properties', {})
                     .get('bucket_name', (
+                        # Fallback to default provider deploy if not set
+                        # in the target
                         self.map_params
                         .get('default_providers', {})
                         .get('deploy', {})
@@ -157,26 +159,20 @@ class Action:
                     ))
                 ),
                 "Extract": (
-                    (
-                        self.target
+                    self.target
+                    .get('properties', {})
+                    .get('extract', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
                         .get('properties', {})
-                        .get('extract', (
-                            # Fallback to default provider deploy if not set
-                            # in the target
-                            self.map_params
-                            .get('default_providers', {})
-                            .get('deploy', {})
-                            .get('properties', {})
-                            .get('extract')
-                        ))
-                    )
+                        .get('extract')
+                    ))
                 ),
                 "ObjectKey": (
                     self.target
                     .get('properties', {})
                     .get('object_key', (
-                        # Fallback to default deploy object key if not set
-                        # in the target
                         self.map_params
                         .get('default_providers', {})
                         .get('deploy', {})
@@ -228,7 +224,7 @@ class Action:
                     .get('default_providers', {})
                     .get('source')
                     .get('properties', {})
-                    .get('owner', {})
+                    .get('owner', '')
                 ),
                 "Repo": (
                     self.map_params
@@ -307,11 +303,12 @@ class Action:
                     .get('default_providers', {})
                     .get('deploy', {})
                     .get('properties', {})
-                    .get('param_filename', (
+                    .get(
+                        'param_filename',
                         # If the default is not set, fallback to
                         # ADF default
                         f"{self.target['name']}_{self.region}.json",
-                    ))
+                    )
                 ))
             )
             props = {
@@ -353,26 +350,27 @@ class Action:
                 .get('environment_variables', {})
                 .get('CONTAINS_TRANSFORM')
             )
-            if contains_transform:
-                props["TemplatePath"] = (
-                    f"{input_artifact}::{path_prefix}"
-                    f"template_{self.region}.yml"
-                )
-            else:
-                template_filename = (
-                    self.target
+            template_filename = (
+                self.target
+                .get('properties', {})
+                .get('template_filename', (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('deploy', {})
                     .get('properties', {})
-                    .get('template_filename', (
-                        self.map_params
-                        .get('default_providers', {})
-                        .get('deploy', {})
-                        .get('properties', {})
-                        .get('template_filename', "template.yml")
-                    ))
-                )
-                props["TemplatePath"] = (
-                    f"{input_artifact}::{path_prefix}{template_filename}"
-                )
+                    .get(
+                        'template_filename',
+                        (
+                            f"template_{self.region}.yml"
+                            if contains_transform
+                            else "template.yml"
+                        ),
+                    )
+                ))
+            )
+            props["TemplatePath"] = (
+                f"{input_artifact}::{path_prefix}{template_filename}"
+            )
             if self.target.get('properties', {}).get('outputs'):
                 props['OutputFileName'] = (
                     f"{path_prefix}{self.target['properties']['outputs']}.json"
