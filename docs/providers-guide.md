@@ -284,6 +284,9 @@ Provider type: `codebuild`.
     pipeline. Alternatively, you can change the `adf-codebuild-role` with
     additional permissions and conditions in the `global-iam.yml` file as
     documented in the [User Guide](./user-guide.md).
+    **Please note:** Since the CodeBuild environment runs in the deployment
+    account, the role you specify will be assumed in and should be available
+    in the deployment account too.
 - *timeout* *(Number)* in minutes, default: `20`.
   - If you wish to define a custom timeout for the Build stage.
 - *privileged* *(Boolean)* default: `False`.
