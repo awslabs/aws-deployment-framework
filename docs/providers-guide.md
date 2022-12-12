@@ -553,6 +553,16 @@ Provider type: `cloudformation`.
     file name to use allows you to generate multiple templates, where a specific
     template is used according to its specific target environment. For example:
     `template_prod.yml` for production stages.
+- *param_filename* - *(String)* default: `${target_account_name}_${target_region}.yml`.
+  - The name of the CloudFormation Parameter file to use. Changing the
+    parameter file name to use allows you to generate a single parameter file
+    that is shared between many when required.
+    The parameter file is read from inside the `${root_dir}/params/` folder.
+    **Please note:** Setting this parameter will **not** change the behavior
+    of the generate_params.py script. It is recommended to copy the generated
+    template that you would like to reuse after running generate_params.py
+    and use the name of the copied file as the configuration here when
+    required.
 - *root_dir* - *(String)* default to empty string.
   - The root directory in which the CloudFormation template and `params`
     directory reside. Example, when the CloudFormation template is stored in

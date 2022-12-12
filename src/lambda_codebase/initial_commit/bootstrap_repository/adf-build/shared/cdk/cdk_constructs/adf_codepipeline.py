@@ -298,6 +298,22 @@ class Action:
             if path_prefix and not path_prefix.endswith('/'):
                 path_prefix = f"{path_prefix}/"
             input_artifact = f"{self.map_params['name']}-build"
+            param_filename = (
+                self.target
+                .get('properties', {})
+                .get('param_filename', (
+                    # If target stack name is not set, fallback to default
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('deploy', {})
+                    .get('properties', {})
+                    .get('param_filename', (
+                        # If the default is not set, fallback to
+                        # ADF default
+                        f"{self.target['name']}_{self.region}.json",
+                    ))
+                ))
+            )
             props = {
                 "ActionMode": self.action_mode,
                 "StackName": (
@@ -321,8 +337,7 @@ class Action:
                     f"{ADF_STACK_PREFIX}{self.map_params['name']}"
                 ),
                 "TemplateConfiguration": (
-                    f"{input_artifact}::{path_prefix}params/"
-                    f"{self.target['name']}_{self.region}.json"
+                    f"{input_artifact}::{path_prefix}params/{param_filename}"
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": self.role_arn if self.role_arn else (
@@ -804,8 +819,8 @@ class Pipeline(core.Construct):
             output.append(
                 _codepipeline.CfnPipeline.ArtifactStoreMapProperty(
                     artifact_store=artifact_store,
+                    region=region,
                 ),
-                region=region,
             )
         return output
 
