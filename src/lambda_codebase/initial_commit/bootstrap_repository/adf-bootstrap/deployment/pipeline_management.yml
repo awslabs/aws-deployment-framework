@@ -63,7 +63,7 @@ Globals:
       - !Ref LambdaLayer
 
 Resources:
-  ADFPipelineMangementLambdaBasePolicy:
+  ADFPipelineManagementLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
       Description: "Base policy for all ADF pipeline management lambdas"
@@ -634,7 +634,7 @@ Resources:
           - Name: ORGANIZATION_ID
             Value: !Ref OrganizationId
           - Name: CLOUDFORMATION_ROLE_ARN
-            Value: !GetAtt ADFPipelineMangementCloudFormationRole.Arn
+            Value: !GetAtt ADFPipelineManagementCloudFormationRole.Arn
         Type: LINUX_CONTAINER
       Source:
         Type: NO_SOURCE
@@ -743,13 +743,13 @@ Resources:
                 Action:
                   - 'iam:PassRole'
                 Resource:
-                  - !GetAtt ADFPipelineMangementCloudFormationRole.Arn
+                  - !GetAtt ADFPipelineManagementCloudFormationRole.Arn
                 Condition:
                   StringEqualsIfExists:
                     'iam:PassedToService':
                       - cloudformation.amazonaws.com
 
-  ADFPipelineMangementCloudFormationRole:
+  ADFPipelineManagementCloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
