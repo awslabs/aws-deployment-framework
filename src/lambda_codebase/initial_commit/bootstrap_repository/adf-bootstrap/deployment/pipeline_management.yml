@@ -819,6 +819,22 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::*:role/*
               - Effect: Allow
+                Sid: "CodeBuildVPC"
+                Action:
+                  - "ec2:AuthorizeSecurityGroupEgress"
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                  - "ec2:CreateSecurityGroup"
+                  - "ec2:CreateTags"
+                  - "ec2:DeleteSecurityGroup"
+                  - "ec2:DeleteSecurityGroup"
+                  - "ec2:DeleteTags"
+                  - "ec2:Describe*"
+                  - "ec2:List*"
+                  - "ec2:RevokeSecurityGroupEgress"
+                  - "ec2:RevokeSecurityGroupIngress"
+                Resource:
+                  - "*"
+              - Effect: Allow
                 Sid: "AllowCodeStarConnection"
                 Action:
                   - "codestar-connections:PassConnection"
