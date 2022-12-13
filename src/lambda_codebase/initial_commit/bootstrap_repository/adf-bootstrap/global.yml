@@ -233,7 +233,6 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-update-rule
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-repository
             Action:
