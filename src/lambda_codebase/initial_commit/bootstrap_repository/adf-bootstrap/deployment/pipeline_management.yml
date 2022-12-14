@@ -790,6 +790,7 @@ Resources:
                   - "codebuild:UpdateProject"
                 Resource:
                   - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-build-*
+                  - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-deploy-*
               - Effect: Allow
                 Action:
                   - "sns:DeleteTopic"
