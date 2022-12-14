@@ -77,52 +77,109 @@ class Action:
     def _generate_role_arn(self):
         if self.category not in ['Build', 'Deploy']:
             return None
-        default_provider = self.map_params['default_providers'][self.category.lower()]
-        specific_role = self.target.get('properties', {}).get('role') or default_provider.get('properties', {}).get('role')
+        default_provider = (
+            self.map_params['default_providers'][self.category.lower()]
+        )
+        specific_role = (
+            self.target
+            .get('properties', {})
+            .get('role', default_provider.get('properties', {}).get('role'))
+        )
         if specific_role:
-            account_id = self.account_id if self.provider == 'CodeBuild' else self.target['id']
-            return f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:role/{specific_role}'
+            account_id = (
+                self.account_id
+                if self.provider == 'CodeBuild'
+                else self.target['id']
+            )
+            return (
+                f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:'
+                f'role/{specific_role}'
+            )
         return None
 
-    def _generate_configuration(self): #pylint: disable=R0912, R0911, R0915
+    # pylint: disable=R0912, R0911, R0915
+    def _generate_configuration(self):
         if self.provider == "Manual" and self.category == "Approval":
-            _props = {
-                "CustomData": self.target.get('properties', {}).get('message') or f"Approval stage for {self.map_params['name']}"
+            props = {
+                "CustomData": (
+                    self.target
+                    .get('properties', {})
+                    .get(
+                        'message',
+                        f"Approval stage for {self.map_params['name']}",
+                    )
+                ),
             }
             if self.notification_endpoint:
-                _props["NotificationArn"] = self.notification_endpoint
+                props["NotificationArn"] = self.notification_endpoint
             if self.target.get('properties', {}).get('sns_topic_arn'):
-                _props["NotificationArn"] = self.target.get('properties', {}).get('sns_topic_arn')
-            return _props
+                props["NotificationArn"] = (
+                    self.target
+                    .get('properties', {})
+                    .get('sns_topic_arn')
+                )
+            return props
         if self.provider == "S3" and self.category == "Source":
             return {
-                "S3Bucket": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('bucket_name'),
-                "S3ObjectKey": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('object_key'),
-                "PollForSourceChanges": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
+                "S3Bucket": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('bucket_name')
+                ),
+                "S3ObjectKey": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('object_key')
+                ),
+                "PollForSourceChanges": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('trigger_on_changes', True)
+                ),
             }
         if self.provider == "S3" and self.category == "Deploy":
             return {
-                "BucketName": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'bucket_name') or self.target.get(
-                                    'properties', {}).get(
-                                        'bucket_name'),
-                "Extract": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'extract') or self.target.get(
-                                    'properties', {}).get(
-                                        'extract', False),
-                "ObjectKey": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'object_key') or self.target.get(
-                                    'properties', {}).get(
-                                        'object_key')
+                "BucketName": (
+                    self.target
+                    .get('properties', {})
+                    .get('bucket_name', (
+                        # Fallback to default provider deploy if not set
+                        # in the target
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('bucket_name')
+                    ))
+                ),
+                "Extract": (
+                    self.target
+                    .get('properties', {})
+                    .get('extract', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('extract')
+                    ))
+                ),
+                "ObjectKey": (
+                    self.target
+                    .get('properties', {})
+                    .get('object_key', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('object_key')
+                    ))
+                ),
             }
         if self.provider == "CodeStarSourceConnection":
             default_source_props = (
@@ -133,8 +190,8 @@ class Action:
             )
             owner = default_source_props.get('owner')
             repo = (
-                default_source_props.get('repository')
-                or self.map_params['name']
+                default_source_props
+                .get('repository', self.map_params['name'])
             )
             if not default_source_props.get('codestar_connection_arn'):
                 raise Exception(
@@ -162,54 +219,122 @@ class Action:
             return props
         if self.provider == "GitHub":
             return {
-                "Owner": self.map_params.get('default_providers', {}).get('source').get('properties', {}).get('owner', {}),
-                "Repo": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository', {}) or self.map_params['name'],
-                "Branch": self.map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
+                "Owner": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source')
+                    .get('properties', {})
+                    .get('owner', '')
+                ),
+                "Repo": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('repository', self.map_params['name'])
+                ),
+                "Branch": (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('branch', self.default_scm_branch)
+                ),
                 # pylint: disable=no-value-for-parameter
                 "OAuthToken": core.SecretValue.secrets_manager(
-                    self.map_params['default_providers']['source'].get('properties', {}).get('oauth_token_path'),
-                    json_field=self.map_params['default_providers']['source'].get('properties', {}).get('json_field')
+                    (
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('oauth_token_path')
+                    ),
+                    json_field=(
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('json_field')
+                    ),
                 ),
                 "PollForSourceChanges": False
             }
         if self.provider == "Lambda":
             return {
-                "FunctionName": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'function_name', '') or self.target.get(
-                                    'properties', {}).get(
-                                        'function_name', ''),
-                "UserParameters": str(self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get('input', '') or self.target.get(
-                                'properties', {}).get(
-                                    'input', ''))
+                "FunctionName": (
+                    self.target
+                    .get('properties', {})
+                    .get('function_name', (
+                        # Fallback to default function name if not set
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('function_name', '')
+                    ))
+                ),
+                "UserParameters": str(
+                    self.target.get('properties', {})
+                    .get('input', (
+                        self.map_params.get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('input', '')
+                    ))
+                ),
             }
         if self.provider == "CloudFormation":
-            _path_prefix = self.target.get(
-                'properties', {}).get(
-                    'root_dir') or self.map_params.get(
-                        'default_providers', {}).get(
-                            'deploy', {}).get(
-                                'properties', {}).get(
-                                    'root_dir') or ""
-            if _path_prefix and not _path_prefix.endswith('/'):
-                _path_prefix = f"{_path_prefix}/"
-            _input_artifact = f"{self.map_params['name']}-build"
-            _props = {
+            path_prefix = (
+                self.target
+                .get('properties', {})
+                .get('root_dir', (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('deploy', {})
+                    .get('properties', {})
+                    .get('root_dir', '')
+                ))
+            )
+            if path_prefix and not path_prefix.endswith('/'):
+                path_prefix = f"{path_prefix}/"
+            input_artifact = f"{self.map_params['name']}-build"
+            param_filename = (
+                self.target
+                .get('properties', {})
+                .get('param_filename', (
+                    # If target stack name is not set, fallback to default
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('deploy', {})
+                    .get('properties', {})
+                    .get(
+                        'param_filename',
+                        # If the default is not set, fallback to
+                        # ADF default
+                        f"{self.target['name']}_{self.region}.json",
+                    )
+                ))
+            )
+            props = {
                 "ActionMode": self.action_mode,
                 "StackName": (
-                    self.target.get('properties', {}).get('stack_name')
-                    or self.map_params.get('default_providers', {}).get(
-                        'deploy', {}).get('properties', {}).get('stack_name')
-                    or f"{ADF_STACK_PREFIX}{self.map_params['name']}"
+                    self.target
+                    .get('properties', {})
+                    .get('stack_name', (
+                        # If target stack name is not set, fallback to default
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get(
+                            'stack_name',
+                            # If the default is not set, fallback to
+                            # ADF default
+                            f"{ADF_STACK_PREFIX}{self.map_params['name']}",
+                        )
+                    ))
                 ),
-                "ChangeSetName": f"{ADF_STACK_PREFIX}{self.map_params['name']}",
+                "ChangeSetName": (
+                    f"{ADF_STACK_PREFIX}{self.map_params['name']}"
+                ),
                 "TemplateConfiguration": (
-                    f"{_input_artifact}::{_path_prefix}params/{self.target['name']}_{self.region}.json"
+                    f"{input_artifact}::{path_prefix}params/{param_filename}"
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                 "RoleArn": self.role_arn if self.role_arn else (
@@ -217,80 +342,155 @@ class Action:
                     f"role/adf-cloudformation-deployment-role"
                 )
             }
-            if self.map_params.get('default_providers', {}).get('build', {}).get('properties', {}).get('environment_variables', {}).get('CONTAINS_TRANSFORM'):
-                _props["TemplatePath"] = f"{_input_artifact}::{_path_prefix}template_{self.region}.yml"
-            else:
-                _template_filename = self.target.get(
-                    'properties', {}).get(
-                        'template_filename') or self.map_params.get(
-                            'default_providers', {}).get(
-                                'deploy', {}).get(
-                                    'properties', {}).get(
-                                        'template_filename') or "template.yml"
-                _props["TemplatePath"] = f"{_input_artifact}::{_path_prefix}{_template_filename}"
+            contains_transform = (
+                self.map_params
+                .get('default_providers', {})
+                .get('build', {})
+                .get('properties', {})
+                .get('environment_variables', {})
+                .get('CONTAINS_TRANSFORM')
+            )
+            template_filename = (
+                self.target
+                .get('properties', {})
+                .get('template_filename', (
+                    self.map_params
+                    .get('default_providers', {})
+                    .get('deploy', {})
+                    .get('properties', {})
+                    .get(
+                        'template_filename',
+                        (
+                            f"template_{self.region}.yml"
+                            if contains_transform
+                            else "template.yml"
+                        ),
+                    )
+                ))
+            )
+            props["TemplatePath"] = (
+                f"{input_artifact}::{path_prefix}{template_filename}"
+            )
             if self.target.get('properties', {}).get('outputs'):
-                _props['OutputFileName'] = f"{_path_prefix}{self.target['properties']['outputs']}.json"
+                props['OutputFileName'] = (
+                    f"{path_prefix}{self.target['properties']['outputs']}.json"
+                )
             if self.target.get('properties', {}).get('param_overrides'):
-                _overrides = {}
-                for override in self.target.get('properties', {}).get('param_overrides', []):
-                    _overrides[override['param']] = {
+                overrides = {}
+                for override in (
+                    self.target
+                    .get('properties', {})
+                    .get('param_overrides', [])
+                ):
+                    overrides[override['param']] = {
                         "Fn::GetParam": [
                             override['inputs'],
                             f"{override['inputs']}.json",
                             override['key_name'],
                         ],
                     }
-                _props['ParameterOverrides'] = json.dumps(_overrides)
-            return _props
+                props['ParameterOverrides'] = json.dumps(overrides)
+            return props
         if self.provider == "Jenkins":
             return {
-                "ProjectName": self.map_params['default_providers']['build'].get(
-                    'properties', {}).get(
-                        'project_name', self.map_params['name']), # Enter the name of the project you created in the Jenkins plugin
-                "ServerURL": self.map_params['default_providers']['build'].get('properties', {}).get('server_url'), # Server URL
-                "ProviderName": self.map_params['default_providers']['build'].get('properties', {}).get('provider_name') # Enter the provider name you configured in the Jenkins plugin
+                "ProjectName": (
+                    # The name of the project you created in the Jenkins plugin
+                    self.map_params['default_providers']['build']
+                    .get('properties', {})
+                    .get('project_name', self.map_params['name'])
+                ),
+                "ServerURL": (
+                    self.map_params['default_providers']['build']
+                    .get('properties', {})
+                    .get('server_url')
+                ),
+                "ProviderName": (
+                    # The provider name you configured in the Jenkins plugin
+                    self.map_params['default_providers']['build']
+                    .get('properties', {})
+                    .get('provider_name')
+                ),
             }
         if self.provider == "CodeBuild":
             return {
-                "ProjectName": self.project_name or f"adf-build-{self.map_params['name']}"
+                "ProjectName": (
+                    self.project_name or f"adf-build-{self.map_params['name']}"
+                )
             }
         if self.provider == "ServiceCatalog":
             return {
                 "ConfigurationFilePath": (
-                    self.target.get('properties', {}).get('configuration_file_path')
-                    or f"params/{self.target['name']}_{self.region}.json"
+                    (
+                        self.target
+                        .get('properties', {})
+                        .get(
+                            'configuration_file_path',
+                            f"params/{self.target['name']}_{self.region}.json",
+                        )
+                    )
                 ),
-                "ProductId": self.target.get(
-                    'properties', {}).get(
-                        'product_id') or self.map_params['default_providers']['deploy'].get(
-                            'properties', {}).get(
-                                'product_id')  # product_id is required for Service Catalog, meaning the product must already exist.
+                "ProductId": (
+                    # The product_id is required for Service Catalog,
+                    # meaning the product must already exist.
+                    (
+                        self.target
+                        .get('properties', {})
+                        .get('product_id', (
+                            self.map_params['default_providers']['deploy']
+                            .get('properties', {})
+                            .get('product_id')
+                        ))
+                    )
+                )
             }
         if self.provider == "CodeDeploy":
             return {
-                "ApplicationName": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'application_name', {}) or self.target.get(
-                                    'properties', {}).get(
-                                        'application_name'),
-                "DeploymentGroupName": self.map_params.get(
-                    'default_providers', {}).get(
-                        'deploy', {}).get(
-                            'properties', {}).get(
-                                'deployment_group_name', {}) or self.target.get(
-                                    'properties', {}).get(
-                                        'deployment_group_name')
+                "ApplicationName": (
+                    self.target
+                    .get('properties', {})
+                    .get('application_name', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('application_name', '')
+                    ))
+                ),
+                "DeploymentGroupName": (
+                    self.target
+                    .get('properties', {})
+                    .get('deployment_group_name', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('deployment_group_name', '')
+                    ))
+                ),
             }
         if self.provider == "CodeCommit":
-            props =  {
-                "BranchName": self.map_params['default_providers']['source'].get('properties', {}).get('branch', self.default_scm_branch),
-                "RepositoryName": self.map_params['default_providers']['source'].get('properties', {}).get('repository', {}) or self.map_params['name'],
+            props = {
+                "BranchName": (
+                    self.map_params['default_providers']['source']
+                    .get('properties', {})
+                    .get('branch', self.default_scm_branch)
+                ),
+                "RepositoryName": (
+                    self.map_params['default_providers']['source']
+                    .get('properties', {})
+                    .get('repository', self.map_params['name'])
+                ),
                 "PollForSourceChanges": (
-                    self.map_params['default_providers']['source'].get('properties', {}).get('trigger_on_changes', True)
-                    and self.map_params['default_providers']['source'].get('properties', {}).get('poll_for_changes', False)
-                )
+                    (
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('trigger_on_changes', True)
+                    ) and (
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('poll_for_changes', False)
+                    )
+                ),
             }
             output_artifact_format = (
                 self.map_params['default_providers']['source']
@@ -364,9 +564,9 @@ class Action:
         raise Exception(f'Invalid Provider {self.provider}')
 
     def generate(self):
-        _role = self._generate_codepipeline_access_role()
+        pipeline_role = self._generate_codepipeline_access_role()
         action_props = {
-            "action_type_id":_codepipeline.CfnPipeline.ActionTypeIdProperty(
+            "action_type_id": _codepipeline.CfnPipeline.ActionTypeIdProperty(
                 version=Action._version,
                 owner=self.owner,
                 provider=self.provider,
@@ -383,8 +583,8 @@ class Action:
         output_artifacts = self._get_output_artifacts()
         if output_artifacts:
             action_props["output_artifacts"] = output_artifacts
-        if _role:
-            action_props["role_arn"] = _role
+        if pipeline_role:
+            action_props["role_arn"] = pipeline_role
         if self.category == 'Manual':
             del action_props['region']
 
@@ -400,8 +600,13 @@ class Action:
             str: The output artifact name as a string
         """
         use_output_source = (
-            not self.target or
-            not self.map_params.get('default_providers', {}).get('build', {}).get('enabled', True)
+            not self.target
+            or not (
+                self.map_params
+                .get('default_providers', {})
+                .get('build', {})
+                .get('enabled', True)
+            )
         )
         if use_output_source:
             return "output-source"
@@ -414,7 +619,7 @@ class Action:
         Returns:
             list<CfnPipeline.InputArtifactProperty>: The Input Artifacts
         """
-        if not self.category in ['Build', 'Deploy']:
+        if self.category not in ['Build', 'Deploy']:
             return []
         input_artifacts = [
             _codepipeline.CfnPipeline.InputArtifactProperty(
@@ -422,10 +627,25 @@ class Action:
             ),
         ]
         if self.category == 'Deploy':
-            for override in self.target.get('properties', {}).get('param_overrides', []):
-                _input = _codepipeline.CfnPipeline.InputArtifactProperty(name=override.get('inputs', ''))
-                if self.provider == "CloudFormation" and override.get('inputs') and self.action_mode != "CHANGE_SET_EXECUTE" and _input not in input_artifacts:
-                    input_artifacts.append(_input)
+            for override in (
+                self.target
+                .get('properties', {})
+                .get('param_overrides', [])
+            ):
+                override_input = (
+                    _codepipeline.CfnPipeline.InputArtifactProperty(
+                        name=override.get('inputs', '')
+                    )
+                )
+                requires_input_override = (
+                    self.provider == "CloudFormation"
+                    and override.get('inputs')
+                    and self.action_mode != "CHANGE_SET_EXECUTE"
+                    and override_input not in input_artifacts
+                )
+
+                if requires_input_override:
+                    input_artifacts.append(override_input)
         return input_artifacts
 
     def _get_base_output_artifact_name(self):
@@ -473,15 +693,35 @@ class Pipeline(core.Construct):
 
     _accepted_triggers = {"code_artifact": CODEARTIFACT_TRIGGER}
 
-    def __init__(self, scope: core.Construct, id: str, map_params: dict, ssm_params: dict, stages, **kwargs): #pylint: disable=W0622
+    # pylint: disable=W0622
+    def __init__(
+        self,
+        scope: core.Construct,
+        id: str,
+        map_params: dict,
+        ssm_params: dict,
+        stages, **kwargs,
+    ):
         super().__init__(scope, id, **kwargs)
-        [_codepipeline_role_arn, _code_build_role_arn, _send_slack_notification_lambda_arn] = Pipeline.import_required_arns() #pylint: disable=W0632
-        _pipeline_args = {
+        # pylint: disable=W0632
+        [
+            _codepipeline_role_arn,
+            _code_build_role_arn,
+            _send_slack_notification_lambda_arn
+        ] = Pipeline.import_required_arns()
+        pipeline_args = {
             "role_arn": _codepipeline_role_arn,
-            "restart_execution_on_update": map_params.get('params', {}).get('restart_execution_on_update', False),
+            "restart_execution_on_update": (
+                map_params
+                .get('params', {})
+                .get('restart_execution_on_update', False)
+            ),
             "name": f"{ADF_PIPELINE_PREFIX}{map_params['name']}",
             "stages": stages,
-            "artifact_stores": Pipeline.generate_artifact_stores(map_params, ssm_params),
+            "artifact_stores": Pipeline.generate_artifact_stores(
+                map_params,
+                ssm_params,
+            ),
             "tags": Pipeline.restructure_tags(map_params.get('tags', {}))
         }
         self.default_scm_branch = map_params.get(
@@ -491,64 +731,115 @@ class Pipeline(core.Construct):
         self.cfn = _codepipeline.CfnPipeline(
             self,
             'pipeline',
-            **_pipeline_args
+            **pipeline_args
         )
         adf_events.Events(self, 'events', {
             "pipeline": (
-                f'arn:{ADF_DEPLOYMENT_PARTITION}:codepipeline:{ADF_DEPLOYMENT_REGION}:'
-                f'{ADF_DEPLOYMENT_ACCOUNT_ID}:'
+                f'arn:{ADF_DEPLOYMENT_PARTITION}:codepipeline:'
+                f'{ADF_DEPLOYMENT_REGION}:{ADF_DEPLOYMENT_ACCOUNT_ID}:'
                 f'{os.getenv("ADF_PIPELINE_PREFIX")}{map_params["name"]}'
             ),
             "topic_arn": map_params.get('topic_arn'),
             "name": map_params['name'],
-            "completion_trigger": map_params.get('triggers', {}).get('on_complete', map_params.get('completion_trigger')),
+            "completion_trigger": (
+                map_params
+                .get('triggers', {})
+                .get('on_complete', map_params.get('completion_trigger'))
+            ),
             "schedule": map_params.get('schedule'),
             "source": {
-                "provider": map_params.get('default_providers', {}).get('source', {}).get('provider'),
-                "account_id": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('account_id'),
-                "repo_name": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('repository') or map_params['name'],
-                "branch": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch', self.default_scm_branch),
-                "poll_for_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('poll_for_changes', False),
-                "trigger_on_changes": map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('trigger_on_changes', True),
+                "provider": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('provider')
+                ),
+                "account_id": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('account_id')
+                ),
+                "repo_name": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('repository', map_params['name'])
+                ),
+                "branch": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('branch', self.default_scm_branch)
+                ),
+                "poll_for_changes": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('poll_for_changes', False)
+                ),
+                "trigger_on_changes": (
+                    map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('trigger_on_changes', True)
+                ),
             }
         })
 
     @staticmethod
     def restructure_tags(current_tags):
         tags = []
-        for k, v in current_tags.items():
-            tags.append({"key": k, "value": v})
+        for key, value in current_tags.items():
+            tags.append({
+                "key": key,
+                "value": value
+            })
         return tags
 
     @staticmethod
     def generate_artifact_stores(map_params, ssm_params):
         output = []
         for region in map_params["regions"]:
-            output.append(_codepipeline.CfnPipeline.ArtifactStoreMapProperty(
-                artifact_store=_codepipeline.CfnPipeline.ArtifactStoreProperty(
-                    location=ssm_params[region]["s3"],
-                    type="S3",
-                    encryption_key=_codepipeline.CfnPipeline.EncryptionKeyProperty(
-                        id=ssm_params[region]["kms"],
-                        type="KMS"
-                    )
+            artifact_store = _codepipeline.CfnPipeline.ArtifactStoreProperty(
+                location=ssm_params[region]["s3"],
+                type="S3",
+                encryption_key=_codepipeline.CfnPipeline.EncryptionKeyProperty(
+                    id=ssm_params[region]["kms"],
+                    type="KMS"
                 ),
-                region=region
-            ))
+            )
+            output.append(
+                _codepipeline.CfnPipeline.ArtifactStoreMapProperty(
+                    artifact_store=artifact_store,
+                    region=region,
+                ),
+            )
         return output
 
     @staticmethod
     def import_required_arns():
-        _output = []
+        output = []
         for arn in Pipeline._import_arns:
             # pylint: disable=no-value-for-parameter
-            _output.append(core.Fn.import_value(arn))
-        return _output
+            output.append(core.Fn.import_value(arn))
+        return output
 
     def add_pipeline_trigger(self, trigger_type, trigger_config):
         if trigger_type not in self._accepted_triggers:
-            LOGGER.error(f"{trigger_type} is not currently supported. Supported values are: {self._accepted_triggers.keys()}")
-            raise Exception(f"{trigger_type} is not currently supported as a pipeline trigger")
+            LOGGER.error(
+                f"{trigger_type} is not currently supported. "
+                f"Supported values are: {self._accepted_triggers.keys()}"
+            )
+            raise Exception(
+                f"{trigger_type} is not currently supported as "
+                "a pipeline trigger"
+            )
         trigger_type = self._accepted_triggers[trigger_type]
 
         if trigger_type == self.CODEARTIFACT_TRIGGER:
@@ -557,11 +848,23 @@ class Pipeline(core.Construct):
                 details["packageName"] = trigger_config["package"]
             _eventbridge.Rule(
                 self,
-                f"codeartifact-pipeline-trigger-{trigger_config['repository']}-{trigger_config.get('package', 'all')}",
+                (
+                    "codeartifact-pipeline-"
+                    f"trigger-{trigger_config['repository']}"
+                    f"-{trigger_config.get('package', 'all')}"
+                ),
                 event_pattern=_eventbridge.EventPattern(
                     source=["aws.codeartifact"],
                     detail_type=["CodeArtifact Package Version State Change"],
                     detail=details,
                 ),
-                targets=[_eventbridge_targets.CodePipeline(pipeline=_codepipeline.Pipeline.from_pipeline_arn(self, "imported", pipeline_arn=self.cfn.ref))],
+                targets=[
+                    _eventbridge_targets.CodePipeline(
+                        pipeline=_codepipeline.Pipeline.from_pipeline_arn(
+                            self,
+                            "imported",
+                            pipeline_arn=self.cfn.ref
+                        )
+                    )
+                ],
             )

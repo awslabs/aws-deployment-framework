@@ -176,6 +176,7 @@ CLOUDFORMATION_ACTIONS = Or(
 
 CLOUDFORMATION_PROPS = {
     Optional("stack_name"): str,
+    Optional("param_filename"): str,
     Optional("template_filename"): str,
     Optional("root_dir"): str,
     Optional("role"): str,
