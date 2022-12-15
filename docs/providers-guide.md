@@ -26,7 +26,6 @@ Providers and Actions.
   - [Build](#build)
     - [CodeBuild](#codebuild)
       - [Properties](#properties-4)
-      - [Setup permissions for CodeBuild VPC usage](#setup-permissions-for-codebuild-vpc-usage)
     - [Jenkins](#jenkins)
       - [Properties](#properties-5)
   - [Deploy](#deploy)
@@ -371,57 +370,6 @@ Provider type: `codebuild`.
 
   An example of a list of `security_group_ids` is: `["sg-234567890abcdef01",
   "sg-cdef01234567890ab"]`
-
-#### Setup permissions for CodeBuild VPC usage
-
-When you want to configure CodeBuild to use a specific VPC, you can make use of
-the `vpc_id`, `subnet_ids`, and/or `security_group_ids` properties.
-
-However, before you do so, you need to make sure that ADF is allowed to deploy
-CodeBuild in the specific VPC that you want.
-
-You need to update the `aws-deployment-framework-bootstrap` repository once
-to grant it access to deploy. To grant access, follow these instructions
-closely:
-
-1. Open the `aws-deployment-framework-bootstrap` repository.
-2. Navigate to the `adf-bootstrap/deployment` folder.
-3. Check whether the following file exists inside that directory
-   `global-iam.yml`: The full path for this file in that repository would be
-   `adf-bootstrap/deployment/global-iam.yml`.
-4. If it does not exist, you need to create a copy of the
-   `example-global-iam.yml` that is stored inside that directory and store it
-   as `global-iam.yml`. You can comment out the `CloudFormationDeploymentPolicy`
-   block that is added by the example or tweak it to your needs.
-5. Compare the content of the `global-iam.yml` file against the
-   `example-global-iam.yml` file. The section that you are interested in starts
-   off with:
-
-   ```yaml
-   ##
-   # Begin of VPC CodeBuild support IAM permissions
-   ##
-   ```
-
-   Until the end is commented as:
-
-   ```yaml
-   ##
-   # End of VPC CodeBuild support IAM permissions
-   ##
-   ```
-
-   The `PipelineProvisionerResourcePolicy` and `CodeBuildResourcePolicy`
-   resources should be listed and configured to allow the use of VPCs in the
-   CodeBuild provider deployed by ADF. Ensure these are not commented out and
-   match same IAM policy as defined in the `example-global-iam.yml` file.
-
-6. If necessary, commit the changes you made to the repository and have them
-   peer reviewed and merged into the main branch of the
-   `aws-deployment-framework-bootstrap` repository.
-7. You should be allowed to use VPCs in CodeBuild once the
-   `aws-deployment-framework-bootstrap` pipeline finished deploying your
-   changes.
 
 ### Jenkins
 

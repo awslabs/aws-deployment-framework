@@ -356,6 +356,27 @@ Resources:
               - "ecr:PutImage"
             Resource:
               - "*"
+          - Effect: Allow
+            Sid: "CodeBuildVPC"
+            Action:
+              - "ec2:CreateNetworkInterface"
+              - "ec2:DescribeDhcpOptions"
+              - "ec2:DescribeNetworkInterfaces"
+              - "ec2:DeleteNetworkInterface"
+              - "ec2:DescribeSubnets"
+              - "ec2:DescribeSecurityGroups"
+              - "ec2:DescribeVpcs"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "CodeBuildENI"
+            Action:
+              - "ec2:CreateNetworkInterfacePermission"
+            Resource:
+              - "*"
+            Condition:
+              StringEquals:
+                ec2:AuthorizedService: "codebuild.amazonaws.com"
       Roles:
         - !Ref CodeBuildRole
 
