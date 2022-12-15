@@ -799,6 +799,7 @@ Resources:
                   - "sns:SetTopicAttributes"
                   - "sns:GetTopicAttributes"
                   - "sns:TagResource"
+                  - "sns:ListSubscriptionsByTopic"
                 Resource:
                   - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
               - Effect: Allow
