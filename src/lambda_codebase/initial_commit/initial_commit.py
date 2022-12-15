@@ -38,6 +38,7 @@ EXECUTABLE_FILES: List[str] = [
     "adf-build/shared/helpers/retrieve_organization_accounts.py",
     "adf-build/shared/helpers/sync_to_s3.py",
     "adf-build/shared/helpers/sts.sh",
+    "adf-build/shared/helpers/terraform/adf_terraform.sh",
     "adf-build/shared/helpers/terraform/install_terraform.sh",
 ]
 
