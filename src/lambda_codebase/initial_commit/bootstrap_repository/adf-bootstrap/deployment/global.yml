@@ -359,10 +359,10 @@ Resources:
       Roles:
         - !Ref CodeBuildRole
 
-  PipelineProvisionerCodeBuildRole:
+  PipelineGenerationProvisionerCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-pipeline-provisioner-codebuild-role"
+      Path: "/adf-automation/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -373,10 +373,10 @@ Resources:
             Action:
               - sts:AssumeRole
 
-  PipelineProvisionerCodeBuildRolePolicy:
+  PipelineGenerationProvisionerCodeBuildRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-pipeline-provisioner-codebuild-policy"
+      PolicyName: "adf-pipeline-generation-provisioner-codebuild-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -390,8 +390,6 @@ Resources:
               - s3:DeleteObject
               - s3:DeleteObjectVersion
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
           - Effect: Allow
@@ -414,146 +412,19 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
           - Effect: Allow
             Action:
-              - "sts:AssumeRole"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
-              - !Sub "arn:${AWS::Partition}:iam::*:role/adf-automation-role"
-          - Effect: Allow
-            Action:
-              - "secretsmanager:Get*"
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow CodeBuild access to secrets that start with /adf/*
-          - Effect: Allow
-            Action:
-              - "events:PutPermission"
-            Resource:
-              - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
-          - Effect: Allow
-            Action:
-              - "events:PutRule"
-              - "events:PutTargets"
-              - "events:PutPermission"
-              - "events:RemoveTargets"
-              - "events:DeleteRule"
-              - "events:DescribeRule"
-            Resource:
-              - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${PipelinePrefix}*
-          - Effect: Allow
-            Action:
-              - "cloudformation:CancelUpdateStack"
-              - "cloudformation:ContinueUpdateRollback"
-              - "cloudformation:CreateChangeSet"
-              - "cloudformation:CreateStack"
-              - "cloudformation:CreateUploadBucket"
-              - "cloudformation:DeleteStack"
-              - "cloudformation:DeleteChangeSet"
-              - "cloudformation:DescribeStacks"
-              - "cloudformation:DescribeChangeSet"
-              - "cloudformation:ExecuteChangeSet"
-              - "cloudformation:SetStackPolicy"
-              - "cloudformation:SignalResource"
-              - "cloudformation:UpdateStack"
-              - "cloudformation:UpdateTerminationProtection"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${PipelinePrefix}*/*"
-          - Effect: Allow
-            Action:
-              - "cloudformation:ValidateTemplate"
-              - "lambda:CreateEventSourceMapping"
-              - "lambda:AddPermission"
-              - "lambda:CreateFunction"
-              - "lambda:DeleteFunction"
-              - "lambda:GetFunction"
-              - "lambda:GetFunctionConfiguration"
-              - "lambda:RemovePermission"
-              - "lambda:UpdateFunctionCode"
-              - "lambda:UpdateFunctionConfiguration"
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-              - "iam:TagPolicy"
-              - "iam:TagRole"
-              - "ssm:DeleteParameter"
-              - "ssm:GetParameter"
-              - "ssm:GetParameters"
-              - "ssm:GetParametersByPath"
-              - "ssm:PutParameter"
-              - "organizations:DescribeOrganization"
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - "sns:DeleteTopic"
-              - "sns:CreateTopic"
-              - "sns:Unsubscribe"
-              - "sns:Subscribe"
-              - "sns:SetTopicAttributes"
-              - "sns:GetTopicAttributes"
-              - "sns:TagResource"
             Resource:
-              - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
           - Effect: Allow
-            Action:
-              - "codebuild:CreateProject"
-              - "codebuild:DeleteProject"
-              - "codebuild:UpdateProject"
-            Resource:
-              - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-*
-          - Effect: Allow
-            Action:
-              - "iam:AttachRolePolicy"
-              - "iam:CreateRole"
-              - "iam:DeleteRole"
-              - "iam:DeleteRolePolicy"
-              - "iam:GetRole"
-              - "iam:GetRolePolicy"
-              - "iam:PassRole"
-              - "iam:PutRolePolicy"
-            Resource:
-              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-          - Effect: Allow
-            Action:
-              # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
-              - "iam:PassRole"
-            Resource:
-              # This role can pass to any other role in the organization.
-              - !Sub arn:${AWS::Partition}:iam::*:role/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-          - Effect: Allow
-            Action:
-              - "codepipeline:CreatePipeline"
-              - "codepipeline:DeletePipeline"
-              - "codepipeline:DeleteWebhook"
-              - "codepipeline:DeregisterWebhookWithThirdParty"
-              - "codepipeline:GetPipeline"
-              - "codepipeline:GetPipelineState"
-              - "codepipeline:PutWebhook"
-              - "codepipeline:RegisterWebhookWithThirdParty"
-              - "codepipeline:StartPipelineExecution"
-              - "codepipeline:TagResource"
-              - "codepipeline:UpdatePipeline"
-            Resource:
-              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
-              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
-          - Effect: Allow
+            Sid: "DescripePipelineTrigger"
             Action:
               - "codepipeline:ListPipelineExecutions"
             Resource:
               - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-pipelines
-          - Effect: Allow
-            Action:
-              - "codestar-connections:GetConnection"
-              - "codestar-connections:GetHost"
-              - "codestar-connections:ListConnections"
-              - "codestar-connections:ListHosts"
-              - "codestar-connections:PassConnection"
-              - "codestar-connections:UseConnection"
-            Resource: "*"
       Roles:
-        - !Ref PipelineProvisionerCodeBuildRole
+        - !Ref PipelineGenerationProvisionerCodeBuildRole
 
   CloudFormationRole:
     Type: AWS::IAM::Role
@@ -648,7 +519,6 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !GetAtt PipelineProvisionerCodeBuildRole.Arn
                 - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
                 - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Action:
@@ -761,31 +631,21 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-        ComputeType: !Ref ComputeType
+        ComputeType: "BUILD_GENERAL1_SMALL"
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
-          - Name: MASTER_ACCOUNT_ID
-            Value: !Ref MasterAccountId
-          - Name: S3_BUCKET_NAME
-            Value: !Ref PipelineBucket
           - Name: SHARED_MODULES_BUCKET
             Value: !Ref SharedModulesBucket
           - Name: ADF_PIPELINES_BUCKET
             Value: !GetAtt PipelineManagementApplication.Outputs.Bucket
-          - Name: ADF_PIPELINE_PREFIX
-            Value: !Ref PipelinePrefix
-          - Name: ADF_STACK_PREFIX
-            Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
             Value: INFO
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
-          - Name: ORGANIZATION_ID
-            Value: !Ref OrganizationId
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base"
       Source:
@@ -814,7 +674,7 @@ Resources:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
                 - echo "Please track their progress via:"
                 - echo "https://${AWS::Region}.console.aws.amazon.com/states/home?region=${AWS::Region}#/statemachines/view/arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
-      ServiceRole: !GetAtt PipelineProvisionerCodeBuildRole.Arn
+      ServiceRole: !GetAtt PipelineGenerationProvisionerCodeBuildRole.Arn
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base"
@@ -844,7 +704,7 @@ Resources:
                 RepositoryName: !GetAtt CodeCommitRepository.Name
                 PollForSourceChanges: false
               RunOrder: 1
-        - Name: CreateOrUpdatePipelines
+        - Name: KickoffCreateOrUpdatePipelines
           Actions:
             - Name: CreateOrUpdate
               ActionTypeId:
