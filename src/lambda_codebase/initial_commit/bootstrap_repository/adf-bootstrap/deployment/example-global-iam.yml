@@ -13,7 +13,7 @@ Resources:
     # for purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyName: "custom-adf-cloudformation-deployment-role-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
