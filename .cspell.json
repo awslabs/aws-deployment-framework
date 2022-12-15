@@ -1,0 +1,21 @@
+// cSpell Settings
+{
+    // Version of the setting file.  Always 0.2
+    "version": "0.2",
+    "language": "en",
+    "dictionaries": ["custom-adf","bash","python", "en-US", "corp-terms", "softwareTerms", "typescript", "node","npm"],
+    "ignorePaths": ["requirements.txt", "maven-wrapper.jar", ".cspell.json", ".gitignore"],
+    "allowCompoundWords": true,
+    // Tell CSpell about your dictionary
+    "dictionaryDefinitions": [
+        {
+            // The name of the dictionary is used to look it up.
+            "name": "custom-adf",
+            // Path to the custom word file. Relative to this `cspell.json` file.
+            "path": "./linters/custom-adf-dict.txt",
+            // Some editor extensions will use `addWords` for adding words to your
+            // personal dictionary.
+            "addWords": true
+        }
+    ]
+}
