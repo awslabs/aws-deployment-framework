@@ -285,6 +285,7 @@ TARGET_SCHEMA = {
     Optional("tags"): {And(str, Regex(r"\A.{1,128}\Z")): And(str, Regex(r"\A.{0,256}\Z"))},
     Optional("target"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("name"): str,
+    Optional("resolve_ou_recursively"): bool,
     Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
     Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
     Optional("regions"): REGION_SCHEMA

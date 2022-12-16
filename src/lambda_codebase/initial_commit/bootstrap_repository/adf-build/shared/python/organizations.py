@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
+from itertools import chain
 
 LOGGER = configure_logger(__name__)
 
@@ -169,11 +170,17 @@ class Organizations: # pylint: disable=R0904
             ChildId=ou_id
         ).get('Parents')[0]
 
-    def get_accounts_for_parent(self, parent_id):
-        return paginator(
+    def get_accounts_for_parent(self, parent_id, recursive):
+        elems = paginator(
             self.client.list_accounts_for_parent,
             ParentId=parent_id
         )
+
+        if recursive:
+            for child_ou in self.get_child_ous(parent_id):
+                elems = chain(elems, self.get_accounts_for_parent(child_ou['Id'], True))
+
+        return elems
 
     def get_child_ous(self, parent_id):
         return paginator(
@@ -184,11 +191,14 @@ class Organizations: # pylint: disable=R0904
     def get_ou_root_id(self):
         return self.client.list_roots().get('Roots')[0].get('Id')
 
-    def dir_to_ou(self, path):
+    def dir_to_ou(self, path, recursive):
         p = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
         while p:
+            if p[0] == 'Root':
+                break 
+
             for ou in self.get_child_ous(ou_id):
                 if ou['Name'] == p[0]:
                     p.pop(0)
@@ -199,7 +209,7 @@ class Organizations: # pylint: disable=R0904
                     "Path {0} failed to return a child OU at '{1}'".format(
                         path, p[0]))
         else: # pylint: disable=W0120
-            return self.get_accounts_for_parent(ou_id)
+            return self.get_accounts_for_parent(ou_id, recursive)
 
     def build_account_path(self, ou_id, account_path, cache):
         """Builds a path tree to the account from the root of the Organization

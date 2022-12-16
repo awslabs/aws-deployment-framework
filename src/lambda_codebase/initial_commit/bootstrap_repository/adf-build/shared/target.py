@@ -50,6 +50,7 @@ class Target:
     def __init__(self, path, target_structure, organizations, step, regions):
         self.path = path
         self.step_name = step.get('name', '')
+        self.resolve_ou_recursively = step.get('resolve_ou_recursively', False)
         self.provider = step.get('provider', {})
         self.properties = step.get('properties', {})
         self.regions = [regions] if not isinstance(regions, list) else regions
@@ -114,12 +115,12 @@ class Target:
         self._create_response_object(responses)
 
     def _target_is_ou_path(self):
-        responses = self.organizations.dir_to_ou(self.path)
+        responses = self.organizations.dir_to_ou(self.path, self.resolve_ou_recursively)
         self._create_response_object(responses)
 
     def _target_is_null_path(self):
         self.path = '/deployment' # TODO we will fetch this from parameter store
-        responses = self.organizations.dir_to_ou(self.path)
+        responses = self.organizations.dir_to_ou(self.path, False)
         self._create_response_object(responses)
 
     def fetch_accounts_for_target(self):
