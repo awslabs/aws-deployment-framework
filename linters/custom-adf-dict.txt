@@ -1,5 +1,4 @@
 !blacklist
-!master
 !whitelist
 adf
 adfconfig
