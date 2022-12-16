@@ -1,22 +1,30 @@
 # User Guide
 
-- [Deployment Map](#deployment-map)
-  - [Providers](#providers)
-  - [Targets Syntax](#targets-syntax)
-  - [Params](#params)
-  - [Repositories](#repositories)
-  - [Completion Triggers](#completion-triggers)
-  - [Additional Deployment Maps](#additional-deployment-maps)
-  - [Removing Pipelines](#removing-pipelines)
-- [Deploying via Pipelines](#deploying-via-pipelines)
-  - [BuildSpec](#buildspec)
-  - [Parameters and Tagging](#cloudformation-parameters-and-tagging)
-  - [Serverless Transforms](#serverless-transforms)
-  - [Parameter Injection](#parameter-injection)
-  - [Nested Stacks](#nested-cloudformation-stacks)
-  - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
-  - [Using Anchors and Alias](#using-anchors-and-alias)
-  - [One to many Relationships](#one-to-many-relationships)
+- [User Guide](#user-guide)
+  - [Deployment Map](#deployment-map)
+      - [Targeting via Tags](#targeting-via-tags)
+    - [Important Notes](#important-notes)
+      - [Zero-prefixed AWS Account Ids](#zero-prefixed-aws-account-ids)
+    - [Providers](#providers)
+    - [Targets Syntax](#targets-syntax)
+    - [Params](#params)
+    - [Completion Triggers](#completion-triggers)
+    - [Additional Deployment Maps](#additional-deployment-maps)
+    - [Repositories](#repositories)
+    - [Removing Pipelines](#removing-pipelines)
+  - [Deploying via Pipelines](#deploying-via-pipelines)
+    - [BuildSpec](#buildspec)
+      - [Custom Build Images](#custom-build-images)
+    - [CloudFormation Parameters and Tagging](#cloudformation-parameters-and-tagging)
+    - [Serverless Transforms](#serverless-transforms)
+    - [Parameter Injection](#parameter-injection)
+      - [Retrieving parameter values](#retrieving-parameter-values)
+      - [Importing output values](#importing-output-values)
+      - [Uploading assets](#uploading-assets)
+    - [Nested CloudFormation Stacks](#nested-cloudformation-stacks)
+    - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
+    - [Using Anchors and Alias](#using-anchors-and-alias)
+    - [One to many relationships](#one-to-many-relationships)
 
 ## Deployment Map
 
@@ -50,6 +58,7 @@ pipelines:
     targets:
       - path: /security
         regions: eu-west-1
+        recursively_resolve_ou: False # Accounts in sub-ou will not be included as targets, direct children accounts only.
       - approval # This is a shorthand example of an approval step within a pipeline
       - /banking/testing # This is a shorthand example of a step within a pipeline targeting an OU
 
@@ -67,6 +76,21 @@ pipelines:
     targets:
       - path: /banking/testing
         name: fancy-name #Optional way to pass a name for this stage in the pipeline
+
+  - name: security
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111112233332 # The AWS Account where the source code will be in a CodeCommit Repository
+    params:
+        notification_endpoint: janes_team@doe.com # Optional
+    tags:
+      foo: bar # Pipelines support tagging
+    targets:
+      - path: /Root # The whole organization
+        regions: eu-west-1
+        recursively_resolve_ou: True # Accounts in sub-ou willbe included as targets
 ```
 
 In the above example we are creating two pipelines with AWS CodePipeline. The first one will deploy from a repository named **iam** that lives in the account **123456789101**. This CodeCommit Repository will automatically be created by default in the 123456789101 AWS Account if it does not exist. The automatic repository creation occurs if you enable `'auto-create-repositories'` (which is enabled by default). The `iam` pipeline will use AWS CodeCommit as its source and deploy in 3 steps. The first stage of the deployment will occur against all AWS Accounts that are in the `/security` Organization unit and be targeted to the `eu-west-1` region. After that, there is a manual approval phase which is denoted by the keyword `approval`. The next step will be targeted to the accounts within the `/banking/testing` OU *(in your default deployment account region)* region. By providing a simple path without a region definition it will default to the region chosen as the deployment account region in your [adfconfig](./admin-guide/adfconfig.yml). Any failure during the pipeline will cause it to halt.
@@ -187,6 +211,7 @@ targets:
     name: production_step
     provider: ...
     properties: ...
+    resolve_ou_recursively: True|False # If yes, sub-ous will be explored recursively.
 ```
 
 ### Params
