@@ -1197,10 +1197,11 @@ Resources:
                     "Retry": [
                       {
                         "ErrorEquals": [
-                          "States.TaskFailed"
+                          "States.TaskFailed",
+                          "ClientError"
                         ],
-                        "BackoffRate": 1.1,
-                        "IntervalSeconds": 1,
+                        "BackoffRate": 2,
+                        "IntervalSeconds": 2,
                         "MaxAttempts": 10
                       }, {
                         "ErrorEquals": [
