@@ -1,7 +1,7 @@
 """
 Pipeline Management Lambda Function
 Creates or Updates an Event Rule for forwarding events
-If the source account != the Deplyment account
+If the source account != the Deployment account
 """
 
 import os

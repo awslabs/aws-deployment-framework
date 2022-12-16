@@ -1067,10 +1067,10 @@ please replace:
 
 - the account ids with simple account ids like: `111111111111`, `222222222222`,
   etc.
-- the organization id with a simple one, `o-theorgid`.
+- the organization id with a simple one, `o-aa111bb222`.
 - the organization unit identifiers and names.
 - the email addresses by hiding them behind
-  `--some-notifcation-email-address--`.
+  `--some-notification-email-address--`.
 - the Slack channel identifier and SNS topics configured with simplified ones.
 - the cross-account access role with the default
   `OrganizationAccountAccessRole`.

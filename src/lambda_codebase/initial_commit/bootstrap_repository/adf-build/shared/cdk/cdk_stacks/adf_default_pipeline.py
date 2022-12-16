@@ -79,11 +79,11 @@ def generate_adf_default_pipeline(scope: core.Stack, stack_input):
                 trigger_config=trigger_config,
             )
 
-    needs_chatbot_nofications = (
+    needs_chatbot_notifications = (
         isinstance(notification_config, dict)
         and notification_config.get('type', '') == 'chat_bot'
     )
-    if needs_chatbot_nofications:
+    if needs_chatbot_notifications:
         adf_chatbot.PipelineNotifications(
             scope,
             "adf_chatbot_notifications",
