@@ -195,10 +195,10 @@ class Organizations: # pylint: disable=R0904
         p = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
-        while p:
-            if p[0] == 'Root':
-                break 
+        if p[0] == 'Root':
+            return self.get_accounts_for_parent(ou_id, recursive)
 
+        while p:
             for ou in self.get_child_ous(ou_id):
                 if ou['Name'] == p[0]:
                     p.pop(0)
