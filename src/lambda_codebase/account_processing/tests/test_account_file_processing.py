@@ -10,50 +10,50 @@ class SuccessTestCase(unittest.TestCase):
     def test_process_account_when_account_exists(self):
         test_account = {
             "alias": "MyCoolAlias",
-            "account_full_name": "mytestaccountname",
+            "account_full_name": "myTestAccountName",
         }
-        account_lookup = {"mytestaccountname": 123456789012}
+        account_lookup = {"myTestAccountName": 123456789012}
         self.assertDictEqual(
             process_account(account_lookup, test_account),
             {
                 "alias": "MyCoolAlias",
-                "account_full_name": "mytestaccountname",
+                "account_full_name": "myTestAccountName",
                 "account_id": 123456789012,
                 "needs_created": False,
             }
         )
 
-    def test_process_account_when_account_doesnt_exist(self):
+    def test_process_account_when_account_does_not_exist(self):
         test_account = {
             "alias": "MyCoolAlias",
-            "account_full_name": "mytestaccountname",
+            "account_full_name": "myTestAccountName",
         }
-        account_lookup = {"mydifferentaccount": 123456789012}
+        account_lookup = {"myDifferentAccount": 123456789012}
         self.assertDictEqual(
             process_account(account_lookup, test_account),
             {
                 "alias": "MyCoolAlias",
-                "account_full_name": "mytestaccountname",
+                "account_full_name": "myTestAccountName",
                 "needs_created": True,
             }
         )
 
     def test_process_account_list(self):
-        all_accounts = [{"Name": "mytestaccountname", "Id": 123456789012}]
+        all_accounts = [{"Name": "myTestAccountName", "Id": 123456789012}]
         accounts_in_file = [
-            {"account_full_name": "mytestaccountname"},
-            {"account_full_name": "mynewaccountname"},
+            {"account_full_name": "myTestAccountName"},
+            {"account_full_name": "myNewAccountName"},
         ]
         self.assertListEqual(
             process_account_list(all_accounts, accounts_in_file),
             [
                 {
-                    "account_full_name": "mytestaccountname",
+                    "account_full_name": "myTestAccountName",
                     "needs_created": False,
                     "account_id": 123456789012,
                 },
                 {
-                    "account_full_name": "mynewaccountname",
+                    "account_full_name": "myNewAccountName",
                     "needs_created": True,
                 },
             ],

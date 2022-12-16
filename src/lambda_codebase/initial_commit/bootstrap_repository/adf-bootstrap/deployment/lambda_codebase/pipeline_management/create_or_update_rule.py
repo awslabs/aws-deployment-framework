@@ -32,7 +32,7 @@ def lambda_handler(pipeline, _):
     if not _cache:
         _cache = Cache()
         METRICS.put_metric_data(
-            {"MetricName": "CacheInitalised", "Value": 1, "Unit": "Count"}
+            {"MetricName": "CacheInitalized", "Value": 1, "Unit": "Count"}
         )
 
     LOGGER.info(pipeline)
