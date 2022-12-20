@@ -305,7 +305,7 @@ Provider type: `codebuild`.
   If you wish to pass in a custom Buildspec file that is within the
   repository. This is useful for custom deploy type actions where CodeBuild
   will perform the execution of the commands. Path is relational to the
-  root of the repository, so `build/buidlspec.yml` refers to the
+  root of the repository, so `build/buildspec.yml` refers to the
   `buildspec.yml` stored in the `build` directory of the repository.
 
   In case CodeBuild is used as a deployment provider, the default BuildSpec
