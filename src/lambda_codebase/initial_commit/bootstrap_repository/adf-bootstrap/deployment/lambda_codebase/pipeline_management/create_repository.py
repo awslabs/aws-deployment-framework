@@ -23,8 +23,8 @@ def lambda_handler(pipeline, _):
     """Main Lambda Entry point"""
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     auto_create_repositories = parameter_store.fetch_parameter(
-                "auto_create_repositories"
-            )
+        "auto_create_repositories"
+    )
     LOGGER.info(auto_create_repositories)
     if auto_create_repositories == "enabled":
         code_account_id = (
@@ -46,11 +46,17 @@ def lambda_handler(pipeline, _):
             and not has_custom_repo
         ):
             repo = Repo(
-                code_account_id, pipeline.get("name"), pipeline.get("description")
+                code_account_id,
+                pipeline.get("name"),
+                pipeline.get("description"),
             )
             repo.create_update()
             METRICS.put_metric_data(
-                {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
+                {
+                    "MetricName": "CreateOrUpdate",
+                    "Value": 1,
+                    "Unit": "Count",
+                }
             )
 
     return pipeline

@@ -28,11 +28,11 @@ Resources:
               AWS:
                 - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
-                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-provisioner-generate-inputs"
             Action:
               - sts:AssumeRole
       Path: /
+
   OrganizationsReadOnlyPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -47,10 +47,12 @@ Resources:
               - organizations:DescribeAccount
               - organizations:ListOrganizationalUnitsForParent
               - organizations:ListRoots
+              - organizations:ListChildren
               - tag:GetResources
             Resource: "*"
       Roles:
         - !Ref OrganizationsReadOnlyRole
+
   OrganizationsRole:
     # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Role
@@ -110,7 +112,7 @@ Resources:
               - iam:GetRole
               - iam:GetRolePolicy
               - iam:DeleteRole
-              - iam:TagResource
+              - iam:TagRole
               - iam:PutRolePolicy
               - iam:DeleteRolePolicy
             Resource:
@@ -120,5 +122,6 @@ Resources:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
       Roles:
         - !Ref OrganizationsRole

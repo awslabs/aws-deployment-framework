@@ -106,23 +106,23 @@ class OUPathsHappyTestCases(unittest.TestCase):
             ]
         }
 
-        list_organisational_units_for_root_response = {
+        list_organizational_units_for_root_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-123456", "Arn": "", "Name": "production"}
             ]
         }
 
-        list_organisational_units_for_production_response = {
+        list_organizational_units_for_production_response = {
             "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
         }
 
-        list_organisational_units_for_banking_response = {
+        list_organizational_units_for_banking_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-09092022", "Arn": "", "Name": "investment"}
             ]
         }
 
-        list_organisational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -185,12 +185,12 @@ class OUPathsHappyTestCases(unittest.TestCase):
         org_stubber.add_response("list_roots", list_roots_response)
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_root_response,
+            list_organizational_units_for_root_response,
             {"ParentId": "r-1337"},
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_production_response,
+            list_organizational_units_for_production_response,
             {"ParentId": "ou-123456"},
         )
         org_stubber.add_response(
@@ -205,7 +205,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_banking_response,
+            list_organizational_units_for_banking_response,
             {"ParentId": "ou-080922"},
         )
         org_stubber.add_response(
@@ -215,7 +215,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_investment_response,
+            list_organizational_units_for_investment_response,
             {"ParentId": "ou-09092022"},
         )
         org_stubber.add_response(
@@ -250,23 +250,23 @@ class OUPathsHappyTestCases(unittest.TestCase):
             ]
         }
 
-        list_organisational_units_for_root_response = {
+        list_organizational_units_for_root_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-123456", "Arn": "", "Name": "production"}
             ]
         }
 
-        list_organisational_units_for_production_response = {
+        list_organizational_units_for_production_response = {
             "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
         }
 
-        list_organisational_units_for_banking_response = {
+        list_organizational_units_for_banking_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-09092022", "Arn": "", "Name": "investment"}
             ]
         }
 
-        list_organisational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -337,12 +337,12 @@ class OUPathsHappyTestCases(unittest.TestCase):
         org_stubber.add_response("list_roots", list_roots_response)
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_root_response,
+            list_organizational_units_for_root_response,
             {"ParentId": "r-1337"},
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_production_response,
+            list_organizational_units_for_production_response,
             {"ParentId": "ou-123456"},
         )
         org_stubber.add_response(
@@ -357,7 +357,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_banking_response,
+            list_organizational_units_for_banking_response,
             {"ParentId": "ou-080922"},
         )
         org_stubber.add_response(
@@ -367,7 +367,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_investment_response,
+            list_organizational_units_for_investment_response,
             {"ParentId": "ou-09092022"},
         )
         org_stubber.add_response(
@@ -404,26 +404,26 @@ class OUPathsHappyTestCases(unittest.TestCase):
             ]
         }
 
-        list_organisational_units_for_root_response = {
+        list_organizational_units_for_root_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-123456", "Arn": "", "Name": "production"}
             ]
         }
 
-        list_organisational_units_for_production_response = {
+        list_organizational_units_for_production_response = {
             "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
         }
 
-        list_organisational_units_for_banking_response = {
+        list_organizational_units_for_banking_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-09092022", "Arn": "", "Name": "investment"},
                 {"Id": "ou-26092022", "Arn": "", "Name": "commercial"},
             ]
         }
 
-        list_organisational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
 
-        list_organisational_units_for_commercial_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_commercial_response = {"OrganizationalUnits": []}
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -507,12 +507,12 @@ class OUPathsHappyTestCases(unittest.TestCase):
         org_stubber.add_response("list_roots", list_roots_response)
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_root_response,
+            list_organizational_units_for_root_response,
             {"ParentId": "r-1337"},
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_production_response,
+            list_organizational_units_for_production_response,
             {"ParentId": "ou-123456"},
         )
         org_stubber.add_response(
@@ -527,7 +527,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
         )
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_banking_response,
+            list_organizational_units_for_banking_response,
             {"ParentId": "ou-080922"},
         )
 
@@ -539,7 +539,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
 
         org_stubber.add_response(
             "list_organizational_units_for_parent",
-            list_organisational_units_for_commercial_response,
+            list_organizational_units_for_commercial_response,
             {"ParentId": "ou-26092022"},
         )
 

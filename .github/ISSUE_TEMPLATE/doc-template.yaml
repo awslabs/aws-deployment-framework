@@ -1,0 +1,29 @@
+---
+name: "📕 Documentation Issue"
+description: Report an issue in the documentation
+title: "[Docs]: <insert description>"
+labels: [docs]
+assignees: []
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the documentation issue
+      description: A clear and concise description of the documentation issue.
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: |
+        Include links to affected documentation page(s).
+    validations:
+      required: true
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I may be able to submit a pull-request to fix this issue.
+          required: false

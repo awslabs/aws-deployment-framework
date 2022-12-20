@@ -1,7 +1,7 @@
 """
 Pipeline Management Lambda Function
 Creates or Updates an Event Rule for forwarding events
-If the source account != the Deplyment account
+If the source account != the Deployment account
 """
 
 import os
@@ -32,27 +32,25 @@ def lambda_handler(pipeline, _):
     if not _cache:
         _cache = Cache()
         METRICS.put_metric_data(
-            {"MetricName": "CacheInitalised", "Value": 1, "Unit": "Count"}
+            {"MetricName": "CacheInitialized", "Value": 1, "Unit": "Count"}
         )
 
     LOGGER.info(pipeline)
 
-    _source_account_id = (
+    source_account_id = (
         pipeline.get("default_providers", {})
         .get("source", {})
         .get("properties", {})
         .get("account_id", {})
     )
     if (
-        _source_account_id
-        and int(_source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
-        and not _cache.check(_source_account_id)
+        source_account_id
+        and int(source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
+        and not _cache.exists(source_account_id)
     ):
-        rule = Rule(pipeline["default_providers"]["source"]["properties"]["account_id"])
+        rule = Rule(source_account_id)
         rule.create_update()
-        _cache.add(
-            pipeline["default_providers"]["source"]["properties"]["account_id"], True
-        )
+        _cache.add(source_account_id, True)
         METRICS.put_metric_data(
             {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
         )

@@ -9,14 +9,14 @@ from schema import Schema
 
 class NotificationSchemaValidationHappyPaths(unittest.TestCase):
     def test_notification_props_schema_lambda(self):
-        notification_props = {"target": "mycooltarget", "type": "lambda"}
+        notification_props = {"target": "my_cool_target", "type": "lambda"}
         self.assertDictEqual(
             Schema(schema_validation.NOTIFICATION_PROPS).validate(notification_props),
             notification_props,
         )
 
     def test_notification_props_schema_chatbot(self):
-        notification_props = {"target": "mycooltarget", "type": "chat_bot"}
+        notification_props = {"target": "my_cool_target", "type": "chat_bot"}
         self.assertDictEqual(
             Schema(schema_validation.NOTIFICATION_PROPS).validate(notification_props),
             notification_props,

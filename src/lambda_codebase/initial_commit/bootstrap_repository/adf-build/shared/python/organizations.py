@@ -37,7 +37,7 @@ class Organizations:  # pylint: disable=R0904
     ):
         if role:
             LOGGER.warning(
-                "Using a role in the organisations client is being deprecated. Please provide the relevant clients to remove this warning"
+                "Using a role in the organizations client is being deprecated. Please provide the relevant clients to remove this warning"
             )
         if not role:
             if not org_client:
@@ -296,9 +296,12 @@ class Organizations:  # pylint: disable=R0904
         # While not at the root of the Organization
         while current.get("Type") != "ROOT":
             # check cache for ou name of id
-            if not cache.check(current.get("Id")):
-                cache.add(current.get("Id"), self.describe_ou_name(current.get("Id")))
-            ou_name = cache.check(current.get("Id"))
+            if not cache.exists(current.get("Id")):
+                cache.add(
+                    current.get("Id"),
+                    self.describe_ou_name(current.get("Id")),
+                )
+            ou_name = cache.get(current.get("Id"))
             account_path.append(ou_name)
             return self.build_account_path(current.get("Id"), account_path, cache)
         return Organizations.determine_ou_path(
