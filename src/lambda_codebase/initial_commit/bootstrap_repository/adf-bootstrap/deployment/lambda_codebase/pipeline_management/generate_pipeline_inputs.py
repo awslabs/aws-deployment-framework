@@ -21,7 +21,11 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
 
 
-def store_regional_parameter_config(pipeline, parameter_store, deployment_map_source):
+def store_regional_parameter_config(
+    pipeline,
+    parameter_store,
+    deployment_map_source,
+):
     """
     Responsible for storing the region information for specific
     pipelines. These regions are defined in the deployment_map
@@ -41,21 +45,36 @@ def store_regional_parameter_config(pipeline, parameter_store, deployment_map_so
     )
 
 
-def fetch_required_ssm_params(regions):
+def fetch_required_ssm_params(pipeline_input, regions):
     output = {}
     for region in regions:
         parameter_store = ParameterStore(region, boto3)
         output[region] = {
             "s3": parameter_store.fetch_parameter(
-                f"/cross_region/s3_regional_bucket/{region}"
+                f"/cross_region/s3_regional_bucket/{region}",
             ),
-            "kms": parameter_store.fetch_parameter(f"/cross_region/kms_arn/{region}"),
+            "kms": parameter_store.fetch_parameter(
+                f"/cross_region/kms_arn/{region}",
+            ),
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
             output[region]["modules"] = parameter_store.fetch_parameter(
                 "deployment_account_bucket"
             )
-            output['default_scm_branch'] = parameter_store.fetch_parameter('default_scm_branch')
+            output['default_scm_branch'] = parameter_store.fetch_parameter(
+                'default_scm_branch',
+            )
+            codestar_connection_path = (
+                pipeline_input
+                .get('default_providers', {})
+                .get('source')
+                .get('properties', {})
+                .get('codestar_connection_path', {})
+            )
+            if codestar_connection_path:
+                output['codestar_connection_arn'] = (
+                    parameter_store.fetch_parameter(codestar_connection_path)
+                )
     return output
 
 
@@ -84,9 +103,12 @@ def generate_pipeline_inputs(pipeline, organizations, parameter_store):
         # Targets should be a list of lists.
 
         # Note: This is a big shift away from how ADF handles targets natively.
-        # Previously this would be a list of [accountId(s)] it now returns a list of [[account_ids], [account_ids]]
-        # for the sake of consistency we should probably think of a target consisting of multiple "waves". So if you see
-        # any reference to a wave going forward it will be the individual batch of account ids
+        # Previously this would be a list of [accountId(s)] it now returns a
+        # list of [[account_ids], [account_ids]].
+        #
+        # For the sake of consistency we should probably think of a target
+        # consisting of multiple "waves". So if you see any reference to
+        # a wave going forward it will be the individual batch of account ids.
         pipeline_object.template_dictionary["targets"].append(
             list(target_structure.generate_waves()),
         )
@@ -96,11 +118,22 @@ def generate_pipeline_inputs(pipeline, organizations, parameter_store):
 
     pipeline_object.generate_input()
     data["ssm_params"] = fetch_required_ssm_params(
+        pipeline_object.input,
         pipeline_object.input["regions"] or [DEPLOYMENT_ACCOUNT_REGION]
     )
     data["input"] = pipeline_object.input
-    data['input']['default_scm_branch'] = data["ssm_params"].get('default_scm_branch')
-    store_regional_parameter_config(pipeline_object, parameter_store, pipeline.get("deployment_map_source"))
+    if 'codestar_connection_arn' in data["ssm_params"]:
+        data['input']['default_providers']['source']['properties'][
+            'codestar_connection_arn'
+        ] = data["ssm_params"]['codestar_connection_arn']
+    data['input']['default_scm_branch'] = data["ssm_params"].get(
+        'default_scm_branch',
+    )
+    store_regional_parameter_config(
+        pipeline_object,
+        parameter_store,
+        pipeline.get("deployment_map_source"),
+    )
     return data
 
 
@@ -108,8 +141,14 @@ def lambda_handler(pipeline, _):
     """Main Lambda Entry point"""
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     sts = STS()
+    cross_account_role_name = parameter_store.fetch_parameter(
+        "cross_account_access_role",
+    )
     role = sts.assume_cross_account_role(
-        f'arn:{get_partition(DEPLOYMENT_ACCOUNT_REGION)}:iam::{ROOT_ACCOUNT_ID}:role/{parameter_store.fetch_parameter("cross_account_access_role")}-readonly',
+        (
+            f'arn:{get_partition(DEPLOYMENT_ACCOUNT_REGION)}:iam::'
+            f'{ROOT_ACCOUNT_ID}:role/{cross_account_role_name}-readonly'
+        ),
         "pipeline",
     )
     organizations = Organizations(role)

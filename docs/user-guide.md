@@ -26,6 +26,11 @@
     - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
     - [Using YAML Anchors and Aliases](#using-yaml-anchors-and-aliases)
     - [One to many relationships](#one-to-many-relationships)
+    - [Terraform pipeline](#terraform-pipeline)
+      - [Prerequisites](#prerequisites)
+      - [Overview](#overview)
+      - [Parameters](#parameters)
+      - [Deployment procedure](#deployment-procedure)
 
 ## Deployment Map
 
@@ -72,7 +77,7 @@ pipelines:
     params:
       notification_endpoint: janes_team@example.com  # Optional
     tags:
-      foo: bar # Pipelines support tagging
+      foo: bar  # Pipelines support tagging
     targets:
       - path: /security
         regions: eu-west-1
@@ -100,7 +105,7 @@ pipelines:
       notification_endpoint: joes_team@example.com
     targets:
       - path: /banking/testing
-        name: fancy-name #Optional way to pass a name for this stage in the pipeline
+        name: fancy-name  # Optional way to pass a name for this stage in the pipeline
 ```
 
 In the above example we are creating two pipelines with AWS CodePipeline. The
@@ -246,7 +251,7 @@ targets:
 targets:
   - target: 9999999999 # Target and Path keys can be used interchangeably
     regions: eu-west-1
-    name: my-special-account # Defaults to adf-cloudformation-deployment-role
+    name: my-special-account  # Defaults to adf-cloudformation-deployment-role
     # If you intend to override the provider for this stage
     # (see providers guide for available providers)
     provider: some_provider
@@ -365,7 +370,7 @@ pipelines:
     triggers:
       on_complete:
         pipelines:
-          - my-web-app-pipeline # Start this pipeline
+          - my-web-app-pipeline  # Start this pipeline
 
   - name: my-web-app-pipeline
     default_providers:
@@ -396,7 +401,7 @@ pipelines:
     # and what should be triggered when it completes
     completion_triggers:
       pipelines:
-        - my-web-app-pipeline # Start this pipeline
+        - my-web-app-pipeline  # Start this pipeline
 
   - name: my-web-app-pipeline
     # Same configuration as defined above.
@@ -546,7 +551,7 @@ pipelines:
         provider: codebuild
         image:
           repository_arn: arn:aws:ecr:region:111111111111:repository/test
-          tag: latest # optional (defaults to latest)
+          tag: latest  # optional (defaults to latest)
     targets:
       - # ...
 ```
@@ -913,7 +918,7 @@ main `template.yml` in our like so:
   MyStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: another_template.yml # file path to the nested stack template
+      TemplateURL: another_template.yml  # file path to the nested stack template
 ```
 
 When the `package_transform.sh` command is executed, the file will be packaged
@@ -1034,3 +1039,161 @@ By passing in the Repository name *(repository)* we are overriding the
 **name** property which normally is the name of our associated repository.
 This will tie both of these pipelines to the single *sample-vpc* repository on
 the `111111111111` AWS Account.
+
+### Terraform pipeline
+
+#### Prerequisites
+
+To enable ADF Terraform extension the following steps are required:
+
+- Enable ADF Terraform extension. Set the parameter
+  `extensions > terraform > enabled` to `True` in the `adfconfig.yml` file,
+  as shown in the `example-adfconfig.yml`, to deploy all the necessary
+  resources.
+- Rename file `example-global-iam.yml` to `global-iam.yml` in the following
+  path `aws-deployment-framework-bootstrap/adf-bootstrap/` and ensure the
+  CloudFormation resources `ADFTerraformRole` and `ADFTerraformPolicy` are
+  no longer commented out.
+- Rename file `example-global-iam.yml` to `global-iam.yml` in the following
+  path `aws-deployment-framework-bootstrap/adf-bootstrap/deployment`
+  **Please note:** the use of `deployment` at the end)
+  and ensure the CloudFormation resources `ADFTerraformRole` and
+  `ADFTerraformPolicy` are no longer commented out.
+
+**Important note**: `ADFTerraformPolicy` IAM policy is a sample.
+This policies should **NOT** be used for purposes other than testing.
+You should scope this policy depending on what you would like to deploy
+using Terraform within the selected Organizational Units.
+
+#### Overview
+
+ADF support the deployment of Terraform code to multiple accounts and
+regions through Terraform pipelines. The module consists of four build
+stages defined in the following CodeBuild build specification:
+
+- `buildspec.yml`: install the version of Terraform specified in the
+  pipeline configuration.
+- `tf_scan.yml`: (optional) scans for vulnerabilities in the Terraform
+  code using the [Terrascan](https://github.com/accurics/terrascan)
+  application. If vulnerabilities are found, it will fail and block
+  further execution in the pipeline. It is recommended to enable this
+  step in all ADF Terraform pipelines.
+- `tf_plan.yml`: get the list of accounts from the organization and
+  run a Terraform plan.
+- `tf_apply.yml`: get the list of accounts from the organization and
+  run a Terraform plan and apply.
+
+An optional approval step could be added between plan and apply as
+shown in the pipeline definition below.
+
+Please look into the [sample-terraform](../samples/sample-terraform)
+pipeline for more details in the setup and integration.
+
+#### Parameters
+
+- `TERRAFORM_VERSION`: the Terraform version used to deploy the
+  resource. This parameter must be defined in the `buildspec.yml`
+  file of the repository.
+- `TARGET_ACCOUNTS`: comma separated list of target accounts.
+- `TARGET_OUS`: comma separated list of target leaf OUs (parent
+  OUs are supported).
+- `REGIONS`: comma separated list of target regions. If this parameter
+  is empty, the main ADF region is used.
+- `MANAGEMENT_ACCOUNT_ID`: id of the AWS Organizations management account.
+
+#### Deployment procedure
+
+Example Terraform deployment map:
+
+```yaml
+- name: sample-terraform
+  default_providers:
+    source:
+      provider: codecommit
+      properties:
+        account_id: 111111111111  # Source account id
+    build:
+      provider: codebuild
+    deploy:
+      provider: codebuild
+      properties:
+        image: "STANDARD_5_0"
+        environment_variables:
+          TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
+          TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
+          MANAGEMENT_ACCOUNT_ID: 333333333333  # Billing account
+          # Target regions, as a comma separated list is supported
+          # For example, "eu-west-1,us-east-1".
+          REGIONS: eu-west-1
+  targets:
+    - name: terraform-scan  # optional
+      properties:
+        spec_filename: tf_scan.yml  # Terraform scan
+    - name: terraform-plan
+      properties:
+        spec_filename: tf_plan.yml  # Terraform plan
+    - approval  # manual approval
+    - name: terraform-apply
+      properties:
+        spec_filename: tf_apply.yml  # Terraform apply
+```
+
+1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.
+2. Add the project name in `params/global.yml` file.
+3. Add Terraform code to the `tf` folder. **Please note**: Do not make changes
+   to `backend.tf` file and `main.tf` in the root folder of the sample.
+   These contain the definition of the remote state file location and the
+   Terraform provider definition. Any change to these files could disrupt
+   the standard functionalities of this module.
+4. Add variable definition to `tf/variables.tf` file and variable values to
+   `tfvars/global.auto.tfvars`.
+
+   - Local variables (per account) can be configured using the following
+     naming convention
+
+     ```txt
+     tfvars <-- This folder contains the structure to define Terraform
+     │          variables
+     │
+     └───global.auto.tfvars <-- this file contains global variables applied to
+     │                          all the target accounts
+     │
+     └───111111111111 <-- this folders contains variable files related to
+     │   │                the account
+     │   └──────│   local.auto.tfvars <-- this file contains variables related
+     │          │                         to the account
+     │
+     └───222222222222
+         └──────│   local.auto.tfvars
+     ```
+
+5. Define the desired `TERRAFORM_VERSION` in the `buildspec.yml` file as shown
+   in the sample-terraform example. ADF supports Terraform version v0.13.0 and
+   later.
+6. Push to your Terraform ADF repository, for example the sample-terraform one.
+7. Pipeline contains a manual approval step between Terraform plan and
+   Terraform apply. Confirm to proceed.
+
+Terraform state files are stored in the regional S3 buckets in the deployment
+account. One state file per account/region/module is created.
+
+e.g.
+
+- Project name: sample-tf-module
+- Target accounts: 111111111111, 222222222222
+- Target regions: eu-west-1 (main ADF region), us-east-1
+
+The following state files are created:
+
+- 111111111111 main region (eu-west-1)
+  -> `adf-global-base-deployment-pipeline-bucket-xyz/sample-tf-module/111111111111.tfstate`
+- 111111111111 secondary region (us-east-1)
+  -> `adf-regional-base-deploy-deployment-framework-region-jsm/sample-tf-module/111111111111.tfstate`
+- 222222222222 main region (eu-west-1)
+  -> `adf-global-base-deployment-pipeline-bucket-xyz/sample-tf-module/222222222222.tfstate`
+- 222222222222 secondary region (us-east-1)
+  -> `adf-regional-base-deploy-deployment-framework-region-jsm/sample-tf-module/222222222222.tfstate`
+
+A DynamoDB table is created to manage the lock of the state file. It is
+deployed in every ADF regions named `adf_locktable`. **Please note**: usage
+of this locking table is charged on the deployment account.

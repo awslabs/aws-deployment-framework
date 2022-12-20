@@ -209,7 +209,7 @@ def main():
         need_to_create_rules = (
             source_account_id
             and int(source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
-            and not cache.check(source_account_id)
+            and not cache.exists(source_account_id)
         )
         if need_to_create_rules:
             rule = Rule(source_account_id)

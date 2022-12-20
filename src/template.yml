@@ -30,48 +30,73 @@ Parameters:
   CrossAccountAccessRoleName:
     Type: String
     Default: OrganizationAccountAccessRole
+    AllowedPattern: "[a-zA-Z0-9_+=,.@\\-]+"
 
   MainNotificationEndpoint:
     Type: String
     Default: ""
-    Description: "Example -> jane@example.com"
+    Description: >-
+      Example -> jane@example.com. (Only required when installing ADF for the
+      first time.)
 
   DeploymentAccountName:
     Type: String
     Default: ""
-    Description: "The name of the new or existing deployment account"
+    AllowedPattern: "[\\s\\S]*"
+    MinLength: 0
+    MaxLength: 50
+    Description: >-
+      The name of the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountEmailAddress:
     Type: String
     Default: ""
-    Description: "The email address for the new or existing deployment account"
+    Description: >-
+      The email address for the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountAlias:
     Type: String
     Default: ""
-    Description: "(Optional) Example -> companyname-deployment (must be globally unique)"
+    AllowedPattern: "([a-z0-9](([a-z0-9]|-(?!-))*[a-z0-9])?)?"
+    MinLength: 0
+    MaxLength: 63
+    Description: >-
+      Example -> companyname-deployment (Must be globally unique. Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountId:
     Type: String
+    AllowedPattern: "(\\d{12})?"
     Default: ""
     Description: >-
-      Example -> 123456789012  (Only required if you have an existing AWS Account
-      that you wish to use as the deployment account.)
+      Example -> 123456789012  (Only supported when installing ADF for the first time
+      and you have an existing AWS Account that you wish to use as the deployment
+      account. Leave blank otherwise.)
 
   DeploymentAccountMainRegion:
     Type: String
-    Default: ""
+    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa)-(central|(north|south)?(east|west)?)-\\d"
+    MinLength: 6
     Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
     Default: ""
-    Description: "(Optional) Example -> us-east-1, us-west-1, eu-west-3"
+    Description: >-
+      (Optional) Example -> us-east-1, us-west-1, eu-west-3. (Only supported when
+      installing ADF for the first time. If you would like to update this later,
+      please look at the adfconfig.yml file in the aws-deployment-framework-bootstrap
+      repository.)
 
   ProtectedOUs:
-    Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
+    Description: >-
+      (Optional) Example -> ou-123,ou-234 (Only supported when installing ADF for
+      the first time. If you would like to update this later, please look at the
+      adfconfig.yml file in the aws-deployment-framework-bootstrap repository.)
 
   LogLevel:
     Description: >-
@@ -981,7 +1006,7 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
-      Timeout: 600
+      Timeout: 900
 
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
@@ -1049,7 +1074,7 @@ Resources:
             - MoveAccount
       Targets:
         - Arn: !Ref AccountBootstrappingStateMachine
-          RoleArn: !GetAtt StatesExecutionRole.Arn
+          RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
   CodeCommitRole:
@@ -1171,6 +1196,12 @@ Resources:
             Resource: "*"
           - Effect: "Allow"
             Action:
+              - "states:ListExecutions"
+            Resource:
+              - !Ref AccountManagementStateMachine
+              - !Ref AccountBootstrappingStateMachine
+          - Effect: "Allow"
+            Action:
               - "cloudformation:CreateStack"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:DeleteStack"
@@ -1262,6 +1293,10 @@ Resources:
             Value: !GetAtt Organization.OrganizationId
           - Name: ADF_LOG_LEVEL
             Value: !Ref LogLevel
+          - Name: ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN
+            Value: !Ref AccountManagementStateMachine
+          - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
+            Value: !Ref AccountBootstrappingStateMachine
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
@@ -1274,7 +1309,7 @@ Resources:
                 python: 3.9
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt --quiet
+                - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:
@@ -1283,12 +1318,16 @@ Resources:
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
                     --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - python adf-build/store_config.py
                 # Shared Modules to be used with AWS CodeBuild:
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
                 # Base templates:
                 - aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 # Upload account files to the ACCOUNT_BUCKET
                 - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                # Sleep for 10 seconds so the state machine is able to kick start the processing
+                # of these newly uploaded files if any.
+                - sleep 10
                 # Updates config, updates (or creates) base stacks:
                 - python adf-build/main.py
         Type: CODEPIPELINE
@@ -1415,8 +1454,6 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - events.amazonaws.com
-                - lambda.amazonaws.com
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/aws-deployment-framework/account-bootstrapping/"
@@ -1428,7 +1465,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "lambda:InvokeFunction"
-                  - "states:StartExecution"
                 Resource:
                   - !GetAtt DetermineEventFunction.Arn
                   - !GetAtt CrossAccountExecuteFunction.Arn
@@ -1436,6 +1472,29 @@ Resources:
                   - !GetAtt StackWaiterFunction.Arn
                   - !GetAtt RoleStackDeploymentFunction.Arn
                   - !GetAtt UpdateResourcePoliciesFunction.Arn
+
+  AccountBootstrapStartExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/aws-deployment-framework/account-bootstrapping/"
+      Policies:
+        - PolicyName: "adf-start-state-machine"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource:
+                  - !Ref AccountBootstrappingStateMachine
 
   AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -1498,11 +1557,19 @@ Resources:
                   "MaxAttempts": 45
                 }, {
                   "ErrorEquals": [
+                    "AccountCreationNotFinishedError"
+                  ],
+                  "IntervalSeconds": 10,
+                  "BackoffRate": 1.1,
+                  "MaxAttempts": 45
+                }, {
+                  "ErrorEquals": [
                     "Lambda.Unknown",
                     "Lambda.ServiceException",
                     "Lambda.AWSLambdaException",
                     "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
+                    "Lambda.TooManyRequestsException",
+                    "States.Timeout"
                   ],
                   "IntervalSeconds": 2,
                   "BackoffRate": 2,
@@ -1517,7 +1584,7 @@ Resources:
                 }
               ],
               "Next": "WaitUntilBootstrapComplete",
-              "TimeoutSeconds": 600
+              "TimeoutSeconds": 900
             },
             "MovedToRootAction": {
               "Type": "Task",

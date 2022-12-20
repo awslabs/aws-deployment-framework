@@ -50,21 +50,12 @@ def get_current_pipelines(parameter_store):
 
 def identify_out_of_date_pipelines(pipeline_names, current_pipelines):
     return [
-        {"pipeline": f"{ADF_PIPELINE_PREFIX}{d}"}
-        for d in current_pipelines.difference(pipeline_names)
+        {
+            "full_pipeline_name": f"{ADF_PIPELINE_PREFIX}{name}",
+            "pipeline_name": name,
+        }
+        for name in current_pipelines.difference(pipeline_names)
     ]
-
-
-def delete_ssm_params(out_of_date_pipelines, parameter_store):
-    for pipeline in out_of_date_pipelines:
-        LOGGER.debug(
-            "Deleting SSM regions parameter of stale pipeline: /deployment/%s/regions - %s",
-            pipeline.get('name'),
-            pipeline,
-        )
-        parameter_store.delete_parameter(
-            f"{S3_BACKED_DEPLOYMENT_PREFIX}{pipeline.get('pipeline').removeprefix(ADF_PIPELINE_PREFIX)}/regions"
-        )
 
 
 def lambda_handler(event, _):
@@ -82,9 +73,9 @@ def lambda_handler(event, _):
         )
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     current_pipelines = {
-            parameter.get("Name").split("/")[-2]
-            for parameter in get_current_pipelines(parameter_store)
-        }
+        parameter.get("Name").split("/")[-2]
+        for parameter in get_current_pipelines(parameter_store)
+    }
 
     pipeline_names = {
         p.get("name") for p in deployment_map.map_contents["pipelines"]
@@ -92,7 +83,6 @@ def lambda_handler(event, _):
     out_of_date_pipelines = identify_out_of_date_pipelines(
         pipeline_names, current_pipelines
     )
-    delete_ssm_params(out_of_date_pipelines, parameter_store)
 
     output = {}
     if len(out_of_date_pipelines) > 0:

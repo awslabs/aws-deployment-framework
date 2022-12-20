@@ -26,7 +26,6 @@ Providers and Actions.
   - [Build](#build)
     - [CodeBuild](#codebuild)
       - [Properties](#properties-4)
-      - [Setup permissions for CodeBuild VPC usage](#setup-permissions-for-codebuild-vpc-usage)
     - [Jenkins](#jenkins)
       - [Properties](#properties-5)
   - [Deploy](#deploy)
@@ -211,6 +210,11 @@ Provider type: `codestar`.
     web hook as part of the pipeline. Read the CodeStar Connections
     documentation for more
     [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
+- *output_artifact_format* - *(String)* default: `CODE_ZIP`
+  - The output artifact format. Values can be either `CODEBUILD_CLONE_REF` or
+    `CODE_ZIP`. If unspecified, the default is `CODE_ZIP`.
+  - NB: The `CODEBUILD_CLONE_REF` value can only be used by CodeBuild
+    downstream actions.
 
 ## Build
 
@@ -279,6 +283,9 @@ Provider type: `codebuild`.
     pipeline. Alternatively, you can change the `adf-codebuild-role` with
     additional permissions and conditions in the `global-iam.yml` file as
     documented in the [User Guide](./user-guide.md).
+    **Please note:** Since the CodeBuild environment runs in the deployment
+    account, the role you specify will be assumed in and should be available
+    in the deployment account too.
 - *timeout* *(Number)* in minutes, default: `20`.
   - If you wish to define a custom timeout for the Build stage.
 - *privileged* *(Boolean)* default: `False`.
@@ -298,7 +305,7 @@ Provider type: `codebuild`.
   If you wish to pass in a custom Buildspec file that is within the
   repository. This is useful for custom deploy type actions where CodeBuild
   will perform the execution of the commands. Path is relational to the
-  root of the repository, so `build/buidlspec.yml` refers to the
+  root of the repository, so `build/buildspec.yml` refers to the
   `buildspec.yml` stored in the `build` directory of the repository.
 
   In case CodeBuild is used as a deployment provider, the default BuildSpec
@@ -363,57 +370,6 @@ Provider type: `codebuild`.
 
   An example of a list of `security_group_ids` is: `["sg-234567890abcdef01",
   "sg-cdef01234567890ab"]`
-
-#### Setup permissions for CodeBuild VPC usage
-
-When you want to configure CodeBuild to use a specific VPC, you can make use of
-the `vpc_id`, `subnet_ids`, and/or `security_group_ids` properties.
-
-However, before you do so, you need to make sure that ADF is allowed to deploy
-CodeBuild in the specific VPC that you want.
-
-You need to update the `aws-deployment-framework-bootstrap` repository once
-to grant it access to deploy. To grant access, follow these instructions
-closely:
-
-1. Open the `aws-deployment-framework-bootstrap` repository.
-2. Navigate to the `adf-bootstrap/deployment` folder.
-3. Check whether the following file exists inside that directory
-   `global-iam.yml`: The full path for this file in that repository would be
-   `adf-bootstrap/deployment/global-iam.yml`.
-4. If it does not exist, you need to create a copy of the
-   `example-global-iam.yml` that is stored inside that directory and store it
-   as `global-iam.yml`. You can comment out the `CloudFormationDeploymentPolicy`
-   block that is added by the example or tweak it to your needs.
-5. Compare the content of the `global-iam.yml` file against the
-   `example-global-iam.yml` file. The section that you are interested in starts
-   off with:
-
-   ```yaml
-   ##
-   # Begin of VPC CodeBuild support IAM permissions
-   ##
-   ```
-
-   Until the end is commented as:
-
-   ```yaml
-   ##
-   # End of VPC CodeBuild support IAM permissions
-   ##
-   ```
-
-   The `PipelineProvisionerResourcePolicy` and `CodeBuildResourcePolicy`
-   resources should be listed and configured to allow the use of VPCs in the
-   CodeBuild provider deployed by ADF. Ensure these are not commented out and
-   match same IAM policy as defined in the `example-global-iam.yml` file.
-
-6. If necessary, commit the changes you made to the repository and have them
-   peer reviewed and merged into the main branch of the
-   `aws-deployment-framework-bootstrap` repository.
-7. You should be allowed to use VPCs in CodeBuild once the
-   `aws-deployment-framework-bootstrap` pipeline finished deploying your
-   changes.
 
 ### Jenkins
 
@@ -548,6 +504,16 @@ Provider type: `cloudformation`.
     file name to use allows you to generate multiple templates, where a specific
     template is used according to its specific target environment. For example:
     `template_prod.yml` for production stages.
+- *param_filename* - *(String)* default: `${target_account_name}_${target_region}.yml`.
+  - The name of the CloudFormation Parameter file to use. Changing the
+    parameter file name to use allows you to generate a single parameter file
+    that is shared between many when required.
+    The parameter file is read from inside the `${root_dir}/params/` folder.
+    **Please note:** Setting this parameter will **not** change the behavior
+    of the generate_params.py script. It is recommended to copy the generated
+    template that you would like to reuse after running generate_params.py
+    and use the name of the copied file as the configuration here when
+    required.
 - *root_dir* - *(String)* default to empty string.
   - The root directory in which the CloudFormation template and `params`
     directory reside. Example, when the CloudFormation template is stored in

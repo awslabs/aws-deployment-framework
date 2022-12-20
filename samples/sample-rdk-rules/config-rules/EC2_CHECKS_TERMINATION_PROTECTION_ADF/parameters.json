@@ -1,10 +1,10 @@
 {
     "Version": "1.0",
     "Parameters": {
-        "RuleName": "EC2_CHECKS_TERMINIATION_PROTECTION_ADF",
-        "Description": "EC2_CHECKS_TERMINIATION_PROTECTION_ADF",
+        "RuleName": "EC2_CHECKS_TERMINATION_PROTECTION_ADF",
+        "Description": "EC2_CHECKS_TERMINATION_PROTECTION_ADF",
         "SourceRuntime": "python3.9",
-        "CodeKey": "EC2_CHECKS_TERMINIATION_PROTECTION_ADFeu-central-1.zip",
+        "CodeKey": "EC2_CHECKS_TERMINATION_PROTECTION_ADFeu-central-1.zip",
         "InputParameters": "{}",
         "OptionalParameters": "{}",
         "SourceEvents": "AWS::EC2::Instance",

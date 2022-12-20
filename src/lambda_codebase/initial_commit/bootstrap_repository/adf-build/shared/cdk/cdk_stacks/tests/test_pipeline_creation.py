@@ -99,7 +99,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_s3_and_build_is_co
 
 def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_build_is_codebuild():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {"params": {}, "default_providers": {}, "regions": {}},
@@ -120,7 +120,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
         "kms": (
-            f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id"
+            f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
     app = core.App()
@@ -156,7 +156,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
 
 def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_codebuild_clone_ref_and_build_is_codebuild():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {"params": {}, "default_providers": {}, "regions": {}},
@@ -180,7 +180,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_co
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
         "kms": (
-            f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id"
+            f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
     app = core.App()
@@ -217,7 +217,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_co
 
 def test_pipeline_creation_outputs_with_codeartifact_trigger():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {
@@ -250,7 +250,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
 
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
-        "kms": f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id",
+        "kms": f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id",
     }
     app = core.App()
     PipelineStack(app, stack_input)
@@ -275,7 +275,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
 
 def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {
@@ -310,7 +310,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
         "kms": (
-            f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id"
+            f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
     app = core.App()
@@ -339,7 +339,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
 
 def test_pipeline_creation_outputs_with_invalid_trigger_type():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {
@@ -376,7 +376,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
         "kms": (
-            f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id"
+            f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
     app = core.App()
@@ -395,7 +395,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
 
 def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_chatbot():
     region_name = "eu-central-1"
-    acount_id = "123456789012"
+    account_id = "123456789012"
 
     stack_input = {
         "input": {
@@ -427,7 +427,7 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
     stack_input["ssm_params"][region_name] = {
         "modules": "fake-bucket-name",
         "kms": (
-            f"arn:aws:kms:{region_name}:{acount_id}:key/my-unique-kms-key-id"
+            f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
     app = core.App()

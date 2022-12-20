@@ -28,7 +28,7 @@ class Boto3Mock():
 
 sys.modules['boto3'] = Boto3Mock()
 
-RULE = __import__('EC2_CHECKS_TERMINIATION_PROTECTION_ADF')
+RULE = __import__('EC2_CHECKS_TERMINATION_PROTECTION_ADF')
 
 class ComplianceTest(unittest.TestCase):
 
@@ -48,12 +48,12 @@ class ComplianceTest(unittest.TestCase):
 
 def build_lambda_configurationchange_event(invoking_event, rule_parameters=None):
     event_to_return = {
-        'configRuleName':'myrule',
+        'configRuleName':'myRule',
         'executionRoleArn':'roleArn',
         'eventLeftScope': False,
         'invokingEvent': invoking_event,
         'accountId': '123456789012',
-        'configRuleArn': 'arn:aws:config:us-east-1:123456789012:config-rule/config-rule-8fngan',
+        'configRuleArn': 'arn:aws:config:us-east-1:123456789012:config-rule/config-rule-abc',
         'resultToken':'token'
     }
     if rule_parameters:
@@ -63,12 +63,12 @@ def build_lambda_configurationchange_event(invoking_event, rule_parameters=None)
 def build_lambda_scheduled_event(rule_parameters=None):
     invoking_event = '{"messageType":"ScheduledNotification","notificationCreationTime":"2017-12-23T22:11:18.158Z"}'
     event_to_return = {
-        'configRuleName':'myrule',
+        'configRuleName':'myRule',
         'executionRoleArn':'roleArn',
         'eventLeftScope': False,
         'invokingEvent': invoking_event,
         'accountId': '123456789012',
-        'configRuleArn': 'arn:aws:config:us-east-1:123456789012:config-rule/config-rule-8fngan',
+        'configRuleArn': 'arn:aws:config:us-east-1:123456789012:config-rule/config-rule-abc',
         'resultToken':'token'
     }
     if rule_parameters:

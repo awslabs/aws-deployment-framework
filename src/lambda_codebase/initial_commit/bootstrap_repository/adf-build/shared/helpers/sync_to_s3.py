@@ -16,12 +16,48 @@ Usage:
             [-e <extension> | --extension <extension>]...
             [--metadata <key>=<value>]...
             [--upload-with-metadata <key>=<value>]...
+            [-f | --force]
             [--]
             SOURCE_PATH DESTINATION_S3_URL
 
     sync_to_s3.py -h | --help
 
     sync_to_s3.py --version
+
+Arguments:
+    SOURCE_PATH
+                The source path where the original files are stored that should
+                by synced to the destination bucket. When you specify a
+                directory as the source path it will copy the files inside the
+                directory to the S3 bucket if you also specify the recursive
+                flag. Otherwise it will treat the source path as a file, when a
+                directory is detected instead it will abort with an error.
+                If the source path is a directory, the object keys that are
+                derived from the files inside the directory will be relative to
+                the <source_path>. For example, if the <source_path> equals
+                `./adf-accounts`, which contains a file named
+                `adf-accounts/adf.yml`, it will copy the file as `adf.yml`.
+                If the prefix of the s3 bucket is set to `adf-s3-accounts`, the
+                final key of that specific file will be:
+                `adf-s3-accounts/adf.yml`.
+                If the <source_path> is a file and
+                the recursive flag is not specified, it will expect that the
+                s3 prefix is the new object name instead. In this case, if
+                <source_path> equals `./deployment_map.yml` and the s3 prefix
+                is `root_deployment_map.yml`, it will copy the file to the s3
+                prefix key.
+
+    DESTINATION_S3_URL
+                The destination bucket and its prefix where the files should be
+                copied to. The s3 bucket and its optional prefix should be
+                specified as: s3://your-bucket-name/your-optional-prefix.
+                In this case, `your-bucket-name` is the name of the bucket.
+                While `your-optional-prefix` is the name of the prefix used for
+                all files that are copied to S3. If a directory is copied, i.e.
+                recursive is set, it will prepend the prefix to the object
+                keys of the files that are synced. If a file is copied instead,
+                i.e. no --recurdive, it will use the s3 prefix as the target
+                object key to use for that file.
 
 Options:
     -d, --delete
@@ -42,6 +78,13 @@ Options:
                 contains a README.md file, while the extension is configured
                 to match '.yml', it will not delete the README.md file as its
                 extension is not a match.
+
+    -f, --force
+                Force uploading of files that need to be synced. Regardless of
+                whether the target metadata matches the local one.
+                This also ignores the hash comparison. This is useful if you
+                want to force uploading a new copy of all local files to the
+                destination S3 bucket.
 
     -h, --help  Show this help message.
 
@@ -66,40 +109,6 @@ Options:
     -v, --verbose
                 Show verbose logging information.
 
-    <source_path>
-                The source path where the original files are stored that should
-                by synced to the destination bucket. When you specify a
-                directory as the source path it will copy the files inside the
-                directory to the S3 bucket if you also specify the recursive
-                flag. Otherwise it will treat the source path as a file, when a
-                directory is detected instead it will abort with an error.
-                If the source path is a directory, the object keys that are
-                derived from the files inside the directory will be relative to
-                the <source_path>. For example, if the <source_path> equals
-                `./adf-accounts`, which contains a file named
-                `adf-accounts/adf.yml`, it will copy the file as `adf.yml`.
-                If the prefix of the s3 bucket is set to `adf-s3-accounts`, the
-                final key of that specific file will be:
-                `adf-s3-accounts/adf.yml`.
-                If the <source_path> is a file and
-                the recursive flag is not specified, it will expect that the
-                s3 prefix is the new object name instead. In this case, if
-                <source_path> equals `./deployment_map.yml` and the s3 prefix
-                is `root_deployment_map.yml`, it will copy the file to the s3
-                prefix key.
-
-    <destination_s3_url>
-                The destination bucket and its prefix where the files should be
-                copied to. The s3 bucket and its optional prefix should be
-                specified as: s3://your-bucket-name/your-optional-prefix.
-                In this case, `your-bucket-name` is the name of the bucket.
-                While `your-optional-prefix` is the name of the prefix used for
-                all files that are copied to S3. If a directory is copied, i.e.
-                recursive is set, it will prepend the prefix to the object
-                keys of the files that are synced. If a file is copied instead,
-                i.e. no --recurdive, it will use the s3 prefix as the target
-                object key to use for that file.
-
 Examples:
 
     Copy the deployment_map.yml file to an S3 bucket as
@@ -115,17 +124,6 @@ Examples:
 
         $ python sync_to_s3.py -d -e .yml -r deployment_maps \\
             s3://deploy-bucket/deployment_maps
-
-    Copy all .yml files from folder source_folder to the to an S3 bucket where
-    the objects are prefixed with the `object_folder/`, deleting the .yml
-    objects inside the YAML files that no longer exist locally. Additionally,
-    all files will get the metadata set to include `adf_version`. And if the
-    file is uploaded/updated, it will also apply the `execution_id` metadata.
-
-        $ python sync_to_s3.py -d -e .yml -r source_folder \\
-            --metadata "adf_version=x.y.z" \\
-            --upload-with-metadata "execution_id=$EXEC_ID" \\
-            s3://deploy-bucket/object_folder
 """
 
 import os
@@ -137,6 +135,7 @@ import hashlib
 import logging
 import base64
 import boto3
+from botocore.exceptions import ClientError
 from docopt import docopt
 
 
@@ -417,7 +416,9 @@ def _get_recursive_s3_objects(
     s3_list_objects_paginator = s3_client.get_paginator("list_objects_v2")
     s3_object_iterator = s3_list_objects_paginator.paginate(
         Bucket=s3_bucket,
-        Prefix=f"{s3_prefix}/",
+        Prefix=(
+            f"{s3_prefix}/" if s3_prefix else ""
+        ),
     )
     s3_objects = {}
     for response_data in s3_object_iterator:
@@ -506,13 +507,32 @@ def _get_s3_object_data(s3_client, s3_bucket, key):
             "key": key,
             "metadata": obj_data.get("Metadata", {}),
         }
-    except s3_client.exceptions.NoSuchKey:
+    except ClientError as client_error:
+        if int(client_error.response["Error"]["Code"]) != 404:
+            raise
         LOGGER.debug(
             "Could not find s3://%s/%s",
             s3_bucket,
             key,
         )
         return None
+
+
+def _get_upload_reason(
+    object_is_missing: bool,
+    content_changed: bool,
+    force: bool,
+) -> str:
+    if object_is_missing:
+        return "object does not exist yet"
+
+    if content_changed:
+        return "file content changed"
+
+    if force:
+        return "forced to update"
+
+    return "metadata changed"
 
 
 def upload_changed_files(
@@ -522,6 +542,7 @@ def upload_changed_files(
     local_files: Mapping[str, LocalFileData],
     s3_objects: Mapping[str, S3ObjectData],
     metadata_to_check: MetadataToCheck,
+    force: bool,
 ):
     """
     Upload changed files, by looping over the local files found and checking
@@ -546,6 +567,9 @@ def upload_changed_files(
 
         metadata_to_check (MetadataToCheck): The metadata that needs to be
             applied all the time and upon upload only.
+
+        force (bool): Whether to force uploading of files, even when the
+            metadata and hash data match.
     """
     for key, local_file in local_files.items():
         s3_file = s3_objects.get(key)
@@ -561,7 +585,7 @@ def upload_changed_files(
                 s3_metadata.items(),
             )) != metadata_to_check["always_apply"]
         )
-        if (object_is_missing or content_changed or metadata_changed):
+        if (force or object_is_missing or content_changed or metadata_changed):
             with open(local_file.get("file_path"), "rb") as file_pointer:
                 s3_key = convert_to_s3_key(key, s3_prefix)
 
@@ -570,12 +594,10 @@ def upload_changed_files(
                     local_file.get("file_path"),
                     s3_bucket,
                     s3_key,
-                    (
-                        "object does not exist yet" if object_is_missing
-                        else (
-                            "file content changed" if content_changed
-                            else "metadata changed"
-                        )
+                    _get_upload_reason(
+                        object_is_missing,
+                        content_changed,
+                        force,
                     ),
                 )
                 s3_client.put_object(
@@ -791,6 +813,7 @@ def sync_files(
     recursive: bool,
     delete: bool,
     metadata_to_check: MetadataToCheck,
+    force: bool,
 ):
     """
     Sync files using the S3 client from the local_path, matching the local_glob
@@ -817,6 +840,9 @@ def sync_files(
 
         metadata_to_check (MetadataToCheck): The metadata that needs to be
             applied all the time and upon upload only.
+
+        force (bool): Whether to force uploading of files, even when the
+            metadata and hash data match.
     """
     s3_url_details = urlparse(s3_url)
     s3_bucket = s3_url_details.netloc
@@ -848,6 +874,7 @@ def sync_files(
         local_files,
         s3_objects,
         metadata_to_check,
+        force,
     )
     if delete:
         delete_stale_objects(
@@ -879,6 +906,7 @@ def main():  # pylint: disable=R0915
     s3_url = options.get('DESTINATION_S3_URL')
     recursive = options.get('--recursive', False)
     delete = options.get('--delete', False)
+    force = options.get('--force', False)
 
     # Convert metadata key and value lists into a dictionary
     metadata_to_check: MetadataToCheck = {
@@ -907,6 +935,7 @@ def main():  # pylint: disable=R0915
         recursive,
         delete,
         metadata_to_check,
+        force,
     )
     LOGGER.info("All done.")
 

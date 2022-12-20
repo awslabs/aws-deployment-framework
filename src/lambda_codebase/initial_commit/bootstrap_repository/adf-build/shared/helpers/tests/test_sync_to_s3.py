@@ -7,6 +7,7 @@ import pytest
 from base64 import b64encode
 from hashlib import sha256
 import tempfile
+from botocore.exceptions import ClientError
 from sync_to_s3 import *
 
 # pylint: skip-file
@@ -39,11 +40,6 @@ EXAMPLE_LOCAL_FILES: Mapping[str, LocalFileData] = {
     "first-file.yml": {
         "key": "first-file.yml",
         "file_path": "/full/path/first-file.yml",
-        "sha256_hash": CURRENT_HASH,
-    },
-    "second-file.yaml": {
-        "key": "second-file.yaml",
-        "file_path": "/full/path/second-file.yaml",
         "sha256_hash": CURRENT_HASH,
     },
     "second-file.yaml": {
@@ -375,8 +371,14 @@ def test_get_s3_objects_non_recursive_missing_object():
     s3_object_key = f"{S3_PREFIX}/missing-file.yml"
     file_extensions = []
 
-    s3_client.exceptions.NoSuchKey = Exception
-    s3_client.head_object.side_effect = s3_client.exceptions.NoSuchKey()
+    s3_client.head_object.side_effect = ClientError(
+        {
+            "Error": {
+                "Code": 404,
+            },
+        },
+        "HeadObject",
+    )
 
     assert get_s3_objects(
         s3_client,
@@ -385,6 +387,88 @@ def test_get_s3_objects_non_recursive_missing_object():
         file_extensions,
         recursive=False,
     ) == {}
+
+
+def test_get_s3_objects_without_prefix():
+    s3_client = Mock()
+    s3_bucket = "your-bucket"
+    s3_prefix = ""
+    example_s3_objects = dict(map(
+        lambda kv: (
+            kv[0],
+            {
+                # Remove the prefix from the key
+                "key": kv[1]["key"][kv[1]["key"].find("/") + 1:],
+                "metadata": kv[1]["metadata"],
+            }
+        ),
+        deepcopy(EXAMPLE_S3_OBJECTS).items(),
+    ))
+    file_extensions = [".yml", ".yaml"]
+
+    paginator = Mock()
+    s3_client.get_paginator.return_value = paginator
+
+    s3_obj_keys = list(map(
+        lambda obj: {
+            "Key": obj["key"],
+        },
+        example_s3_objects.values(),
+    ))
+    s3_obj_data = dict(map(
+        lambda obj: (
+            obj["key"],
+            {
+                "Key": obj["key"],
+                "Metadata": obj["metadata"],
+            }
+        ),
+        example_s3_objects.values(),
+    ))
+    paginator.paginate.return_value = [
+        {
+            "Contents": s3_obj_keys[:2],
+        },
+        {
+            "Contents": [
+                {
+                    "Key": "README.md",
+                },
+                {
+                    "Key": "other-file.json",
+                }
+            ],
+        },
+        {
+            "Contents": s3_obj_keys[2:],
+        },
+    ]
+    s3_client.head_object.side_effect = (
+        lambda **kwargs: s3_obj_data[kwargs["Key"]]
+    )
+
+    assert get_s3_objects(
+        s3_client,
+        s3_bucket,
+        s3_prefix,
+        file_extensions,
+        recursive=True,
+    ) == example_s3_objects
+
+    s3_client.get_paginator.assert_called_once_with("list_objects_v2")
+    paginator.paginate.assert_called_once_with(
+        Bucket=s3_bucket,
+        Prefix="",
+    )
+    s3_client.head_object.assert_has_calls(
+        list(map(
+            lambda obj: call(
+                Bucket=s3_bucket,
+                Key=obj.get("key"),
+            ),
+            example_s3_objects.values(),
+        )),
+    )
 
 
 def test_get_s3_objects_recursive_success():
@@ -497,6 +581,7 @@ def test_upload_changed_files_simple():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = S3_PREFIX
+    force = False
     local_files = deepcopy(EXAMPLE_LOCAL_FILES)
     s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
     metadata_to_check = {
@@ -519,6 +604,7 @@ def test_upload_changed_files_simple():
             local_files,
             s3_objects,
             metadata_to_check,
+            force,
         )
 
         local_updated = local_files["updated-file.yml"]
@@ -563,6 +649,7 @@ def test_upload_changed_files_no_updates():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = S3_PREFIX
+    force = False
     local_files = deepcopy(EXAMPLE_LOCAL_FILES)
     del local_files["updated-file.yml"]
     del local_files["missing-file.yml"]
@@ -588,15 +675,73 @@ def test_upload_changed_files_no_updates():
                 "always_apply": {},
                 "upon_upload_apply": {},
             },
+            force=force,
         )
 
         s3_client.put_object.assert_not_called()
+
+
+def test_upload_changed_files_no_updates_forced():
+    s3_client = Mock()
+    s3_bucket = "your-bucket"
+    s3_prefix = S3_PREFIX
+    force = True
+    local_files = deepcopy(EXAMPLE_LOCAL_FILES)
+    del local_files["updated-file.yml"]
+    del local_files["missing-file.yml"]
+    del local_files["needs-new-metadata-file.yaml"]
+    s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
+
+    for obj in s3_objects.values():
+        for irrelevant_key in IRRELEVANT_METADATA.keys():
+            obj["metadata"][irrelevant_key] = "some-different-value"
+
+    with tempfile.NamedTemporaryFile(mode="wb", buffering=0) as file_pointer:
+        file_pointer.write(CURRENT_VERSION)
+        for key in local_files.keys():
+            local_files[key]["file_path"] = file_pointer.name
+
+        upload_changed_files(
+            s3_client,
+            s3_bucket,
+            s3_prefix,
+            local_files,
+            s3_objects,
+            metadata_to_check={
+                "always_apply": {},
+                "upon_upload_apply": {},
+            },
+            force=force,
+        )
+
+        first_file = local_files["first-file.yml"]
+        second_file = local_files["second-file.yaml"]
+        s3_client.put_object.assert_has_calls([
+            call(
+                Body=ANY,
+                Bucket=s3_bucket,
+                Key=f"{s3_prefix}/{first_file['key']}",
+                Metadata={
+                    "sha256_hash": first_file["sha256_hash"],
+                }
+            ),
+            call(
+                Body=ANY,
+                Bucket=s3_bucket,
+                Key=f"{s3_prefix}/{second_file['key']}",
+                Metadata={
+                    "sha256_hash": second_file["sha256_hash"],
+                }
+            ),
+        ])
+        assert s3_client.put_object.call_count == 2
 
 
 def test_upload_changed_files_single_file():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = "missing-file.yml"
+    force = False
     s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
     metadata_to_check = {
         "always_apply": deepcopy(CURRENT_METADATA),
@@ -620,6 +765,7 @@ def test_upload_changed_files_single_file():
             local_files,
             s3_objects,
             metadata_to_check,
+            force,
         )
 
         local_missing = local_files["missing-file.yml"]
@@ -642,6 +788,7 @@ def test_upload_changed_files_single_file_no_update():
     s3_client = Mock()
     s3_bucket = "your-bucket"
     s3_prefix = "first-file.yml"
+    force = False
     s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
     metadata_to_check = {
         "always_apply": deepcopy(CURRENT_METADATA),
@@ -669,9 +816,61 @@ def test_upload_changed_files_single_file_no_update():
             local_files,
             s3_objects,
             metadata_to_check,
+            force,
         )
 
         s3_client.put_object.assert_not_called()
+
+
+def test_upload_changed_files_single_file_no_update_forced():
+    s3_client = Mock()
+    s3_bucket = "your-bucket"
+    s3_prefix = "first-file.yml"
+    force = True
+    s3_objects = deepcopy(EXAMPLE_S3_OBJECTS)
+    metadata_to_check = {
+        "always_apply": deepcopy(CURRENT_METADATA),
+        "upon_upload_apply": deepcopy(UPLOAD_NEW_METADATA),
+    }
+
+    for obj in s3_objects.values():
+        for irrelevant_key in IRRELEVANT_METADATA.keys():
+            obj["metadata"][irrelevant_key] = "some-different-value"
+
+    with tempfile.NamedTemporaryFile(mode="wb", buffering=0) as file_pointer:
+        file_pointer.write(CURRENT_VERSION)
+        local_files = {
+            "first-file.yml": {
+                "key": s3_prefix,
+                "file_path": file_pointer.name,
+                "sha256_hash": CURRENT_HASH,
+            },
+        }
+
+        upload_changed_files(
+            s3_client,
+            s3_bucket,
+            s3_prefix,
+            local_files,
+            s3_objects,
+            metadata_to_check,
+            force,
+        )
+
+        first_file = local_files["first-file.yml"]
+        s3_client.put_object.assert_has_calls([
+            call(
+                Body=ANY,
+                Bucket=s3_bucket,
+                Key=f"{first_file['key']}",
+                Metadata={
+                    **metadata_to_check["always_apply"],
+                    **metadata_to_check["upon_upload_apply"],
+                    "sha256_hash": first_file["sha256_hash"],
+                }
+            ),
+        ])
+        assert s3_client.put_object.call_count == 1
 
 
 def test_delete_stale_objects_simple():
@@ -929,6 +1128,7 @@ def test_sync_files_recursive_delete(
     s3_url = f"s3://{s3_bucket}/{s3_prefix}"
     recursive = True
     delete = True
+    force = True
     metadata_to_check = {
         "always_apply": deepcopy(CURRENT_METADATA),
         "upon_upload_apply": deepcopy(UPLOAD_PREVIOUS_METADATA),
@@ -947,6 +1147,7 @@ def test_sync_files_recursive_delete(
         recursive,
         delete,
         metadata_to_check,
+        force,
     )
 
     get_local_files.assert_called_once_with(
@@ -968,6 +1169,7 @@ def test_sync_files_recursive_delete(
         local_files,
         s3_objects,
         metadata_to_check,
+        force,
     )
     delete_stale.assert_called_once_with(
         s3_client,
@@ -998,6 +1200,7 @@ def test_sync_files_recursive_no_delete(
     s3_url = f"s3://{s3_bucket}/{s3_prefix}"
     recursive = True
     delete = False
+    force = False
     metadata_to_check = {
         "always_apply": deepcopy(CURRENT_METADATA),
         "upon_upload_apply": deepcopy(UPLOAD_PREVIOUS_METADATA),
@@ -1016,6 +1219,7 @@ def test_sync_files_recursive_no_delete(
         recursive,
         delete,
         metadata_to_check,
+        force,
     )
 
     ensure_valid_input.assert_called_once_with(
@@ -1045,5 +1249,6 @@ def test_sync_files_recursive_no_delete(
         local_files,
         s3_objects,
         metadata_to_check,
+        force,
     )
     delete_stale.assert_not_called()

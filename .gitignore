@@ -139,3 +139,15 @@ dmypy.json
 .pyre/
 
 megalinter-reports/
+
+### Terraform ###
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
