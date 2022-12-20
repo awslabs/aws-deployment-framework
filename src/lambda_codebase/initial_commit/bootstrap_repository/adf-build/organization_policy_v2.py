@@ -9,6 +9,7 @@ import glob
 import os
 import ast
 import json
+import boto3
 
 from logger import configure_logger
 from organisation_policy_campaign import (
@@ -19,9 +20,10 @@ from errors import ParameterNotFoundError
 
 from organizations import Organizations
 
+from organization_policy_schema import OrgPolicySchema
+
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
-ENABLE_V2 = os.getenv("ENABLE_V2", None)
 DEFAULT_ADF_POLICIES_DIR = "./adf-policies"
 
 
@@ -108,7 +110,7 @@ class OrganizationPolicy:
         LOGGER.info("Organization map built!")
 
         self.apply_policies(
-            organizations,
+            boto3.client("organizations"),
             parameter_store,
             config,
             organization_mapping,
@@ -183,8 +185,8 @@ class OrganizationPolicy:
             _policies = self._find_all_polices(policy)
             LOGGER.info("Discovered the following policies: %s", _policies)
             for _policy in _policies:
-                policy_definition = json.loads(self.get_policy_body(_policy))
-                # TODO: Schema validation here
+                raw_policy_definition = json.loads(self.get_policy_body(_policy))
+                policy_definition = OrgPolicySchema(raw_policy_definition).schema
                 LOGGER.debug(policy_definition)
                 proposed_policy = policy_definition.get("Policy")
                 proposed_policy_name = policy_definition.get("PolicyName")

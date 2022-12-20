@@ -18,13 +18,13 @@ Metadata:
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.3.9
+    SemanticVersion: 3.3.11
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 
 Mappings:
   Metadata:
     ADF:
-      Version: 3.3.9
+      Version: 3.3.11
 
 Parameters:
   CrossAccountAccessRoleName:
@@ -1273,6 +1273,8 @@ Resources:
             Value: !Ref AccountManagementStateMachine
           - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
             Value: !Ref AccountBootstrappingStateMachine
+          - Name: ENABLED_V2_ORG_POLICY
+            Value: "TRUE"
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole

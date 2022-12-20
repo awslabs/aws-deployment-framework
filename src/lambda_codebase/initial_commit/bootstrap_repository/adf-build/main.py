@@ -27,7 +27,8 @@ from sts import STS
 from s3 import S3
 from partition import get_partition
 from config import Config
-from organization_policy_v2 import OrganizationPolicy
+from organization_policy_v2 import OrganizationPolicy as OrgPolicyV2
+from organization_policy import OrganizationPolicy
 
 
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
@@ -359,7 +360,11 @@ def main():  # pylint: disable=R0915
 
     await_sfn_executions(boto3.client("stepfunctions"))
 
-    policies = OrganizationPolicy()
+    if os.getenv("ENABLED_V2_ORG_POLICY", None):
+        LOGGER.info("Using new organization policy")
+        policies = OrgPolicyV2()
+    else:
+        policies = OrganizationPolicy()
     config = Config()
     config.store_config()
 

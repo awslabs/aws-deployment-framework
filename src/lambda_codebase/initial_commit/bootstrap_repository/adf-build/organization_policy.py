@@ -15,7 +15,6 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv("AWS_REGION")
-ENABLE_V2 = os.getenv("ENABLE_V2", None)
 
 
 class OrganizationPolicy:
