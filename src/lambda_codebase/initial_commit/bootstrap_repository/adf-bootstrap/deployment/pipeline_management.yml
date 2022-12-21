@@ -491,6 +491,16 @@ Resources:
                 "SourceTypeOverride": "S3",
                 "SourceLocationOverride.$": "$.definition_location"
               },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "CodeBuild.AWSCodeBuildException"
+                  ],
+                  "BackoffRate": 1.05,
+                  "IntervalSeconds": 150,
+                  "MaxAttempts": 12
+                }
+              ],
               "Next": "IdentifyOutOfDatePipelines"
             },
             "IdentifyOutOfDatePipelines": {
