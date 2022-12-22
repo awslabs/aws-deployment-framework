@@ -523,11 +523,6 @@ Resources:
               AWS: !GetAtt CodeBuildRole.Arn
             Action:
               - sts:AssumeRole
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt CodeBuildRole.Arn
-            Action:
-              - sts:AssumeRole
       Path: /
 
   AdfAutomationRole:

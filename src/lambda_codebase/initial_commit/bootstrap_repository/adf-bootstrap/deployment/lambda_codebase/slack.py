@@ -94,12 +94,12 @@ def create_approval_message_body(channel, message):
         "attachments": [
             {
                 "fallback": (
-                    f"Approve or Deny Deployment at {message['consoleLink']}"
+                    f"Approve or Reject Deployment at {message['consoleLink']}"
                 ),
                 "actions": [
                     {
                         "type": "button",
-                        "text": "Approve or Deny Deployment",
+                        "text": "Approve or Reject Deployment",
                         "url": str(message["consoleLink"])
                     }
                 ]
