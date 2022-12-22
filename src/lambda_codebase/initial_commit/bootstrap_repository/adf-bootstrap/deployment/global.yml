@@ -1032,6 +1032,7 @@ Resources:
           KMS_KEY_ID: !Ref KMSKey
           S3_BUCKET_NAME: !Ref PipelineBucket
           ADF_LOG_LEVEL: !Ref ADFLogLevel
+          DEPLOYMENT_ACCOUNT_ID: !Ref AWS::AccountId
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt EnableCrossAccountAccessLambdaRole.Arn

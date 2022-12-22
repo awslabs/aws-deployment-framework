@@ -21,6 +21,7 @@ from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
 
 KEY_ID = os.environ["KMS_KEY_ID"]
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
+DEPLOYMENT_ACCOUNT_ID = os.environ["DEPLOYMENT_ACCOUNT_ID"]
 REGION_DEFAULT = os.getenv("AWS_REGION")
 LOGGER = configure_logger(__name__)
 
@@ -52,6 +53,34 @@ DEPLOYMENT_ROLE_POLICIES = {
 }
 
 
+def _assume_role_if_required(account_id: str):
+    if account_id == DEPLOYMENT_ACCOUNT_ID:
+        return None
+
+    sts = STS()
+    partition = get_partition(REGION_DEFAULT)
+    try:
+        role_arn_to_assume = (
+            f'arn:{partition}:iam::{account_id}:'
+            f'role/adf-update-cross-account-access-role'
+        )
+        target_role = sts.assume_cross_account_role(
+            role_arn_to_assume,
+            'base_cfn_role'
+        )
+        LOGGER.debug("Role has been assumed for %s", account_id)
+        return target_role
+    except ClientError as err:
+        LOGGER.error(
+            "Could not assume into account %s with role %s -> error: %s.",
+            role_arn_to_assume,
+            account_id,
+            err,
+            exc_info=True,
+        )
+        raise
+
+
 def lambda_handler(event, _):
     """
     Lambda handler of the enable cross-account access orchestrator.
@@ -67,32 +96,11 @@ def lambda_handler(event, _):
         event (any): The input event that was submitted is passed forward, so
             the next step in the State Machine is able to use the data too.
     """
-    sts = STS()
-    partition = get_partition(REGION_DEFAULT)
 
     parameter_store = ParameterStore(
         region=event.get("deployment_account_region"), role=boto3
     )
     account_id = event.get("account_id")
-    try:
-        role_arn_to_assume = (
-            f'arn:{partition}:iam::{account_id}:'
-            f'role/adf-update-cross-account-access-role'
-        )
-        target_account_role = sts.assume_cross_account_role(
-            role_arn_to_assume,
-            'base_cfn_role'
-        )
-        LOGGER.debug("Role has been assumed for %s", account_id)
-    except ClientError as err:
-        LOGGER.error(
-            "Could not assume into account %s with role %s -> error: %s.",
-            role_arn_to_assume,
-            account_id,
-            err,
-            exc_info=True,
-        )
-        raise
 
     kms_key_arns = []
     s3_buckets = []
@@ -111,20 +119,21 @@ def lambda_handler(event, _):
         )
         s3_buckets.append(s3_bucket)
 
-        # In the target account:
-        IAMCfnDeployRolePolicy.update_iam_role_policies(
-            target_account_role.client("iam"),
-            [s3_bucket],  # Only the S3 bucket for this region
-            [kms_key_arn],  # Only the KMS Key for this region
-            TARGET_ROLE_POLICIES,
-        )
+    # Assume into the target account if required, unless we are updating the
+    # deployment account itself. In that case we should use boto3
+    # directly instead.
+    target_account_role = _assume_role_if_required(account_id) or boto3
+    role_policies = (
+        DEPLOYMENT_ROLE_POLICIES
+        if account_id == DEPLOYMENT_ACCOUNT_ID
+        else TARGET_ROLE_POLICIES
+    )
 
-    # In the deployment account:
     IAMCfnDeployRolePolicy.update_iam_role_policies(
-        boto3.client("iam"),
+        target_account_role.client("iam"),
         s3_buckets,  # All regional S3 buckets
         kms_key_arns,  # All regional KMS Keys
-        DEPLOYMENT_ROLE_POLICIES,
+        role_policies,
     )
 
     return event
