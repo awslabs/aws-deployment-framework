@@ -93,7 +93,9 @@ def create_approval_message_body(channel, message):
         "channel": channel,
         "attachments": [
             {
-                "fallback": f"Approve or Deny Deployment at {message['consoleLink']}",
+                "fallback": (
+                    f"Approve or Deny Deployment at {message['consoleLink']}"
+                ),
                 "actions": [
                     {
                         "type": "button",
@@ -104,7 +106,6 @@ def create_approval_message_body(channel, message):
             }
         ]
     }
-
 
 
 def create_pipeline_message_body(channel, pipeline):
@@ -173,6 +174,14 @@ def send_message(url, payload):
 
 
 def lambda_handler(event, _):
+    """
+    Process incoming SNS message and send a corresponding Slack
+    Notification to the endpoint that is configured for the Pipeline/Bootstrap
+    environment.
+
+    Args:
+        event (dict): The incoming SNS Payload.
+    """
     message = extract_message(event)
     pipeline = extract_pipeline(message)
     parameter_store = ParameterStore(os.environ["AWS_REGION"], boto3)

@@ -16,7 +16,7 @@ from logger import configure_logger
 from parameter_store import ParameterStore
 from sts import STS
 from partition import get_partition
-from .iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
+from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
 
 
 KEY_ID = os.environ["KMS_KEY_ID"]
@@ -77,7 +77,7 @@ def lambda_handler(event, _):
     try:
         role_arn_to_assume = (
             f'arn:{partition}:iam::{account_id}:'
-            f'role/adf-cloudformation-deployment-role'
+            f'role/adf-update-cross-account-access-role'
         )
         target_account_role = sts.assume_cross_account_role(
             role_arn_to_assume,
@@ -110,6 +110,8 @@ def lambda_handler(event, _):
             f"/cross_region/s3_regional_bucket/{region}"
         )
         s3_buckets.append(s3_bucket)
+
+        # In the target account:
         IAMCfnDeployRolePolicy.update_iam_role_policies(
             target_account_role.client("iam"),
             [s3_bucket],  # Only the S3 bucket for this region
@@ -117,10 +119,11 @@ def lambda_handler(event, _):
             TARGET_ROLE_POLICIES,
         )
 
+    # In the deployment account:
     IAMCfnDeployRolePolicy.update_iam_role_policies(
         boto3.client("iam"),
-        s3_buckets,
-        kms_key_arns,
+        s3_buckets,  # All regional S3 buckets
+        kms_key_arns,  # All regional KMS Keys
         DEPLOYMENT_ROLE_POLICIES,
     )
 
