@@ -111,7 +111,7 @@ def cls():
     parameter_store = Mock()
     definition_s3 = Mock()
     definition_s3.read_object.return_value = json.dumps({
-        'input': {
+        'pipeline_input': {
             'environments': {
                 'targets': [],
             }
@@ -149,7 +149,7 @@ def test_retrieve_pipeline_targets_empty(cls):
 
 def test_retrieve_pipeline_targets(cls, input_definition_targets):
     cls.definition_s3.read_object.return_value = json.dumps({
-        'input': {
+        'pipeline_input': {
             'environments': {
                 'targets': input_definition_targets,
             }
@@ -283,7 +283,7 @@ def test_merge_params_with_preset(cls):
 
 def test_create_parameter_files(cls, input_definition_targets):
     cls.definition_s3.read_object.return_value = json.dumps({
-        'input': {
+        'pipeline_input': {
             'environments': {
                 'targets': input_definition_targets,
             }
@@ -309,7 +309,7 @@ def test_create_parameter_files(cls, input_definition_targets):
 
 def test_ensure_parameter_default_contents(cls, input_definition_targets):
     cls.definition_s3.read_object.return_value = json.dumps({
-        'input': {
+        'pipeline_input': {
             'environments': {
                 'targets': input_definition_targets,
             }
@@ -350,7 +350,7 @@ def test_ensure_parameter_overrides(
     input_wave_target_two
 ):
     cls.definition_s3.read_object.return_value = json.dumps({
-        'input': {
+        'pipeline_input': {
             'environments': {
                 'targets': [
                     [

@@ -152,7 +152,7 @@ class Parameters:
         pipeline_targets = {}
         pipeline_definition = self._retrieve_pipeline_definition()
         input_targets: TargetWavesWithNestedWaveTargets = (
-            pipeline_definition['input']['environments']['targets']
+            pipeline_definition['pipeline_input']['environments']['targets']
         )
         # Since the input_targets returns a list of waves that each contain
         # a list of wave_targets, we need to flatten them to iterate:

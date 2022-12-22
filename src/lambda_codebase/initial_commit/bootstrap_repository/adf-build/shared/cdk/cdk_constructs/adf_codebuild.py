@@ -36,6 +36,8 @@ class CodeBuild(core.Construct):
         id: str,
         shared_modules_bucket: str,
         deployment_region_kms: str,
+        deployment_map_source: str,
+        deployment_map_name: str,
         map_params: dict,
         target,
         **kwargs,
@@ -87,6 +89,8 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(
                     _codebuild,
                     shared_modules_bucket,
+                    deployment_map_source,
+                    deployment_map_name,
                     map_params,
                     target,
                 ),
@@ -176,6 +180,8 @@ class CodeBuild(core.Construct):
                 environment_variables=CodeBuild.generate_build_env_variables(
                     _codebuild,
                     shared_modules_bucket,
+                    deployment_map_source,
+                    deployment_map_name,
                     map_params,
                 ),
                 privileged=(
@@ -382,12 +388,16 @@ class CodeBuild(core.Construct):
     def generate_build_env_variables(
         codebuild,
         shared_modules_bucket,
+        deployment_map_source,
+        deployment_map_name,
         map_params,
         target=None,
     ):
         build_env_vars = {
             "PYTHONPATH": "./adf-build/python",
             "ADF_PROJECT_NAME": map_params['name'],
+            "ADF_DEPLOYMENT_MAP_SOURCE": deployment_map_source,
+            "ADF_DEPLOYMENT_MAP_NAME": deployment_map_name,
             "S3_BUCKET_NAME": shared_modules_bucket,
             "ACCOUNT_ID": core.Aws.ACCOUNT_ID,
             **(
