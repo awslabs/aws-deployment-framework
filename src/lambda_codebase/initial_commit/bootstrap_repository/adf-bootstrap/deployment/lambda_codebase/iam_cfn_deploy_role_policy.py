@@ -58,10 +58,7 @@ class IAMCfnDeployRolePolicy:
                 f'Found multiple {statement_id} statements in '
                 f'Role {self.role_name} Policy {self.policy_name}.'
             )
-        raise Exception(
-            f'Statement {statement_id} was not found in '
-            f'Role {self.role_name} Policy {self.policy_name}.'
-        )
+        return None
 
     def grant_access_to_s3_buckets(self, bucket_names):
         """
@@ -77,7 +74,11 @@ class IAMCfnDeployRolePolicy:
         )
         if len(bucket_names) == 0:
             return
+
         statement = self._get_statement('S3')
+        if statement is None:
+            return
+
         for bucket_name in bucket_names:
             if f"arn:{PARTITION}:s3:::{bucket_name}" in statement['Resource']:
                 # The bucket is in the resource statement already, great!
@@ -113,7 +114,11 @@ class IAMCfnDeployRolePolicy:
         )
         if len(kms_key_arns) == 0:
             return
+
         statement = self._get_statement('KMS')
+        if statement is None:
+            return
+
         for kms_key_arn in kms_key_arns:
             if kms_key_arn in statement['Resource']:
                 # The Key is in the resource statement already, great!

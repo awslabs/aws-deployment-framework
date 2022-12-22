@@ -43,15 +43,12 @@ def test_fetch_policy_document(iam_client):
 def test_grant_access_to_s3_buckets_no_S3_statement(iam_client):
     instance = IAMCfnDeployRolePolicy(iam_client, 'ExRoleName', 'ExPolicyName')
     del instance.policy_document['Statement'][1]
-    correct_error_message = (
-        'Statement S3 was not found in Role ExRoleName Policy ExPolicyName.'
-    )
+    policy_doc_before = deepcopy(instance.policy_document)
 
-    with raises(Exception) as excinfo:
-        instance.grant_access_to_s3_buckets(['new_bucket'])
+    instance.grant_access_to_s3_buckets(['new_bucket'])
 
-    error_message = str(excinfo.value)
-    assert error_message.find(correct_error_message) >= 0
+    assert instance.policy_changed is False
+    assert instance.policy_document == policy_doc_before
 
 
 def test_grant_access_to_s3_buckets_multiple_S3_statement(iam_client):
