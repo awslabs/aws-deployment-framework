@@ -1008,7 +1008,7 @@ Resources:
       Description: "ADF Lambda Function - Send Slack Notification"
       FunctionName: SendSlackNotification
       Handler: slack.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt SendSlackNotificationLambdaRole.Arn
       Environment:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
@@ -1027,9 +1027,10 @@ Resources:
           KMS_KEY_ID: !Ref KMSKey
           S3_BUCKET_NAME: !Ref PipelineBucket
           ADF_LOG_LEVEL: !Ref ADFLogLevel
+          DEPLOYMENT_ACCOUNT_ID: !Ref AWS::AccountId
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt EnableCrossAccountAccessLambdaRole.Arn
       Timeout: 900
 
   CheckPipelineStatus:
@@ -1045,13 +1046,13 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt CheckPipelineStatusLambdaRole.Arn
       Timeout: 120
 
-  LambdaRole:
+  SendSlackNotificationLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: "adf-lambda-role"
+      RoleName: "adf-send-slack-notification-lambda-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1059,64 +1060,121 @@ Resources:
             Principal:
               Service:
                 - "lambda.amazonaws.com"
-                - "states.amazonaws.com"
-                - "sns.amazonaws.com"
             Action:
               - "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-execution-role"
+        - PolicyName: "adf-send-slack-notification"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notification_endpoint/*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource:
+                  # Only allow Lambda access to get secrets that start with /adf/*
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/slack/*"
+
+  CheckPipelineStatusLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "adf-check-pipeline-status-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-check-pipeline-status"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codepipeline:GetPipelineState"
+                  - "codepipeline:StartPipelineExecution"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+
+  EnableCrossAccountAccessLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "adf-enable-cross-account-access-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-enable-cross-account-access"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
                 Action: "sts:AssumeRole"
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf-update-cross-account-access-role"
                 Condition:
                   StringEquals:
                     aws:PrincipalOrgID: !Ref OrganizationId
-              - Effect: "Allow"
-                Action:
-                  - "codepipeline:GetPipelineState"
-                  - "codepipeline:ListPipelines"
-                  - "codepipeline:PutJobFailureResult"
-                  - "codepipeline:PutJobSuccessResult"
-                  - "codepipeline:StartPipelineExecution"
-                  - "events:PutPermission"
-                  - "iam:GetRolePolicy"
-                  - "iam:PutRolePolicy"
-                  - "kms:Decrypt"
-                  - "kms:Describe*"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey*"
-                  - "kms:Get*"
-                  - "kms:List*"
-                  - "kms:PutKeyPolicy"
-                  - "kms:ReEncrypt*"
-                  - "lambda:GetLayerVersion"
-                  - "s3:Get*"
-                  - "s3:Put*"
-                  - "sns:Publish"
-                  - "ssm:GetParameter"
-                  - "ssm:GetParameters"
-                Resource: "*"
               - Effect: Allow
                 Action:
-                  - "secretsmanager:Get*"
+                  - "ssm:GetParameter"
                 Resource:
-                  # Only allow Lambda access to get secrets that start with /adf/*
-                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"
-              - Effect: "Allow"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/kms_arn/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/s3_regional_bucket/*"
+              - Effect: Allow
                 Action:
-                  - "s3:Get*"
-                  - "s3:Put*"
-                  - "s3:List*"
+                  - "codepipeline:GetPipelineState"
+                  - "codepipeline:StartPipelineExecution"
                 Resource:
-                  - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
-                  - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-              - Effect: "Allow"
-                Action: "logs:*"
-                Resource: !Sub "arn:${AWS::Partition}:logs:*:*:*"
+                  - !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+              - Effect: Allow
+                Action:
+                  - "iam:GetRolePolicy"
+                  - "iam:PutRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-lambda-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "lambda:GetLayerVersion"
+            Resource:
+              - !Ref LambdaLayerVersion
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: '*'
+      Roles:
+        - !Ref SendSlackNotificationLambdaRole
+        - !Ref CheckPipelineStatusLambdaRole
+        - !Ref EnableCrossAccountAccessLambdaRole
 
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
@@ -1197,10 +1255,11 @@ Resources:
                     "Retry": [
                       {
                         "ErrorEquals": [
-                          "States.TaskFailed"
+                          "States.TaskFailed",
+                          "ClientError"
                         ],
-                        "BackoffRate": 1.1,
-                        "IntervalSeconds": 1,
+                        "BackoffRate": 2,
+                        "IntervalSeconds": 2,
                         "MaxAttempts": 10
                       }, {
                         "ErrorEquals": [
@@ -1440,11 +1499,6 @@ Outputs:
     Value: !GetAtt CodeCommitRepository.CloneUrlHttp
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-http-url"
-
-  LambdaRoleArn:
-    Value: !GetAtt LambdaRole.Arn
-    Export:
-      Name: "LambdaRoleArn"
 
   CodeCommitSshURL:
     Description: "The CodeCommit SSH Url"
