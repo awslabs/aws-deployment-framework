@@ -72,14 +72,26 @@ class TargetStructure:
         return waves
 
 
-
 class Target:
-    def __init__(self, path, target_structure, organizations, step, regions):
+    """
+    Target deployment configuration.
+    """
+    def __init__(
+        self,
+        path,
+        target_structure,
+        organizations,
+        step,
+    ):
         self.path = path
         self.step_name = step.get('name', '')
         self.provider = step.get('provider', 'cloudformation')
         self.properties = step.get('properties', {})
-        self.regions = [regions] if not isinstance(regions, list) else regions
+        self.regions = (
+            [step.get('regions')]
+            if not isinstance(step.get('regions'), list)
+            else step.get('regions')
+        )
         self.target_structure = target_structure
         self.organizations = organizations
 

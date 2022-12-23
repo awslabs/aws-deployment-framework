@@ -7,6 +7,7 @@ properties associated with a pipeline.
 """
 
 import os
+from copy import deepcopy
 from list_utils import flatten_to_unique_sorted
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
@@ -79,6 +80,37 @@ class Pipeline:
                 **providers.get('deploy', {}),
             },
         }
+
+    def merge_in_deploy_defaults(self, deploy_target_config):
+        """
+        Pass the step or target deployment configuration here to
+        get the default configuration applied if the provider or its
+        properties are not configured.
+
+        Args:
+            deploy_target_config (dict): The target deployment configuration
+                dict holding the provider type attribute and its properties.
+
+        Returns:
+            dict: The updated target deployment configuration, including the
+                defaults where those were overwritten yet.
+        """
+        new_config = deepcopy(deploy_target_config)
+        default_deploy = self.default_providers.get('deploy')
+        if not new_config.get('provider'):
+            new_config['provider'] = (
+                default_deploy.get('provider')
+            )
+        new_config['properties'] = {
+            **default_deploy.get('properties', {}),
+            **new_config.get('properties', {}),
+        }
+        if new_config.get('regions') is None:
+            new_config['regions'] = (
+                self.top_level_regions
+                or [DEPLOYMENT_ACCOUNT_REGION]
+            )
+        return new_config
 
     def generate_input(self):
         """

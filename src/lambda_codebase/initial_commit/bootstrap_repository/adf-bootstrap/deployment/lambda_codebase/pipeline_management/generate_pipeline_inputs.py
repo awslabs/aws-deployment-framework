@@ -111,19 +111,20 @@ def generate_pipeline_inputs(
 
     for target in pipeline.get("targets", []):
         target_structure = TargetStructure(target)
-        for step in target_structure.target:
-            regions = step.get(
-                "regions", pipeline.get("regions", DEPLOYMENT_ACCOUNT_REGION)
-            )
+        for raw_step in target_structure.target:
+            step = pipeline_object.merge_in_deploy_defaults(raw_step)
             paths_tags = []
             for path in step.get("path", []):
                 paths_tags.append(path)
             if step.get("tags") is not None:
                 paths_tags.append(step.get("tags", {}))
             for path_or_tag in paths_tags:
-                pipeline_object.stage_regions.append(regions)
+                pipeline_object.stage_regions.append(step.get("regions"))
                 pipeline_target = Target(
-                    path_or_tag, target_structure, organizations, step, regions
+                    path_or_tag,
+                    target_structure,
+                    organizations,
+                    step,
                 )
                 pipeline_target.fetch_accounts_for_target()
         # Targets should be a list of lists.
