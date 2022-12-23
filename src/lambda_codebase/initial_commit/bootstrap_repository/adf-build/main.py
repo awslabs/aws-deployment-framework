@@ -69,7 +69,10 @@ def is_account_in_invalid_state(ou_id, config):
 
     protected = config.get('protected', [])
     if ou_id in protected:
-        return f"Is in a protected Organizational Unit {ou_id}, it will be skipped."
+        return (
+            f"Is in a protected Organizational Unit {ou_id}, "
+            "it will be skipped."
+        )
 
     return False
 
@@ -186,7 +189,11 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     ):
         if getattr(config, item) is not None:
             deployment_account_parameter_store.put_parameter(
-                '/notification_endpoint/main' if item == 'notification_channel' else item,
+                (
+                    '/notification_endpoint/main'
+                    if item == 'notification_channel'
+                    else item
+                ),
                 str(getattr(config, item))
             )
     _store_extension_parameters(deployment_account_parameter_store, config)
@@ -244,8 +251,11 @@ def worker_thread(
         )
 
         # Regional base stacks can be updated after global
-        for region in list(
-                set([config.deployment_account_region] + config.target_regions)):
+        all_regions = list(set(
+            [config.deployment_account_region]
+            + config.target_regions
+        ))
+        for region in all_regions:
             # Ensuring the kms_arn and bucket_name on the target account is
             # up-to-date
             parameter_store = ParameterStore(region, role)
