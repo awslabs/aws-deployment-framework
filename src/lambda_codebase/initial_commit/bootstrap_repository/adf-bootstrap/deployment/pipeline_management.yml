@@ -437,6 +437,13 @@ Resources:
               "Retry": [
                 {
                   "ErrorEquals": [
+                    "NoAccountsFoundError",
+                    "InvalidDeploymentMapError"
+                  ],
+                  "MaxAttempts": 0
+                },
+                {
+                  "ErrorEquals": [
                     "States.TaskFailed"
                   ],
                   "IntervalSeconds": 1,
