@@ -166,7 +166,7 @@ class Action:
                         .get('default_providers', {})
                         .get('deploy', {})
                         .get('properties', {})
-                        .get('extract')
+                        .get('extract', False)
                     ))
                 ),
                 "ObjectKey": (

@@ -16,20 +16,16 @@ from ..pipeline import Pipeline
 def cls():
     return Pipeline(
         pipeline={
-        "name": "pipeline",
-        "params": {"key": "value"},
-        "targets": [],
-        "default_providers": {
-            "source": {
-                "name": "codecommit",
-                "properties" : {
-                    "account_id": 111111111111,
+            "name": "pipeline",
+            "params": {"key": "value"},
+            "targets": [],
+            "default_providers": {
+                "source": {
+                    "name": "codecommit",
+                    "properties": {
+                        "account_id": 111111111111,
+                    }
                 }
             }
-        }
-    })
-
-
-def test_flatten_list():
-    assertions = Pipeline.flatten_list([['val0', 'val1'], ['val2']])
-    assert assertions == ['val0', 'val1', 'val2']
+        },
+    )

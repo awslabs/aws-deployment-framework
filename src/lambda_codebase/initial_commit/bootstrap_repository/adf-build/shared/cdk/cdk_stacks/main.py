@@ -24,26 +24,30 @@ class PipelineStack(core.Stack):
         scope: core.Construct,
         stack_input: dict,
         **kwargs
-    ) -> None: #pylint: disable=R0912, R0915
+    ) -> None:  # pylint: disable=R0912, R0915
         """
         Initialize the pipeline stack
         """
-        super().__init__(scope, stack_input['input']['name'], **kwargs)
+        super().__init__(
+            scope,
+            stack_input["pipeline_input"]['name'],
+            **kwargs,
+        )
         LOGGER.info(
             'Pipeline creation/update of %s commenced',
-            stack_input['input']['name'],
+            stack_input['pipeline_input']['name'],
         )
-        _pipeline_type = (
-            stack_input['input'].get('params', {}).get(
-                'type',
-                DEFAULT_PIPELINE
-            ).lower()
+        pipeline_type = (
+            stack_input['pipeline_input']
+            .get('params', {})
+            .get('type', DEFAULT_PIPELINE)
+            .lower()
         )
 
-        self.generate_pipeline(_pipeline_type, stack_input)
+        self.generate_pipeline(pipeline_type, stack_input)
 
-    def generate_pipeline(self, _pipeline_type, stack_input):
-        if _pipeline_type == DEFAULT_PIPELINE:
+    def generate_pipeline(self, pipeline_type, stack_input):
+        if pipeline_type == DEFAULT_PIPELINE:
             generate_default_pipeline(self, stack_input)
         else:
-            raise ValueError(f'{_pipeline_type} is not defined in main.py')
+            raise ValueError(f'{pipeline_type} is not defined in main.py')

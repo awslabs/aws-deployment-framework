@@ -152,7 +152,7 @@ class Parameters:
         pipeline_targets = {}
         pipeline_definition = self._retrieve_pipeline_definition()
         input_targets: TargetWavesWithNestedWaveTargets = (
-            pipeline_definition['input']['environments']['targets']
+            pipeline_definition['pipeline_input']['environments']['targets']
         )
         # Since the input_targets returns a list of waves that each contain
         # a list of wave_targets, we need to flatten them to iterate:
@@ -195,11 +195,17 @@ class Parameters:
         #   },
         #   ...
         # ]
+        LOGGER.debug(
+            "Found the following pipeline targets: %s",
+            pipeline_targets,
+        )
         return pipeline_targets
 
     def _create_params_folder(self) -> None:
         try:
-            os.mkdir(f'{self.cwd}/params')
+            dir_path = f'{self.cwd}/params'
+            os.mkdir(dir_path)
+            LOGGER.debug("Created directory: %s", dir_path)
         except FileExistsError:
             pass
 
@@ -232,6 +238,11 @@ class Parameters:
         """
         for target in self._retrieve_pipeline_targets().values():
             for region in target['regions']:
+                LOGGER.debug(
+                    "Generating parameters for the %s account in %s",
+                    target['account_name'],
+                    region,
+                )
                 current_params = deepcopy(EMPTY_PARAMS_DICT)
                 current_params = self._merge_params(
                     Parameters._parse(
@@ -290,7 +301,7 @@ class Parameters:
                     ),
                     current_params
                 )
-                if current_params is not None:
+                if current_params:
                     self._write_params(
                         current_params,
                         f"{target['account_name']}_{region}",
@@ -336,15 +347,31 @@ class Parameters:
         file_path = f"{params_root_path}/params/{clean_file_name}"
         try:
             with open(f"{file_path}.json", encoding='utf-8') as file:
-                return json.load(file)
+                json_content = json.load(file)
+                LOGGER.debug(
+                    "Read %s.yml: %s",
+                    file_path,
+                    json_content,
+                )
+                return json_content
         except FileNotFoundError:
             try:
                 with open(f"{file_path}.yml", encoding='utf-8') as file:
-                    return yaml.load(file, Loader=yaml.FullLoader)
+                    yaml_content = yaml.load(file, Loader=yaml.FullLoader)
+                    LOGGER.debug(
+                        "Read %s.yml: %s",
+                        file_path,
+                        yaml_content,
+                    )
+                    return yaml_content
             except yaml.scanner.ScannerError:
                 LOGGER.exception('Invalid Yaml for %s.yml', file_path)
                 raise
             except FileNotFoundError:
+                LOGGER.debug(
+                    "File not found for %s.{json or yml}, defaulting to empty",
+                    file_path,
+                )
                 return {'Parameters': {}, 'Tags': {}}
 
     def _write_params(
@@ -362,6 +389,11 @@ class Parameters:
                 folder.
         """
         filepath = f"{self.cwd}/params/{filename}.json"
+        LOGGER.debug(
+            "Writing to parameter file: %s: %s",
+            filepath,
+            new_params,
+        )
         with open(filepath, mode='w', encoding='utf-8') as outfile:
             json.dump(new_params, outfile)
 
@@ -400,6 +432,10 @@ class Parameters:
                             self.file_name,
                         )
                     )
+        LOGGER.debug(
+            "Merged result %s",
+            merged_params,
+        )
         return merged_params
 
 
