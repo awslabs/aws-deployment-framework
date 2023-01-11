@@ -16,6 +16,7 @@ chsh
 cicd
 codepipelinecodeartifactpipelinetriggermytestrepoall
 codepipelinecodeartifactpipelinetriggermytestrepomytestpackage
+codeql
 corretto
 crhelper
 datacls
@@ -42,6 +43,7 @@ rcfile
 releasever
 rexec
 runas
+sarif
 sdkman
 stefanzweifel
 stubber
