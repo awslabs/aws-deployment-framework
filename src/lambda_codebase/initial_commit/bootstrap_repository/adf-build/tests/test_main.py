@@ -8,7 +8,11 @@ import os
 from pytest import fixture
 from parameter_store import ParameterStore
 from mock import Mock, patch, call
-from main import *
+from main import (
+    Config,
+    ensure_generic_account_can_be_setup,
+    update_deployment_account_output_parameters,
+)
 
 
 @fixture
@@ -41,26 +45,6 @@ def sts():
     return sts
 
 
-def test_is_account_valid_state(cls):
-    assert is_account_in_invalid_state('ou-123', cls.__dict__) == False
-
-
-def test_is_account_in_invalid_state(cls):
-    cls.protected = []
-    cls.protected.append('ou-123')
-    assert is_account_in_invalid_state('ou-123', cls.__dict__) == (
-        'Is in a protected Organizational Unit ou-123, it will be skipped.'
-    )
-
-
-
-def test_is_account_is_in_root(cls):
-    assert is_account_in_invalid_state('r-123', cls.__dict__) == (
-        'Is in the Root of the Organization, it will be skipped.'
-    )
-
-
-
 def test_ensure_generic_account_can_be_setup(cls, sts):
     assert ensure_generic_account_can_be_setup(sts, cls, '123456789012') == (
         sts.assume_cross_account_role()
@@ -68,8 +52,8 @@ def test_ensure_generic_account_can_be_setup(cls, sts):
 
 
 def test_update_deployment_account_output_parameters(cls, sts):
-    cloudformation=Mock()
-    parameter_store=Mock()
+    cloudformation = Mock()
+    parameter_store = Mock()
     parameter_store.client.put_parameter.return_value = True
     cloudformation.get_stack_regional_outputs.return_value = {
         "kms_arn": 'some_kms_arn',
@@ -86,7 +70,6 @@ def test_update_deployment_account_output_parameters(cls, sts):
                 'some_s3_bucket',
             ),
         ]
-        kms_and_bucket_dict={}
         update_deployment_account_output_parameters(
             deployment_account_region='eu-central-1',
             region='eu-central-1',
