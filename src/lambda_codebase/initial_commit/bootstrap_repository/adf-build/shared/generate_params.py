@@ -151,8 +151,14 @@ class Parameters:
     def _retrieve_pipeline_targets(self) -> PipelineTargets:
         pipeline_targets = {}
         pipeline_definition = self._retrieve_pipeline_definition()
+        pipeline_input_key = (
+            # Support to fallback to 'input' definition key.
+            # This is scheduled to be deprecated in v4.0
+            "pipeline_input" if "pipeline_input" in pipeline_definition
+            else "input"
+        )
         input_targets: TargetWavesWithNestedWaveTargets = (
-            pipeline_definition['pipeline_input']['environments']['targets']
+            pipeline_definition[pipeline_input_key]['environments']['targets']
         )
         # Since the input_targets returns a list of waves that each contain
         # a list of wave_targets, we need to flatten them to iterate:
