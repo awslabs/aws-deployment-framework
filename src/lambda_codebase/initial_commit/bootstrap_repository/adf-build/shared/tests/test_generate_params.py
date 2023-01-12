@@ -343,6 +343,42 @@ def test_ensure_parameter_default_contents(cls, input_definition_targets):
         }
 
 
+def test_using_deprecated_input_attribute_key(cls, input_definition_targets):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'input': {
+            'environments': {
+                'targets': input_definition_targets,
+            }
+        }
+    })
+    shutil.copy(
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
+    )
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something',
+    ):
+        cls.create_parameter_files()
+
+        parse = cls._parse(
+            cls.cwd,
+            "account_name1_us-east-1",
+        )
+        assert parse == {
+            'Parameters': {
+                'Environment': 'testing',
+                'MySpecialValue': 'something',
+            },
+            'Tags': {
+                'CostCenter': 'overhead',
+                'Department': 'unknown',
+                'Geography': 'world',
+            }
+        }
+
+
 def test_ensure_parameter_overrides(
     cls,
     input_wave_target_one,
