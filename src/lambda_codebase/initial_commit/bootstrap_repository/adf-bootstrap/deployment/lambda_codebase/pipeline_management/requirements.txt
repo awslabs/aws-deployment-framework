@@ -1,4 +1,4 @@
 pyyaml==5.4.1
-wrapt==1.14.1 # https://github.com/aws/aws-lambda-builders/issues/302
 schema==0.7.5
-tenacity==8.0.1
+tenacity==8.1.0
+wrapt==1.14.1 # https://github.com/aws/aws-lambda-builders/issues/302
