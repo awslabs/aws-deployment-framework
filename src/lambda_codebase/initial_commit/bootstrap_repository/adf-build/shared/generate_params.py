@@ -146,20 +146,6 @@ class Parameters:
             secrets.choice(ascii_lowercase + digits) for _ in range(6)
         )
 
-    def _fetch_initial_parameter(self):
-        return [
-            ast.literal_eval(
-                self.s3.read_object(
-                    f"adf-parameters/deployment/{self.build_name}/account_ous.json"
-                )
-            ),
-            ast.literal_eval(
-                self.parameter_store.fetch_parameter(
-                    f"/deployment/{self.build_name}/regions"
-                )
-            ),
-        ]
-
     def _retrieve_pipeline_definition(self) -> PipelineDefinition:
         return json.loads(
             self.definition_s3.read_object(
@@ -232,102 +218,10 @@ class Parameters:
 
     def _create_params_folder(self) -> None:
         try:
-            return os.mkdir(f"{self.cwd}/params")
+            dir_path = f"{self.cwd}/params"
+            os.mkdir(dir_path)
+            LOGGER.debug("Created directory: %s", dir_path)
         except FileExistsError:
-            return None
-
-    @staticmethod
-    def _is_account_id(value):
-        return str(value).isnumeric()
-
-    def create_parameter_files(self):
-        for account, ou in self.account_ous.items():
-            for region in self.regions:
-                compare_params = {"Parameters": {}, "Tags": {}}
-                compare_params = self._param_updater(
-                    Parameters._parse(f"{self.cwd}/params/{account}_{region}"),
-                    compare_params,
-                )
-                compare_params = self._param_updater(
-                    Parameters._parse(f"{self.cwd}/params/{account}"),
-                    compare_params,
-                )
-                if not Parameters._is_account_id(ou):
-                    # Compare account_region final to ou_region
-                    compare_params = self._param_updater(
-                        Parameters._parse(f"{self.cwd}/params/{ou}_{region}"),
-                        compare_params,
-                    )
-                    # Compare account_region final to ou
-                    compare_params = self._param_updater(
-                        Parameters._parse(f"{self.cwd}/params/{ou}"), compare_params
-                    )
-                # Compare account_region final to deployment_account_region
-                compare_params = self._param_updater(
-                    Parameters._parse(f"{self.cwd}/params/global_{region}"),
-                    compare_params,
-                )
-                # Compare account_region final to global
-                compare_params = self._param_updater(
-                    Parameters._parse(self.global_path), compare_params
-                )
-                if compare_params is not None:
-                    self._update_params(compare_params, f"{account}_{region}")
-
-    @staticmethod
-    def _parse(filename):
-        """
-        Attempt to parse the parameters file and return he default
-        CloudFormation parameter base object if not found. Returning
-        Base CloudFormation Parameters here since if the user was using
-        Any other type (SC, ECS) they would require a parameter file (global.json)
-        and thus this would not fail.
-        """
-        try:
-            with open(f"{filename}.json", encoding="utf-8") as file:
-                return json.load(file)
-        except FileNotFoundError:
-            try:
-                with open(f"{filename}.yml", encoding="utf-8") as file:
-                    return yaml.load(file, Loader=yaml.FullLoader)
-            except yaml.scanner.ScannerError:
-                LOGGER.exception("Invalid Yaml for %s.yml", filename)
-                raise
-            except FileNotFoundError:
-                return {"Parameters": {}, "Tags": {}}
-
-    def _update_params(self, new_params, filename):
-        """
-        Responsible for updating the parameters within the files themselves
-        """
-        with open(
-            f"{self.cwd}/params/{filename}.json", mode="w", encoding="utf-8"
-        ) as outfile:
-            json.dump(new_params, outfile)
-
-    def _determine_intrinsic_function(self, resolver, value, key):
-        if str(value).startswith("resolve:"):
-            return resolver.fetch_parameter_store_value(value, key)
-        if str(value).startswith("import:"):
-            return resolver.fetch_stack_output(value, key)
-        if str(value).startswith("upload:"):
-            return resolver.upload(value, key, self.file_name)
-        return False
-
-    # pylint: disable=inconsistent-return-statements
-    def _determine_parameter_structure(self, parameters, resolver):
-        try:
-            for key, value in parameters.items():
-                if isinstance(value, dict):
-                    LOGGER.debug("Calling _determine_parameter_structure recursively")
-                    return self._determine_parameter_structure(value, resolver)
-                if self._determine_intrinsic_function(resolver, value, key):
-                    continue
-                resolver.update(key)
-        except AttributeError:
-            LOGGER.debug(
-                "Input was not a dict for _determine_parameter_structure, nothing to do."
-            )
             pass
 
     def create_parameter_files(self) -> None:
