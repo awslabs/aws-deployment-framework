@@ -68,9 +68,9 @@ class OrganizationPolicy:
         return region.startswith("us-gov")
 
     @staticmethod
-    def set_scp_attachment(access_identifer, organization_mapping, path, organizations):
-        if access_identifer:
-            if access_identifer.get("keep-default-scp") != "enabled":
+    def set_scp_attachment(access_identifier, organization_mapping, path, organizations):
+        if access_identifier:
+            if access_identifier.get("keep-default-scp") != "enabled":
                 try:
                     organizations.detach_policy(
                         "p-FullAWSAccess", organization_mapping[path]

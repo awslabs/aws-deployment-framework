@@ -13,13 +13,14 @@ Resources:
     # for purposes other than testing.
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyName: "custom-adf-cloudformation-deployment-role-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Sid: "CloudFormation"
-            Action: # These are examples..
+            Action:
+              # These are examples, please update these to the least privilege policy required:
               - "s3:*"
               - "ecr:*"
             Resource:
@@ -27,60 +28,56 @@ Resources:
       Roles:
         - adf-cloudformation-deployment-role
 
-  # VPC CodeBuild support IAM permissions
-  PipelineProvisionerResourcePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-pipeline-provisioner-codebuild-role-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Sid: "CodeBuildVPC"
-            Action:
-              - "ec2:AuthorizeSecurityGroupEgress"
-              - "ec2:AuthorizeSecurityGroupIngress"
-              - "ec2:CreateSecurityGroup"
-              - "ec2:CreateTags"
-              - "ec2:DeleteSecurityGroup"
-              - "ec2:DeleteSecurityGroup"
-              - "ec2:DeleteTags"
-              - "ec2:Describe*"
-              - "ec2:List*"
-              - "ec2:RevokeSecurityGroupEgress"
-              - "ec2:RevokeSecurityGroupIngress"
-            Resource:
-              - "*"
-      Roles:
-        - adf-pipeline-provisioner-codebuild-role
-
-  CodeBuildResourcePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-codebuild-role-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Sid: "CodeBuildVPC"
-            Action:
-              - "ec2:CreateNetworkInterface"
-              - "ec2:DescribeDhcpOptions"
-              - "ec2:DescribeNetworkInterfaces"
-              - "ec2:DeleteNetworkInterface"
-              - "ec2:DescribeSubnets"
-              - "ec2:DescribeSecurityGroups"
-              - "ec2:DescribeVpcs"
-            Resource:
-              - "*"
-          - Effect: Allow
-            Sid: "CodeBuildENI"
-            Action:
-              - "ec2:CreateNetworkInterfacePermission"
-            Resource:
-              - "*"
-            Condition:
-              StringEquals:
-                ec2:AuthorizedService: "codebuild.amazonaws.com"
-      Roles:
-        - adf-codebuild-role
+##
+# Begin of Terraform resources
+##
+# ADFTerraformRole:
+#   # This is the role that will be used to deploy Terraform resources from within
+#   # the target account. You should scope this policy depending on what you would
+#   # like to deploy within certain Organizational Units.
+#   # NOTE: below is a sample IAM policy. This policies should NOT be used for purposes other than testing.
+#   # Uncomment the `ADFTerraformRole` and `ADFTerraformPolicy` resources if you want to enable Terraform support in ADF
+#   # and deploy resources in Deployment account using Terraform. If you need to push to other account, you don't need to
+#   # add this policy
+#   Type: AWS::IAM::Role
+#   Properties:
+#     RoleName: "adf-terraform-role"
+#     AssumeRolePolicyDocument:
+#       Version: "2012-10-17"
+#       Statement:
+#         - Effect: Allow
+#           Sid: "AssumeRole"
+#           Principal:
+#             AWS:
+#               - !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codebuild-role
+#           Action:
+#             - sts:AssumeRole
+#     Path: /
+# ADFTerraformPolicy:
+#   Type: AWS::IAM::Policy
+#   Properties:
+#     PolicyName: "adf-terraform-policy"
+#     PolicyDocument:
+#       Version: "2012-10-17"
+#       Statement:
+#         - Effect: Allow
+#           Action:
+#             - "events:PutRule"
+#             - "events:PutTargets"
+#             - "events:DeleteRule"
+#             - "events:DescribeRule"
+#             - "events:ListTagsForResource"
+#             - "events:ListTargetsByRule"
+#             - "events:RemoveTargets"
+#             - "sns:CreateTopic"
+#             - "sns:GetTopicAttributes"
+#             - "sns:SetTopicAttributes"
+#             - "sns:ListTagsForResource"
+#             - "sns:DeleteTopic"
+#           Resource:
+#             - "*"
+#     Roles:
+#       - !Ref ADFTerraformRole
+##
+# End of Terraform resources
+##

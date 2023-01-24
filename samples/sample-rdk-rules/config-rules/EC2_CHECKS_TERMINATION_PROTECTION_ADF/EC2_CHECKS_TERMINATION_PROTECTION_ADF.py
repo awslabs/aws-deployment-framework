@@ -68,7 +68,7 @@ def is_applicable_ec2(configuration_item, event):
     if configuration_item["resourceType"] not in APPLICABLE_RESOURCES:
         return False
 
-    # If instance is not in a valid Environtment its not applicable
+    # If instance is not in a valid environment its not applicable
     if not is_valid_environment(configuration_item["resourceId"], event):
         return False
 
@@ -79,7 +79,7 @@ def is_applicable_ec2(configuration_item, event):
     return True
 
 
-# If instance not in a valid Environtment its not applicable
+# If instance not in a valid environment its not applicable
 def is_valid_environment(instance_id, event):
     ec2 = get_resource("ec2", event)
     instance = ec2.Instance(instance_id)
@@ -310,7 +310,7 @@ def convert_api_configuration(configuration_item):
 
 # Based on the type of message get the configuration item
 # either from configurationItem in the invoking event
-# or using the getResourceConfigHistiry API in getConfiguration function.
+# or using the getResourceConfigHistory API in getConfiguration function.
 def get_configuration_item(invoking_event):
     check_defined(invoking_event, "invokingEvent")
     if is_oversized_changed_notification(invoking_event["messageType"]):

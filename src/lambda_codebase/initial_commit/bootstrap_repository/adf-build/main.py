@@ -137,6 +137,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         deployment_account_parameter_store.put_parameter(
             "organization_id", os.environ["ORGANIZATION_ID"]
         )
+        _store_extension_parameters(deployment_account_parameter_store, config)
 
     deployment_account_parameter_store = ParameterStore(
         config.deployment_account_region, deployment_account_role
@@ -174,13 +175,28 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     ):
         if getattr(config, item) is not None:
             deployment_account_parameter_store.put_parameter(
-                "/notification_endpoint/main"
-                if item == "notification_channel"
-                else item,
+                (
+                    "/notification_endpoint/main"
+                    if item == "notification_channel"
+                    else item
+                ),
                 str(getattr(config, item)),
             )
+    _store_extension_parameters(deployment_account_parameter_store, config)
 
     return deployment_account_role
+
+
+def _store_extension_parameters(parameter_store, config):
+    if not hasattr(config, "extensions"):
+        return
+
+    for extension, attributes in config.extensions.items():
+        for attribute in attributes:
+            parameter_store.put_parameter(
+                f"/adf/extensions/{extension}/{attribute}",
+                str(attributes[attribute]),
+            )
 
 
 def worker_thread(account_id, sts, config, s3, cache, updated_kms_bucket_dict):
@@ -193,11 +209,6 @@ def worker_thread(account_id, sts, config, s3, cache, updated_kms_bucket_dict):
     organizations = Organizations(role=boto3, account_id=account_id)
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
-    account_state = is_account_in_invalid_state(ou_id, config.config)
-    if account_state:
-        LOGGER.info("%s %s", account_id, account_state)
-        return
-
     account_path = organizations.build_account_path(
         ou_id, [], cache  # Initial empty array to hold OU Path,
     )
@@ -205,9 +216,10 @@ def worker_thread(account_id, sts, config, s3, cache, updated_kms_bucket_dict):
         role = ensure_generic_account_can_be_setup(sts, config, account_id)
 
         # Regional base stacks can be updated after global
-        for region in list(
+        all_regions = list(
             set([config.deployment_account_region] + config.target_regions)
-        ):
+        )
+        for region in all_regions:
             # Ensuring the kms_arn and bucket_name on the target account is
             # up-to-date
             parameter_store = ParameterStore(region, role)
@@ -366,7 +378,6 @@ def main():  # pylint: disable=R0915
     else:
         policies = OrganizationPolicy()
     config = Config()
-    config.store_config()
 
     try:
         parameter_store = ParameterStore(REGION_DEFAULT, boto3)
@@ -426,7 +437,13 @@ def main():  # pylint: disable=R0915
         )
         cloudformation.create_stack()
         threads = []
-        account_ids = [account_id["Id"] for account_id in organizations.get_accounts()]
+        account_ids = [
+            account_id["Id"]
+            for account_id in organizations.get_accounts(
+                protected_ou_ids=config.config.get("protected"),
+                include_root=False,
+            )
+        ]
         non_deployment_account_ids = [
             account for account in account_ids if account != deployment_account_id
         ]

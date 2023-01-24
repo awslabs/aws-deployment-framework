@@ -18,60 +18,85 @@ Metadata:
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.3.11
+    SemanticVersion: 3.2.0
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 
 Mappings:
   Metadata:
     ADF:
-      Version: 3.3.11
+      Version: 3.2.0
 
 Parameters:
   CrossAccountAccessRoleName:
     Type: String
     Default: OrganizationAccountAccessRole
+    AllowedPattern: "[a-zA-Z0-9_+=,.@\\-]+"
 
   MainNotificationEndpoint:
     Type: String
     Default: ""
-    Description: "Example -> jane@example.com"
+    Description: >-
+      Example -> jane@example.com. (Only required when installing ADF for the
+      first time.)
 
   DeploymentAccountName:
     Type: String
     Default: ""
-    Description: "The name of the new or existing deployment account"
+    AllowedPattern: "[\\s\\S]*"
+    MinLength: 0
+    MaxLength: 50
+    Description: >-
+      The name of the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountEmailAddress:
     Type: String
     Default: ""
-    Description: "The email address for the new or existing deployment account"
+    Description: >-
+      The email address for the new or existing deployment account. (Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountAlias:
     Type: String
     Default: ""
-    Description: "(Optional) Example -> companyname-deployment (must be globally unique)"
+    AllowedPattern: "([a-z0-9](([a-z0-9]|-(?!-))*[a-z0-9])?)?"
+    MinLength: 0
+    MaxLength: 63
+    Description: >-
+      Example -> companyname-deployment (Must be globally unique. Only required when
+      installing ADF for the first time.)
 
   DeploymentAccountId:
     Type: String
+    AllowedPattern: "(\\d{12})?"
     Default: ""
     Description: >-
-      Example -> 123456789012  (Only required if you have an existing AWS Account
-      that you wish to use as the deployment account.)
+      Example -> 123456789012  (Only supported when installing ADF for the first time
+      and you have an existing AWS Account that you wish to use as the deployment
+      account. Leave blank otherwise.)
 
   DeploymentAccountMainRegion:
     Type: String
-    Default: ""
+    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa)-(central|(north|south)?(east|west)?)-\\d"
+    MinLength: 6
     Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
     Default: ""
-    Description: "(Optional) Example -> us-east-1, us-west-1, eu-west-3"
+    Description: >-
+      (Optional) Example -> us-east-1, us-west-1, eu-west-3. (Only supported when
+      installing ADF for the first time. If you would like to update this later,
+      please look at the adfconfig.yml file in the aws-deployment-framework-bootstrap
+      repository.)
 
   ProtectedOUs:
-    Description: "(Optional) Example -> ou-123,ou-234"
     Type: CommaDelimitedList
     Default: ""
+    Description: >-
+      (Optional) Example -> ou-123,ou-234 (Only supported when installing ADF for
+      the first time. If you would like to update this later, please look at the
+      adfconfig.yml file in the aws-deployment-framework-bootstrap repository.)
 
   LogLevel:
     Description: >-
@@ -1296,6 +1321,7 @@ Resources:
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
                     --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                - python adf-build/store_config.py
                 # Shared Modules to be used with AWS CodeBuild:
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
                 # Base templates:

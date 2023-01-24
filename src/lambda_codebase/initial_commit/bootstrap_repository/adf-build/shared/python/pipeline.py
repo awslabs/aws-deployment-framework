@@ -7,6 +7,8 @@ properties associated with a pipeline.
 """
 
 import os
+from copy import deepcopy
+from list_utils import flatten_to_unique_sorted
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 
@@ -14,30 +16,25 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 class Pipeline:
     def __init__(self, pipeline):
         self.name = pipeline.get('name')
-        self.default_providers = pipeline.get('default_providers', {})
+        self.default_providers = self._set_default_provider_defaults(
+            pipeline.get('default_providers'),
+        )
         self.parameters = pipeline.get('params', {})
-        self.input = {}
         self.template_dictionary = {"targets": []}
-        self.notification_endpoint = self.parameters.get('notification_endpoint', None)
+        self.notification_endpoint = self.parameters.get(
+            'notification_endpoint',
+        )
         self.stage_regions = []
         self.top_level_regions = pipeline.get('regions', [])
         self.completion_trigger = pipeline.get('completion_trigger', {})
         self.tags = pipeline.get('tags', {})
         self.schedule = self.parameters.get('schedule', {})
         if not isinstance(self.completion_trigger.get('pipelines', []), list):
-            self.completion_trigger['pipelines'] = [self.completion_trigger['pipelines']]
+            self.completion_trigger['pipelines'] = [
+                self.completion_trigger['pipelines'],
+            ]
         if not isinstance(self.top_level_regions, list):
             self.top_level_regions = [self.top_level_regions]
-
-    @staticmethod
-    def flatten_list(input_list):
-        result = []
-        for item in input_list:
-            if isinstance(item, list):
-                result.extend(Pipeline.flatten_list(item))
-            else:
-                result.append(item)
-        return sorted(result)
 
     def _create_pipelines_folder(self):
         try:
@@ -50,25 +47,87 @@ class Pipeline:
         with open(output_path, mode='w', encoding='utf-8') as file_handler:
             file_handler.write(output_template)
 
-    def _input_type_validation(self, params): #pylint: disable=R0201
-        if not params.get('default_providers', {}).get('build', {}):
-            params['default_providers']['build'] = {}
-            params['default_providers']['build']['provider'] = 'codebuild'
-        if not params.get('default_providers', {}).get('deploy', {}):
-            params['default_providers']['deploy'] = {}
-            params['default_providers']['deploy']['provider'] = 'cloudformation'
-        return params
+    def get_all_regions(self):
+        """
+        Get all the regions specified for this pipeline.
+        This includes the regions that are defined at the top level of the
+        pipeline, being the `$.regions`. As well as the `$.targets.[].regions`.
+
+        Returns:
+            list(str): The list of regions that this pipeline has configured.
+        """
+        return flatten_to_unique_sorted(
+            [
+                self.top_level_regions or [],
+                self.stage_regions,
+            ],
+        )
+
+    @staticmethod
+    def _set_default_provider_defaults(default_providers):
+        providers = default_providers or {}
+        return {
+            'source': {
+                'provider': 'codecommit',
+                **providers.get('source', {}),
+            },
+            'build': {
+                'provider': 'codebuild',
+                **providers.get('build', {}),
+            },
+            'deploy': {
+                'provider': 'cloudformation',
+                **providers.get('deploy', {}),
+            },
+        }
+
+    def merge_in_deploy_defaults(self, deploy_target_config):
+        """
+        Pass the step or target deployment configuration here to
+        get the default configuration applied if the provider or its
+        properties are not configured.
+
+        Args:
+            deploy_target_config (dict): The target deployment configuration
+                dict holding the provider type attribute and its properties.
+
+        Returns:
+            dict: The updated target deployment configuration, including the
+                defaults where those were overwritten yet.
+        """
+        new_config = deepcopy(deploy_target_config)
+        default_deploy = self.default_providers.get('deploy')
+        if not new_config.get('provider'):
+            new_config['provider'] = (
+                default_deploy.get('provider')
+            )
+        new_config['properties'] = {
+            **default_deploy.get('properties', {}),
+            **new_config.get('properties', {}),
+        }
+        if new_config.get('regions') is None:
+            new_config['regions'] = (
+                self.top_level_regions
+                or [DEPLOYMENT_ACCOUNT_REGION]
+            )
+        return new_config
 
     def generate_input(self):
-        self.input = self._input_type_validation({
+        """
+        Generate the pipeline input data.
+
+        Returns:
+            dict: The pipeline input data.
+        """
+        pipeline_input = {
             "environments": self.template_dictionary,
             "name": self.name,
             "params": self.parameters,
             "tags": self.tags,
             "default_providers": self.default_providers,
-            "top_level_regions": sorted(self.flatten_list(list(set(self.top_level_regions)))),
-            "regions": sorted(list(set(self.flatten_list(self.stage_regions)))),
+            "regions": self.get_all_regions(),
             "deployment_account_region": DEPLOYMENT_ACCOUNT_REGION,
             "completion_trigger": self.completion_trigger,
-            "schedule": self.schedule
-        })
+            "schedule": self.schedule,
+        }
+        return pipeline_input

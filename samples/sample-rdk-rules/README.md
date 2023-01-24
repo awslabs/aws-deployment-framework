@@ -131,4 +131,4 @@ account. If not lambda execution will be failed.
   have the `lambda-function-account-id` (`1111111111`) as trusted entity as
   below.
 
-![Trusted entiry](./meta/lambda-account-id-trusted-entiry.png)
+![Trusted entity](./meta/lambda-account-id-trusted-entity.png)

@@ -1,11 +1,11 @@
 {
     "Parameters": {
-        "CostCenter": "123",
         "Environment": "testing",
         "MySpecialValue": "resolve:/values/some_value"
     },
     "Tags": {
-        "TagKey": "123",
-        "MyKey": "new_value"
+        "CostCenter": "overhead",
+        "Department": "unknown",
+        "Geography": "world"
     }
 }

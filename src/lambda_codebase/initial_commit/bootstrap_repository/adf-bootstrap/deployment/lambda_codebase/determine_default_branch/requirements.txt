@@ -1,2 +1,2 @@
-boto3==1.24.59
+boto3==1.26.48
 cfn-custom-resource~=1.0.1

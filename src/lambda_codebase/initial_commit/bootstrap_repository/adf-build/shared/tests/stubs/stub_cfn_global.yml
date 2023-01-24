@@ -1,0 +1,8 @@
+Parameters:
+  Environment: "testing"
+  MySpecialValue: "resolve:/values/some_value"
+
+Tags:
+  CostCenter: "overhead"
+  Department: "unknown"
+  Geography: "world"
