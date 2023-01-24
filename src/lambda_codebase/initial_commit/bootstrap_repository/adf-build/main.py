@@ -372,7 +372,7 @@ def main():  # pylint: disable=R0915
 
     await_sfn_executions(boto3.client("stepfunctions"))
 
-    if os.getenv("ENABLED_V2_ORG_POLICY", None):
+    if os.getenv("ENABLED_V2_ORG_POLICY", "False").lower() == "true":
         LOGGER.info("Using new organization policy")
         policies = OrgPolicyV2()
     else:

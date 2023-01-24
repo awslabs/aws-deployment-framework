@@ -111,6 +111,16 @@ Parameters:
       - ERROR
       - CRITICAL
 
+  EnablePolicyV2:
+    Description: >-
+      Enable the second generation of ADF Policies.
+      See the documentation for more details.
+    Type: String
+    Default: "FALSE"
+    AllowedValues:
+      - "TRUE"
+      - "FALSE"
+
 Globals:
   Function:
     CodeUri: lambda_codebase
@@ -1299,7 +1309,7 @@ Resources:
           - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
             Value: !Ref AccountBootstrappingStateMachine
           - Name: ENABLED_V2_ORG_POLICY
-            Value: "TRUE"
+            Value: !Ref EnablePolicyV2
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base-templates"
       ServiceRole: !Ref BootstrapCodeBuildRole
