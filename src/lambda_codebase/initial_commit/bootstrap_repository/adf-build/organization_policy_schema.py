@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-Schema Validation for Organization Polcy Files
+Schema Validation for Organization Policy Files
 """
 
 from schema import Schema, Or, Optional
@@ -31,9 +31,9 @@ SCHEMA_MAP = {
 
 
 class OrgPolicySchema:
-    def __init__(self, unvalidated_schema: dict):
-        LOGGER.info("Validating Policy Schema: %s", unvalidated_schema)
-        versioned_schema = Schema(GENERIC_SCHEMA).validate(unvalidated_schema)
+    def __init__(self, schema_to_validate: dict):
+        LOGGER.info("Validating Policy Schema: %s", schema_to_validate)
+        versioned_schema = Schema(GENERIC_SCHEMA).validate(schema_to_validate)
         LOGGER.info("Versioned Schema: %s", versioned_schema)
         self.schema = Schema(SCHEMA_MAP[versioned_schema["Version"]]).validate(
             versioned_schema

@@ -1038,7 +1038,7 @@ class SadTestCases(unittest.TestCase):
                     _policy.get("PolicyName"), _policy.get("Policy")
                 )
 
-    def test_policy_detatchment_error_handling_access_denied(self):
+    def test_policy_detachment_error_handling_access_denied(self):
         org_client = boto3.client("organizations")
         org_mapping = {
             "MyFirstOrg": "11223344556",
@@ -1093,7 +1093,7 @@ class SadTestCases(unittest.TestCase):
 
         stubber.assert_no_pending_responses()
 
-    def test_policy_detatchment_error_handling_policy_not_attached(self):
+    def test_policy_detachment_error_handling_policy_not_attached(self):
         org_client = boto3.client("organizations")
         org_mapping = {
             "MyFirstOrg": "11223344556",

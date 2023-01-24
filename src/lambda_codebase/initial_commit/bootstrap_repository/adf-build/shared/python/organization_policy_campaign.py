@@ -232,7 +232,7 @@ class OrganizationalPolicyCampaignPolicy:
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(
-                    f"Error detatching policy: {self.name} {self.id} from {target_id}: Access Denied"
+                    f"Error detaching policy: {self.name} {self.id} from {target_id}: Access Denied"
                 ) from e
             except self.organizations_client.exceptions.PolicyNotAttachedException as e:
                 LOGGER.warning(
@@ -352,10 +352,10 @@ class OrganizationPolicyApplicationCampaign:
         self.policies_to_be_created = []
         self.policies_to_be_updated = []
         self.policies_to_be_deleted = []
-        self.existing_policy_lookup = self.get_existing_policys()
+        self.existing_policy_lookup = self.get_existing_policies()
         self.campaign_config = campaign_config
 
-    def get_existing_policys(self):
+    def get_existing_policies(self):
         try:
             # TODO: Implement paginator here
             response = self.organizations.list_policies(Filter=self.type)
