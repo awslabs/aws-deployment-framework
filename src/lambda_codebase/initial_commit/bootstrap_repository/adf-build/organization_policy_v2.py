@@ -12,7 +12,7 @@ import json
 import boto3
 
 from logger import configure_logger
-from organisation_policy_campaign import (
+from organization_policy_campaign import (
     OrganizationPolicyApplicationCampaign,
 )
 from errors import ParameterNotFoundError

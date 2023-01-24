@@ -8,9 +8,9 @@ import boto3
 from botocore.stub import Stubber, ANY
 
 
-from organisation_policy_campaign import (
+from organization_policy_campaign import (
     OrganizationPolicyApplicationCampaign,
-    OrganisationPolicyException,
+    OrganizationPolicyException,
 )
 
 POLICY_DEFINITIONS = [
@@ -96,7 +96,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id",
                         "Name": "MyFirstPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -127,7 +127,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id-2",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id-2",
                         "Name": "MySecondPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -229,7 +229,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id-2",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id-2",
                         "Name": "MySecondPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -258,7 +258,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-1",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-1",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-1",
                         "Name": "MyFirstPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -359,7 +359,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id-2",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id-2",
                         "Name": "MySecondPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -699,7 +699,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policies": [
                     {
                         "Id": "p-FullAWSAccess",
-                        "Arn": "arn:aws:organisation:policy/p-FullAWSAccess",
+                        "Arn": "arn:aws:organization:policy/p-FullAWSAccess",
                         "Name": "FullAWSAccess",
                         "Description": "FullAWSAccess",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -722,7 +722,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id",
                         "Name": "MyFirstPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -759,7 +759,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id-2",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id-2",
                         "Name": "MySecondPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -837,7 +837,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id-2",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id-2",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id-2",
                         "Name": "MySecondPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
@@ -917,7 +917,7 @@ class SadTestCases(unittest.TestCase):
         )
 
         stubber.activate()
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             OrganizationPolicyApplicationCampaign(
                 "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
             )
@@ -934,7 +934,7 @@ class SadTestCases(unittest.TestCase):
         )
 
         stubber.activate()
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             OrganizationPolicyApplicationCampaign(
                 "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
             )
@@ -951,7 +951,7 @@ class SadTestCases(unittest.TestCase):
         )
 
         stubber.activate()
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             OrganizationPolicyApplicationCampaign(
                 "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
             )
@@ -968,7 +968,7 @@ class SadTestCases(unittest.TestCase):
         )
 
         stubber.activate()
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             OrganizationPolicyApplicationCampaign(
                 "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
             )
@@ -985,7 +985,7 @@ class SadTestCases(unittest.TestCase):
         )
 
         stubber.activate()
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             OrganizationPolicyApplicationCampaign(
                 "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
             )
@@ -1032,7 +1032,7 @@ class SadTestCases(unittest.TestCase):
             "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
         )
 
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             for _policy in POLICY_DEFINITIONS:
                 policy_campaign.get_policy(
                     _policy.get("PolicyName"), _policy.get("Policy")
@@ -1088,7 +1088,7 @@ class SadTestCases(unittest.TestCase):
         policy_campaign = OrganizationPolicyApplicationCampaign(
             "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
         )
-        with self.assertRaises(OrganisationPolicyException):
+        with self.assertRaises(OrganizationPolicyException):
             policy_campaign.apply()
 
         stubber.assert_no_pending_responses()
@@ -1149,10 +1149,10 @@ class SadTestCases(unittest.TestCase):
         policy_campaign = OrganizationPolicyApplicationCampaign(
             "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
         )
-        with self.assertLogs("organisation_policy_campaign", "WARNING") as log:
+        with self.assertLogs("organization_policy_campaign", "WARNING") as log:
             policy_campaign.apply()
             self.assertIn(
-                "WARNING:organisation_policy_campaign:Error detaching policy MyFirstPolicy (fake-policy-3) from target 11223344556: Policy Not Attached",
+                "WARNING:organization_policy_campaign:Error detaching policy MyFirstPolicy (fake-policy-3) from target 11223344556: Policy Not Attached",
                 log.output,
             )
 

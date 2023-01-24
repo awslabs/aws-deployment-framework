@@ -1,5 +1,5 @@
 """
-Tests for organisational policy v2
+Tests for organizational policy v2
 """
 import unittest
 import os
@@ -55,7 +55,7 @@ class HappyTestCases(unittest.TestCase):
                 "Policy": {
                     "PolicySummary": {
                         "Id": "fake-policy-id",
-                        "Arn": "arn:aws:organisations:policy/fake-policy-id",
+                        "Arn": "arn:aws:organizations:policy/fake-policy-id",
                         "Name": "TestPolicy",
                         "Description": "ADF Managed scp",
                         "Type": "SERVICE_CONTROL_POLICY",
