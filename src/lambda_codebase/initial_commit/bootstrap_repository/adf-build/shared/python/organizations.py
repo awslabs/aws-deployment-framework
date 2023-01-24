@@ -59,12 +59,8 @@ class Organizations:  # pylint: disable=R0904
         }
 
     def enable_organization_policies(
-<<<<<<< HEAD
-        self, policy_type="SERVICE_CONTROL_POLICY"
-    ):  # or 'TAG_POLICY'
-=======
         self,
-        policy_type='SERVICE_CONTROL_POLICY',
+        policy_type="SERVICE_CONTROL_POLICY",
     ):
         """
         Enable the policies on the organization unit root id.
@@ -74,20 +70,15 @@ class Organizations:  # pylint: disable=R0904
                 The policy type, either 'SERVICE_CONTROL_POLICY' or
                 'TAG_POLICY'. It defaults to the 'SERVICE_CONTROL_POLICY'.
         """
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
         try:
             self.client.enable_policy_type(
                 RootId=self.get_ou_root_id(), PolicyType=policy_type
             )
         except self.client.exceptions.PolicyTypeAlreadyEnabledException:
-<<<<<<< HEAD
-            LOGGER.info("%s are currently enabled within the Organization", policy_type)
-=======
             LOGGER.info(
-                '%s are currently enabled within the Organization',
+                "%s are currently enabled within the Organization",
                 policy_type,
             )
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
 
     @staticmethod
     def trim_policy_path(policy):
@@ -104,19 +95,13 @@ class Organizations:  # pylint: disable=R0904
                 continue
             # List OUs
             for organization_id in [
-<<<<<<< HEAD
-                organization_id["Id"]
-                for organization_id in paginator(
-                    self.client.list_children,
-                    **{"ParentId": ou_id, "ChildType": "ORGANIZATIONAL_UNIT"},
-=======
-                ou_data['Id'] for ou_data in paginator(
+                ou_data["Id"]
+                for ou_data in paginator(
                     self.client.list_children,
                     **{
                         "ParentId": ou_id,
                         "ChildType": "ORGANIZATIONAL_UNIT",
                     },
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
                 )
             ]:
                 if organization_id in org_structure.values() and counter != 0:
@@ -128,19 +113,13 @@ class Organizations:  # pylint: disable=R0904
                 org_structure[trimmed_path] = organization_id
             # List accounts
             for account_id in [
-<<<<<<< HEAD
-                account_id["Id"]
-                for account_id in paginator(
-                    self.client.list_children,
-                    **{"ParentId": ou_id, "ChildType": "ACCOUNT"},
-=======
-                account_data['Id'] for account_data in paginator(
+                account_data["Id"]
+                for account_data in paginator(
                     self.client.list_children,
                     **{
                         "ParentId": ou_id,
                         "ChildType": "ACCOUNT",
-                    }
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
+                    },
                 )
             ]:
                 if account_id in org_structure.values() and counter != 0:
@@ -153,12 +132,8 @@ class Organizations:  # pylint: disable=R0904
         counter = counter + 1
         # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
         return (
-<<<<<<< HEAD
             org_structure
             if counter > 5
-=======
-            org_structure if counter > 5
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
             else self.get_organization_map(org_structure, counter)
         )
 
@@ -184,82 +159,33 @@ class Organizations:  # pylint: disable=R0904
 
     @staticmethod
     def get_policy_body(path):
-<<<<<<< HEAD
-        with open(f"./adf-bootstrap/{path}", mode="r", encoding="utf-8") as policy:
+        bootstrap_path = f"./adf-bootstrap/{path}"
+        with open(bootstrap_path, mode="r", encoding="utf-8") as policy:
             return json.dumps(json.load(policy))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
         response = list(paginator(self.client.list_policies, Filter=policy_type))
-        try:
-            return [policy for policy in response if policy["Name"] == name][0]["Id"]
-        except IndexError:
-            return []
-
-    def describe_policy_id_for_target(
-        self, target_id, policy_type="SERVICE_CONTROL_POLICY"
-=======
-        bootstrap_path = f'./adf-bootstrap/{path}'
-        with open(bootstrap_path, mode='r', encoding='utf-8') as policy:
-            return json.dumps(json.load(policy))
-
-    def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
-        response = list(
-            paginator(self.client.list_policies, Filter=policy_type)
-        )
-        filtered_policies = [
-            policy for policy in response
-            if policy['Name'] == name
-        ]
+        filtered_policies = [policy for policy in response if policy["Name"] == name]
         if len(filtered_policies) > 0:
-            return filtered_policies[0]['Id']
+            return filtered_policies[0]["Id"]
         return []
 
     def describe_policy_id_for_target(
         self,
         target_id,
-        policy_type='SERVICE_CONTROL_POLICY',
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
+        policy_type="SERVICE_CONTROL_POLICY",
     ):
         response = self.client.list_policies_for_target(
             TargetId=target_id, Filter=policy_type
         )
-<<<<<<< HEAD
-        try:
-            return [
-                p
-                for p in response["Policies"]
-                if f"ADF Managed {policy_type}" in p["Description"]
-            ][0]["Id"]
-        except IndexError:
-            return []
-
-    def describe_policy_ids_for_target(
-        self, target_id, policy_type="SERVICE_CONTROL_POLICY"
-    ):
-        response = self.client.list_policies_for_target(
-            TargetId=target_id, Filter=policy_type
-=======
         adf_managed_policies = [
-            policy for policy in response['Policies']
-            if f'ADF Managed {policy_type}' in policy['Description']
+            policy
+            for policy in response["Policies"]
+            if f"ADF Managed {policy_type}" in policy["Description"]
         ]
         if len(adf_managed_policies) > 0:
-            return adf_managed_policies[0]['Id']
+            return adf_managed_policies[0]["Id"]
         return []
-
-    def describe_policy(self, policy_id):
-        response = self.client.describe_policy(
-            PolicyId=policy_id,
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
-        )
-        try:
-            return {
-                p["Name"]: p["Id"]
-                for p in response["Policies"]
-                if f"ADF Managed {policy_type}" in p["Description"]
-            }
-        except IndexError:
-            return {}
 
     def describe_policy(self, policy_id):
         response = self.client.describe_policy(PolicyId=policy_id)
@@ -267,14 +193,10 @@ class Organizations:  # pylint: disable=R0904
 
     def attach_policy(self, policy_id, target_id):
         try:
-<<<<<<< HEAD
-            self.client.attach_policy(PolicyId=policy_id, TargetId=target_id)
-=======
             self.client.attach_policy(
                 PolicyId=policy_id,
                 TargetId=target_id,
             )
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
         except self.client.exceptions.DuplicatePolicyAttachmentException:
             pass
 
@@ -291,9 +213,7 @@ class Organizations:  # pylint: disable=R0904
         include_root,
     ):
         if protected_ou_ids or not include_root:
-            account_ou_id = (
-                self.get_parent_info(account["Id"]).get("ou_parent_id")
-            )
+            account_ou_id = self.get_parent_info(account["Id"]).get("ou_parent_id")
             if not include_root and account_ou_id.startswith("r-"):
                 LOGGER.info(
                     "Account %s is in the root of the AWS Organization, "
@@ -337,13 +257,6 @@ class Organizations:  # pylint: disable=R0904
         """
         accounts = []
         for account in paginator(self.client.list_accounts):
-<<<<<<< HEAD
-            if not account.get("Status") == "ACTIVE":
-                LOGGER.warning("Account %s is not an Active AWS Account", account["Id"])
-                continue
-            self.account_ids.append(account)
-        return self.account_ids
-=======
             if self._account_available_to_adf(
                 account,
                 protected_ou_ids,
@@ -351,7 +264,6 @@ class Organizations:  # pylint: disable=R0904
             ):
                 accounts.append(account)
         return accounts
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
 
     def get_organization_info(self):
         response = self.client.describe_organization()
@@ -380,12 +292,8 @@ class Organizations:  # pylint: disable=R0904
             return response["Account"]["Name"]
         except ClientError as error:
             LOGGER.error(
-<<<<<<< HEAD
-                "Failed to retrieve account name for account ID %s", account_id
-=======
                 "Failed to retrieve account name for account ID %s",
                 account_id,
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
             )
             raise error
 
@@ -431,18 +339,12 @@ class Organizations:  # pylint: disable=R0904
         # While not at the root of the Organization
         while current.get("Type") != "ROOT":
             # check cache for ou name of id
-<<<<<<< HEAD
-            if not cache.check(current.get("Id")):
-                cache.add(current.get("Id"), self.describe_ou_name(current.get("Id")))
-            ou_name = cache.check(current.get("Id"))
-=======
-            if not cache.exists(current.get('Id')):
+            if not cache.exists(current.get("Id")):
                 cache.add(
-                    current.get('Id'),
-                    self.describe_ou_name(current.get('Id')),
+                    current.get("Id"),
+                    self.describe_ou_name(current.get("Id")),
                 )
-            ou_name = cache.get(current.get('Id'))
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
+            ou_name = cache.get(current.get("Id"))
             account_path.append(ou_name)
             return self.build_account_path(current.get("Id"), account_path, cache)
         return Organizations.determine_ou_path(
@@ -576,8 +478,7 @@ class Organizations:  # pylint: disable=R0904
             sleep(5)  # waiting for 5 sec before checking account status again
         account_id = response["AccountId"]
         # TODO: Instead of sleeping, query for the role.
-        sleep(
-            90
-        )  # Wait 90 sec until OrganizationalRole is created in new account (Temp solution)
+        # Wait 90 sec until OrganizationalRole is created in new account (Temp solution)
+        sleep(90)
 
         return account_id

@@ -9,7 +9,14 @@ from botocore.stub import Stubber, ANY
 from organization_policy_v2 import OrganizationPolicy
 
 SCP_ONLY = {"scp": "SERVICE_CONTROL_POLICY"}
-POLICY_PATH = "/src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/tests/adf-policies"
+# This hurts me.
+TOX_PATH_PREFIX = "/src/lambda_codebase/initial_commit/bootstrap_repository"
+TEST_POLICY_PATH = "/adf-build/tests/adf-policies"
+POLICY_PATH = (
+    f"{TOX_PATH_PREFIX}{TEST_POLICY_PATH}"
+    if not os.getenv("CODEPIPELINE_EXECUTION_ID")
+    else TEST_POLICY_PATH
+)
 
 
 class FakeParamStore:
@@ -79,9 +86,10 @@ class HappyTestCases(unittest.TestCase):
         param_store.put_parameter("scp", "[]")
 
         policy_dir = f"{os.getcwd()}{POLICY_PATH}"
+        print(policy_dir)
 
         org_policies_client = OrganizationPolicy(policy_dir)
-        with self.assertLogs("organisation_policy_campaign") as log:
+        with self.assertLogs("organization_policy_v2") as log:
             org_policies_client.apply_policies(
                 org_client, param_store, {}, {"TestOrg": "ou-123456789"}, SCP_ONLY
             )

@@ -1,3 +1,7 @@
+"""
+Tests organization policy schema.
+"""
+
 import unittest
 from schema import SchemaError
 import organization_policy_schema
