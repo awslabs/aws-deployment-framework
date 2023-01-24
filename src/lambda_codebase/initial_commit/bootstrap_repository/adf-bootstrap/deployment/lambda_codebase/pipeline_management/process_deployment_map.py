@@ -19,16 +19,11 @@ from logger import configure_logger
 
 
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
-DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv(
     "PIPELINE_MANAGEMENT_STATE_MACHINE",
 )
 ADF_VERSION = os.getenv("ADF_VERSION")
 ADF_VERSION_METADATA_KEY = "adf_version"
-
-
-_cache = None
 
 
 class DeploymentMapFileData(TypedDict):
@@ -136,10 +131,33 @@ def get_file_from_s3(
 
 def start_executions(
     sfn_client,
+    deployment_map_name: str,
     deployment_map,
     codepipeline_execution_id: str,
     request_id: str,
 ):
+    """
+    Kick-off the ADF Pipeline Management State Machine.
+    Where each pipeline will be created/updated in its own Step Function
+    invocation/execution.
+
+    Args:
+        sfn_client (boto3.client.StepFunction):
+            The Step Function boto3 client.
+
+        deployment_map_name (str):
+            The name of the deployment map file that is the initiating source
+            of this create/update pipelines process.
+
+        deployment_map (dict):
+            The deployment map definition of the pipeline.
+
+        codepipeline_execution_id (str):
+            The CodePipeline execution id.
+
+        request_id (str):
+            The Lambda function request id.
+    """
     if not codepipeline_execution_id:
         codepipeline_execution_id = "no-codepipeline-exec-id-found"
     short_request_id = request_id[-12:]
@@ -151,7 +169,6 @@ def start_executions(
     )
     for pipeline in deployment_map.get("pipelines"):
         LOGGER.debug("Payload: %s", pipeline)
-        pipeline = {**pipeline, "deployment_map_source": "S3"}
         full_pipeline_name = pipeline.get('name', 'no-pipeline-name')
         # AWS Step Functions supports max 80 characters.
         # Since the run_id equals 49 characters plus the dash, we have 30
@@ -162,12 +179,27 @@ def start_executions(
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
-            input=json.dumps(pipeline),
+            input=json.dumps({
+                'deployment_map_source': 'S3',
+                'deployment_map_name': deployment_map_name,
+                'pipeline_definition': pipeline,
+            }),
         )
 
 
 def lambda_handler(event, context):
-    """Main Lambda Entry point"""
+    """
+    Main Lambda Entry point, responsible for iterating over the deployment
+    map holding one or more pipelines and initiating the ADF Pipeline
+    Management State Machine to create/update the pipelines defined inside.
+
+    Args:
+        event (dict): The S3 input event that invoked this Lambda Function.
+        context (Context): The Lambda context.
+
+    Returns:
+        dict: The input event is returned.
+    """
     output = event.copy()
     s3_resource = boto3.resource("s3")
     sfn_client = boto3.client("stepfunctions")
@@ -179,6 +211,7 @@ def lambda_handler(event, context):
         )
         start_executions(
             sfn_client,
+            s3_details.get("object_key"),
             deployment_map["content"],
             codepipeline_execution_id=deployment_map.get("execution_id"),
             request_id=context.aws_request_id,

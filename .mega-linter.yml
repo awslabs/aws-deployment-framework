@@ -29,6 +29,7 @@ ENABLE_LINTERS:
 #   - COPYPASTE # Comment to enable checks of excessive copy-pastes
 #   - SPELL # Comment to enable checks of spelling mistakes
 
+SARIF_REPORTER: true
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass
@@ -43,5 +44,5 @@ CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
 EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: '.ecrc.json'
 MARKDOWN_MARKDOWN_LINK_CHECK_ARGUMENTS: '-q'
 MARKDOWN_MARKDOWNLINT_DISABLE_ERRORS: false
-SPELL_CSPELL_ARGUMENTS: '--unique --words-only --gitignore'
+SPELL_CSPELL_ARGUMENTS: '--gitignore --no-progress --show-suggestions'
 SPELL_CSPELL_FILE_EXTENSIONS: ["*"]

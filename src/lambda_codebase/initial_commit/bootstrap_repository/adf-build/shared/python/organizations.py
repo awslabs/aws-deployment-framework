@@ -64,25 +64,48 @@ class Organizations:  # pylint: disable=R0904
             else tagging_client
         )
         self.account_id = account_id
-        self.account_ids = []
         self.root_id = None
 
-    def get_parent_info(self):
-        response = self.list_parents(self.account_id)
+    def get_parent_info(self, account_id=None):
+        """
+        Get the parent info of the account_id specified. If no specific
+        account id is specified, it will use the account_id setup when
+        initiating the Organizations instance.
+
+        Args:
+            account_id (str|None): The specific account id if any.
+
+        Returns:
+            dict: The ou_parent_id and ou_parent_type are returned in a
+                dictionary.
+        """
+        response = self.list_parents(account_id or self.account_id)
         return {
             "ou_parent_id": response.get("Id"),
             "ou_parent_type": response.get("Type"),
         }
 
     def enable_organization_policies(
-        self, policy_type="SERVICE_CONTROL_POLICY"
-    ):  # or 'TAG_POLICY'
+        self,
+        policy_type='SERVICE_CONTROL_POLICY',
+    ):
+        """
+        Enable the policies on the organization unit root id.
+
+        Args:
+            policy_type (str):
+                The policy type, either 'SERVICE_CONTROL_POLICY' or
+                'TAG_POLICY'. It defaults to the 'SERVICE_CONTROL_POLICY'.
+        """
         try:
             self.client.enable_policy_type(
                 RootId=self.get_ou_root_id(), PolicyType=policy_type
             )
         except self.client.exceptions.PolicyTypeAlreadyEnabledException:
-            LOGGER.info("%s are currently enabled within the Organization", policy_type)
+            LOGGER.info(
+                '%s are currently enabled within the Organization',
+                policy_type,
+            )
 
     @staticmethod
     def trim_policy_path(policy):
@@ -99,42 +122,54 @@ class Organizations:  # pylint: disable=R0904
                 continue
             # List OUs
             for organization_id in [
-                organization_id["Id"]
-                for organization_id in paginator(
+                ou_data['Id'] for ou_data in paginator(
                     self.client.list_children,
-                    **{"ParentId": ou_id, "ChildType": "ORGANIZATIONAL_UNIT"},
+                    **{
+                        "ParentId": ou_id,
+                        "ChildType": "ORGANIZATIONAL_UNIT",
+                    },
                 )
             ]:
                 if organization_id in org_structure.values() and counter != 0:
                     continue
                 ou_name = self.describe_ou_name(organization_id)
-                trimmed_path = Organizations.trim_policy_path(f"{name}/{ou_name}")
+                trimmed_path = Organizations.trim_policy_path(
+                    f"{name}/{ou_name}",
+                )
                 org_structure[trimmed_path] = organization_id
             # List accounts
             for account_id in [
-                account_id["Id"]
-                for account_id in paginator(
+                account_data['Id'] for account_data in paginator(
                     self.client.list_children,
-                    **{"ParentId": ou_id, "ChildType": "ACCOUNT"},
+                    **{
+                        "ParentId": ou_id,
+                        "ChildType": "ACCOUNT",
+                    }
                 )
             ]:
                 if account_id in org_structure.values() and counter != 0:
                     continue
                 account_name = self.describe_account_name(account_id)
-                trimmed_path = Organizations.trim_policy_path(f"{name}/{account_name}")
+                trimmed_path = Organizations.trim_policy_path(
+                    f"{name}/{account_name}",
+                )
                 org_structure[trimmed_path] = account_id
         counter = counter + 1
         # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
         return (
-            org_structure
-            if counter > 5
+            org_structure if counter > 5
             else self.get_organization_map(org_structure, counter)
         )
 
     def update_policy(self, content, policy_id):
         self.client.update_policy(PolicyId=policy_id, Content=content)
 
-    def create_policy(self, content, ou_path, policy_type="SERVICE_CONTROL_POLICY"):
+    def create_policy(
+        self,
+        content,
+        ou_path,
+        policy_type="SERVICE_CONTROL_POLICY",
+    ):
         policy_type_name = (
             "scp" if policy_type == "SERVICE_CONTROL_POLICY" else "tagging-policy"
         )
@@ -148,38 +183,50 @@ class Organizations:  # pylint: disable=R0904
 
     @staticmethod
     def get_policy_body(path):
-        with open(f"./adf-bootstrap/{path}", mode="r", encoding="utf-8") as policy:
+        bootstrap_path = f'./adf-bootstrap/{path}'
+        with open(bootstrap_path, mode='r', encoding='utf-8') as policy:
             return json.dumps(json.load(policy))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
-        response = list(paginator(self.client.list_policies, Filter=policy_type))
-        try:
-            return [policy for policy in response if policy["Name"] == name][0]["Id"]
-        except IndexError:
-            return []
+        response = list(
+            paginator(self.client.list_policies, Filter=policy_type)
+        )
+        filtered_policies = [
+            policy for policy in response
+            if policy['Name'] == name
+        ]
+        if len(filtered_policies) > 0:
+            return filtered_policies[0]['Id']
+        return []
 
     def describe_policy_id_for_target(
-        self, target_id, policy_type="SERVICE_CONTROL_POLICY"
+        self,
+        target_id,
+        policy_type='SERVICE_CONTROL_POLICY',
     ):
         response = self.client.list_policies_for_target(
             TargetId=target_id, Filter=policy_type
         )
-        try:
-            return [
-                p
-                for p in response["Policies"]
-                if f"ADF Managed {policy_type}" in p["Description"]
-            ][0]["Id"]
-        except IndexError:
-            return []
+        adf_managed_policies = [
+            policy for policy in response['Policies']
+            if f'ADF Managed {policy_type}' in policy['Description']
+        ]
+        if len(adf_managed_policies) > 0:
+            return adf_managed_policies[0]['Id']
+        return []
 
     def describe_policy(self, policy_id):
-        response = self.client.describe_policy(PolicyId=policy_id)
-        return response.get("Policy")
+        response = self.client.describe_policy(
+            PolicyId=policy_id,
+        )
+        return response.get('Policy')
 
     def attach_policy(self, policy_id, target_id):
         try:
-            self.client.attach_policy(PolicyId=policy_id, TargetId=target_id)
+            self.client.attach_policy(
+                PolicyId=policy_id,
+                TargetId=target_id,
+            )
         except self.client.exceptions.DuplicatePolicyAttachmentException:
             pass
 
@@ -189,13 +236,66 @@ class Organizations:  # pylint: disable=R0904
     def delete_policy(self, policy_id):
         self.client.delete_policy(PolicyId=policy_id)
 
-    def get_accounts(self):
+    def _account_available_to_adf(
+        self,
+        account,
+        protected_ou_ids,
+        include_root,
+    ):
+        if protected_ou_ids or not include_root:
+            account_ou_id = (
+                self.get_parent_info(account["Id"]).get("ou_parent_id")
+            )
+            if not include_root and account_ou_id.startswith("r-"):
+                LOGGER.info(
+                    "Account %s is in the root of the AWS Organization, "
+                    "therefore skipping it",
+                    account["Id"],
+                )
+                return False
+            if protected_ou_ids and account_ou_id in protected_ou_ids:
+                LOGGER.info(
+                    "Account %s is in OU %s which is marked as protected, "
+                    "therefore skipping it",
+                    account["Id"],
+                    account_ou_id,
+                )
+                return False
+        if account.get("Status") != "ACTIVE":
+            LOGGER.warning(
+                "Account %s is not an active AWS Account, state reported: %s",
+                account["Id"],
+                account.get("Status"),
+            )
+            return False
+        return True
+
+    def get_accounts(self, protected_ou_ids=None, include_root=True):
+        """
+        Get the accounts from this AWS Organizations.
+        Filtered by the given arguments if required.
+
+        Args:
+            protected_ou_ids (list(str)): The list of protected organization
+                unit ids as configured in the adfconfig.yml file.
+                The organization unit ids are structured like: ou-123.
+
+            include_root (bool): Whether or not to include accounts that are
+                located in the root of the AWS Organization.
+                ADF does not adopt these accounts.
+
+        Returns:
+            list(str): The list of account details, filtered as requested.
+        """
+        accounts = []
         for account in paginator(self.client.list_accounts):
-            if not account.get("Status") == "ACTIVE":
-                LOGGER.warning("Account %s is not an Active AWS Account", account["Id"])
-                continue
-            self.account_ids.append(account)
-        return self.account_ids
+            if self._account_available_to_adf(
+                account,
+                protected_ou_ids,
+                include_root,
+            ):
+                accounts.append(account)
+        return accounts
 
     def get_organization_info(self):
         response = self.client.describe_organization()
@@ -214,7 +314,9 @@ class Organizations:  # pylint: disable=R0904
             )
             return response["OrganizationalUnit"]["Name"]
         except ClientError as error:
-            raise RootOUIDError("OU is the Root of the Organization") from error
+            raise RootOUIDError(
+                "OU is the Root of the Organization",
+            ) from error
 
     def describe_account_name(self, account_id):
         try:
@@ -222,7 +324,8 @@ class Organizations:  # pylint: disable=R0904
             return response["Account"]["Name"]
         except ClientError as error:
             LOGGER.error(
-                "Failed to retrieve account name for account ID %s", account_id
+                "Failed to retrieve account name for account ID %s",
+                account_id,
             )
             raise error
 

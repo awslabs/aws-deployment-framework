@@ -24,47 +24,74 @@ class TargetStructure:
     def __init__(self, target):
         self.target = TargetStructure._define_target_type(target)
         self.account_list = []
-        self.wave = target.get("wave", {}) if isinstance(target, dict) else {}
-        exclusions = target.get("exclude", []) if isinstance(target, dict) else []
-        self.exclude = [exclusion.removesuffix("/") for exclusion in exclusions]
+        self.wave = (
+            target.get('wave', {})
+            if isinstance(target, dict)
+            else {}
+        )
+        self.exclude = (
+            target.get('exclude', [])
+            if isinstance(target, dict)
+            else []
+        )
 
     @staticmethod
     def _define_target_type(target):
         if isinstance(target, list):
             output = []
-            for t in target:
-                output.append({"path": [t]})
+            for target_path in target:
+                output.append({"path": [target_path]})
             target = output
         if isinstance(target, (int, str)):
             target = [{"path": [target]}]
         if isinstance(target, dict):
-            if target.get("target"):
-                target["path"] = target.get("target")
-            if not target.get("path") and not target.get("tags"):
-                target["path"] = "/deployment"
-                LOGGER.debug("No path/target detected, defaulting to /deployment")
-            if not isinstance(target.get("path", []), list):
-                target["path"] = [target.get("path")]
+            if target.get('target'):
+                target["path"] = target.get('target')
+            if not target.get('path') and not target.get('tags'):
+                target["path"] = '/deployment'
+                LOGGER.debug(
+                    'No path/target detected, defaulting to /deployment',
+                )
+            if not isinstance(target.get('path', []), list):
+                target["path"] = [target.get('path')]
         if not isinstance(target, list):
             target = [target]
         return target
 
     def generate_waves(self):
-        wave_size = self.wave.get("size", 50)
-        wave = []
+        wave_size = self.wave.get('size', 50)
+        waves = []
         length = len(self.account_list)
-        for index in range(0, length, wave_size):
-            wave.append(self.account_list[index : min(index + wave_size, length)])
-        return wave
-
+        for start_index in range(0, length, wave_size):
+            end_index = min(
+                start_index + wave_size,
+                length,
+            )
+            waves.append(
+                self.account_list[start_index:end_index],
+            )
+        return waves
 
 class Target:
-    def __init__(self, path, target_structure, organizations, step, regions):
+    """
+    Target deployment configuration.
+    """
+    def __init__(
+        self,
+        path,
+        target_structure,
+        organizations,
+        step,
+    ):
         self.path = path
-        self.step_name = step.get("name", "")
-        self.provider = step.get("provider", {})
-        self.properties = step.get("properties", {})
-        self.regions = [regions] if not isinstance(regions, list) else regions
+        self.step_name = step.get('name', '')
+        self.provider = step.get('provider', 'cloudformation')
+        self.properties = step.get('properties', {})
+        self.regions = (
+            [step.get('regions')]
+            if not isinstance(step.get('regions'), list)
+            else step.get('regions')
+        )
         self.target_structure = target_structure
         self.organizations = organizations
 
@@ -89,20 +116,21 @@ class Target:
         )
 
     def _create_response_object(self, responses):
-        _entities = 0
+        accounts_found = 0
         for response in responses:
-            _entities += 1
-            if (
+            is_active_not_excluded = (
                 Target._account_is_active(response)
-                and not response.get("Id") in self.target_structure.exclude
-            ):
+                and not response.get('Id') in self.target_structure.exclude
+            )
+            if is_active_not_excluded:
+                accounts_found += 1
                 self.target_structure.account_list.append(
                     self._create_target_info(
                         response.get("Name"), str(response.get("Id"))
                     )
                 )
-        if _entities == 0:
-            raise NoAccountsFoundError(f"No Accounts found in {self.path}")
+        if accounts_found == 0:
+            raise NoAccountsFoundError(f"No accounts found in {self.path}")
 
     def _target_is_account_id(self):
         responses = self.organizations.client.describe_account(
@@ -114,13 +142,16 @@ class Target:
         responses = self.organizations.get_account_ids_for_tags(self.path)
         accounts = []
         for response in responses:
-            if response.startswith("ou-"):
-                accounts.extend(self.organizations.get_accounts_for_parent(response))
+            if response.startswith('ou-'):
+                accounts.extend(
+                    self.organizations.get_accounts_for_parent(response),
+                )
             else:
-                account = self.organizations.client.describe_account(
-                    AccountId=response
-                ).get("Account")
-                accounts.append(account)
+                accounts.append(
+                    self.organizations.client
+                    .describe_account(AccountId=response)
+                    .get('Account'),
+                )
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
@@ -137,7 +168,8 @@ class Target:
         self._create_response_object(responses)
 
     def _target_is_null_path(self):
-        self.path = "/deployment"  # TODO we will fetch this from parameter store
+        # TODO we need to fetch this default path from parameter store
+        self.path = '/deployment'
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
 

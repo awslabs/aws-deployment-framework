@@ -14,45 +14,70 @@ from cloudwatch import ADFMetrics
 
 
 LOGGER = configure_logger(__name__)
-DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv("PIPELINE_MANAGEMENT_STATEMACHINE_ARN")
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
 
-_cache = None
+_CACHE = None
 
 
-def lambda_handler(pipeline, _):
-    """Main Lambda Entry point"""
+def lambda_handler(event, _):
+    """
+    Main Lambda Entry point, creating the cross-account EventBridge rule
+    if the source account of the CodeCommit repository is in another account
+    than the deployment account.
+
+    Such that a change in the source repository will trigger the pipeline.
+
+    Args:
+        event (dict): The ADF Pipeline Management State Machine execution
+            input object.
+    """
 
     # pylint: disable=W0603
     # Global variable here to cache across lambda execution runtimes.
-    global _cache
-    if not _cache:
-        _cache = Cache()
+    global _CACHE
+    if not _CACHE:
+        _CACHE = Cache()
         METRICS.put_metric_data(
             {"MetricName": "CacheInitialized", "Value": 1, "Unit": "Count"}
         )
 
-    LOGGER.info(pipeline)
+    LOGGER.info(event)
 
+    pipeline = event['pipeline_definition']
+
+    source_provider = (
+        pipeline.get("default_providers", {})
+        .get("source", {})
+        .get("provider", "codecommit")
+    )
     source_account_id = (
         pipeline.get("default_providers", {})
         .get("source", {})
         .get("properties", {})
-        .get("account_id", {})
+        .get("account_id")
     )
     if (
-        source_account_id
+        source_provider == "codecommit"
+        and source_account_id
         and int(source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
-        and not _cache.exists(source_account_id)
+        and not _CACHE.exists(source_account_id)
     ):
+        LOGGER.info(
+            "Source is CodeCommit and the repository is hosted in the %s "
+            "account instead of the deployment account (%s). Creating or "
+            "updating EventBridge forward rule to forward change events "
+            "from the source account to the deployment account in "
+            "EventBridge.",
+            source_account_id,
+            DEPLOYMENT_ACCOUNT_ID,
+        )
         rule = Rule(source_account_id)
         rule.create_update()
-        _cache.add(source_account_id, True)
+        _CACHE.add(source_account_id, True)
         METRICS.put_metric_data(
             {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
         )
 
-    return pipeline
+    return event

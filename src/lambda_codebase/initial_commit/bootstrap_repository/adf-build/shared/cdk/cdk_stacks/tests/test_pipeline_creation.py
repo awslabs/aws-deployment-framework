@@ -13,9 +13,9 @@ from cdk_stacks.main import PipelineStack
 
 @patch("cdk_stacks.main.generate_default_pipeline")
 def test_pipeline_generation_fails_if_pipeline_type_is_not_specified(mock):
-    stack_input = {"input": {"params": {}}}
-    stack_input["input"]["name"] = "test-stack"
-    stack_input["input"]["params"]["type"] = "fail"
+    stack_input = {"pipeline_input": {"params": {}}}
+    stack_input["pipeline_input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["params"]["type"] = "fail"
     app = core.App()
     with pytest.raises(ValueError):
         pipeline_stack = PipelineStack(app, stack_input)
@@ -24,8 +24,8 @@ def test_pipeline_generation_fails_if_pipeline_type_is_not_specified(mock):
 
 @patch("cdk_stacks.main.generate_default_pipeline")
 def test_pipeline_generation_works_when_no_type_specified(mock):
-    stack_input = {"input": {"params": {}}}
-    stack_input["input"]["name"] = "test-stack"
+    stack_input = {"pipeline_input": {"params": {}}}
+    stack_input["pipeline_input"]["name"] = "test-stack"
     app = core.App()
     PipelineStack(app, stack_input)
     mock.assert_called()
@@ -33,9 +33,9 @@ def test_pipeline_generation_works_when_no_type_specified(mock):
 
 @patch("cdk_stacks.main.generate_default_pipeline")
 def test_pipeline_generation_works_when_no_type_specified(mock):
-    stack_input = {"input": {"params": {}}}
-    stack_input["input"]["name"] = "test-stack"
-    stack_input["input"]["params"]["type"] = "Default"
+    stack_input = {"pipeline_input": {"params": {}}}
+    stack_input["pipeline_input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["params"]["type"] = "Default"
 
     app = core.App()
     PipelineStack(app, stack_input)
@@ -47,17 +47,19 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_s3_and_build_is_co
     account_id = "123456789012"
 
     stack_input = {
-        "input": {"params": {}, "default_providers": {}, "regions": {}},
+        "pipeline_input": {"params": {}, "default_providers": {}, "regions": {}},
         "ssm_params": {"fake-region": {}},
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "s3",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -102,17 +104,19 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     account_id = "123456789012"
 
     stack_input = {
-        "input": {"params": {}, "default_providers": {}, "regions": {}},
+        "pipeline_input": {"params": {}, "default_providers": {}, "regions": {}},
         "ssm_params": {"fake-region": {}},
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -159,20 +163,22 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_co
     account_id = "123456789012"
 
     stack_input = {
-        "input": {"params": {}, "default_providers": {}, "regions": {}},
+        "pipeline_input": {"params": {}, "default_providers": {}, "regions": {}},
         "ssm_params": {"fake-region": {}},
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {
             "account_id": "123456789012",
             "output_artifact_format": "CODEBUILD_CLONE_REF",
         },
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -220,7 +226,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {},
             "default_providers": {},
             "regions": {},
@@ -235,15 +241,17 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
         "ssm_params": {
             "fake-region": {},
         },
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -278,7 +286,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {},
             "default_providers": {},
             "regions": {},
@@ -294,15 +302,17 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
         "ssm_params": {
             "fake-region": {},
         },
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -342,7 +352,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {},
             "default_providers": {},
             "regions": {},
@@ -360,15 +370,17 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
         "ssm_params": {
             "fake-region": {},
         },
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -398,7 +410,7 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {
                 "notification_endpoint": {
                     "target": "fake-config",
@@ -411,15 +423,17 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
         "ssm_params": {
             "fake-region": {},
         },
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["name"] = "test-stack"
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }

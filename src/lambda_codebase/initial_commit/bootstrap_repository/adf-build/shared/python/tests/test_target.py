@@ -31,10 +31,11 @@ class MockOrgClient:
 def cls():
     cls = Target(
         path="/thing/path",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     return cls
 
@@ -47,10 +48,11 @@ def test_account_is_active():
 def test_fetch_accounts_for_target_ou_path():
     cls = Target(
         path="/thing/path",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
 
     with patch.object(cls, "_target_is_ou_path") as mock:
@@ -61,10 +63,11 @@ def test_fetch_accounts_for_target_ou_path():
 def test_fetch_accounts_for_target_account_id():
     cls = Target(
         path="111111111111",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     with patch.object(cls, "_target_is_account_id") as mock:
         cls.fetch_accounts_for_target()
@@ -74,10 +77,11 @@ def test_fetch_accounts_for_target_account_id():
 def test_fetch_accounts_for_target_ou_id():
     cls = Target(
         path="ou-123fake",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     with patch.object(cls, "_target_is_ou_id") as mock:
         cls.fetch_accounts_for_target()
@@ -87,10 +91,11 @@ def test_fetch_accounts_for_target_ou_id():
 def test_fetch_accounts_for_approval():
     cls = Target(
         path="approval",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=None,
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     with patch.object(cls, "_target_is_approval") as mock:
         cls.fetch_accounts_for_target()
@@ -100,10 +105,11 @@ def test_fetch_accounts_for_approval():
 def test_fetch_account_error():
     cls = Target(
         path="some_string",
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=Mock(),
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     with raises(InvalidDeploymentMapError):
         cls.fetch_accounts_for_target()
@@ -112,10 +118,11 @@ def test_fetch_account_error():
 def test_fetch_account_error_invalid_account_id():
     cls = Target(
         path="12345678901",  # 11 digits rather than 12 (invalid account id)
-        regions=["region1", "region2"],
         target_structure=MockTargetStructure(),
         organizations=Mock(),
-        step={},
+        step={
+            "regions": ["region1", "region2"],
+        },
     )
     with raises(InvalidDeploymentMapError):
         cls.fetch_accounts_for_target()
@@ -139,8 +146,11 @@ def test_target_structure_respects_wave():
                     {"Name": "test-account-5", "Id": "5", "Status": "ACTIVE"},
                 ]
             ),
-            step=step,
-            regions=["region1"],
+            step={
+                **step,
+                "provider": "codedeploy",
+                "regions": ["region1"],
+            }
         )
         target.fetch_accounts_for_target()
         waves = list(target.target_structure.generate_waves())
@@ -153,7 +163,7 @@ def test_target_structure_respects_wave():
                 "name": "test-account-1",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "codedeploy",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -162,7 +172,7 @@ def test_target_structure_respects_wave():
                 "name": "test-account-2",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "codedeploy",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -175,7 +185,7 @@ def test_target_structure_respects_wave():
                 "name": "test-account-3",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "codedeploy",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -184,7 +194,7 @@ def test_target_structure_respects_wave():
                 "name": "test-account-4",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "codedeploy",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -197,7 +207,7 @@ def test_target_structure_respects_wave():
                 "name": "test-account-5",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "codedeploy",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -227,8 +237,10 @@ def test_target_wave_structure_respects_exclude_config():
                     {"Name": "test-account-6", "Id": "6", "Status": "ACTIVE"},
                 ]
             ),
-            step=step,
-            regions=["region1"],
+            step={
+                **step,
+                "regions": "region1",
+            }
         )
         target.fetch_accounts_for_target()
         waves = list(target.target_structure.generate_waves())
@@ -241,7 +253,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "name": "test-account-1",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -250,7 +262,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "name": "test-account-2",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -263,7 +275,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "name": "test-account-3",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -272,7 +284,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "name": "test-account-4",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
             },
@@ -285,7 +297,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "name": "test-account-6",
                 "path": "/some/random/ou",
                 "properties": {},
-                "provider": {},
+                "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
             },
