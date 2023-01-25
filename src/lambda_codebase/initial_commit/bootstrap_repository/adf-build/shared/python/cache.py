@@ -12,7 +12,10 @@ class Cache:
     def __init__(self):
         self._stash = {}
 
-    def check(self, key):
+    def exists(self, key):
+        return key in self._stash
+
+    def get(self, key):
         try:
             return self._stash[key]
         except KeyError:

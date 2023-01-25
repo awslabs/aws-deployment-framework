@@ -12,16 +12,18 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {},
             "default_providers": {"deploy": {"provider": "codedeploy"}},
             "regions": {},
         },
         "ssm_params": {"fake-region": {}},
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
-    stack_input["input"]["environments"] = {
+    stack_input["pipeline_input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["environments"] = {
         "targets": [
             [
                 [
@@ -38,11 +40,11 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
         ]
     }
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }
@@ -76,16 +78,18 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
     account_id = "123456789012"
 
     stack_input = {
-        "input": {
+        "pipeline_input": {
             "params": {},
             "default_providers": {"deploy": {"provider": "codedeploy"}},
             "regions": {},
         },
         "ssm_params": {"fake-region": {}},
+        "deployment_map_source": "S3",
+        "deployment_map_name": "deployment_map.yml",
     }
 
-    stack_input["input"]["name"] = "test-stack"
-    stack_input["input"]["environments"] = {
+    stack_input["pipeline_input"]["name"] = "test-stack"
+    stack_input["pipeline_input"]["environments"] = {
         "targets": [
             [
                 [
@@ -103,11 +107,11 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
         ]
     }
 
-    stack_input["input"]["default_providers"]["source"] = {
+    stack_input["pipeline_input"]["default_providers"]["source"] = {
         "provider": "codecommit",
         "properties": {"account_id": "123456789012"},
     }
-    stack_input["input"]["default_providers"]["build"] = {
+    stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
         "properties": {"account_id": "123456789012"},
     }

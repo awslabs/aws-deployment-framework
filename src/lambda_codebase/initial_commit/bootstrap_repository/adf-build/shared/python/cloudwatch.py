@@ -1,5 +1,5 @@
 """
-Standardised class for pushing CloudWatch metric data to a service within the ADF Namespace
+Standardized class for pushing CloudWatch metric data to a service within the ADF Namespace
 """
 
 import boto3

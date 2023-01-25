@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Cross Region S3 Bucket main that is called when ADF is installed to create the bucket in the master account in the deployment region
+The Cross Region S3 Bucket main that is called when ADF is installed to create
+the bucket in the management account in the deployment region
 """
 
 

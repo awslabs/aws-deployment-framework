@@ -50,6 +50,16 @@ class StackProperties:
         'DELETE_FAILED',
         'REVIEW_IN_PROGRESS',
     ]
+    in_progress_state_waiters = {
+        'UPDATE_IN_PROGRESS': 'stack_update_complete',
+        'CREATE_IN_PROGRESS': 'stack_create_complete',
+        'UPDATE_ROLLBACK_IN_PROGRESS': 'stack_rollback_complete',
+        'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS': (
+            'stack_rollback_complete'
+        ),
+        'DELETE_IN_PROGRESS': 'stack_delete_complete',
+        'REVIEW_IN_PROGRESS': 'change_set_create_complete',
+    }
 
     def __init__(
             self,
@@ -70,7 +80,11 @@ class StackProperties:
         self.stack_name = stack_name or self._get_stack_name()
 
     def _get_geo_prefix(self):
-        return 'global' if self.region == self.deployment_account_region else 'regional'
+        return (
+            'global'
+            if self.region == self.deployment_account_region
+            else 'regional'
+        )
 
     def _create_template_path(self, path, filename_override=None):
         return f'{path}/{filename_override or self._get_geo_prefix()}.yml'
@@ -116,7 +130,11 @@ class CloudFormation(StackProperties):
             account_id=None,  # Used for logging visibility
             role_arn=None,
     ):
-        self.client = role.client('cloudformation', region_name=region, config=CFN_CONFIG)
+        self.client = role.client(
+            'cloudformation',
+            region_name=region,
+            config=CFN_CONFIG,
+        )
         self.wait = wait
         self.parameters = parameters
         self.account_id = account_id
@@ -135,46 +153,85 @@ class CloudFormation(StackProperties):
         try:
             return self.client.validate_template(TemplateURL=self.template_url)
         except ClientError as error:
+            LOGGER.error(
+                "%s in %s - Template validation of %s failed, see %s",
+                self.account_id,
+                self.region,
+                self.stack_name,
+                self.template_url,
+            )
             raise InvalidTemplateError(
                 f"{self.template_url}: {error}",
             ) from None
 
+    def _wait_if_in_progress(self):
+        status = self.get_stack_status()
+        if status not in StackProperties.in_progress_state_waiters:
+            return
+
+        waiter_type = StackProperties.in_progress_state_waiters[status]
+        if 'change_set' in waiter_type:
+            self._wait_change_set()
+            return
+
+        self._wait_stack(waiter_type, self.stack_name)
+
     def _wait_stack(self, waiter_type, stack_name):
-        waiter = self.client.get_waiter(waiter_type)
-        LOGGER.info(
-            '%s in %s - Waiting for CloudFormation stack: %s to reach %s',
-            self.account_id,
-            self.region,
-            stack_name,
-            waiter_type,
-        )
-        waiter.wait(
-            StackName=stack_name,
-            WaiterConfig={
-                'Delay': CloudFormation._random_delay(),
-                'MaxAttempts': 45
-            }
-        )
+        try:
+            waiter = self.client.get_waiter(waiter_type)
+            LOGGER.info(
+                '%s in %s - Waiting for CloudFormation stack: %s to reach %s',
+                self.account_id,
+                self.region,
+                stack_name,
+                waiter_type,
+            )
+            waiter.wait(
+                StackName=stack_name,
+                WaiterConfig={
+                    'Delay': CloudFormation._random_delay(),
+                    'MaxAttempts': 45
+                }
+            )
+        except ClientError as client_error:
+            LOGGER.error(
+                "%s in %s - Failed to wait for stack %s error %s",
+                self.account_id,
+                self.region,
+                self.stack_name,
+                client_error,
+            )
+            raise
 
     def _wait_change_set(self):
-        waiter = self.client.get_waiter('change_set_create_complete')
+        try:
+            waiter = self.client.get_waiter('change_set_create_complete')
 
-        LOGGER.debug(
-            '%s in %s - Waiting for CloudFormation Change Set to '
-            'complete creation: %s',
-            self.account_id,
-            self.region,
-            self.stack_name,
-        )
+            LOGGER.debug(
+                '%s in %s - Waiting for CloudFormation Change Set to '
+                'complete creation: %s',
+                self.account_id,
+                self.region,
+                self.stack_name,
+            )
 
-        waiter.wait(
-            StackName=self.stack_name,
-            ChangeSetName=self.stack_name,
-            WaiterConfig={
-                'Delay': CloudFormation._random_delay(),
-                'MaxAttempts': 20
-            }
-        )
+            waiter.wait(
+                StackName=self.stack_name,
+                ChangeSetName=self.stack_name,
+                WaiterConfig={
+                    'Delay': CloudFormation._random_delay(),
+                    'MaxAttempts': 20
+                }
+            )
+        except ClientError as client_error:
+            LOGGER.error(
+                "%s in %s - Failed to wait for change set of %s error %s",
+                self.account_id,
+                self.region,
+                self.stack_name,
+                client_error,
+            )
+            raise
 
     def _get_waiter_type(self):
         if self._get_change_set_type() == 'UPDATE':
@@ -256,15 +313,26 @@ class CloudFormation(StackProperties):
             self.stack_name,
         )
         try:
-            self.template_url = self.template_url if self.template_url is not None else self.get_template_url()
+            self.template_url = (
+                self.template_url
+                if self.template_url is not None
+                else self.get_template_url()
+            )
             if self.template_url:
                 self.validate_template()
                 change_set_params = {
                     "StackName": self.stack_name,
                     "TemplateURL": self.template_url,
-                    "Parameters": self.parameters if self.parameters is not None else self.get_parameters(),
-                    "Capabilities": ["CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
-                    "Tags":[{
+                    "Parameters": (
+                        self.parameters
+                        if self.parameters is not None
+                        else self.get_parameters()
+                    ),
+                    "Capabilities": [
+                        "CAPABILITY_NAMED_IAM",
+                        "CAPABILITY_AUTO_EXPAND",
+                    ],
+                    "Tags": [{
                         'Key': 'createdBy',
                         'Value': 'ADF'
                     }],
@@ -375,22 +443,46 @@ class CloudFormation(StackProperties):
             self._wait_stack(waiter, self.stack_name)
 
     def create_iam_stack(self):
-        self.template_url = self.s3.fetch_s3_url(
-            self._create_template_path(self.s3_key_path, 'global-iam')
-        )
-        self.stack_name = 'adf-global-base-iam'
-        waiter = self._get_waiter_type()
-        create_change_set = self._create_change_set()
-        if create_change_set:
-            self._execute_change_set(waiter)
-            self._update_stack_termination_protection()
+        try:
+            self.template_url = self.s3.fetch_s3_url(
+                self._create_template_path(self.s3_key_path, 'global-iam')
+            )
+            self.stack_name = 'adf-global-base-iam'
+            self._wait_if_in_progress()
+            waiter = self._get_waiter_type()
+            create_change_set = self._create_change_set()
+            if create_change_set:
+                self._execute_change_set(waiter)
+                self._update_stack_termination_protection()
+        except ClientError as client_error:
+            LOGGER.error(
+                '%s in %s | CloudFormation stack %s create_iam_stack error: '
+                '%s',
+                self.account_id,
+                self.region,
+                self.stack_name,
+                client_error,
+            )
+            raise
 
     def create_stack(self):
-        waiter = self._get_waiter_type()
-        create_change_set = self._create_change_set()
-        if create_change_set:
-            self._execute_change_set(waiter)
-            self._update_stack_termination_protection()
+        try:
+            self._wait_if_in_progress()
+            waiter = self._get_waiter_type()
+            create_change_set = self._create_change_set()
+            if create_change_set:
+                self._execute_change_set(waiter)
+                self._update_stack_termination_protection()
+        except ClientError as client_error:
+            LOGGER.error(
+                '%s in %s | CloudFormation stack %s create_stack error: '
+                '%s',
+                self.account_id,
+                self.region,
+                self.stack_name,
+                client_error,
+            )
+            raise
 
     def get_stack_regional_outputs(self):
         return {
@@ -449,17 +541,27 @@ class CloudFormation(StackProperties):
             return None  # Return None if the stack does not exist
 
     def delete_stack(self, stack_name, wait_override=False):
-        LOGGER.debug(
-            '%s in %s - Attempted to delete stack: %s',
-            self.account_id,
-            self.region,
-            stack_name,
-        )
-        self.client.delete_stack(
-            StackName=stack_name,
-        )
-        if self.wait or wait_override:
-            self._wait_stack('stack_delete_complete', stack_name)
+        try:
+            LOGGER.debug(
+                '%s in %s - Attempted to delete stack: %s',
+                self.account_id,
+                self.region,
+                stack_name,
+            )
+            self.client.delete_stack(
+                StackName=stack_name,
+            )
+            if self.wait or wait_override:
+                self._wait_stack('stack_delete_complete', stack_name)
+        except ClientError as client_error:
+            LOGGER.error(
+                "%s in %s - Failed to delete stack %s error %s",
+                self.account_id,
+                self.region,
+                self.stack_name,
+                client_error,
+            )
+            raise
 
     @staticmethod
     def _random_delay():

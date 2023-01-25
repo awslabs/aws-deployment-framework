@@ -13,7 +13,11 @@ import boto3
 
 from botocore.exceptions import ClientError
 from logger import configure_logger
-from errors import GenericAccountConfigureError, ParameterNotFoundError
+from errors import (
+    AccountCreationNotFinishedError,
+    GenericAccountConfigureError,
+    ParameterNotFoundError,
+)
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
 from s3 import S3
@@ -70,7 +74,7 @@ def configure_generic_account(sts, event, region, role):
 
 def configure_master_account_parameters(event):
     """
-    Update the Master account parameter store in us-east-1 with the
+    Update the management account parameter store in us-east-1 with the
     deployment_account_id then updates the main deployment region
     with that same value
     """
@@ -109,6 +113,17 @@ def is_inter_ou_account_move(event):
 
 
 def lambda_handler(event, context):
+    try:
+        return _lambda_handler(event, context)
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'SubscriptionRequiredException':
+            raise AccountCreationNotFinishedError(
+                f"The AWS Account is not ready yet. Error thrown: {error}"
+            ) from error
+        raise
+
+
+def _lambda_handler(event, context):
     sts = STS()
 
     account_id = event["account_id"]
