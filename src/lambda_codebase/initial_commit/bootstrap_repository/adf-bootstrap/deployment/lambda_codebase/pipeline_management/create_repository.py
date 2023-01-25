@@ -34,7 +34,7 @@ def lambda_handler(event, _):
     Returns:
         dict: The input event.
     """
-    pipeline = event.get('pipeline_definition')
+    pipeline = event.get("pipeline_definition")
     source_provider = (
         pipeline.get("default_providers", {})
         .get("source", {})
@@ -42,8 +42,7 @@ def lambda_handler(event, _):
     )
     if source_provider != "codecommit":
         LOGGER.debug(
-            "This pipeline is not a CodeCommit source provider. "
-            "No actions required."
+            "This pipeline is not a CodeCommit source provider. " "No actions required."
         )
         return event
 
@@ -51,7 +50,6 @@ def lambda_handler(event, _):
     auto_create_repositories = parameter_store.fetch_parameter(
         "auto_create_repositories"
     )
-<<<<<<< HEAD
     LOGGER.info(auto_create_repositories)
     if auto_create_repositories == "enabled":
         code_account_id = (
@@ -73,11 +71,17 @@ def lambda_handler(event, _):
             and not has_custom_repo
         ):
             repo = Repo(
-                code_account_id, pipeline.get("name"), pipeline.get("description")
+                code_account_id,
+                pipeline.get("name"),
+                pipeline.get("description"),
             )
             repo.create_update()
             METRICS.put_metric_data(
-                {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
+                {
+                    "MetricName": "CreateOrUpdate",
+                    "Value": 1,
+                    "Unit": "Count",
+                }
             )
             EVENTS.put_event(
                 detail=json.dumps(
@@ -89,15 +93,6 @@ def lambda_handler(event, _):
                 detailType="REPOSITORY_CREATED_OR_UPDATED",
                 resources=[f'{code_account_id}:{pipeline.get("name")}'],
             )
-=======
-    LOGGER.debug("Auto create repositories is: %s", auto_create_repositories)
-    if auto_create_repositories != "enabled":
-        LOGGER.debug(
-            "ADF is not configured to automatically create CodeCommit "
-            "repositories if they don't exist yet."
-        )
-        return event
->>>>>>> 84e7831bae60acd72eef7d5bd546771074bfbd02
 
     code_account_id = (
         pipeline.get("default_providers", {})
@@ -111,11 +106,7 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("repository", {})
     )
-    if (
-        code_account_id
-        and str(code_account_id).isdigit()
-        and not has_custom_repo
-    ):
+    if code_account_id and str(code_account_id).isdigit() and not has_custom_repo:
         repo = Repo(
             code_account_id,
             pipeline.get("name"),

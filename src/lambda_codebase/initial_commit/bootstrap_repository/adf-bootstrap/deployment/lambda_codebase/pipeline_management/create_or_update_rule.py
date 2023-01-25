@@ -50,7 +50,7 @@ def lambda_handler(event, _):
 
     LOGGER.info(event)
 
-    pipeline = event['pipeline_definition']
+    pipeline = event["pipeline_definition"]
 
     source_provider = (
         pipeline.get("default_providers", {})
@@ -84,6 +84,10 @@ def lambda_handler(event, _):
         METRICS.put_metric_data(
             {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
         )
-        EVENTS.put_event(detail=json.dumps({"source_account_id": _source_account_id}), detailType="CROSS_ACCOUNT_RULE_CREATED_OR_UPDATED", resources=[DEPLOYMENT_ACCOUNT_ID])
+        EVENTS.put_event(
+            detail=json.dumps({"source_account_id": source_account_id}),
+            detailType="CROSS_ACCOUNT_RULE_CREATED_OR_UPDATED",
+            resources=[DEPLOYMENT_ACCOUNT_ID],
+        )
 
     return event
