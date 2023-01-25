@@ -16,12 +16,13 @@ from events import ADFEvents
 from aws_xray_sdk.core import patch_all
 
 
-patch_all()
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
 EVENTS = ADFEvents("PipelineManagement")
+patch_all()
+
 
 _CACHE = None
 

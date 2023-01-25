@@ -12,6 +12,7 @@ from logger import configure_logger
 from cloudwatch import ADFMetrics
 from parameter_store import ParameterStore
 from events import ADFEvents
+from aws_xray_sdk.core import patch_all
 
 
 CLOUDWATCH = boto3.client("cloudwatch")
@@ -20,6 +21,7 @@ LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 EVENTS = ADFEvents("PipelineManagement")
+patch_all()
 
 
 def lambda_handler(event, _):
