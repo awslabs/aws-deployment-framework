@@ -43,5 +43,5 @@ Currently - events are emitted for the following states:
      the repository_account_id
      the CloudFormation stack name
 
-    The resource section contains an almagamation of the account_id and the
+    The resource section contains an amalgamation of the account_id and the
     pipeline name.

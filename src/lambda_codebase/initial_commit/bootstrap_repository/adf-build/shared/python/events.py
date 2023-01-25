@@ -1,5 +1,5 @@
 """
-Standardised class for pushing events from within the ADF Namespace
+Standardized class for pushing events from within the ADF Namespace
 """
 
 

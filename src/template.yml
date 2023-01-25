@@ -18,13 +18,13 @@ Metadata:
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.2.0
+    SemanticVersion: 3.2.2
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 
 Mappings:
   Metadata:
     ADF:
-      Version: 3.2.0
+      Version: 3.2.2
 
 Parameters:
   CrossAccountAccessRoleName:
@@ -1989,7 +1989,7 @@ Resources:
     Properties:
       Name: ADF-Event-Bus
 
-  DeploymentAcountPutEventsPolicy:
+  DeploymentAccountPutEventsPolicy:
     Type: AWS::Events::EventBusPolicy
     Properties:
       StatementId: "DeploymentAccountPutEventStatement"

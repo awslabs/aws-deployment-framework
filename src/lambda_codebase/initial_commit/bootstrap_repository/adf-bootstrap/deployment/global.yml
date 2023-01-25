@@ -70,7 +70,7 @@ Globals:
     Runtime: python3.9
 
 Mappings:
-  OrganisationPartitionRegionMapping:
+  OrganizationPartitionRegionMapping:
     aws:
       region: "us-east-1"
     aws-us-gov:
@@ -191,7 +191,7 @@ Resources:
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
         RootAccountId: !Ref MasterAccountId
-        RootAccountRegion: !FindInMap [OrganisationPartitionRegionMapping, !Ref "AWS::Partition", "region"]
+        RootAccountRegion: !FindInMap [OrganizationPartitionRegionMapping, !Ref "AWS::Partition", "region"]
         CodeBuildImage: !Ref Image
         CodeBuildComputeType: !Ref ComputeType
         SharedModulesBucket: !Ref SharedModulesBucket

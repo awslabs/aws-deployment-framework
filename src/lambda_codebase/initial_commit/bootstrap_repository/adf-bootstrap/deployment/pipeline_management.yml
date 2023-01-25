@@ -79,7 +79,7 @@ Resources:
     Metadata:
       BuildMethod: python3.9
 
-  ADFPipelineMangementLambdaBasePolicy:
+  ADFPipelineManagementLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
       Description: "Base policy for all ADF pipeline management lambdas"
