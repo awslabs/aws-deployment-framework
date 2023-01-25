@@ -297,8 +297,10 @@ class Organizations:  # pylint: disable=R0904
     def get_organization_info(self):
         response = self.client.describe_organization()
         return {
-            "organization_master_account_id": response.get("Organization").get(
-                "MasterAccountId"
+            "organization_master_account_id": (
+                response
+                .get("Organization")
+                .get("MasterAccountId")
             ),
             "organization_id": response.get("Organization").get("Id"),
             "feature_set": response.get("Organization").get("FeatureSet"),
