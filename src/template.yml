@@ -359,15 +359,6 @@ Resources:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/aws-deployment-framework/account-management/"
-      Policies:
-        - PolicyName: "adf-lambda-create-account-alias-policy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "iam:CreateAccountAlias"
-                Resource: "*"
 
   AccountAliasConfigFunction:
     Type: 'AWS::Serverless::Function'
