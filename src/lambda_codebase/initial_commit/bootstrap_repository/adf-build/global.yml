@@ -99,6 +99,9 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:ValidateTemplate
+              - iam:CreateAccountAlias
+              - iam:DeleteAccountAlias
+              - iam:ListAccountAliases
               - ssm:PutParameter
               - ssm:GetParameters
               - ssm:GetParameter
