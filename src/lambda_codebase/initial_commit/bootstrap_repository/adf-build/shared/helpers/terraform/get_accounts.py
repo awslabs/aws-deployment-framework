@@ -41,10 +41,7 @@ def main():
 def list_organizational_units_for_parent(parent_ou):
     organizations = get_boto3_client(
         'organizations',
-        (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
-        ),
+        f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
         'getOrganizationUnits',
     )
     organizational_units = [
@@ -69,10 +66,7 @@ def get_accounts():
     # and emails
     organizations = get_boto3_client(
         'organizations',
-        (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
-        ),
+        f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
         'getaccountIDs',
     )
     return list(
@@ -94,10 +88,7 @@ def get_accounts_from_ous():
     account_list = []
     organizations = get_boto3_client(
         'organizations',
-        (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
-        ),
+        f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
         'getRootAccountIDs',
     )
     # Read organization root id
