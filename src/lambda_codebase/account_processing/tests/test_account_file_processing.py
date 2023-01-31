@@ -2,7 +2,12 @@
 Tests the account file processing lambda
 """
 import unittest
-from ..process_account_files import process_account, process_account_list, get_details_from_event
+from ..process_account_files import (
+    process_account,
+    process_account_list,
+    get_details_from_event,
+    sanitize_account_name_for_snf,
+)
 
 
 class SuccessTestCase(unittest.TestCase):
@@ -20,7 +25,7 @@ class SuccessTestCase(unittest.TestCase):
                 "account_full_name": "myTestAccountName",
                 "account_id": 123456789012,
                 "needs_created": False,
-            }
+            },
         )
 
     def test_process_account_when_account_does_not_exist(self):
@@ -35,7 +40,7 @@ class SuccessTestCase(unittest.TestCase):
                 "alias": "MyCoolAlias",
                 "account_full_name": "myTestAccountName",
                 "needs_created": True,
-            }
+            },
         )
 
     def test_process_account_list(self):
@@ -59,6 +64,43 @@ class SuccessTestCase(unittest.TestCase):
             ],
         )
 
+    def test_get_sanitize_account_name(self):
+        self.assertEqual(
+            sanitize_account_name_for_snf("myTestAccountName"), "myTestAccountName"
+        )
+        self.assertEqual(
+            sanitize_account_name_for_snf(
+                "thisIsALongerAccountNameForTestingTruncatedNames"
+            ),
+            "thisIsALongerAccountNameForTes",
+        )
+        self.assertEqual(
+            sanitize_account_name_for_snf(
+                "thisIsALongerAccountName ForTestingTruncatedNames"
+            ),
+            "thisIsALongerAccountNameForTe",
+        )
+        self.assertEqual(
+            sanitize_account_name_for_snf("this accountname <has illegal> chars"),
+            "thisaccountnamehasillegal",
+        )
+        self.assertEqual(
+            sanitize_account_name_for_snf("this accountname \\has illegal chars"),
+            "thisaccountnamehasillegal",
+        )
+        self.assertEqual(
+            sanitize_account_name_for_snf("^startswithanillegalchar"),
+            "startswithanillegalchar",
+        )
+        self.assertEqual(
+            len(
+                sanitize_account_name_for_snf(
+                    "ReallyLongAccountNameThatShouldBeTruncatedBecauseItsTooLong"
+                )
+            ),
+            30,
+        )
+
 
 class FailureTestCase(unittest.TestCase):
     # pylint: disable=W0106
@@ -67,6 +109,5 @@ class FailureTestCase(unittest.TestCase):
         with self.assertRaises(ValueError) as _error:
             get_details_from_event(sample_event)
         self.assertEqual(
-            str(_error.exception),
-            "No S3 Event details present in event trigger"
+            str(_error.exception), "No S3 Event details present in event trigger"
         )
