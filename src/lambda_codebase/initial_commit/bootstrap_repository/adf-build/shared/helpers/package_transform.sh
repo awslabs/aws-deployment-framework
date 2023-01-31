@@ -34,7 +34,7 @@ fi
 
 # Get list of regions supported by this application
 echo "Determine which regions need to be prepared"
-app_regions=`aws ssm get-parameters --names /deployment/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
+app_regions=`aws ssm get-parameters --names /deployment/$ADF_DEPLOYMENT_MAP_SOURCE/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
 # Convert json list to bash list (space delimited regions)
 regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g"`"
 

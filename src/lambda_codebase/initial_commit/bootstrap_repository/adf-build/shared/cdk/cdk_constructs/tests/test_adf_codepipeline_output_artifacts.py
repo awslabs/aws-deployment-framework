@@ -72,7 +72,7 @@ def test_get_base_output_artifact_name_deploy_codebuild(action_decl_mock):
         provider='CodeBuild',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
         },
     )
     assert action._get_base_output_artifact_name() == ''
@@ -87,7 +87,7 @@ def test_get_base_output_artifact_name_deploy_cfn_without_outputs(action_decl_mo
         provider='CloudFormation',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
         },
     )
     assert action._get_base_output_artifact_name() == ''
@@ -104,7 +104,7 @@ def test_get_base_output_artifact_name_deploy_cfn_with_outputs_csr(action_decl_m
         action_mode='CHANGE_SET_REPLACE',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'outputs': override_outputs_mocked_value,
             },
@@ -124,7 +124,7 @@ def test_get_base_output_artifact_name_deploy_cfn_with_outputs_cse(action_decl_m
         action_mode='CHANGE_SET_EXECUTE',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'outputs': override_outputs_mocked_value,
             },

@@ -28,7 +28,6 @@ Resources:
               AWS:
                 - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
-                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role"
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-provisioner-generate-inputs"
             Action:
               - sts:AssumeRole
@@ -100,6 +99,9 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:ValidateTemplate
+              - iam:CreateAccountAlias
+              - iam:DeleteAccountAlias
+              - iam:ListAccountAliases
               - ssm:PutParameter
               - ssm:GetParameters
               - ssm:GetParameter
@@ -122,6 +124,7 @@ Resources:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
       Roles:

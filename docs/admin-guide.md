@@ -836,11 +836,15 @@ Go to the management account in `us-east-1`:
 1. Navigate to the AWS Deployment Framework Serverless Application Repository
    _(SAR)_, it can be found
    [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-2. Tick the box at the bottom that states: _"I acknowledge that this app creates
+2. To ease maintaining your ADF installation, it is recommended to ensure that
+   the values specified reflect what is installed/in use at the moment.
+   To gather the values, you can either find them in the
+   `aws-deployment-framework-bootstrap` repository in the `adfconfig.yml`
+   file. Or by looking up the values that were specified the last time ADF got
+   installed/updated via the CloudFormation template parameters of the
+   `serverlessrepo-aws-deployment-framework` stack in `us-east-1`.
+3. Tick the box at the bottom that states: _"I acknowledge that this app creates
    custom IAM roles and resource policies."_
-3. Keep all other form fields as is. Unless you changed the default parameters
-   that are set initially, in that case you need to supply the same values here
-   too.
 4. Click the _Deploy_ button.
 
 This will take a few minutes to deploy and kick-off your SAR deployment using
@@ -858,7 +862,7 @@ steps:
 2. Open the stack named: `serverlessrepo-aws-deployment-framework`.
 3. In the overview of the stack, it reports it current state, `UPDATE_COMPLETE`
    with a recent `Updated time` is what you want to see.
-4. If it is in progress or if it hasn't applied the update yet, you can go to
+4. If it is in progress or if it has not applied the update yet, you can go to
    the `Events` tab to see what is happening and if any error happened. Use the
    refresh button on the top right of the table to retrieve updates on the stack
    deployment.
@@ -900,11 +904,11 @@ In the management account in `us-east-1`:
 2. There might be a pull request if the `aws-deployment-framework-bootstrap`
    repository that you have has to be updated to apply recent changes of ADF.
    This would show up with the version that you deployed recently, for example
-   `v3.1.2`.
-3. If there is no pull request, nothing to worry about, no changes were required
-   in your repository for this update, continue to the next step. If there is a
-   pull request, open it and review the changes that it proposes. Once reviewed,
-   merge the pull request to continue.
+   `v3.2.0`.
+3. If there is no pull request, nothing to worry about. In that case, no
+   changes were required in your repository for this update. Continue to
+   the next step. If there is a pull request, open it and review the
+   changes that it proposes. Once reviewed, merge the pull request to continue.
 
 Confirm the `aws-deployment-framework-bootstrap` pipeline in the management
 account in `us-east-1`:
@@ -918,8 +922,24 @@ account in `us-east-1`:
    insights into the failure. Please report the step where it failed and include
    a copy of the logs when it fails here.
 
-Once finished, it will trigger the `aws-deployment-framework-pipelines`
-pipeline in the _deployment account_ in _your main region_:
+The `aws-deployment-framework-bootstrap` pipeline will trigger the account
+creation and on-boarding process in parallel.
+These are managed through Step Function state machines.
+
+1. Navigate to the [AWS Step Functions service](https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/statemachines)
+   in the management account in `us-east-1`.
+2. Check the `AccountManagementStateMachine...` state machine, all recent
+   invocations since we performed the update should succeed. It could be the
+   case that there are no invocations at all. In that case, wait a minute and
+   continue to the next step.
+3. Check the `AccountBootstrappingStateMachine...` state machine, all recent
+   invocations since we perform the update should succeed. It could be the
+   case that there are no invocations at all. In that case, wait a minute and
+   continue to the next step.
+
+Once the `aws-deployment-framework-bootstrap` pipeline is finished, it will
+trigger the `aws-deployment-framework-pipelines` pipeline in the
+_deployment account_ in _your main region_:
 
 1. Open your deployment account.
 2. Make sure you are in the main deployment region, where all your pipelines are
@@ -933,8 +953,24 @@ pipeline in the _deployment account_ in _your main region_:
    [here](https://github.com/awslabs/aws-deployment-framework/issues) and
    include a copy of the logs when it fails here.
 
-If this last pipeline turned green, to be sure that all went well, you can
-release changes in a pipeline of your choice to test them.
+The `aws-deployment-framework-pipelines` pipeline will trigger the creation of
+pipelines as defined in the deployment maps.
+This process is managed in an AWS Step Function state machine.
+
+1. Navigate to the AWS Step Functions service in the deployment account
+   in _your main region_.
+2. Check the `ADFPipelineManagementStateMachine` state machine, all recent
+   invocations since we performed the update should succeed.
+
+We need to confirm that the pipelines generated by ADF are fully functional
+To test this, please open one of the generated pipelines in the CodePipeline
+service in your deployment account inside _your main region_. Release a change
+and check the progress of the pipeline to validate it continues to work.
+
+If it failed, check the previous execution of the pipeline first, before you
+report this as an issue. The pipeline itself might have been broken before
+ADF was updated. If so, search for another pipeline that was successful before
+and release changes in that one instead.
 
 ### Update the default branch of the bootstrap/pipelines repository
 
@@ -1049,15 +1085,34 @@ The main components to look at are:
    to install the latest version changes of ADF is merged into your default
    branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
 5. The [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
-6. The [ADF Bootstrapping Step Function State Machine](https://console.aws.amazon.com/states/home?region=us-east-1#/statemachines)
-    - Look at the previous executions of the State Machine.
+6. Navigate to the [AWS Step Functions service](https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/statemachines)
+   in the management account in `us-east-1`. Check the state machines named
+   `AccountManagementStateMachine...` and
+   `AccountBootstrappingStateMachine...`. Look at recent executions only.
     - When you find one that has a failed execution, check the components that
       are marked orange/red in the diagram.
+    - If one failed and you want to trigger it again, you can execute it with
+      the `New Execution` button in AWS Step Functions. Or even better, to
+      trigger all executions again, Release a Change in the
+      [ADF Bootstrap CodePipeline - aws-deployment-framework-bootstrap](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
 7. In the AWS Deployment Account in the deployment region the [CodePipeline
    execution](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1)
    of the `aws-deployment-framework-pipeline` (ADF pipelines) repository
    **Important:** link points to `eu-west-1`, please change that to your own
    deployment region.
+8. Navigate to the [AWS Step Functions service](https://eu-west-1.console.aws.amazon.com/states/home?region=eu-west-1#/statemachines)
+   in the deployment account in your main region. Please note, the link points
+   to the `eu-west-` region. Please update that to your own deployment region.
+   Check the state machines named `ADFPipelineManagementStateMachine`,
+   `EnableCrossAccountAccess`, and `PipelineDeletionStateMachine...`.
+   Look at recent executions only.
+    - When you find one that has a failed execution, check the components that
+      are marked orange/red in the diagram.
+    - If one failed and you want to trigger it again, you can execute it with
+      the `New Execution` button in AWS Step Functions. Or even better in case
+      of the `ADFPipelineManagementStateMachine`, trigger all executions again,
+      Release a Change in the
+      [ADF Pipeline generation CodePipeline - aws-deployment-framework-pipelines](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1).
 
 ### How to share debug information
 
@@ -1067,10 +1122,10 @@ please replace:
 
 - the account ids with simple account ids like: `111111111111`, `222222222222`,
   etc.
-- the organization id with a simple one, `o-theorgid`.
+- the organization id with a simple one, `o-aa111bb222`.
 - the organization unit identifiers and names.
 - the email addresses by hiding them behind
-  `--some-notifcation-email-address--`.
+  `--some-notification-email-address--`.
 - the Slack channel identifier and SNS topics configured with simplified ones.
 - the cross-account access role with the default
   `OrganizationAccountAccessRole`.

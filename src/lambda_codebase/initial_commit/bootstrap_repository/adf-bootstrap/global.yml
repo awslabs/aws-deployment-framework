@@ -200,13 +200,6 @@ Resources:
             Action:
               - sts:AssumeRole
           - Effect: Allow
-            Sid: "AssumeRoleLambda"
-            Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-lambda-role
-            Action:
-              - sts:AssumeRole
-          - Effect: Allow
             Sid: "AssumeRole"
             Principal:
               AWS:
@@ -217,6 +210,34 @@ Resources:
               ArnEquals:
                 "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
       Path: /
+
+  UpdateCrossAccountAccessByDeploymentAccountRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-update-cross-account-access-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Sid: "AssumeRoleByEnableCrossAccountLambda"
+            Principal:
+              AWS:
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: "adf-allow-updating-cross-account-roles"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:GetRolePolicy"
+                  - "iam:PutRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
 
   AdfAutomationRole:
     # This role is used by CodeBuild on the Deployment Account when creating
@@ -233,7 +254,6 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-pipeline-provisioner-codebuild-role
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-update-rule
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-repository
             Action:
@@ -307,8 +327,8 @@ Resources:
           - Effect: Allow
             Sid: "IAM"
             Action:
+              - "iam:AttachRolePolicy"
               - "iam:CreateRole"
-              - "iam:CreateRolePolicy"
               - "iam:DeleteRole"
               - "iam:DeleteRolePolicy"
               - "iam:GetRole"

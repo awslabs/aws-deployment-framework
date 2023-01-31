@@ -4,30 +4,124 @@
 # pylint: skip-file
 
 import shutil
+import json
 import os
-import boto3
-import sys
 
-from pytest import fixture
+from pytest import fixture, mark
 from mock import Mock, patch
-from cache import Cache
 from generate_params import Parameters
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
 from sts import STS
-from resolver import Resolver
+
+
+@fixture
+def input_wave_target_one():
+    return {
+        'id': '111111111111',
+        'name': 'account_name1',
+        'path': '/one/path',
+        'regions': ['eu-west-1'],
+    }
+
+
+@fixture
+def input_wave_target_one_north():
+    return {
+        'id': '111111111111',
+        'name': 'account_name1',
+        'path': '/one/path',
+        'regions': ['eu-north-1'],
+    }
+
+
+@fixture
+def input_wave_target_one_us():
+    return {
+        'id': '111111111111',
+        'name': 'account_name1',
+        'path': '/one/path',
+        'regions': ['us-east-1'],
+    }
+
+
+@fixture
+def input_wave_target_two():
+    return {
+        'id': '222222222222',
+        'name': 'account_name2',
+        'path': '/two/path',
+        'regions': ['eu-west-2'],
+    }
+
+
+@fixture
+def input_wave_target_two_south():
+    return {
+        'id': '222222222222',
+        'name': 'account_name2',
+        'path': '/two/path',
+        'regions': ['eu-south-1'],
+    }
+
+
+@fixture
+def input_wave_target_two_us():
+    return {
+        'id': '222222222222',
+        'name': 'account_name2',
+        'path': '/two/path',
+        'regions': ['us-west-2'],
+    }
+
+
+@fixture
+def input_definition_targets(
+    input_wave_target_one,
+    input_wave_target_one_north,
+    input_wave_target_one_us,
+    input_wave_target_two,
+    input_wave_target_two_south,
+    input_wave_target_two_us,
+):
+    return [  # Waves are inside an array
+        [  # Wave 1
+            [  # Wave targets 1 - set 1
+                input_wave_target_one,
+                input_wave_target_two,
+            ],
+            [  # Wave targets 1 - set 2
+                input_wave_target_one_north,
+                input_wave_target_two_south,
+            ],
+        ],
+        [  # Wave 2
+            [  # Wave targets 2 - set 1
+                input_wave_target_one_us,
+            ],
+            [  # Wave targets 2 - set 2
+                input_wave_target_two_us,
+            ],
+        ],
+    ]
 
 
 @fixture
 def cls():
     parameter_store = Mock()
-    s3 = Mock()
-    s3.read_object.return_value = str({})
+    definition_s3 = Mock()
+    definition_s3.read_object.return_value = json.dumps({
+        'pipeline_input': {
+            'environments': {
+                'targets': [],
+            }
+        }
+    })
     parameter_store.fetch_parameter.return_value = str({})
     parameters = Parameters(
         build_name='some_name',
         parameter_store=parameter_store,
-        s3=s3,
+        definition_s3=definition_s3,
         directory=os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
@@ -35,13 +129,9 @@ def cls():
             )
         )
     )
-    parameters.account_ous = {
-        'account_name1': '/banking/testing',
-        'account_name2': '/banking/production',
-    }
-    parameters.regions = ['eu-west-1', 'eu-central-1', 'us-west-2']
     yield parameters
-    shutil.rmtree('{0}/params'.format(parameters.cwd))
+    # Skip the first slash
+    shutil.rmtree(f'{parameters.cwd}/params')
 
 
 def test_valid_build_name(cls):
@@ -49,129 +139,363 @@ def test_valid_build_name(cls):
 
 
 def test_params_folder_created(cls):
-    assert os.path.exists('{0}/params'.format(cls.cwd))
+    assert os.path.exists(f'{cls.cwd}/params')
 
 
-def test_parse(cls):
+def test_retrieve_pipeline_targets_empty(cls):
+    targets = cls._retrieve_pipeline_targets()
+    assert targets == {}
+
+
+def test_retrieve_pipeline_targets(cls, input_definition_targets):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'pipeline_input': {
+            'environments': {
+                'targets': input_definition_targets,
+            }
+        }
+    })
+    targets = cls._retrieve_pipeline_targets()
+    assert targets['111111111111'] == {
+        'id': '111111111111',
+        'account_name': 'account_name1',
+        'path': '/one/path',
+        'regions': sorted(['eu-west-1', 'eu-north-1', 'us-east-1']),
+    }
+    assert targets['222222222222'] == {
+        'id': '222222222222',
+        'account_name': 'account_name2',
+        'path': '/two/path',
+        'regions': sorted(['eu-west-2', 'eu-south-1', 'us-west-2']),
+    }
+    assert list(targets.keys()) == [
+        '111111111111',
+        '222222222222',
+    ]
+
+
+@mark.parametrize("file, to_file, ext", [
+    ('stub_cfn_global', 'global', 'json'),
+    ('stub_cfn_global', 'global_yml', 'yml'),
+])
+def test_parse(cls, file, to_file, ext):
+    shutil.copy(
+        f"{cls.cwd}/{file}.{ext}",
+        f"{cls.cwd}/params/{to_file}.{ext}",
+    )
     parse = cls._parse(
-        '{0}/stub_cfn_global'.format(cls.cwd)
+        cls.cwd,
+        to_file,
     )
     # Unresolved Intrinsic at this stage
     assert parse == {
         'Parameters': {
-            'CostCenter': '123',
             'Environment': 'testing',
-            'MySpecialValue': 'resolve:/values/some_value'
+            'MySpecialValue': 'resolve:/values/some_value',
         },
         'Tags': {
-            'TagKey': '123',
-            'MyKey': 'new_value',
+            'CostCenter': 'overhead',
+            'Department': 'unknown',
+            'Geography': 'world',
         },
     }
 
 
 def test_parse_not_found(cls):
     parse = cls._parse(
-        '{0}/nothing'.format(cls.cwd)
+        cls.cwd,
+        'nothing',
     )
     assert parse == {'Parameters': {}, 'Tags': {}}
 
 
-def test_param_updater(cls):
-    with patch.object(ParameterStore, 'fetch_parameter', return_value='something') as ssm_mock:
+def test_merge_params(cls):
+    shutil.copy(
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
+    )
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something'
+    ):
         parse = cls._parse(
-            '{0}/stub_cfn_global'.format(cls.cwd)
+            cls.cwd,
+            'global',
         )
-        compare = cls._param_updater(
+        compare = cls._merge_params(
             parse,
             {'Parameters': {}, 'Tags': {}}
         )
         assert compare == {
             'Parameters': {
-                'CostCenter': '123',
                 'Environment': 'testing',
                 'MySpecialValue': 'something',
             },
             'Tags': {
-                'TagKey': '123',
-                'MyKey': 'new_value',
+                'CostCenter': 'overhead',
+                'Department': 'unknown',
+                'Geography': 'world',
             }
         }
 
 
-def test_create_parameter_files(cls):
-    with patch.object(ParameterStore, 'fetch_parameter', return_value='something') as ssm_mock:
-        cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
+def test_merge_params_with_preset(cls):
+    shutil.copy(
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
+    )
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something'
+    ):
+        parse = cls._parse(
+            cls.cwd,
+            'global',
+        )
+        compare = cls._merge_params(
+            parse,
+            {
+                'Parameters': {
+                    'Base': 'Parameter',
+                },
+                'Tags': {
+                    'CostCenter': 'should-not-be-overwritten',
+                    'SomeBaseTag': 'BaseTag',
+                },
+            }
+        )
+        assert compare == {
+            'Parameters': {
+                'Base': 'Parameter',
+                'Environment': 'testing',
+                'MySpecialValue': 'something',
+            },
+            'Tags': {
+                'CostCenter': 'should-not-be-overwritten',
+                'Department': 'unknown',
+                'Geography': 'world',
+                'SomeBaseTag': 'BaseTag',
+            }
+        }
+
+
+def test_create_parameter_files(cls, input_definition_targets):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'pipeline_input': {
+            'environments': {
+                'targets': input_definition_targets,
+            }
+        }
+    })
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something',
+    ):
         cls.create_parameter_files()
-        assert os.path.exists("{0}/params/account_name1_eu-west-1.json".format(cls.cwd))
-        assert os.path.exists("{0}/params/account_name1_eu-central-1.json".format(cls.cwd))
-        assert os.path.exists("{0}/params/account_name1_us-west-2.json".format(cls.cwd))
-        assert os.path.exists("{0}/params/account_name2_eu-west-1.json".format(cls.cwd))
-        assert os.path.exists("{0}/params/account_name2_eu-central-1.json".format(cls.cwd))
-        assert os.path.exists("{0}/params/account_name2_us-west-2.json".format(cls.cwd))
+        assert os.path.exists(f"{cls.cwd}/params/account_name1_eu-west-1.json")
+        assert os.path.exists(
+            f"{cls.cwd}/params/account_name1_eu-north-1.json",
+        )
+        assert os.path.exists(f"{cls.cwd}/params/account_name1_us-east-1.json")
+        assert os.path.exists(f"{cls.cwd}/params/account_name2_eu-west-2.json")
+        assert os.path.exists(
+            f"{cls.cwd}/params/account_name2_eu-south-1.json",
+        )
+        assert os.path.exists(f"{cls.cwd}/params/account_name2_us-west-2.json")
 
 
-def test_ensure_parameter_default_contents(cls):
-    with patch.object(ParameterStore, 'fetch_parameter', return_value='something') as ssm_mock:
-        cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
+def test_ensure_parameter_default_contents(cls, input_definition_targets):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'pipeline_input': {
+            'environments': {
+                'targets': input_definition_targets,
+            }
+        }
+    })
+    shutil.copy(
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
+    )
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something',
+    ):
         cls.create_parameter_files()
 
         parse = cls._parse(
-            "{0}/params/account_name1_us-west-2".format(cls.cwd)
+            cls.cwd,
+            "account_name1_us-east-1",
         )
         assert parse == {
             'Parameters': {
-                'CostCenter': '123',
                 'Environment': 'testing',
                 'MySpecialValue': 'something',
             },
             'Tags': {
-                'TagKey': '123',
-                'MyKey': 'new_value',
+                'CostCenter': 'overhead',
+                'Department': 'unknown',
+                'Geography': 'world',
             }
         }
 
 
-def test_ensure_parameter_specific_contents(cls):
-    cls.global_path = "{0}/stub_cfn_global".format(cls.cwd)
+def test_using_deprecated_input_attribute_key(cls, input_definition_targets):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'input': {
+            'environments': {
+                'targets': input_definition_targets,
+            }
+        }
+    })
     shutil.copy(
-        "{0}/account_name1_eu-west-1.json".format(cls.cwd),
-        "{0}/params/account_name1_eu-west-1.json".format(cls.cwd)
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
+    )
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something',
+    ):
+        cls.create_parameter_files()
+
+        parse = cls._parse(
+            cls.cwd,
+            "account_name1_us-east-1",
+        )
+        assert parse == {
+            'Parameters': {
+                'Environment': 'testing',
+                'MySpecialValue': 'something',
+            },
+            'Tags': {
+                'CostCenter': 'overhead',
+                'Department': 'unknown',
+                'Geography': 'world',
+            }
+        }
+
+
+def test_ensure_parameter_overrides(
+    cls,
+    input_wave_target_one,
+    input_wave_target_one_north,
+    input_wave_target_two
+):
+    cls.definition_s3.read_object.return_value = json.dumps({
+        'pipeline_input': {
+            'environments': {
+                'targets': [
+                    [
+                        [
+                            input_wave_target_one,
+                        ],
+                        [
+                            input_wave_target_one_north,
+                        ],
+                    ],
+                    [
+                        [
+                            input_wave_target_two,
+                        ],
+                    ]
+                ]
+            }
+        }
+    })
+    os.mkdir(f'{cls.cwd}/params/one')
+    shutil.copy(
+        f"{cls.cwd}/stub_cfn_global.json",
+        f"{cls.cwd}/params/global.json",
     )
     shutil.copy(
-        "{0}/account_name1_eu-central-1.yml".format(cls.cwd),
-        "{0}/params/account_name1_eu-central-1.yml".format(cls.cwd)
+        f"{cls.cwd}/parameter_environment_acceptance_tag_project_a.yml",
+        f"{cls.cwd}/params/global_eu-west-1.yml",
+    )
+    shutil.copy(
+        f"{cls.cwd}/tag_department_alpha_only.json",
+        f"{cls.cwd}/params/one/path.json",
+    )
+    shutil.copy(
+        f"{cls.cwd}/tag_geo_eu_only.json",
+        f"{cls.cwd}/params/one/path_eu-west-1.json",
+    )
+    shutil.copy(
+        f"{cls.cwd}/parameter_extra_one_only.json",
+        f"{cls.cwd}/params/account_name1.json",
+    )
+    shutil.copy(
+        f"{cls.cwd}/tag_cost_center_free_only.json",
+        f"{cls.cwd}/params/account_name2_eu-west-2.json",
     )
 
-    with patch.object(ParameterStore, 'fetch_parameter', return_value='something') as ssm_mock:
-        with patch.object(CloudFormation, 'get_stack_output', return_value='something_else') as cfn_mock:
-            with patch.object(STS, 'assume_cross_account_role', return_value={}) as sts_mock:
+    with patch.object(
+        ParameterStore,
+        'fetch_parameter',
+        return_value='something',
+    ):
+        with patch.object(
+            CloudFormation,
+            'get_stack_output',
+            return_value='something_else',
+        ):
+            with patch.object(
+                STS,
+                'assume_cross_account_role',
+                return_value={},
+            ):
                 cls.create_parameter_files()
-                parse_json = cls._parse(
-                    "{0}/params/account_name1_eu-west-1".format(cls.cwd)
-                )
-                parse_yml = cls._parse(
-                    "{0}/params/account_name1_eu-central-1".format(cls.cwd)
-                )
-                assert parse_json == {
-                    'Parameters': {
-                        'CostCenter': 'free',
-                        'MySpecialValue': 'something',
-                        'Environment': 'testing',
-                    },
-                    'Tags': {
-                        'TagKey': '123',
-                        'MyKey': 'new_value',
+                assert (
+                    cls._parse(
+                        cls.cwd,
+                        "account_name1_eu-west-1",
+                    ) == {
+                        'Parameters': {
+                            'Environment': 'acceptance',  # Global region
+                            'MySpecialValue': 'something',  # Global
+                            'Extra': 'one',  # Account
+                        },
+                        'Tags': {
+                            'CostCenter': 'overhead',  # Global
+                            'Department': 'alpha',  # OU
+                            'Geography': 'eu',  # OU Region
+                            'Project': 'ProjectA',  # Global region
+                        }
                     }
-                }
-                assert parse_yml == {
-                    'Parameters': {
-                        'CostCenter': 'not_free',
-                        'MySpecialValue': 'something',
-                        'Environment': 'testing',
-                    },
-                    'Tags': {
-                        'TagKey': '123',
-                        'MyKey': 'new_value',
+                )
+                assert (
+                    cls._parse(
+                        cls.cwd,
+                        "account_name1_eu-north-1",
+                    ) == {
+                        'Parameters': {
+                            'Environment': 'testing',  # Global
+                            'MySpecialValue': 'something',  # Global
+                            'Extra': 'one',  # Account
+                        },
+                        'Tags': {
+                            'CostCenter': 'overhead',  # Global
+                            'Department': 'alpha',  # OU
+                            'Geography': 'world',  # Global
+                        }
                     }
-                }
+                )
+                assert (
+                    cls._parse(
+                        cls.cwd,
+                        "account_name2_eu-west-2",
+                    ) == {
+                        'Parameters': {
+                            'Environment': 'testing',  # Global
+                            'MySpecialValue': 'something',  # Global
+                        },
+                        'Tags': {
+                            'CostCenter': 'free',  # Account Region
+                            'Department': 'unknown',  # Global
+                            'Geography': 'world',  # Global
+                        }
+                    }
+                )

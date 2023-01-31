@@ -59,21 +59,6 @@ ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
 LOGGER = configure_logger(__name__)
 
 
-def is_account_in_invalid_state(ou_id, config):
-    """
-    Check if Account is sitting in the root
-    of the Organization or in Protected OU
-    """
-    if ou_id.startswith('r-'):
-        return "Is in the Root of the Organization, it will be skipped."
-
-    protected = config.get('protected', [])
-    if ou_id in protected:
-        return f"Is in a protected Organizational Unit {ou_id}, it will be skipped."
-
-    return False
-
-
 def ensure_generic_account_can_be_setup(sts, config, account_id):
     """
     If the target account has been configured returns the role to assume
@@ -186,7 +171,11 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     ):
         if getattr(config, item) is not None:
             deployment_account_parameter_store.put_parameter(
-                '/notification_endpoint/main' if item == 'notification_channel' else item,
+                (
+                    '/notification_endpoint/main'
+                    if item == 'notification_channel'
+                    else item
+                ),
                 str(getattr(config, item))
             )
     _store_extension_parameters(deployment_account_parameter_store, config)
@@ -226,11 +215,6 @@ def worker_thread(
     )
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
-    account_state = is_account_in_invalid_state(ou_id, config.config)
-    if account_state:
-        LOGGER.info("%s %s", account_id, account_state)
-        return
-
     account_path = organizations.build_account_path(
         ou_id,
         [],  # Initial empty array to hold OU Path,
@@ -244,8 +228,11 @@ def worker_thread(
         )
 
         # Regional base stacks can be updated after global
-        for region in list(
-                set([config.deployment_account_region] + config.target_regions)):
+        all_regions = list(set(
+            [config.deployment_account_region]
+            + config.target_regions
+        ))
+        for region in all_regions:
             # Ensuring the kms_arn and bucket_name on the target account is
             # up-to-date
             parameter_store = ParameterStore(region, role)
@@ -480,7 +467,10 @@ def main():  # pylint: disable=R0915
         threads = []
         account_ids = [
             account_id["Id"]
-            for account_id in organizations.get_accounts()
+            for account_id in organizations.get_accounts(
+                protected_ou_ids=config.config.get('protected'),
+                include_root=False,
+            )
         ]
         non_deployment_account_ids = [
             account for account in account_ids

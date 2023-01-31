@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-Creates an account within your organisation.
+Creates an account within your organization.
 """
 
 import os
