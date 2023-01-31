@@ -26,19 +26,11 @@
     - [Deploying Serverless Applications with SAM](#deploying-serverless-applications-with-sam)
     - [Using YAML Anchors and Aliases](#using-yaml-anchors-and-aliases)
     - [One to many relationships](#one-to-many-relationships)
-<<<<<<< HEAD
-  - [Terraform pipeline](#terraform-pipeline)
-    - [Prerequisites](#prerequisites)
-    - [Overview](#overview)
-    - [Parameters](#parameters)
-    - [Deployment procedure](#deployment-procedure)
-=======
     - [Terraform pipeline](#terraform-pipeline)
       - [Prerequisites](#prerequisites)
       - [Overview](#overview)
       - [Parameters](#parameters)
       - [Deployment procedure](#deployment-procedure)
->>>>>>> 349601ed827dff4c1173f1d9d13dd1e2c8027559
 
 ## Deployment Map
 
@@ -1188,15 +1180,6 @@ e.g.
 The following state files are created:
 
 - 111111111111 main region (eu-west-1)
-<<<<<<< HEAD
-  -> adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/111111111111.tfstate
-- 111111111111 secondary region (us-east-1)
-  -> adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/111111111111.tfstate
-- 222222222222 main region (eu-west-1)
-  -> adf-global-base-deployment-pipelinebucketxyz/sample-tf-module/222222222222.tfstate
-- 222222222222 secondary region (us-east-1)
-  -> adf-regional-base-deploy-deploymentframeworkregio-jsm/sample-tf-module/222222222222.tfstate
-=======
   -> `adf-global-base-deployment-pipeline-bucket-xyz/sample-tf-module/111111111111.tfstate`
 - 111111111111 secondary region (us-east-1)
   -> `adf-regional-base-deploy-deployment-framework-region-jsm/sample-tf-module/111111111111.tfstate`
@@ -1204,7 +1187,6 @@ The following state files are created:
   -> `adf-global-base-deployment-pipeline-bucket-xyz/sample-tf-module/222222222222.tfstate`
 - 222222222222 secondary region (us-east-1)
   -> `adf-regional-base-deploy-deployment-framework-region-jsm/sample-tf-module/222222222222.tfstate`
->>>>>>> 349601ed827dff4c1173f1d9d13dd1e2c8027559
 
 A DynamoDB table is created to manage the lock of the state file. It is
 deployed in every ADF regions named `adf_locktable`. **Please note**: usage
