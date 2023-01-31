@@ -12,6 +12,7 @@ import os
 import tempfile
 import logging
 from typing import Any, TypedDict
+import re
 import yaml
 
 from yaml.error import YAMLError
@@ -141,36 +142,7 @@ def process_account_list(all_accounts, accounts_in_file):
 
 
 def sanitize_account_name_for_snf(account_name):
-    unsupported_characters = [
-        "<",
-        ">",
-        "{",
-        "}",
-        "[",
-        "]",
-        " ",
-        "?",
-        "*",
-        '"',
-        "#",
-        "%",
-        "\\",
-        "^",
-        "|",
-        "~",
-        "`",
-        "$",
-        "&",
-        ",",
-        ";",
-        ":",
-        "/",
-    ]
-    sanitized_name = account_name[:30]
-    for char in unsupported_characters:
-        sanitized_name = sanitized_name.replace(char, "")
-
-    return sanitized_name
+    return re.sub("[^a-zA-Z0-9_]", "_", account_name[:30])
 
 
 def start_executions(

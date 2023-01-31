@@ -78,19 +78,19 @@ class SuccessTestCase(unittest.TestCase):
             sanitize_account_name_for_snf(
                 "thisIsALongerAccountName ForTestingTruncatedNames"
             ),
-            "thisIsALongerAccountNameForTe",
+            "thisIsALongerAccountName_ForTe",
         )
         self.assertEqual(
             sanitize_account_name_for_snf("this accountname <has illegal> chars"),
-            "thisaccountnamehasillegal",
+            "this_accountname__has_illegal_",
         )
         self.assertEqual(
-            sanitize_account_name_for_snf("this accountname \\has illegal chars"),
-            "thisaccountnamehasillegal",
+            sanitize_account_name_for_snf("this accountname \\has illegal"),
+            "this_accountname__has_illegal",
         )
         self.assertEqual(
             sanitize_account_name_for_snf("^startswithanillegalchar"),
-            "startswithanillegalchar",
+            "_startswithanillegalchar",
         )
         self.assertEqual(
             len(
