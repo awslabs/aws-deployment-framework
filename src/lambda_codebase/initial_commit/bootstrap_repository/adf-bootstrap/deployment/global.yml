@@ -63,7 +63,7 @@ Parameters:
     Description: The Prefix that will be attached to stacks deployed via ADF.
     Type: String
     Default: "adf-"
-  
+
   ADFTerraformExtension:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: /adf/extensions/terraform/enabled
@@ -1465,7 +1465,7 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
-          
+
   TerraformLockTable:
     Condition: ADFTerraformExtensionEnabled
     Type: "AWS::DynamoDB::Table"
