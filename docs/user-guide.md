@@ -1100,36 +1100,37 @@ pipeline for more details in the setup and integration.
 Example Terraform deployment map:
 
 ```yaml
-- name: sample-terraform
-  default_providers:
-    source:
-      provider: codecommit
-      properties:
-        account_id: 111111111111  # Source account id
-    build:
-      provider: codebuild
-    deploy:
-      provider: codebuild
-      properties:
-        image: "STANDARD_5_0"
-        environment_variables:
-          TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
-          TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
-          MANAGEMENT_ACCOUNT_ID: 333333333333  # Billing account
-          # Target regions, as a comma separated list is supported
-          # For example, "eu-west-1,us-east-1".
-          REGIONS: eu-west-1
-  targets:
-    - name: terraform-scan  # optional
-      properties:
-        spec_filename: tf_scan.yml  # Terraform scan
-    - name: terraform-plan
-      properties:
-        spec_filename: tf_plan.yml  # Terraform plan
-    - approval  # manual approval
-    - name: terraform-apply
-      properties:
-        spec_filename: tf_apply.yml  # Terraform apply
+pipelines:
+  - name: sample-terraform
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111  # Source account id
+      build:
+        provider: codebuild
+      deploy:
+        provider: codebuild
+        properties:
+          image: "STANDARD_5_0"
+          environment_variables:
+            TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
+            TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
+            MANAGEMENT_ACCOUNT_ID: 333333333333  # Billing account
+            # Target regions, as a comma separated list is supported
+            # For example, "eu-west-1,us-east-1".
+            REGIONS: eu-west-1
+    targets:
+      - name: terraform-scan  # optional
+        properties:
+          spec_filename: tf_scan.yml  # Terraform scan
+      - name: terraform-plan
+        properties:
+          spec_filename: tf_plan.yml  # Terraform plan
+      - approval  # manual approval
+      - name: terraform-apply
+        properties:
+          spec_filename: tf_apply.yml  # Terraform apply
 ```
 
 1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.
