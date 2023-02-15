@@ -1,4 +1,4 @@
 Jinja2==3.1.2
-boto3==1.26.48
+boto3==1.26.71
 cfn-custom-resource~=1.0.1
 markupsafe==2.1.1
