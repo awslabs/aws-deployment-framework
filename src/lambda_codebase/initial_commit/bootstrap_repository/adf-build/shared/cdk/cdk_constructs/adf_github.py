@@ -8,8 +8,9 @@ import os
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
-    core
+    Token
 )
+from constructs import Construct
 
 from cdk_constructs.adf_codepipeline import Action
 
@@ -18,8 +19,8 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
-class GitHub(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
+class GitHub(Construct):
+    def __init__(self, scope: Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
             name="Source-Github",
@@ -65,6 +66,6 @@ class GitHub(core.Construct):
             target_action="source",
             name=f"adf-webhook-{map_params['name']}",
             # pylint: disable=no-value-for-parameter
-            target_pipeline_version=core.Token.as_number(pipeline_version),
+            target_pipeline_version=Token.as_number(pipeline_version),
             register_with_third_party=True
         )

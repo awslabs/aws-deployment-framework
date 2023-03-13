@@ -679,7 +679,7 @@ Resources:
                 python: 3.9
                 nodejs: 14
               commands:
-                - npm install cdk@1.188 -g -y --quiet --no-progress
+                - npm install cdk@2.68 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
             pre_build:
