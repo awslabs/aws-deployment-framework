@@ -447,7 +447,6 @@ Resources:
                 Action:
                   - "account:ListRegions"
                   - "account:EnableRegion"
-                  # - "account:DisableRegion"
                   - "sts:GetCallerIdentity"
                 Resource: "*"
               - Effect: Allow
