@@ -11,7 +11,7 @@ from aws_cdk import (
     aws_iam as _iam,
     aws_kms as _kms,
     aws_lambda_event_sources as _event_sources,
-    Stack
+    Stack,
 )
 from constructs import Construct
 from logger import configure_logger

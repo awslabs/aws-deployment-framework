@@ -12,7 +12,7 @@ from aws_cdk import (
     aws_events as _eventbridge,
     aws_events_targets as _eventbridge_targets,
     SecretValue,
-    Fn
+    Fn,
 )
 from constructs import Construct
 

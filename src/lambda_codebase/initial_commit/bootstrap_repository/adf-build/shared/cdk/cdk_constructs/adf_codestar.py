@@ -7,7 +7,7 @@
 import os
 
 from aws_cdk import (
-    aws_codepipeline as _codepipeline
+    aws_codepipeline as _codepipeline,
 )
 from constructs import Construct
 

@@ -8,7 +8,7 @@ import os
 from aws_cdk import (
     aws_codestarnotifications as cp_notifications,
     aws_codepipeline as codepipeline,
-    Stack
+    Stack,
 )
 from constructs import Construct
 from logger import configure_logger

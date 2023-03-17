@@ -14,7 +14,7 @@ from aws_cdk import (
     aws_ec2 as _ec2,
     Stack,
     Duration,
-    Aws
+    Aws,
 )
 from constructs import Construct
 

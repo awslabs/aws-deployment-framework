@@ -11,7 +11,7 @@ from aws_cdk import (
     aws_events_targets as _targets,
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
-    Stack
+    Stack,
 )
 from constructs import Construct
 

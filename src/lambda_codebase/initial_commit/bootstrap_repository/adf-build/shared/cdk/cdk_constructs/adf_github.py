@@ -8,7 +8,7 @@ import os
 
 from aws_cdk import (
     aws_codepipeline as _codepipeline,
-    Token
+    Token,
 )
 from constructs import Construct
 
