@@ -36,7 +36,7 @@ function platformize(){
 function execute(){
   if [ ${PLAT} = "ubuntu" ]; then
     cd /tmp/
-    wget https://aws-codedeploy-${REGION}.s3.amazonaws.com/latest/install
+    wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
     chmod +x ./install
 
     if ./install auto; then
@@ -56,7 +56,7 @@ function execute(){
 
   elif [ ${PLAT} = "amz" ]; then
     cd /tmp/
-    wget https://aws-codedeploy-${REGION}.s3.amazonaws.com/latest/install
+    wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
     chmod +x ./install
 
     if ./install auto; then
