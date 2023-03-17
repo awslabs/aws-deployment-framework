@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-Takes regions that the account is not-optend into and opts out of them.
-
+Takes regions that the account is not-opted into and opts into them.
 """
 from ast import literal_eval
 
@@ -22,14 +21,7 @@ def get_regions_from_ssm(ssm_client):
     return regions
 
 
-def enable_regions_for_account(
-    account_client, account_id, desired_regions, target_is_different_account
-):
-    list_region_args = {}
-    enable_region_args = {}
-    if target_is_different_account:
-        list_region_args["AccountId"] = account_id
-        enable_region_args["AccountId"] = account_id
+def get_region_status(account_client, **list_region_args):
     region_status_response = account_client.list_regions(**list_region_args)
     region_status = {
         region.get("RegionName"): region.get("RegionOptStatus")
@@ -47,6 +39,20 @@ def enable_regions_for_account(
                 region.get("RegionName"): region.get("RegionOptStatus")
                 for region in region_status_response.get("Regions")
             }
+    return region_status
+
+
+def enable_regions_for_account(
+    account_client, account_id, desired_regions, org_root_account_id
+):
+    list_region_args = {}
+    enable_region_args = {}
+    target_is_different_account = org_root_account_id != account_id
+    if target_is_different_account:
+        list_region_args["AccountId"] = account_id
+        enable_region_args["AccountId"] = account_id
+
+    region_status = get_region_status(account_client, **list_region_args)
 
     regions_enabled = {}
     for region in desired_regions:
@@ -89,7 +95,7 @@ def lambda_handler(event, _):
         boto3.client("account"),
         target_account_id,
         desired_regions,
-        target_account_id != org_root_account_id,
+        org_root_account_id,
     )
     event["all_regions_enabled"] = all_regions_enabled
 

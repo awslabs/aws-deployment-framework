@@ -35,8 +35,8 @@ class SuccessTestCase(unittest.TestCase):
             enable_regions_for_account(
                 accounts_client,
                 "123456789",
-                ["us-east-1"],
-                False,
+                desired_regions=["us-east-1"],
+                org_root_account_id="123456789",
             )
         )
 
@@ -80,8 +80,41 @@ class SuccessTestCase(unittest.TestCase):
             enable_regions_for_account(
                 accounts_client,
                 "123456789",
-                ["us-east-1", "af-south-1", "sco-west-1"],
-                False,
+                desired_regions=["us-east-1", "af-south-1", "sco-west-1"],
+                org_root_account_id="123456789",
             )
         )
         account_stubber.assert_no_pending_responses()
+
+    def test_enable_regions_for_account_that_is_not_current_account(self):
+        accounts_client = boto3.client("account", region_name="us-east-1")
+        account_stubber = Stubber(accounts_client)
+        account_stubber.add_response(
+            "list_regions",
+            {
+                "Regions": [
+                    {
+                        "RegionName": "us-east-1",
+                        "RegionOptStatus": "ENABLED_BY_DEFAULT",
+                    },
+                    {"RegionName": "sco-west-1", "RegionOptStatus": "DISABLED"},
+                ]
+            },
+        )
+        account_stubber.add_response(
+            "enable_region",
+            {},
+            {
+                "RegionName": "sco-west-1",
+                "AccountId": "123456789",
+            },
+        )
+        account_stubber.activate()
+        self.assertFalse(
+            enable_regions_for_account(
+                accounts_client,
+                "123456789",
+                desired_regions=["us-east-1", "sco-west-1"],
+                org_root_account_id="987654321",
+            )
+        )
