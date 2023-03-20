@@ -12,7 +12,7 @@ tfinit(){
     cd "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}" || exit
     cp -R "${CURRENT}"/tf/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     # if account related variables exist copy the folder in the work directory
-    if [ -d "${CURRENT}/tfvars/$TF_VAR_TARGET_ACCOUNT_ID" ]; then
+    if [ -d "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}" ]; then
         cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}"/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     fi
     if [ -f "${CURRENT}/tfvars/global.auto.tfvars" ]; then
