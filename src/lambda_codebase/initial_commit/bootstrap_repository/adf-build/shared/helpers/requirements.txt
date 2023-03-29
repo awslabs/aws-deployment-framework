@@ -1,3 +1,5 @@
 boto3==1.26.48
 botocore==1.29.48
 docopt~=0.6.2
+schema~=0.7.5
+pytest-env~=0.8.1
