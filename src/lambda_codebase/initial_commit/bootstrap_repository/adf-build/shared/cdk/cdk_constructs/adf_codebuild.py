@@ -373,6 +373,20 @@ class CodeBuild(core.Construct):
                 .get('image')
             )
         if isinstance(specific_image, dict):
+            response_specific_image = specific_image['repository_arn']
+            # We just use the ecr repo name and construct the ECR ARN
+            if not response_specific_image.startswith('arn:aws:ecr:'):
+                constructed_repository_arn = f"arn:aws:ecr:{ADF_DEPLOYMENT_REGION}:{ADF_DEPLOYMENT_ACCOUNT_ID}:{response_specific_image}"
+                repo_arn = _ecr.Repository.from_repository_arn(
+                    scope,
+                    f'custom_repo_{codebuild_id}',
+                    constructed_repository_arn
+                )
+                return _codebuild.LinuxBuildImage.from_ecr_repository(
+                    repo_arn,
+                    specific_image.get('tag', 'latest'),
+                )
+            # We take the full ECR Arn - Default Behaviour
             repo_arn = _ecr.Repository.from_repository_arn(
                 scope,
                 f'custom_repo_{codebuild_id}',
