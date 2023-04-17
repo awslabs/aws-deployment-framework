@@ -291,7 +291,13 @@ However, in some situations, you would like to limit the rate at which an
 update is rolled out to the list of accounts/regions.
 
 This can be configured using the `wave/size` target property. Setting these to
-`30` as shown above, will introduce a new stage for every 30 accounts/regions.
+`30` as shown above, will introduce a new stage for every 30 accounts collated within this target
+
+Note: Each account defined within a stage may consist of several actions depending on the 
+specific provider action type defined aswell as how many regions are selected for the target stage.
+This should be taken into consideration when utilizing custom wave sizes.
+
+The minimum wave size should not be set less than the amount of actions necessary to deploy a single target.
 
 If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26,
 but account `9999999999` is excluded by the setup above), multiplied by the two
@@ -388,12 +394,12 @@ pipelines:
   - name: ami-builder
     # Default providers and parameters are the same as defined above.
     # Only difference: instead of using `triggers` it uses the
-    # `completion_triggers`
+    # `completion_trigger`
     params:
       schedule: rate(7 days)
     # What should trigger this pipeline
     # and what should be triggered when it completes
-    completion_triggers:
+    completion_trigger:
       pipelines:
         - my-web-app-pipeline  # Start this pipeline
 
