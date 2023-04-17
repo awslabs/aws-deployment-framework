@@ -151,7 +151,8 @@ def test_target_structure_respects_wave():
             }
         )
         target.fetch_accounts_for_target()
-        waves = list(target.target_structure.generate_waves())
+        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
+        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
         assert len(waves) == 3
 
         assert len(waves[0]) == 2
@@ -211,6 +212,70 @@ def test_target_structure_respects_wave():
             },
         ]
 
+def test_target_structure_respects_multi_region():
+    """ Validate behaviour with multiple accounts (x5) using Cloudformation default action (x2 actions) across several regions (x4)
+    Limited to 20 actions per region should split by 3 waves"""
+    test_target_config = {"path": "/some/random/ou", "wave": {"size": 20}}
+    target_structure = TargetStructure(
+        target=test_target_config,
+    )
+    for step in target_structure.target:
+        target = Target(
+            path=test_target_config.get("path")[0],
+            target_structure=target_structure,
+            organizations=MockOrgClient(
+                [
+                    {"Name": "test-account-1", "Id": "1", "Status": "ACTIVE"},
+                    {"Name": "test-account-2", "Id": "2", "Status": "ACTIVE"},
+                    {"Name": "test-account-3", "Id": "3", "Status": "ACTIVE"},
+                    {"Name": "test-account-4", "Id": "4", "Status": "ACTIVE"},
+                    {"Name": "test-account-5", "Id": "5", "Status": "ACTIVE"},
+                ]
+            ),
+            step={
+                **step,
+                "provider": "cloudformation",
+                "regions": ["region1", "region2", "region3", "region4"],
+            }
+        )
+        target.fetch_accounts_for_target()
+        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
+        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+        assert len(waves) == 3
+
+        assert len(waves[0]) == 2 # x2 accounts x4 region x2 action = 16
+        assert len(waves[1]) == 2 # x2 accounts x4 region x2 action = 16
+        assert len(waves[2]) == 1 # x1 accounts x4 region x2 action = 8
+
+def test_target_structure_respects_multi_action_single_region():
+    """ Validate behaviour with multiple accounts (x30) using Cloudformation default actions (x2 actions) across single region (x1)
+    Limited to 20 actions per region should split by 3 waves"""
+    test_target_config = {"path": "/some/random/ou"}
+    target_structure = TargetStructure(
+        target=test_target_config,
+    )
+    for step in target_structure.target:
+        target = Target(
+            path=test_target_config.get("path")[0],
+            target_structure=target_structure,
+
+            organizations=MockOrgClient(
+               [{"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"} for x in range(30)]
+            ),
+            step={
+                **step,
+                "provider": "cloudformation",
+                "regions": ["region1"],
+            }
+        )
+        target.fetch_accounts_for_target()
+        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
+        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+        assert len(waves) == 2
+
+        assert len(waves[0]) == 25 # Asset x25 accounts x1 region x2 action = 50
+        assert len(waves[1]) == 5 # Assert x5 account x1 region x2 action = 10
+
 
 def test_target_wave_structure_respects_exclude_config():
     test_target_config = {
@@ -238,10 +303,12 @@ def test_target_wave_structure_respects_exclude_config():
             step={
                 **step,
                 "regions": "region1",
+                "properties":{"action":"REPLACE_ON_FAILURE"}
             }
         )
         target.fetch_accounts_for_target()
-        waves = list(target.target_structure.generate_waves())
+        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
+        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
         assert len(waves) == 3
 
         assert len(waves[0]) == 2
@@ -250,7 +317,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "1",
                 "name": "test-account-1",
                 "path": "/some/random/ou",
-                "properties": {},
+                "properties":{"action":"REPLACE_ON_FAILURE"},
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -259,7 +326,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "2",
                 "name": "test-account-2",
                 "path": "/some/random/ou",
-                "properties": {},
+                "properties":{"action":"REPLACE_ON_FAILURE"},
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -272,7 +339,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "3",
                 "name": "test-account-3",
                 "path": "/some/random/ou",
-                "properties": {},
+                "properties":{"action":"REPLACE_ON_FAILURE"},
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -281,7 +348,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "4",
                 "name": "test-account-4",
                 "path": "/some/random/ou",
-                "properties": {},
+                "properties":{"action":"REPLACE_ON_FAILURE"},
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -294,7 +361,7 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "6",
                 "name": "test-account-6",
                 "path": "/some/random/ou",
-                "properties": {},
+                "properties":{"action":"REPLACE_ON_FAILURE"},
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",

@@ -9,7 +9,7 @@ require mutation depending on their structure.
 
 import re
 import os
-from errors import InvalidDeploymentMapError, NoAccountsFoundError
+from errors import InvalidDeploymentMapError, NoAccountsFoundError, WaveSizeInsufficientError
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
@@ -17,7 +17,7 @@ from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
-
+CLOUDFORMATION_PROVIDER_NAME = "cloudformation"
 
 class TargetStructure:
     def __init__(self, target):
@@ -35,7 +35,7 @@ class TargetStructure:
         )
 
     @staticmethod
-    def _define_target_type(target):
+    def _define_target_type(target)-> list[dict]:
         if isinstance(target, list):
             output = []
             for target_path in target:
@@ -57,10 +57,29 @@ class TargetStructure:
             target = [target]
         return target
 
-    def generate_waves(self):
+    @staticmethod
+    def get_actions_per_target_account(regions:list, provider:str, action:str) ->  int:
+        """Given a List of Target regions and the Provider and Action type, return the number of actions per target_account"""
+        if provider == CLOUDFORMATION_PROVIDER_NAME and not action:
+            return 2 * len(regions)
+        return len(regions)
+
+    def generate_waves(self, actions_per_target_account:int):
+        """ Given the Maximum Actions allowed in a Wave via wave size properties, and the Number of actions necessary per Target
+        determined by target regions and the action type allocate the target accounts into waves. """
+
         wave_size = self.wave.get('size', 50)
+        if actions_per_target_account < wave_size:
+            wave_size = wave_size // actions_per_target_account
+        else:
+            #TODO: Theoretically the region deployment actions could be split across different waves
+            # but that requires a whole bunch more refactoring as waves are representing accounts not actions today
+            raise WaveSizeInsufficientError(
+                 f"Wave size : {wave_size} set, however: {actions_per_target_account} actions necessary per target"
+            )
         waves = []
         length = len(self.account_list)
+
         for start_index in range(0, length, wave_size):
             end_index = min(
                 start_index + wave_size,

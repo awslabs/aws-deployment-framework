@@ -20,7 +20,6 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
 
-
 def store_regional_parameter_config(
     pipeline,
     parameter_store,
@@ -136,8 +135,17 @@ def generate_pipeline_inputs(
         # For the sake of consistency we should probably think of a target
         # consisting of multiple "waves". So if you see any reference to
         # a wave going forward it will be the individual batch of account ids.
+        actions_per_target_account = target_structure.get_actions_per_target_account(
+            regions=pipeline_object.get_all_regions(),
+            provider=pipeline_target.provider,
+            action=pipeline_target.properties.get("action")
+        )
         pipeline_object.template_dictionary["targets"].append(
-            list(target_structure.generate_waves()),
+            list(
+                target_structure.generate_waves(
+                    actions_per_target_account=actions_per_target_account
+                )
+            ),
         )
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:

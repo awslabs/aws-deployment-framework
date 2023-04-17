@@ -81,3 +81,10 @@ class NoAccountsFoundError(Exception):
     """
 
     pass
+
+class WaveSizeInsufficientError(Exception):
+    """
+    Raised when the defined wave size is less than the calculated minimum actions
+    """
+
+    pass
