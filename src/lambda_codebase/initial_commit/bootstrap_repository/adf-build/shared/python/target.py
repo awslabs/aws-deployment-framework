@@ -59,14 +59,15 @@ class TargetStructure:
 
     @staticmethod
     def get_actions_per_target_account(regions:list, provider:str, action:str) ->  int:
-        """Given a List of Target regions and the Provider and Action type, return the number of actions per target_account"""
+        """Given a List of target regions and the provider and action type, return the number of actions per target_account"""
         if provider == CLOUDFORMATION_PROVIDER_NAME and not action:
             return 2 * len(regions)
         return len(regions)
 
     def generate_waves(self, actions_per_target_account:int):
-        """ Given the Maximum Actions allowed in a Wave via wave size properties, and the Number of actions necessary per Target
-        determined by target regions and the action type allocate the target accounts into waves. """
+        """ Given the maximum actions allowed in a wave via wave.size property, reduce the accounts allocated in each wave by a factor
+         matching the number of actions necessary per account, which inturn 
+        derived from the number of target regions and the specific action_type defined for that target. """
 
         wave_size = self.wave.get('size', 50)
         if actions_per_target_account < wave_size:

@@ -213,7 +213,7 @@ def test_target_structure_respects_wave():
         ]
 
 def test_target_structure_respects_multi_region():
-    """ Validate behaviour with multiple accounts (x5) using Cloudformation default action (x2 actions) across several regions (x4)
+    """ Validate behaviour with multiple accounts (x5) using cloudformation default action (x2 actions) across several regions (x4)
     Limited to 20 actions per region should split by 3 waves"""
     test_target_config = {"path": "/some/random/ou", "wave": {"size": 20}}
     target_structure = TargetStructure(
@@ -248,8 +248,8 @@ def test_target_structure_respects_multi_region():
         assert len(waves[2]) == 1 # x1 accounts x4 region x2 action = 8
 
 def test_target_structure_respects_multi_action_single_region():
-    """ Validate behaviour with multiple accounts (x30) using Cloudformation default actions (x2 actions) across single region (x1)
-    Limited to 20 actions per region should split by 3 waves"""
+    """ Validate behaviour with multiple accounts (x30) using cloudformation default actions (x2 actions) across single region (x1)
+    Limited to 20 actions per region should split by 2 waves"""
     test_target_config = {"path": "/some/random/ou"}
     target_structure = TargetStructure(
         target=test_target_config,
@@ -273,8 +273,8 @@ def test_target_structure_respects_multi_action_single_region():
         waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
         assert len(waves) == 2
 
-        assert len(waves[0]) == 25 # Asset x25 accounts x1 region x2 action = 50
-        assert len(waves[1]) == 5 # Assert x5 account x1 region x2 action = 10
+        assert len(waves[0]) == 25 # assert x25 accounts x1 region x2 action = 50
+        assert len(waves[1]) == 5 # assert x5 accounts x1 region x2 action = 10
 
 
 def test_target_wave_structure_respects_exclude_config():
