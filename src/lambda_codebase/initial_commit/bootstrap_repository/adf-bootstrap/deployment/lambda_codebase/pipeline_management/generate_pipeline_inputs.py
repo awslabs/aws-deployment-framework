@@ -138,7 +138,7 @@ def generate_pipeline_inputs(
         actions_per_target_account = target_structure.get_actions_per_target_account(
             regions=pipeline_object.get_all_regions(),
             provider=pipeline_target.provider,
-            action=pipeline_target.properties.get("action")
+            action=pipeline_target.properties.get("action"),
         )
         pipeline_object.template_dictionary["targets"].append(
             list(
