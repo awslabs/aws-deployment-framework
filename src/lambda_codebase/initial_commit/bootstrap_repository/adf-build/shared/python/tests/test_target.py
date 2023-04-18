@@ -151,8 +151,7 @@ def test_target_structure_respects_wave():
             }
         )
         target.fetch_accounts_for_target()
-        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
-        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+        waves = list(target.target_structure.generate_waves(target=target))
         assert len(waves) == 3
 
         assert len(waves[0]) == 2
@@ -213,7 +212,8 @@ def test_target_structure_respects_wave():
         ]
 
 def test_target_structure_respects_multi_region():
-    """ Validate behaviour with multiple accounts (x5) using cloudformation default action (x2 actions) across several regions (x4)
+    """ Validate behavior with multiple accounts (x5) using cloudformation
+    default action (x2 actions) across several regions (x4)
     Limited to 20 actions per region should split by 3 waves"""
     test_target_config = {"path": "/some/random/ou", "wave": {"size": 20}}
     target_structure = TargetStructure(
@@ -239,8 +239,9 @@ def test_target_structure_respects_multi_region():
             }
         )
         target.fetch_accounts_for_target()
-        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
-        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+
+        waves = list(target.target_structure.generate_waves(target=target))
+
         assert len(waves) == 3
 
         assert len(waves[0]) == 2 # x2 accounts x4 region x2 action = 16
@@ -248,7 +249,8 @@ def test_target_structure_respects_multi_region():
         assert len(waves[2]) == 1 # x1 accounts x4 region x2 action = 8
 
 def test_target_structure_respects_multi_action_single_region():
-    """ Validate behaviour with multiple accounts (x30) using cloudformation default actions (x2 actions) across single region (x1)
+    """ Validate behavior with multiple accounts (x30) using cloudformation
+    default actions (x2 actions) across single region (x1)
     Limited to 20 actions per region should split by 2 waves"""
     test_target_config = {"path": "/some/random/ou"}
     target_structure = TargetStructure(
@@ -259,9 +261,10 @@ def test_target_structure_respects_multi_action_single_region():
             path=test_target_config.get("path")[0],
             target_structure=target_structure,
 
-            organizations=MockOrgClient(
-               [{"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"} for x in range(30)]
-            ),
+            organizations=MockOrgClient([
+                {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                for x in range(30)
+            ]),
             step={
                 **step,
                 "provider": "cloudformation",
@@ -269,13 +272,83 @@ def test_target_structure_respects_multi_action_single_region():
             }
         )
         target.fetch_accounts_for_target()
-        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
-        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+        waves = list(target.target_structure.generate_waves(
+            target=target
+            ))
         assert len(waves) == 2
 
-        assert len(waves[0]) == 25 # assert x25 accounts x1 region x2 action = 50
-        assert len(waves[1]) == 5 # assert x5 accounts x1 region x2 action = 10
+        assert len(waves[0]) == 25 # assert accts(25) region(1) action(2) = 50
+        assert len(waves[1]) == 5 # assert accnts(5) region(1) action(2) = 10
 
+def test_target_structure_respects_multi_action_multi_region():
+    """ Validate behavior with multiple accounts (x34) using cloudformation
+    default actions (x2 actions) across two region (x2)
+    Limited to default 50 actions per region should split by 3 waves"""
+    test_target_config = {"path": "/some/random/ou"}
+    target_structure = TargetStructure(
+        target=test_target_config,
+    )
+    for step in target_structure.target:
+        target = Target(
+            path=test_target_config.get("path")[0],
+            target_structure=target_structure,
+
+            organizations=MockOrgClient(
+                [
+                    {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                    for x in range(34)
+                ]
+            ),
+            step={
+                **step,
+                "provider": "cloudformation",
+                "regions": ["us-east-1","eu-central-1"],
+            }
+        )
+        target.fetch_accounts_for_target()
+
+        waves = list(target.target_structure.generate_waves(target=target))
+        assert len(waves) == 3
+
+        assert len(waves[0]) == 12 # assert accts(12) regions(2) actions(2) = 48
+        assert len(waves[1]) == 12 # assert accts(12) regions(2) actions(2) = 48
+        assert len(waves[2]) == 10 # assert accts(10) regions(2) actions(2) = 40
+
+def test_target_structure_respects_change_set_approval_single_region():
+    """ Validate behavior with multiple accounts (x60) using cloudformation
+    change_set_approval (x3 actions) across single region (x1)
+    Limited to default 50 actions per region"""
+    test_target_config = {"path": "/some/random/ou"}
+    target_structure = TargetStructure(
+        target=test_target_config,
+    )
+    for step in target_structure.target:
+        target = Target(
+            path=test_target_config.get("path")[0],
+            target_structure=target_structure,
+
+            organizations=MockOrgClient(
+                [
+                    {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                    for x in range(60)
+                ]
+            ),
+            step={
+                **step,
+                "provider": "cloudformation",
+                "properties": {"change_set_approval":True},
+                "regions": ["us-east-1"],
+            }
+        )
+        target.fetch_accounts_for_target()
+
+        waves = list(target.target_structure.generate_waves(target=target))
+        assert len(waves) == 4
+
+        assert len(waves[0]) == 16 # assert accts(16) regions(1) actions(3) = 48
+        assert len(waves[1]) == 16 # assert accts(16) regions(1) actions(3) = 48
+        assert len(waves[2]) == 16 # assert accts(16) regions(1) actions(3) = 48
+        assert len(waves[3]) == 12 # assert accts(16) regions(1) actions(3) = 48
 
 def test_target_wave_structure_respects_exclude_config():
     test_target_config = {
@@ -307,8 +380,7 @@ def test_target_wave_structure_respects_exclude_config():
             }
         )
         target.fetch_accounts_for_target()
-        actions_per_target_account = target_structure.get_actions_per_target_account(target.regions,target.provider,target.properties.get("action"))
-        waves = list(target.target_structure.generate_waves(actions_per_target_account=actions_per_target_account))
+        waves = list(target.target_structure.generate_waves(target=target))
         assert len(waves) == 3
 
         assert len(waves[0]) == 2

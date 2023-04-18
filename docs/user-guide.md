@@ -291,13 +291,16 @@ However, in some situations, you would like to limit the rate at which an
 update is rolled out to the list of accounts/regions.
 
 This can be configured using the `wave/size` target property. Setting this to
-`30` as shown above, will introduce a new stage for every 30 accounts allocated within the target stage.
+`30` as shown above, will introduce a new stage for every 30 accounts allocated
+within the target stage.
 
-Note: Each account defined within a stage may consist of several actions depending on the 
-specific provider action type defined as well as how many regions are selected for the target stage.
-This should be taken into consideration when utilizing custom wave sizes.
+Note: Each account defined within a stage may consist of several actions
+depending on the specific provider action type defined as well as how many
+regions are selected for the target stage. This should be taken into
+consideration when utilizing custom wave sizes.
 
-The minimum wave size should not be set less than the amount of actions necessary to deploy a single target account.
+The minimum wave size should not be set less than the amount of actions
+necessary to deploy a single target account.
 
 If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26,
 but account `9999999999` is excluded by the setup above), multiplied by the two

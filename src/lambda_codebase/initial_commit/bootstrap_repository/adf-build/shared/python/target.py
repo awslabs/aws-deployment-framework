@@ -9,7 +9,11 @@ require mutation depending on their structure.
 
 import re
 import os
-from errors import InvalidDeploymentMapError, NoAccountsFoundError, WaveSizeInsufficientError
+from errors import (
+    InvalidDeploymentMapError,
+    NoAccountsFoundError,
+    InsufficientWaveSizeError
+    )
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
@@ -58,26 +62,47 @@ class TargetStructure:
         return target
 
     @staticmethod
-    def get_actions_per_target_account(regions:list, provider:str, action:str) ->  int:
-        """Given a List of target regions and the provider and action type, return the number of actions per target_account"""
+    def _get_actions_per_target_account(
+        regions:list,
+        provider:str,
+        action:str,
+        change_set_approval:bool
+        ) -> int:
+        """Given a List of target regions, the provider, action type and wether
+        change_set_approval has been set
+        return the calculated number of actions which will be generated per
+        target_account"""
+        regions_defined = len(regions)
+        actions_per_region = 1
         if provider == CLOUDFORMATION_PROVIDER_NAME and not action:
-            return 2 * len(regions)
-        return len(regions)
+            # add 1 or 2 actions for changesets with approvals
+            actions_per_region += (1 + int(change_set_approval))
+        return actions_per_region * regions_defined
 
-    def generate_waves(self, actions_per_target_account:int):
-        """ Given the maximum actions allowed in a wave via wave.size property, reduce the accounts allocated in each wave by a factor
-         matching the number of actions necessary per account, which inturn 
-        derived from the number of target regions and the specific action_type defined for that target. """
-
+    def generate_waves(self, target:"Target"):
+        """ Given the maximum actions allowed in a wave via wave.size property,
+        reduce the accounts allocated in each wave by a factor
+        matching the number of actions necessary per account, which inturn
+        derived from the number of target regions and the specific action_type
+        defined for that target. """
         wave_size = self.wave.get('size', 50)
-        if actions_per_target_account < wave_size:
-            wave_size = wave_size // actions_per_target_account
-        else:
-            #TODO: Theoretically the region deployment actions could be split across different waves
-            # but that requires a whole bunch more refactoring as waves are representing accounts not actions today
-            raise WaveSizeInsufficientError(
-                 f"Wave size : {wave_size} set, however: {actions_per_target_account} actions necessary per target"
+        actions_per_target_account = self._get_actions_per_target_account(
+            regions=target.regions,
+            provider=target.provider,
+            action=target.properties.get("action"),
+            change_set_approval=target.properties.get("change_set_approval", False)
+        )
+
+        if actions_per_target_account > wave_size:
+            #TODO: Theoretically the region deployment actions could be split
+            # across different waves but that requires a whole bunch more
+            # refactoring as waves are representing accounts not actions today
+            raise InsufficientWaveSizeError(
+                f"Wave size : {wave_size} set, however: "
+                f"{actions_per_target_account} actions necessary per target"
             )
+        # Reduce the wave size by the number of actions per target
+        wave_size = wave_size // actions_per_target_account
         waves = []
         length = len(self.account_list)
 
