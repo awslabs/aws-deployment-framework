@@ -35,7 +35,7 @@ class TargetStructure:
         )
 
     @staticmethod
-    def _define_target_type(target)-> list[dict]:
+    def _define_target_type(target) -> list[dict]:
         if isinstance(target, list):
             output = []
             for target_path in target:
