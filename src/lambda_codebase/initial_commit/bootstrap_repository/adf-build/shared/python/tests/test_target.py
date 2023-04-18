@@ -317,7 +317,9 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "1",
                 "name": "test-account-1",
                 "path": "/some/random/ou",
-                "properties":{"action":"REPLACE_ON_FAILURE"},
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
