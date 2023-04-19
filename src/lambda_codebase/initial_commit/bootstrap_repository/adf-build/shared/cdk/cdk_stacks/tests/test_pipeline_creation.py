@@ -16,7 +16,7 @@ def test_pipeline_generation_fails_if_pipeline_type_is_not_specified(mock):
     stack_input = {"pipeline_input": {"params": {}}}
     stack_input["pipeline_input"]["name"] = "test-stack"
     stack_input["pipeline_input"]["params"]["pipeline_type"] = "fail"
-    app = core.App()
+    app = App()
     with pytest.raises(ValueError):
         pipeline_stack = PipelineStack(app, stack_input)
     mock.assert_not_called()
