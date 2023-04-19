@@ -1304,7 +1304,6 @@ Resources:
                 - pytest -vvv
             build:
               commands:
-                - sam build -t adf-bootstrap/deployment/pipeline_management.yml
                 - sam build -t adf-bootstrap/deployment/global.yml
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
