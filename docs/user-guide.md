@@ -543,9 +543,10 @@ pipelines:
         # ...
       build:
         provider: codebuild
-        image:
-          repository_arn: arn:aws:ecr:region:111111111111:repository/test
-          tag: latest  # optional (defaults to latest)
+        properties:
+          image:
+            repository_arn: arn:aws:ecr:region:111111111111:repository/test
+            tag: latest  # optional (defaults to latest)
     targets:
       - # ...
 ```
