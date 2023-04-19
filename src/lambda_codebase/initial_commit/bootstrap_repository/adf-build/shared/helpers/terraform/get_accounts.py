@@ -96,7 +96,7 @@ def get_accounts_from_ous():
         'organizations',
         (
             f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly',
         ),
         'getRootAccountIDs',
     )
