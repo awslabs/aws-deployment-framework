@@ -40,7 +40,7 @@ class PipelineStack(core.Stack):
         pipeline_type = (
             stack_input['pipeline_input']
             .get('params', {})
-            .get('type', DEFAULT_PIPELINE)
+            .get('pipeline_type', DEFAULT_PIPELINE)
             .lower()
         )
 
