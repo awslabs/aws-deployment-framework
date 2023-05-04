@@ -41,6 +41,12 @@ tfplan(){
 tfapply(){
     terraform apply "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}"
 }
+tfplandestroy(){
+    terraform plan -destroy -out "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-destroy 
+}
+tfdestroy(){
+    terraform apply "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-destroy
+}
 tfrun(){
     export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID
     echo "Running terraform $TF_STAGE on account $ACCOUNT_ID and region $REGION"
@@ -61,6 +67,13 @@ tfrun(){
         tfinit
         tfplan
         tfapply
+        set +e
+    elif [[ "$TF_STAGE" = "destroy" ]]
+    then
+        set -e
+        tfinit
+        tfplandestroy
+        tfdestroy
         set +e
     else
         echo "Invalid Terraform stage: TF_STAGE = $TF_STAGE"
