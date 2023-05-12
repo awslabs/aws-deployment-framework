@@ -42,10 +42,10 @@ tfapply(){
     terraform apply "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}"
 }
 tfplandestroy(){
-    terraform plan -destroy -out "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-destroy
+    terraform plan -destroy -out "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-destroy"
 }
 tfdestroy(){
-    terraform apply "$ADF_PROJECT_NAME"-"$TF_VAR_TARGET_ACCOUNT_ID"-destroy
+    terraform apply "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-destroy"
 }
 tfrun(){
     export TF_VAR_TARGET_ACCOUNT_ID=$ACCOUNT_ID

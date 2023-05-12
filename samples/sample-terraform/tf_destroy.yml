@@ -11,6 +11,7 @@ phases:
   install:
     runtime-versions:
       python: 3.9
+
   build:
     commands:
       - python adf-build/helpers/terraform/get_accounts.py

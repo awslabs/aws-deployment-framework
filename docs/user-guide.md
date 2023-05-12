@@ -1134,8 +1134,7 @@ pipelines:
       - name: terraform-apply
         properties:
           spec_filename: tf_apply.yml  # Terraform apply
-      # (optional)
-       - name: terraform-destroy
+      - name: terraform-destroy # (optional stage)
         properties:
           spec_filename: tf_destroy.yml  # Terraform destroy
 ```
