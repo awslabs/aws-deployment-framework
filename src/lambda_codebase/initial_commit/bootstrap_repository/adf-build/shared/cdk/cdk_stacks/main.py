@@ -22,7 +22,7 @@ class PipelineStack(Stack):
         self,
         scope: Construct,
         stack_input: dict,
-        **kwargs
+        **kwargs,
     ) -> None:  # pylint: disable=R0912, R0915
         """
         Initialize the pipeline stack

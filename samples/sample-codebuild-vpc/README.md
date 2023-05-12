@@ -32,7 +32,7 @@ your own VPC and subnets that are operational in the deployment account.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
           vpc_id: vpc-01234567890abcdef
           subnet_ids:
             - subnet-1234567890abcdef1
@@ -44,7 +44,7 @@ your own VPC and subnets that are operational in the deployment account.
       - name: integration-tests
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
           spec_filename: testspec.yml
           vpc_id: vpc-01234567890abcdef
           subnet_ids:

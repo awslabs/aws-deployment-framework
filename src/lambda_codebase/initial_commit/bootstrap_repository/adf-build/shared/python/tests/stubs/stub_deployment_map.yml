@@ -113,9 +113,9 @@ pipelines:
       build:
         provider: codebuild
         properties:
-          # Use a specific docker image (to use Python 3.9) for the build stage
+          # Use a specific docker image (to use Python 3.11) for the build stage
           # in this pipeline -> https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
       deploy:
         provider: codedeploy
     params:
