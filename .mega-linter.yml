@@ -10,7 +10,8 @@ APPLY_FIXES: none
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by default
 ENABLE_LINTERS:
   - BASH_EXEC
-  - CLOUDFORMATION_CFN_LINT
+  # Temporarely disable cfn-lint until megalinter v7 release.
+  # - CLOUDFORMATION_CFN_LINT
   - DOCKERFILE_HADOLINT
   - EDITORCONFIG_EDITORCONFIG_CHECKER
   - JSON_JSONLINT
