@@ -6,22 +6,25 @@ Creates or updates an ALIAS for an account
 """
 
 import os
+import json
 from sts import STS
 from aws_xray_sdk.core import patch_all
 from logger import configure_logger
+from events import ADFEvents
 
 patch_all()
 
 LOGGER = configure_logger(__name__)
 ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
 AWS_PARTITION = os.getenv("AWS_PARTITION")
+EVENTS = ADFEvents("AccountManagement")
 
 
 def delete_account_aliases(account, iam_client, current_aliases):
     for alias in current_aliases:
         LOGGER.info(
             "Account %s, removing alias %s",
-            account.get('account_full_name'),
+            account.get("account_full_name"),
             alias,
         )
         iam_client.delete_account_alias(AccountAlias=alias)
@@ -30,8 +33,8 @@ def delete_account_aliases(account, iam_client, current_aliases):
 def create_account_alias(account, iam_client):
     LOGGER.info(
         "Adding alias to: %s alias %s",
-        account.get('account_full_name'),
-        account.get('alias'),
+        account.get("account_full_name"),
+        account.get("alias"),
     )
     try:
         iam_client.create_account_alias(AccountAlias=account.get("alias"))
@@ -49,15 +52,15 @@ def create_account_alias(account, iam_client):
 def ensure_account_has_alias(account, iam_client):
     LOGGER.info(
         "Ensuring Account: %s has alias %s",
-        account.get('account_full_name'),
-        account.get('alias'),
+        account.get("account_full_name"),
+        account.get("alias"),
     )
-    current_aliases = iam_client.list_account_aliases().get('AccountAliases')
-    if account.get('alias') in current_aliases:
+    current_aliases = iam_client.list_account_aliases().get("AccountAliases")
+    if account.get("alias") in current_aliases:
         LOGGER.info(
             "Account: %s already has alias %s",
-            account.get('account_full_name'),
-            account.get('alias'),
+            account.get("account_full_name"),
+            account.get("alias"),
         )
         return
 
@@ -76,9 +79,19 @@ def lambda_handler(event, _):
             "adf_account_alias_config",
         )
         ensure_account_has_alias(event, role.client("iam"))
+        EVENTS.put_event(
+            detail=json.dumps(
+                {
+                    "account_id": account_id,
+                    "alias_value": event.get("alias"),
+                }
+            ),
+            detailType="ACCOUNT_ALIAS_CONFIGURED",
+            resources=[account_id],
+        )
     else:
         LOGGER.info(
             "Account: %s does not need an alias",
-            event.get('account_full_name'),
+            event.get("account_full_name"),
         )
     return event

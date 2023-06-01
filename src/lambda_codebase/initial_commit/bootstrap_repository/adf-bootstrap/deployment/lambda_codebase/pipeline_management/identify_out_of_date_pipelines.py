@@ -15,8 +15,10 @@ import boto3
 from logger import configure_logger
 from deployment_map import DeploymentMap
 from parameter_store import ParameterStore
+from aws_xray_sdk.core import patch_all
 
 
+patch_all()
 LOGGER = configure_logger(__name__)
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]

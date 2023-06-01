@@ -77,6 +77,13 @@ Globals:
     CodeUri: lambda_codebase
     Runtime: python3.10
 
+Mappings:
+  OrganizationPartitionRegionMapping:
+    aws:
+      region: "us-east-1"
+    aws-us-gov:
+      region: "us-gov-west-1"
+
 Resources:
   LambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
@@ -192,6 +199,7 @@ Resources:
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
         RootAccountId: !Ref MasterAccountId
+        RootAccountRegion: !FindInMap [OrganizationPartitionRegionMapping, !Ref "AWS::Partition", "region"]
         CodeBuildImage: !Ref Image
         CodeBuildComputeType: !Ref ComputeType
         SharedModulesBucket: !Ref SharedModulesBucket

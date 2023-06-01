@@ -16,8 +16,10 @@ from yaml.error import YAMLError
 import boto3
 from botocore.exceptions import ClientError
 from logger import configure_logger
+from aws_xray_sdk.core import patch_all
 
 
+patch_all()
 LOGGER = configure_logger(__name__)
 PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv(
     "PIPELINE_MANAGEMENT_STATE_MACHINE",

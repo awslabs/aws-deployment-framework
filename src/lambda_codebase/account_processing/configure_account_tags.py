@@ -8,13 +8,17 @@ Will not delete tags that aren't
 in the config file.
 """
 
-from organizations import Organizations
 
+import json
 import boto3
+
+from organizations import Organizations
 from aws_xray_sdk.core import patch_all
 from logger import configure_logger
+from events import ADFEvents
 
 patch_all()
+EVENTS = ADFEvents("AccountManagement")
 LOGGER = configure_logger(__name__)
 
 
@@ -35,9 +39,16 @@ def lambda_handler(event, _):
             event.get("tags"),
             organizations,
         )
+        EVENTS.put_event(
+            detail=json.dumps(
+                {"tags": event.get("tags"), "account_id": event.get("account_id")}
+            ),
+            detailType="ACCOUNT_TAGS_CONFIGURED",
+            resources=[event.get("account_id")],
+        )
     else:
         LOGGER.info(
             "Account: %s does not need tags configured",
-            event.get('account_full_name'),
+            event.get("account_full_name"),
         )
     return event
