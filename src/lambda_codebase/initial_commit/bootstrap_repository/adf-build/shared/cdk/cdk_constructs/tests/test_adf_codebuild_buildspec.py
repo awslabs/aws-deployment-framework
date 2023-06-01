@@ -5,7 +5,11 @@
 
 import pytest
 from mock import patch
-from cdk_constructs.adf_codebuild import CodeBuild, DEFAULT_BUILD_SPEC_FILENAME, DEFAULT_DEPLOY_SPEC_FILENAME
+from cdk_constructs.adf_codebuild import (
+    CodeBuild,
+    DEFAULT_BUILD_SPEC_FILENAME,
+    DEFAULT_DEPLOY_SPEC_FILENAME,
+)
 
 
 @patch('cdk_constructs.adf_codebuild._codebuild.BuildSpec')
@@ -31,7 +35,6 @@ def test_determine_build_spec_with_file_and_inline_specified_no_target(buildspec
                 'spec_inline': spec_inline,
             },
         )
-
 
     error_message = str(excinfo.value)
     assert error_message.find(correct_error_message) >= 0
@@ -162,7 +165,6 @@ def test_determine_build_spec_with_inline_specified_in_deploy(buildspec_mock):
     spec_inline = {
         'Some-Object': 'Some-Value',
     }
-    spec_filename = 'some-file-name.yml'
     buildspec_mock.from_object.return_value = 'From-Object'
     buildspec_mock.from_source_filename.return_value = 'From-Source'
 
@@ -230,9 +232,6 @@ def test_determine_build_spec_with_filename_specified_in_target(buildspec_mock):
 @patch('cdk_constructs.adf_codebuild._codebuild.BuildSpec')
 def test_determine_build_spec_with_filename_specified_in_deploy(buildspec_mock):
     codebuild_id = 'some-id'
-    spec_inline = {
-        'Some-Object': 'Some-Value',
-    }
     spec_filename = 'some-file-name.yml'
     buildspec_mock.from_object.return_value = 'From-Object'
     buildspec_mock.from_source_filename.return_value = 'From-Source'

@@ -11,8 +11,9 @@ from aws_cdk import (
     aws_iam as _iam,
     aws_kms as _kms,
     aws_lambda_event_sources as _event_sources,
-    core
+    Stack,
 )
+from constructs import Construct
 from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -21,13 +22,13 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 LOGGER = configure_logger(__name__)
 
 
-class Notifications(core.Construct):
+class Notifications(Construct):
     def __init__(
-        self, scope: core.Construct, id: str, map_params: dict, **kwargs
+        self, scope: Construct, id: str, map_params: dict, **kwargs
     ):  # pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         LOGGER.debug('Notification configuration required for %s', map_params['name'])
-        stack = core.Stack.of(self)
+        stack = Stack.of(self)
         # pylint: disable=no-value-for-parameter
         _slack_func = _lambda.Function.from_function_arn(
             self,

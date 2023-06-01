@@ -5,9 +5,8 @@
 This is the main construct file file for PipelineStack
 """
 
-from aws_cdk import (
-    core
-)
+from aws_cdk import Stack
+from constructs import Construct
 from logger import configure_logger
 
 from cdk_stacks.adf_default_pipeline import (
@@ -18,12 +17,12 @@ from cdk_stacks.adf_default_pipeline import (
 LOGGER = configure_logger(__name__)
 
 
-class PipelineStack(core.Stack):
+class PipelineStack(Stack):
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         stack_input: dict,
-        **kwargs
+        **kwargs,
     ) -> None:  # pylint: disable=R0912, R0915
         """
         Initialize the pipeline stack

@@ -11,8 +11,10 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_events as _eventbridge,
     aws_events_targets as _eventbridge_targets,
-    core
+    SecretValue,
+    Fn,
 )
+from constructs import Construct
 
 from cdk_constructs import adf_events
 from logger import configure_logger
@@ -241,7 +243,7 @@ class Action:
                     .get('branch', self.default_scm_branch)
                 ),
                 # pylint: disable=no-value-for-parameter
-                "OAuthToken": core.SecretValue.secrets_manager(
+                "OAuthToken": SecretValue.secrets_manager(
                     (
                         self.map_params['default_providers']['source']
                         .get('properties', {})
@@ -682,7 +684,7 @@ class Action:
         return []
 
 
-class Pipeline(core.Construct):
+class Pipeline(Construct):
     _import_arns = [
         'CodePipelineRoleArn',
         'CodeBuildRoleArn',
@@ -696,7 +698,7 @@ class Pipeline(core.Construct):
     # pylint: disable=W0622
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         id: str,
         map_params: dict,
         ssm_params: dict,
@@ -827,7 +829,7 @@ class Pipeline(core.Construct):
         output = []
         for arn in Pipeline._import_arns:
             # pylint: disable=no-value-for-parameter
-            output.append(core.Fn.import_value(arn))
+            output.append(Fn.import_value(arn))
         return output
 
     def add_pipeline_trigger(self, trigger_type, trigger_config):
