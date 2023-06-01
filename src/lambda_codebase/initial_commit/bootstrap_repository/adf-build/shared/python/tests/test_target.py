@@ -272,9 +272,11 @@ def test_target_structure_respects_multi_action_single_region():
             }
         )
         target.fetch_accounts_for_target()
-        waves = list(target.target_structure.generate_waves(
-            target=target
-            ))
+        waves = list(
+            target.target_structure.generate_waves(
+                target=target,
+            ),
+        )
         assert len(waves) == 2
 
         assert len(waves[0]) == 25 # assert accts(25) region(1) action(2) = 50

@@ -12,7 +12,7 @@ import os
 from errors import (
     InvalidDeploymentMapError,
     NoAccountsFoundError,
-    InsufficientWaveSizeError
+    InsufficientWaveSizeError,
 )
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
@@ -66,7 +66,7 @@ class TargetStructure:
         regions: list,
         provider: str,
         action: str,
-        change_set_approval: bool
+        change_set_approval: bool,
     ) -> int:
         """Given a List of target regions, the provider, action type and wether
         change_set_approval has been set
@@ -90,7 +90,7 @@ class TargetStructure:
             regions=target.regions,
             provider=target.provider,
             action=target.properties.get("action"),
-            change_set_approval=target.properties.get("change_set_approval", False)
+            change_set_approval=target.properties.get("change_set_approval", False),
         )
 
         if actions_per_target_account > wave_size:
