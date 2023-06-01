@@ -64,6 +64,14 @@ Parameters:
     Type: String
     Default: "adf-"
 
+  ADFTerraformExtension:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /adf/extensions/terraform/enabled
+
+Conditions:
+  ADFTerraformExtensionEnabled:
+    !Equals [!Ref ADFTerraformExtension, "True"]
+
 Globals:
   Function:
     CodeUri: lambda_codebase
@@ -1456,6 +1464,21 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
+
+  TerraformLockTable:
+    Condition: ADFTerraformExtensionEnabled
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: adf-tflocktable
 
 Outputs:
   ADFVersionNumber:

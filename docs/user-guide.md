@@ -1077,6 +1077,8 @@ stages defined in the following CodeBuild build specification:
   run a Terraform plan.
 - `tf_apply.yml`: get the list of accounts from the organization and
   run a Terraform plan and apply.
+- `tf_destroy.yml`: get the list of accounts from the organization and
+  run a Terraform plan and destroy.
 
 An optional approval step could be added between plan and apply as
 shown in the pipeline definition below.
@@ -1132,6 +1134,9 @@ pipelines:
       - name: terraform-apply
         properties:
           spec_filename: tf_apply.yml  # Terraform apply
+      - name: terraform-destroy # (optional stage)
+        properties:
+          spec_filename: tf_destroy.yml  # Terraform destroy
 ```
 
 1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.
