@@ -79,7 +79,7 @@ class TargetStructure:
             actions_per_region += (1 + int(change_set_approval))
         return actions_per_region * regions_defined
 
-    def generate_waves(self, target: Target):
+    def generate_waves(self, target):
         """ Given the maximum actions allowed in a wave via wave.size property,
         reduce the accounts allocated in each wave by a factor
         matching the number of actions necessary per account, which inturn
