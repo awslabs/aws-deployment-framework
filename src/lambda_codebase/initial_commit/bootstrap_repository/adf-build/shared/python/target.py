@@ -13,7 +13,7 @@ from errors import (
     InvalidDeploymentMapError,
     NoAccountsFoundError,
     InsufficientWaveSizeError
-    )
+)
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
@@ -63,11 +63,11 @@ class TargetStructure:
 
     @staticmethod
     def _get_actions_per_target_account(
-        regions:list,
-        provider:str,
-        action:str,
-        change_set_approval:bool
-        ) -> int:
+        regions: list,
+        provider: str,
+        action: str,
+        change_set_approval: bool
+    ) -> int:
         """Given a List of target regions, the provider, action type and wether
         change_set_approval has been set
         return the calculated number of actions which will be generated per
@@ -79,7 +79,7 @@ class TargetStructure:
             actions_per_region += (1 + int(change_set_approval))
         return actions_per_region * regions_defined
 
-    def generate_waves(self, target:"Target"):
+    def generate_waves(self, target: Target):
         """ Given the maximum actions allowed in a wave via wave.size property,
         reduce the accounts allocated in each wave by a factor
         matching the number of actions necessary per account, which inturn

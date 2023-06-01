@@ -376,7 +376,9 @@ def test_target_wave_structure_respects_exclude_config():
             step={
                 **step,
                 "regions": "region1",
-                "properties":{"action":"REPLACE_ON_FAILURE"}
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
             }
         )
         target.fetch_accounts_for_target()
@@ -400,7 +402,9 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "2",
                 "name": "test-account-2",
                 "path": "/some/random/ou",
-                "properties":{"action":"REPLACE_ON_FAILURE"},
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -413,7 +417,9 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "3",
                 "name": "test-account-3",
                 "path": "/some/random/ou",
-                "properties":{"action":"REPLACE_ON_FAILURE"},
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -422,7 +428,9 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "4",
                 "name": "test-account-4",
                 "path": "/some/random/ou",
-                "properties":{"action":"REPLACE_ON_FAILURE"},
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
@@ -435,7 +443,9 @@ def test_target_wave_structure_respects_exclude_config():
                 "id": "6",
                 "name": "test-account-6",
                 "path": "/some/random/ou",
-                "properties":{"action":"REPLACE_ON_FAILURE"},
+                "properties": {
+                    "action": "REPLACE_ON_FAILURE",
+                },
                 "provider": "cloudformation",
                 "regions": ["region1"],
                 "step_name": "",
