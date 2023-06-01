@@ -244,7 +244,7 @@ def _generate_stages_with_targets_for_pipeline(scope, stack_input):
                             # operate from the deployment account.
                             (
                                 f"{stack_input['pipeline_input']['name']}-"
-                                f"target-{index + 1}-wave-{wave_index}"
+                                f"target-{index + 1}-{target['id']}-wave-{wave_index}"
                             ),
                             deploy_params["modules"],
                             deploy_params["kms"],
