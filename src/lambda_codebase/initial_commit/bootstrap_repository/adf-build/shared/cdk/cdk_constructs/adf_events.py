@@ -11,8 +11,9 @@ from aws_cdk import (
     aws_events_targets as _targets,
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
-    core
+    Stack,
 )
+from constructs import Construct
 
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -21,11 +22,11 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 
 
-class Events(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):  # pylint: disable=W0622
+class Events(Construct):
+    def __init__(self, scope: Construct, id: str, params: dict, **kwargs):  # pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         # pylint: disable=no-value-for-parameter
-        stack = core.Stack.of(self)
+        stack = Stack.of(self)
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')
         _provider = params.get('source', {}).get('provider')

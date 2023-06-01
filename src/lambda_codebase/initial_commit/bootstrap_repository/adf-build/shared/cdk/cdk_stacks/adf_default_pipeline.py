@@ -6,7 +6,7 @@
 
 import os
 
-from aws_cdk import aws_codepipeline as _codepipeline, core
+from aws_cdk import aws_codepipeline as _codepipeline, Stack
 from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_jenkins
@@ -27,7 +27,7 @@ LOGGER = configure_logger(__name__)
 PIPELINE_TYPE = "default"
 
 
-def generate_adf_default_pipeline(scope: core.Stack, stack_input):
+def generate_adf_default_pipeline(scope: Stack, stack_input):
     stages = []
 
     notification_config = (

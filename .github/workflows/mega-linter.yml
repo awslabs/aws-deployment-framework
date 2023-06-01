@@ -1,6 +1,6 @@
 ---
 # MegaLinter GitHub Action configuration file
-# More info at https://oxsecurity.github.io/megalinter
+# More info at https://megalinter.io
 name: MegaLinter
 
 on: [push, pull_request]
@@ -27,10 +27,10 @@ jobs:
 
       - name: MegaLinter
         id: ml
-        uses: oxsecurity/megalinter@v6
+        uses: oxsecurity/megalinter@v7
         env:
           # All available variables are described in documentation
-          # https://oxsecurity.github.io/megalinter/configuration/
+          # https://megalinter.io/configuration/
           VALIDATE_ALL_CODEBASE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -48,9 +48,11 @@ sdkman
 stefanzweifel
 stubber
 tfapply
+tfdestroy
 tfinit
 tflint
 tflocktable
+tfplandestroy
 tfrun
 tfstate
 tfvars
