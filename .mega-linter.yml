@@ -1,5 +1,5 @@
 # Configuration file for MegaLinter
-# See all available variables at https://oxsecurity.github.io/megalinter/configuration/ and in linters documentation
+# See all available variables at https://megalinter.io/configuration/ and in linters documentation
 
 # all, none, or list of linter keys
 APPLY_FIXES: none
@@ -10,8 +10,7 @@ APPLY_FIXES: none
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by default
 ENABLE_LINTERS:
   - BASH_EXEC
-  # Temporarely disable cfn-lint until megalinter v7 release.
-  # - CLOUDFORMATION_CFN_LINT
+  - CLOUDFORMATION_CFN_LINT
   - DOCKERFILE_HADOLINT
   - EDITORCONFIG_EDITORCONFIG_CHECKER
   - JSON_JSONLINT
@@ -22,22 +21,16 @@ ENABLE_LINTERS:
   - MARKDOWN_MARKDOWNLINT
   - MARKDOWN_MARKDOWN_TABLE_FORMATTER
   - SPELL_CSPELL
-  - SPELL_MISSPELL
   - TERRAFORM_TFLINT
   - YAML_YAMLLINT
-
-# DISABLE:
-#   - COPYPASTE # Comment to enable checks of excessive copy-pastes
-#   - SPELL # Comment to enable checks of spelling mistakes
 
 SARIF_REPORTER: true
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
-# DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass
 
 # Install pluging for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
-  - command: npm install prettier-plugin-multiline-arrays@1.1.0
+  - command: npm install -g prettier-plugin-multiline-arrays@1.1.3
     cwd: "workspace"
 
 CLOUDFORMATION_CFN_LINT_CONFIG_FILE: '.cfnlintrc'
