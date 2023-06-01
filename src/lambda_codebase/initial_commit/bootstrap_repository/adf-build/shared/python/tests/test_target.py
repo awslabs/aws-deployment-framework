@@ -304,7 +304,7 @@ def test_target_structure_respects_multi_action_multi_region():
             step={
                 **step,
                 "provider": "cloudformation",
-                "regions": ["us-east-1","eu-central-1"],
+                "regions": ["us-east-1", "eu-central-1"],
             }
         )
         target.fetch_accounts_for_target()
@@ -338,7 +338,9 @@ def test_target_structure_respects_change_set_approval_single_region():
             step={
                 **step,
                 "provider": "cloudformation",
-                "properties": {"change_set_approval":True},
+                "properties": {
+                    "change_set_approval": True,
+                },
                 "regions": ["us-east-1"],
             }
         )
@@ -350,7 +352,7 @@ def test_target_structure_respects_change_set_approval_single_region():
         assert len(waves[0]) == 16 # assert accts(16) regions(1) actions(3) = 48
         assert len(waves[1]) == 16 # assert accts(16) regions(1) actions(3) = 48
         assert len(waves[2]) == 16 # assert accts(16) regions(1) actions(3) = 48
-        assert len(waves[3]) == 12 # assert accts(16) regions(1) actions(3) = 48
+        assert len(waves[3]) == 12 # remaining 60 - (3 * 16) = 12
 
 def test_target_wave_structure_respects_exclude_config():
     test_target_config = {
