@@ -7,7 +7,7 @@ import pytest
 import os
 
 from mock import patch
-from aws_cdk import core
+from aws_cdk import App
 from cdk_stacks.main import PipelineStack
 
 
@@ -16,7 +16,7 @@ def test_pipeline_generation_fails_if_pipeline_type_is_not_specified(mock):
     stack_input = {"pipeline_input": {"params": {}}}
     stack_input["pipeline_input"]["name"] = "test-stack"
     stack_input["pipeline_input"]["params"]["pipeline_type"] = "fail"
-    app = core.App()
+    app = App()
     with pytest.raises(ValueError):
         pipeline_stack = PipelineStack(app, stack_input)
     mock.assert_not_called()
@@ -26,7 +26,7 @@ def test_pipeline_generation_fails_if_pipeline_type_is_not_specified(mock):
 def test_pipeline_generation_works_when_no_type_specified(mock):
     stack_input = {"pipeline_input": {"params": {}}}
     stack_input["pipeline_input"]["name"] = "test-stack"
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
     mock.assert_called()
 
@@ -36,7 +36,7 @@ def test_pipeline_generation_works_when_no_type_specified(mock):
     stack_input = {"pipeline_input": {"params": {}}}
     stack_input["pipeline_input"]["name"] = "test-stack"
 
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
     mock.assert_called()
 
@@ -69,7 +69,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_s3_and_build_is_co
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -126,7 +126,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -188,7 +188,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_co
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -259,7 +259,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
         "modules": "fake-bucket-name",
         "kms": f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id",
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -322,7 +322,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -390,7 +390,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
 
     with pytest.raises(Exception) as e_info:
         PipelineStack(app, stack_input)
@@ -443,7 +443,7 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
             f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id"
         ),
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()

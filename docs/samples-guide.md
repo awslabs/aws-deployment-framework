@@ -271,7 +271,7 @@ Let's add the pipeline we need into the map once more.
       build:
         provider: codebuild
         properties:
-          image: STANDARD_5_0
+          image: STANDARD_7_0
       deploy:
         provider: cloudformation
         properties:
