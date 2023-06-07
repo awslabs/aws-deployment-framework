@@ -8,6 +8,7 @@ import boto3
 from repo import Repo
 
 from logger import configure_logger
+from errors import ParameterNotFoundError
 from cloudwatch import ADFMetrics
 from parameter_store import ParameterStore
 
@@ -16,7 +17,7 @@ CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/REPO")
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
-
+DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 def lambda_handler(event, _):
     """
@@ -67,6 +68,34 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("repository", {})
     )
+
+    # Resolve code_account_id in case it is not set
+    # Evaluate as follows: 
+    # If source_account_id not set, we have to set it as follows:
+    #   - set via default_scm_codecommit_account_id (if exists)
+    #   - or set via ADF_DEPLOYMENT_ACCOUNT_ID
+    try:
+        default_scm_codecommit_account_id = parameter_store.fetch_parameter(
+            "/adf/scm/default-scm-codecommit-account-id"
+        )
+    except ParameterNotFoundError:
+        default_scm_codecommit_account_id = DEPLOYMENT_ACCOUNT_ID
+    if not code_account_id:
+        print("account_id not found in source_props - recreate it!")
+        if default_scm_codecommit_account_id:
+            code_account_id = default_scm_codecommit_account_id
+        else:
+            code_account_id = DEPLOYMENT_ACCOUNT_ID
+        if "properties" in pipeline["default_providers"]["source"]:
+            # append to properties
+            pipeline["default_providers"]["source"]["properties"]["account_id"] = code_account_id
+        else:
+            # recreate properties
+            source_props =  {
+                "account_id": code_account_id
+            }
+            pipeline["default_providers"]["source"]["properties"] = source_props
+
     if (
         code_account_id
         and str(code_account_id).isdigit()

@@ -11,10 +11,12 @@ from cache import Cache
 from rule import Rule
 from logger import configure_logger
 from cloudwatch import ADFMetrics
-
+from errors import ParameterNotFoundError
+from parameter_store import ParameterStore
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
 
@@ -58,6 +60,37 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("account_id")
     )
+
+    # Resolve source_account_id in case it is not set
+    if source_provider == "codecommit" and not source_account_id:
+        # Evaluate as follows: 
+        # If source_account_id not set, we have to set it as follows:
+        #   - set via default_scm_codecommit_account_id (if exists)
+        #   - or set via ADF_DEPLOYMENT_ACCOUNT_ID
+        deployment_account_id = DEPLOYMENT_ACCOUNT_ID
+        try:
+            parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+            default_scm_codecommit_account_id = parameter_store.fetch_parameter(
+                "/adf/scm/default-scm-codecommit-account-id"
+            )
+        except ParameterNotFoundError:
+            default_scm_codecommit_account_id = deployment_account_id
+        if not source_account_id:
+            print("account_id not found in source_props - recreate it!")
+            if default_scm_codecommit_account_id:
+                source_account_id = default_scm_codecommit_account_id
+            else:
+                source_account_id = deployment_account_id
+            if "properties" in pipeline["default_providers"]["source"]:
+                # append to properties
+                pipeline["default_providers"]["source"]["properties"]["account_id"] = source_account_id
+            else:
+                # recreate properties
+                source_props =  {
+                    "account_id": source_account_id
+                }
+                pipeline["default_providers"]["source"]["properties"] = source_props
+
     if (
         source_provider == "codecommit"
         and source_account_id

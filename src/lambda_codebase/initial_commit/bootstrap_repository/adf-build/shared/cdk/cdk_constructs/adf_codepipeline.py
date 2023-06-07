@@ -23,6 +23,7 @@ ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 
 LOGGER = configure_logger(__name__)
@@ -70,6 +71,10 @@ class Action:
         self.default_scm_branch = self.map_params.get(
             "default_scm_branch",
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
+        self.default_scm_codecommit_account_id = self.map_params.get(
+            "/adf/scm/default_scm_codecommit_account_id",
+            ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.configuration = self._generate_configuration()
         self.config = self.generate()
@@ -727,6 +732,10 @@ class Pipeline(core.Construct):
         self.default_scm_branch = map_params.get(
             "default_scm_branch",
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
+        self.default_scm_codecommit_account_id = map_params.get(
+            "/adf/scm/default_scm_codecommit_account_id",
+            ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.cfn = _codepipeline.CfnPipeline(
             self,

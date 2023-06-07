@@ -63,11 +63,13 @@ Provider type: `codecommit`.
 
 #### Properties
 
-- *account_id* - *(String)* **(required)**
+- *account_id* - *(String)* **(optional)**
   - The AWS Account ID where the Source Repository is located. If the repository
     does not exist it will be created via AWS CloudFormation on the source
     account along with the associated cross account CloudWatch event action to
     trigger the pipeline.
+  - Additionally, the default account id for CodeCommit, can be set in [adfconfig.yml: config/scm/default-scm-codecommit-account-id](./admin-guide.md#adfconfig). 
+  - If not set here in the provider and if not set in adfconfig.yml, the deployment account id will be used as default value.
 - *repository* - *(String)* defaults to name of the pipeline.
   - The AWS CodeCommit repository name.
 - *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
