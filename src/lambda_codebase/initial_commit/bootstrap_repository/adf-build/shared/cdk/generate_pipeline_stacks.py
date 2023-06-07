@@ -13,7 +13,7 @@ import os
 import json
 
 # CDK Specific
-from aws_cdk import core
+from aws_cdk import App, BootstraplessSynthesizer
 from cdk_stacks.main import PipelineStack
 
 from logger import configure_logger
@@ -30,8 +30,12 @@ def main():
     for template_path in _templates:
         with open(template_path, encoding="utf-8") as template:
             stack_input = json.load(template)
-            app = core.App()
-            PipelineStack(app, stack_input)
+            app = App()
+            PipelineStack(
+                app,
+                stack_input,
+                synthesizer=BootstraplessSynthesizer(),
+            )
             app.synth()
 
 

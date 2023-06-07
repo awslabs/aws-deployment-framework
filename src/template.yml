@@ -114,7 +114,7 @@ Parameters:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
 
 Resources:
@@ -880,7 +880,7 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -1264,7 +1264,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: false
-        Image: "aws/codebuild/standard:5.0"
+        Image: "aws/codebuild/standard:7.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
@@ -1297,14 +1297,13 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
+                python: 3.11
             pre_build:
               commands:
                 - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:
-                - sam build -t adf-bootstrap/deployment/pipeline_management.yml
                 - sam build -t adf-bootstrap/deployment/global.yml
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
