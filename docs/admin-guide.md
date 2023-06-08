@@ -278,6 +278,13 @@ ensures the existence of AWS Accounts defined in `.yml` files within the
 or alternatively in the bootstrap repository you can find it in the
 `adf-accounts` directory.
 
+**Note on Provisioning AWS Accounts via AWS ControlTower**
+ADF is fully compatible with [AWS ControlTower](https://aws.amazon.com/de/controltower/).
+If you deployed ADF and AWS ControlTower in your AWS Organization and if you opted for 
+vending AWS Accounts via AWS ControlTower, you can ignore the ADF Account Provisioning 
+feature. Any AWS Account vended via AWS ControlTower will go through the regular ADF 
+bootstrap process described below.
+
 ### Bootstrapping Accounts
 
 #### Bootstrapping Overview

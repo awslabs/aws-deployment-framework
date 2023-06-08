@@ -8,6 +8,20 @@
 - [AWS CloudTrail configured](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
 in the `us-east-1` region within the AWS Organizations Management AWS Account.
 
+## ADF-Compability with AWS ControlTower
+ADF is fully compatible with [AWS ControlTower](https://aws.amazon.com/de/controltower/).
+ADF augments AWS ControlTower. A common operations model is defined as follows:
+- AWS ControlTower is responsible for AWS Account creation and OU mapping.
+- ADF is responsible for deploying applications as defined in the ADF deployment maps.
+In the following, we assume that you install ADF without AWS ControlTower. However, if a specific installation 
+step requires a "AWS ControlTower-specific actions, we call those out explicitly.
+
+It is okay to install ADF and AWS ControlTower in different regions. Example:
+- Install AWS ControlTower in eu-central-1.
+- Install ADF in us-east-1.
+
+**If you want to use ADF and AWS ControlTower, we recommend that you setup AWS ControlTower prior to installing ADF.**
+
 ## Installation Instructions
 
 1. Ensure you have setup [AWS CloudTrail](https://aws.amazon.com/cloudtrail/)
@@ -17,6 +31,7 @@ in the `us-east-1` region within the AWS Organizations Management AWS Account.
    CloudTrail](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_incident-response.html)
    for AWS Organizations can only be acted upon in the US East (N. Virginia)
    Region.
+
 
 2. In the AWS Console from your management account within `us-east-1`, head over
    to the Serverless Application Repository *(SAR)*. From there, search for
@@ -34,6 +49,15 @@ in the `us-east-1` region within the AWS Organizations Management AWS Account.
    you can specify its Account ID in the parameter `DeploymentAccountId`
    and leave the`DeploymentAccountName` and `DeploymentAccountEmail` empty.
 
+   **AWS ControlTower-specific Note:**
+   If you use AWS ControlTower, we recommend to create the deployment AWS Account 
+   via the account vending feature of AWS ControlTower.
+
+   It is **MANDATORY**, that your designated deployment AWS Account resides in the 
+   OU `deployment` (case-sensitive!). This can't be changed currently. Otherwise 
+   the ADF deployment will fail!
+   
+   
    Next, specify the `DeploymentAccountMainRegion` parameter as the region that
    will host your deployment pipelines and would be considered your main AWS
    region.
@@ -43,6 +67,11 @@ in the `us-east-1` region within the AWS Organizations Management AWS Account.
    or applications into via AWS CodePipeline *(this can be updated whenever)*.
    Also specify a main notification endpoint *(email)* to receive updates
    about the bootstrap process.
+
+   **AWS ControlTower-specific Note:**
+   If you use AWS ControlTower, in the `CrossAccountAccessRoleName` section of the 
+   parameters enter the string `AWSControlTowerExecution`. Leave empty otherwise 
+   for a default ADF setup.
 
    When you have entered all required information press **'Deploy'**.
 
@@ -62,18 +91,26 @@ in the `us-east-1` region within the AWS Organizations Management AWS Account.
 4. As part of the AWS CodePipeline Execution from the previous step, the account
    provisioner component will run *(in CodeBuild)*.
 
-   If you let ADF create a new Deployment account for you *(by not giving a
-   pre-existing account id when deploying from SAR)*, then ADF will handle
-   creating and moving this account automatically into the deployment OU.
+   OPTION 4.1: ONLY applies requsting the creation of a NEW deployment account AND when using ADF for vending AWS Accounts
+      - If you let ADF create a new Deployment account for you *(by not giving a
+      pre-existing account id when deploying from SAR)*, then ADF will handle
+      creating and moving this account automatically into the deployment OU.
 
-   If you are using a pre-existing deployment account, you will need to move the
-   account into the deployment OU from within the Organization console, or
-   add your deployment account into a `.yml` file within the `adf-accounts`
-   folder *(see docs)*. This action will trigger [AWS Step
-   Functions](https://aws.amazon.com/step-functions/) to run and start the
-   bootstrap process for the deployment account. You can view the progress of
-   this in the AWS Step Functions console from the management account in the
-   `us-east-1` region.
+   OPTION 4.2: ONLY applies when reusing an pre-created deployment account AND when using ADF for vending AWS Accounts
+      - If you are using a pre-existing deployment account, you will need to move 
+      the account into the deployment OU from within the Organization console, or
+      add your deployment account into a `.yml` file within the `adf-accounts`
+      folder *(see docs)*. 
+
+   OPTION 4.3: ONLY applies when reusing an pre-created deployment account AND when using AWS ControlTower for vending AWS Accounts
+      - Ensure that AWS ControlTower-created deployment AWS Account resides in the 
+      OU `deployment` (case-sensitive!).
+
+   Regardless of the option taken above, after AWS Account cretion, you should see 
+   an [AWS Step Functions](https://aws.amazon.com/step-functions/) run that started 
+   the bootstrap process for the deployment account. You can view the progress of
+   this in the management account in the AWS Step Functions console for the step 
+   function `AccountBootstrappingStateMachine-` in the `us-east-1` region.
 
 5. Once the Step Function has completed, switch roles over to the newly
    bootstrapped deployment account in the region you defined as your main region
