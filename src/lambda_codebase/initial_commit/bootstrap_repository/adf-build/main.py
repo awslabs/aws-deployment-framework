@@ -56,6 +56,7 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_ALLOW_EMPTY_DEPLOYMENT_MAPS = "FALSE"
 LOGGER = configure_logger(__name__)
 
 
@@ -149,6 +150,13 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         config.config.get('scm', {}).get(
             'default-scm-branch',
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        '/adf/deployment-maps/allow-empty-target',
+        config.config.get('deployment-maps', {}).get(
+            'allow-empty-target',
+            ADF_DEFAULT_ALLOW_EMPTY_DEPLOYMENT_MAPS,
         )
     )
     auto_create_repositories = config.config.get(

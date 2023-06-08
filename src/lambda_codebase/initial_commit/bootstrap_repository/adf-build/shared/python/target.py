@@ -13,9 +13,14 @@ from errors import InvalidDeploymentMapError, NoAccountsFoundError
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
+from errors import ParameterNotFoundError
+from parameter_store import ParameterStore
+import boto3
 
 LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
+
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 
 
@@ -94,6 +99,11 @@ class Target:
         )
         self.target_structure = target_structure
         self.organizations = organizations
+        parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+        self.allow_empty_deployment_maps = parameter_store.fetch_parameter(
+            "/adf/deployment-maps/allow-empty-target"
+        )
+
 
     @staticmethod
     def _account_is_active(account):
@@ -133,8 +143,16 @@ class Target:
                         str(response.get('Id'))
                     )
                 )
-        if accounts_found == 0:
-            raise NoAccountsFoundError(f"No accounts found in {self.path}")
+
+        if self.allow_empty_deployment_maps == "TRUE":
+            # We now allow empty deployment maps
+            if accounts_found == 0:
+                LOGGER.info(
+                    'Create_response_object: AWS accounts found is 0',
+                )
+        else:
+            if accounts_found == 0:
+                raise NoAccountsFoundError(f"No accounts found in {self.path}")
 
     def _target_is_account_id(self):
         responses = self.organizations.client.describe_account(
@@ -203,9 +221,14 @@ class Target:
             )
         if str(self.path).startswith('/'):
             return self._target_is_ou_path()
-        if self.path is None:
-            # No path/target has been passed, path will default to /deployment
-            return self._target_is_null_path()
-        raise InvalidDeploymentMapError(
-            f"Unknown definition for target: {self.path}"
-        )
+        
+        if self.allow_empty_deployment_maps == "TRUE":
+            return
+        else: 
+            if self.path is None:
+                # No path/target has been passed, path will default to /deployment
+                return self._target_is_null_path()
+            
+            raise InvalidDeploymentMapError(
+                f"Unknown definition for target: {self.path}"
+            )

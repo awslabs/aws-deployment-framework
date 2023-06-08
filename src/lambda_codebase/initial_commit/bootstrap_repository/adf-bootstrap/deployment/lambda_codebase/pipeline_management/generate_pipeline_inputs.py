@@ -140,6 +140,14 @@ def generate_pipeline_inputs(
             list(target_structure.generate_waves()),
         )
 
+    # Print out if final target list is empty...
+    number_targets_total = 0
+    for target in pipeline_object.template_dictionary["targets"]:
+        number_targets_total = number_targets_total + len(target)
+    LOGGER.info("We found %s targets total", number_targets_total)
+    if number_targets_total == 0:
+        LOGGER.info("We'll create an empty pipeline with no targets!")
+
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
