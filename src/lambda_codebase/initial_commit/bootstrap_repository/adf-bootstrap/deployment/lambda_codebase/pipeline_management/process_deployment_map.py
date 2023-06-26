@@ -11,6 +11,7 @@ import json
 import tempfile
 from typing import Any, TypedDict
 import yaml
+import hashlib
 from yaml.error import YAMLError
 
 import boto3
@@ -173,9 +174,11 @@ def start_executions(
         # AWS Step Functions supports max 80 characters.
         # Since the run_id equals 49 characters plus the dash, we have 30
         # characters available. To ensure we don't run over, lets use a
-        # truncated version instead:
-        truncated_pipeline_name = full_pipeline_name[:30]
-        sfn_execution_name = f"{truncated_pipeline_name}-{run_id}"
+        # truncated version concatenated with an hash generated from
+        # the pipeline name
+        truncated_pipeline_name = full_pipeline_name[:24]
+        truncated_pipeline_name_hash = hashlib.md5( bytes(full_pipeline_name, 'utf-8') ).hexdigest()[:5]
+        sfn_execution_name = f"{truncated_pipeline_name}-{truncated_pipeline_name_hash}-{run_id}"
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
