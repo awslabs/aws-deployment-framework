@@ -177,8 +177,8 @@ def start_executions(
         # truncated version concatenated with an hash generated from
         # the pipeline name
         truncated_pipeline_name = full_pipeline_name[:24]
-        truncated_pipeline_name_hash = hashlib.md5( bytes(full_pipeline_name, 'utf-8') ).hexdigest()[:5]
-        sfn_execution_name = f"{truncated_pipeline_name}-{truncated_pipeline_name_hash}-{run_id}"
+        execution_unique_hash = hashlib.md5( bytes(full_pipeline_name + run_id, 'utf-8') ).hexdigest()[:5]
+        sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
