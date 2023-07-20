@@ -402,6 +402,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "organizations:TagResource"
+                  - "organizations:UntagResource"
                 Resource: "*"
 
   AccountTagConfigFunction:

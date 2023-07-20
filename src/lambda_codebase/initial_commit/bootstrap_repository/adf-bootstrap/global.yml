@@ -301,6 +301,7 @@ Resources:
               - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
+              - "codecommit:UntagResource"
             Resource:
               - "*"
           - Effect: Allow
