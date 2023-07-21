@@ -28,7 +28,7 @@ SARIF_REPORTER: true
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 
-# Install pluging for list handling.
+# Install plugin for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
   - command: |
       npm install -g prettier-plugin-multiline-arrays@1.1.4
@@ -44,3 +44,6 @@ SPELL_CSPELL_ARGUMENTS: '--gitignore --no-progress --show-suggestions'
 SPELL_CSPELL_FILE_EXTENSIONS: ["*"]
 TERRAFORM_TFLINT_UNSECURED_ENV_VARIABLES:
   - GITHUB_TOKEN
+
+GITHUB_STATUS_REPORTER: true
+GITHUB_COMMENT_REPORTER: true
