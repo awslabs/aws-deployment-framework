@@ -13,7 +13,6 @@ import json
 import time
 import boto3
 from cfn_custom_resource import (  # pylint: disable=unused-import
-    lambda_handler,
     create,
     update,
     delete,
@@ -122,7 +121,9 @@ def ensure_org_unit(parent_id: str, org_unit_name: str) -> Tuple[OrgUnitId, Crea
 
     params: dict = {"ParentId": parent_id}
     while True:
-        org_units = ORGANIZATION_CLIENT.list_organizational_units_for_parent(**params)
+        org_units = ORGANIZATION_CLIENT.list_organizational_units_for_parent(
+            **params,
+        )
         for org_unit in filter(
             lambda ou: ou["Name"] == org_unit_name,
             org_units["OrganizationalUnits"],
@@ -130,6 +131,6 @@ def ensure_org_unit(parent_id: str, org_unit_name: str) -> Tuple[OrgUnitId, Crea
             org_unit_id = org_unit["Id"]
             LOGGER.info("OU already exists: %s", org_unit_id)
             return org_unit_id, False
-        if not "NextToken" in org_units:
-            raise Exception("Unable to find OU")
+        if "NextToken" not in org_units:
+            raise ValueError("Unable to find OU")
         params["NextToken"] = org_units["NextToken"]

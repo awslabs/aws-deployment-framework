@@ -52,14 +52,16 @@ class StepFunctions:
 
     def _start_statemachine(self):
         """
-        Executes the Update Cross Account IAM Step Function in the Deployment Account
+        Executes the Update Cross Account IAM Step Function in the
+        Deployment Account
         """
         partition = get_partition(self.deployment_account_region)
 
         self.execution_arn = self.client.start_execution(
             stateMachineArn=(
                 f"arn:{partition}:states:{self.deployment_account_region}:"
-                f"{self.deployment_account_id}:stateMachine:EnableCrossAccountAccess"
+                f"{self.deployment_account_id}:stateMachine:"
+                "EnableCrossAccountAccess"
             ),
             input=json.dumps({
                 "deployment_account_region": self.deployment_account_region,
@@ -107,7 +109,8 @@ class StepFunctions:
             sleep(10)  # Wait for 10 seconds and check the status again
 
         if self.execution_status in ('FAILED', 'ABORTED', 'TIMED_OUT'):
-            raise Exception(
-                f'State Machine on Deployment account {self.deployment_account_id} '
-                f'has status: {self.execution_status}, see logs'
+            raise AssertionError(
+                "State Machine on Deployment account"
+                f"{self.deployment_account_id} has "
+                f"status: {self.execution_status}, see logs"
             )

@@ -268,7 +268,7 @@ def worker_thread(
                         'Unit within AWS Organizations.',
                         account_id,
                     )
-                raise Exception from error
+                raise LookupError from error
 
     except GenericAccountConfigureError as generic_account_error:
         LOGGER.info(generic_account_error)

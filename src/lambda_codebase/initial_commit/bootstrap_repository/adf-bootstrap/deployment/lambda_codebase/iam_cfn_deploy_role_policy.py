@@ -54,7 +54,7 @@ class IAMCfnDeployRolePolicy:
             return s3_statements[0]
 
         if len(s3_statements) > 1:
-            raise Exception(
+            raise AssertionError(
                 f'Found multiple {statement_id} statements in '
                 f'Role {self.role_name} Policy {self.policy_name}.'
             )

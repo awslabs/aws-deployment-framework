@@ -17,11 +17,15 @@ class SupportLevel(Enum):
     ENTERPRISE = "enterprise"
 
 
-class Support: # pylint: disable=R0904
+class Support:  # pylint: disable=R0904
     """
     Class used for accessing AWS Support API
     """
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(
+        retries={
+            "max_attempts": 30,
+        },
+    )
 
     def __init__(self, role):
         self.client = role.client(

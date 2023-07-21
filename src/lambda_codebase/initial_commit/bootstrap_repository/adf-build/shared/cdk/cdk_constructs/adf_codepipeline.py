@@ -196,7 +196,7 @@ class Action:
                 .get('repository', self.map_params['name'])
             )
             if not default_source_props.get('codestar_connection_arn'):
-                raise Exception(
+                raise ValueError(
                     "The CodeStar Connection Arn could not be resolved for "
                     f"the {self.map_params['name']} pipeline. Please check "
                     "whether the codestar_connection_path is setup correctly "
@@ -502,7 +502,7 @@ class Action:
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props
-        raise Exception(f"{self.provider} is not a valid provider")
+        raise ValueError(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
         account_id = (
@@ -563,7 +563,7 @@ class Action:
             )
         if self.provider == "Manual":
             return None
-        raise Exception(f'Invalid Provider {self.provider}')
+        raise ValueError(f'Invalid Provider {self.provider}')
 
     def generate(self):
         pipeline_role = self._generate_codepipeline_access_role()
@@ -838,7 +838,7 @@ class Pipeline(Construct):
                 f"{trigger_type} is not currently supported. "
                 f"Supported values are: {self._accepted_triggers.keys()}"
             )
-            raise Exception(
+            raise ValueError(
                 f"{trigger_type} is not currently supported as "
                 "a pipeline trigger"
             )

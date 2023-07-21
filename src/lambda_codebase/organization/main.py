@@ -13,7 +13,6 @@ import os
 import json
 import boto3
 from cfn_custom_resource import (  # pylint: disable=unused-import
-    lambda_handler,
     create,
     update,
     delete,
@@ -69,7 +68,7 @@ def create_(_event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     region = os.getenv('AWS_REGION')
 
     if region not in approved_regions:
-        raise Exception(
+        raise ValueError(
             "Deployment of ADF is only available via the us-east-1 "
             "and us-gov-west-1 regions."
         )
@@ -125,7 +124,7 @@ def ensure_organization() -> Tuple[OrganizationId, Created]:
         return organization_id, True
 
     if describe_organization["Organization"]["FeatureSet"] != "ALL":
-        raise Exception(
+        raise EnvironmentError(
             "Existing organization is only set up for CONSOLIDATED_BILLING, "
             "but ADF needs ALL features"
         )
@@ -146,6 +145,6 @@ def get_organization_root_id() -> str:
             organization_root_id = roots["Roots"][0]["Id"]
             LOGGER.info("ORG root id is: %s", organization_root_id)
             return cast(str, organization_root_id)
-        if not "NextToken" in roots:
-            raise Exception("Unable to find ORG root id")
+        if "NextToken" not in roots:
+            raise EnvironmentError("Unable to find ORG root id")
         params["next_token"] = roots["NextToken"]

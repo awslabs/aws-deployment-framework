@@ -26,7 +26,11 @@ class Organizations:  # pylint: disable=R0904
     Class used for modeling Organizations
     """
 
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(
+        retries={
+            "max_attempts": 30,
+        },
+    )
 
     def __init__(self, role, account_id=None):
         self.client = role.client(
@@ -90,7 +94,7 @@ class Organizations:  # pylint: disable=R0904
 
     @staticmethod
     def is_ou_id(ou_id):
-        return ou_id[0] in ['r','o']
+        return ou_id[0] in ['r', 'o']
 
     def get_organization_map(self, org_structure, counter=0):
         for name, ou_id in org_structure.copy().items():
@@ -354,8 +358,10 @@ class Organizations:  # pylint: disable=R0904
                     ou_id = ou['Id']
                     break
             else:
-                raise Exception(f"Path {path} failed to return a child OU at '{p[0]}'")
-        else: # pylint: disable=W0120
+                raise ValueError(
+                    f"Path {path} failed to return a child OU at '{p[0]}'",
+                )
+        else:  # pylint: disable=W0120
             return self.get_accounts_for_parent(ou_id)
 
     def build_account_path(self, ou_id, account_path, cache):
