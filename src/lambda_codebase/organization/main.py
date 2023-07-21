@@ -33,23 +33,30 @@ LOGGER.setLevel(logging.INFO)
 
 
 class InvalidPhysicalResourceId(Exception):
-    pass
+    """
+    Invalid Physical Resource Id specified
+    """
 
 
 @dataclass
 class PhysicalResource:
+    """
+    Custom Resource Physical Resource data class
+    """
     organization_id: str
     created: bool
     organization_root_id: str
 
     @classmethod
     def from_json(cls, json_string: PhysicalResourceId) -> "PhysicalResource":
+        """Convert from JSON to data class"""
         try:
             return cls(**json.loads(json_string))
         except json.JSONDecodeError as err:
             raise InvalidPhysicalResourceId from err
 
     def as_cfn_response(self) -> Tuple[PhysicalResourceId, Data]:
+        """Convert to CloudFormation response"""
         physical_resource_id = json.dumps(asdict(self))
         data = {
             "OrganizationId": self.organization_id,

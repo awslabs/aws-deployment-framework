@@ -46,14 +46,22 @@ class GitHub(Construct):
 
         pipeline_version = pipeline.get_att('Version')
         branch_name = (
-            map_params.get('default_providers', {}).get('source', {}).get('properties', {}).get('branch')
+            (
+                map_params
+                .get('default_providers', {})
+                .get('source', {})
+                .get('properties', {})
+                .get('branch')
+            )
             or 'master'
         )
         _codepipeline.CfnWebhook(
             scope,
             'github_webhook',
             authentication_configuration=_codepipeline.CfnWebhook.WebhookAuthConfigurationProperty(
-                secret_token=map_params['name'] # We can't have a randomly generated string here as it could update and change its value frequently
+                # We can't have a randomly generated string here as it could
+                # update and change its value frequently
+                secret_token=map_params['name']
             ),
             authentication="GITHUB_HMAC",
             target_pipeline=pipeline.ref,

@@ -30,9 +30,8 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
 class CodeBuild(Construct):
-    # pylint: disable=no-value-for-parameter
+    # pylint: disable=no-value-for-parameter, too-many-locals
 
-    # pylint: disable=W0622
     def __init__(
         self,
         scope: Construct,

@@ -46,6 +46,7 @@ def get_partition(region_name: str) -> str:
 ADF_DEPLOYMENT_PARTITION = get_partition(ADF_DEPLOYMENT_REGION)
 
 
+# pylint: disable=too-many-instance-attributes
 class Action:
     _version = "1"
 
@@ -835,8 +836,10 @@ class Pipeline(Construct):
     def add_pipeline_trigger(self, trigger_type, trigger_config):
         if trigger_type not in self._accepted_triggers:
             LOGGER.error(
-                f"{trigger_type} is not currently supported. "
-                f"Supported values are: {self._accepted_triggers.keys()}"
+                "%s is not currently supported. "
+                "Supported values are: %s",
+                trigger_type,
+                ', '.join(self._accepted_triggers.keys()),
             )
             raise ValueError(
                 f"{trigger_type} is not currently supported as "

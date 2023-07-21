@@ -136,7 +136,8 @@ class Organizations:  # pylint: disable=R0904
                 )
                 org_structure[trimmed_path] = account_id
         counter = counter + 1
-        # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
+        # Counter is greater than 5 here is the conditional as organizations
+        # cannot have more than 5 levels of nested OUs + 1 accounts "level"
         return (
             org_structure if counter > 5
             else self.get_organization_map(org_structure, counter)
@@ -348,18 +349,18 @@ class Organizations:  # pylint: disable=R0904
         return self.client.list_roots().get('Roots')[0].get('Id')
 
     def dir_to_ou(self, path):
-        p = path.split('/')[1:]
+        nested_dir_paths = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
-        while p:
+        while nested_dir_paths:
             for ou in self.get_child_ous(ou_id):
-                if ou['Name'] == p[0]:
-                    p.pop(0)
+                if ou['Name'] == nested_dir_paths[0]:
+                    nested_dir_paths.pop(0)
                     ou_id = ou['Id']
                     break
             else:
                 raise ValueError(
-                    f"Path {path} failed to return a child OU at '{p[0]}'",
+                    f"Path {path} failed to return a child OU at '{nested_dir_paths[0]}'",
                 )
         else:  # pylint: disable=W0120
             return self.get_accounts_for_parent(ou_id)
@@ -401,7 +402,12 @@ class Organizations:  # pylint: disable=R0904
                 values = [value]
             tag_filter.append({'Key': key, 'Values': values})
         account_ids = []
-        for resource in paginator(self.tags_client.get_resources, TagFilters=tag_filter, ResourceTypeFilters=['organizations']):
+        paginated_resources = paginator(
+            self.tags_client.get_resources,
+            TagFilters=tag_filter,
+            ResourceTypeFilters=['organizations'],
+        )
+        for resource in paginated_resources:
             arn = resource['ResourceARN']
             account_id = arn.split('/')[::-1][0]
             account_ids.append(account_id)
@@ -410,7 +416,10 @@ class Organizations:  # pylint: disable=R0904
     def list_organizational_units_for_parent(self, parent_ou):
         organizational_units = [
             ou
-            for org_units in self.client.get_paginator("list_organizational_units_for_parent").paginate(ParentId=parent_ou)
+            for org_units in (
+                self.client.get_paginator("list_organizational_units_for_parent")
+                .paginate(ParentId=parent_ou)
+            )
             for ou in org_units['OrganizationalUnits']
         ]
         return organizational_units
@@ -454,7 +463,9 @@ class Organizations:  # pylint: disable=R0904
                     hierarchy_index += 1
                     break
             else:
-                raise ValueError(f'Could not find ou with name {ou_hierarchy} in OU list {org_units}.')
+                raise ValueError(
+                    f'Could not find ou with name {ou_hierarchy} in OU list {org_units}.',
+                )
 
         return parent_ou_id
 

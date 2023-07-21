@@ -59,8 +59,12 @@ def configure_generic_account(sts, event, region, role):
             region,
             role,
         )
-        kms_arn = parameter_store_deployment_account.fetch_parameter(f'/cross_region/kms_arn/{region}')
-        bucket_name = parameter_store_deployment_account.fetch_parameter(f'/cross_region/s3_regional_bucket/{region}')
+        kms_arn = parameter_store_deployment_account.fetch_parameter(
+            f'/cross_region/kms_arn/{region}',
+        )
+        bucket_name = parameter_store_deployment_account.fetch_parameter(
+            f'/cross_region/s3_regional_bucket/{region}',
+        )
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             f'Account {event["account_id"]} cannot yet be bootstrapped '
@@ -69,7 +73,10 @@ def configure_generic_account(sts, event, region, role):
         ) from None
     parameter_store_target_account.put_parameter('kms_arn', kms_arn)
     parameter_store_target_account.put_parameter('bucket_name', bucket_name)
-    parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
+    parameter_store_target_account.put_parameter(
+        'deployment_account_id',
+        event['deployment_account_id'],
+    )
 
 
 def configure_master_account_parameters(event):
@@ -78,10 +85,22 @@ def configure_master_account_parameters(event):
     deployment_account_id then updates the main deployment region
     with that same value
     """
-    parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
-    parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
-    parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
-    parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
+    parameter_store_master_account_region = ParameterStore(
+        os.environ["AWS_REGION"],
+        boto3,
+    )
+    parameter_store_master_account_region.put_parameter(
+        'deployment_account_id',
+        event['account_id'],
+    )
+    parameter_store_deployment_account_region = ParameterStore(
+        event['deployment_account_region'],
+        boto3,
+    )
+    parameter_store_deployment_account_region.put_parameter(
+        'deployment_account_id',
+        event['account_id'],
+    )
 
 
 def configure_deployment_account_parameters(event, role):

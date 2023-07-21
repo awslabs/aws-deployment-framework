@@ -1,6 +1,5 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-
 """
 The Account main that is called when ADF is installed to initially create the
 deployment account if required.

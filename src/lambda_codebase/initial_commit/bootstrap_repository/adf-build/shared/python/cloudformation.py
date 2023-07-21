@@ -116,6 +116,7 @@ class WaitException(Exception):
 
 
 class CloudFormation(StackProperties):
+    # pylint: disable=too-many-arguments
     def __init__(
             self,
             region,
@@ -513,7 +514,7 @@ class CloudFormation(StackProperties):
             )
             return [item.get('OutputValue') for item in response.get('Stacks')
                     [0].get('Outputs') if item.get('OutputKey') == value][0]
-        except BaseException:
+        except BaseException:  # pylint: disable=broad-exception-caught
             LOGGER.warning(
                 "%s in %s - Attempted to get stack output from %s "
                 "but it failed.",
