@@ -5,6 +5,10 @@ name: MegaLinter
 
 on: [push, pull_request]
 
+permissions:
+  issues: write
+  pull-requests: write
+
 env:
   APPLY_FIXES: none
   APPLY_FIXES_EVENT: pull_request
