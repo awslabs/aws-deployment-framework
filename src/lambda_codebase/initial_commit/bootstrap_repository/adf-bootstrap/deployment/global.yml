@@ -31,9 +31,9 @@ Parameters:
     Default: cross_account_access_role
 
   Image:
-    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:5.0).
+    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:7.0).
     Type: String
-    Default: "aws/codebuild/standard:5.0"
+    Default: "aws/codebuild/standard:7.0"
 
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
@@ -64,10 +64,18 @@ Parameters:
     Type: String
     Default: "adf-"
 
+  ADFTerraformExtension:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /adf/extensions/terraform/enabled
+
+Conditions:
+  ADFTerraformExtensionEnabled:
+    !Equals [!Ref ADFTerraformExtension, "True"]
+
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.9
+    Runtime: python3.10
 
 Resources:
   LambdaLayerVersion:
@@ -75,7 +83,7 @@ Resources:
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -89,6 +97,8 @@ Resources:
 
   KMSKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
       EnableKeyRotation: true
@@ -606,6 +616,7 @@ Resources:
               - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
+              - "codecommit:UntagResource"
             Resource:
               - "*"
           - Effect: Allow
@@ -676,10 +687,9 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
-                nodejs: 14
+                python: 3.11
+                nodejs: 18
               commands:
-                - npm install cdk@1.188 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
             pre_build:
@@ -1457,6 +1467,21 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
+
+  TerraformLockTable:
+    Condition: ADFTerraformExtensionEnabled
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: adf-tflocktable
 
 Outputs:
   ADFVersionNumber:

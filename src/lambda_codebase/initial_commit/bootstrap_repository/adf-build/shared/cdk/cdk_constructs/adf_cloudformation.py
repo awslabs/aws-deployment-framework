@@ -5,9 +5,7 @@
 """
 
 import os
-from aws_cdk import (
-    core
-)
+from constructs import Construct
 
 from cdk_constructs import adf_codepipeline
 
@@ -15,9 +13,9 @@ ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
-class CloudFormation(core.Construct):
+class CloudFormation(Construct):
     # pylint: disable=W0622, W0235
-    def __init__(self, scope: core.Construct, id: str, **kwargs):
+    def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
 
     @staticmethod

@@ -4,13 +4,13 @@ env:
   variables:
     TF_VAR_TARGET_ACCOUNT_ROLE: adf-terraform-role  # The IAM Role Terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
-    TF_STAGE: "plan"
+    TF_STAGE: "destroy"
     TF_CLI_ARGS: "-no-color"
 
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: 3.9
 
   build:
     commands:

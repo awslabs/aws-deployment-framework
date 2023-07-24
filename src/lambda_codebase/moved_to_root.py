@@ -62,7 +62,7 @@ def remove_base(account_id, regions, role, event):
     threads = []
 
     for region in list(set([event.get('deployment_account_region')] + regions)):
-        t = PropagatingThread(
+        thread = PropagatingThread(
             target=worker_thread,
             args=(
                 sts,
@@ -72,8 +72,8 @@ def remove_base(account_id, regions, role, event):
                 event,
             ),
         )
-        t.start()
-        threads.append(t)
+        thread.start()
+        threads.append(thread)
 
     for thread in threads:
         thread.join()

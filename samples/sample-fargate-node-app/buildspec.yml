@@ -4,7 +4,7 @@ phases:
   install:
     runtime-versions:
       docker: 20
-      python: 3.9
+      python: 3.11
 
   build:
     commands:

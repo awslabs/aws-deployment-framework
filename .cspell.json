@@ -13,7 +13,9 @@
         "npm"
     ],
     "ignorePaths": [
+        ".pylintrc",
         "requirements.txt",
+        "requirements-dev.txt",
         "maven-wrapper.jar",
         ".cspell.json",
         ".gitignore",

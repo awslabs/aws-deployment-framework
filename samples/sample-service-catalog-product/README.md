@@ -14,7 +14,7 @@ This stack imports values from `sample-vpc` and `sample-iam`.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
     targets:
       - /banking/testing
       - path: /banking/production
