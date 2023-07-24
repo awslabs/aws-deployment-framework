@@ -99,7 +99,7 @@ def lambda_handler(event, _):
             'ROLLBACK_IN_PROGRESS',
             'ROLLBACK_COMPLETE',
         ):
-            raise Exception(
+            raise AssertionError(
                 f"Account Bootstrap Failed - Account: {account_id} "
                 f"Region: {region} Status: {status}"
             )

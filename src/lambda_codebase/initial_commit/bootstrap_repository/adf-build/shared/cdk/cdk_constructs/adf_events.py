@@ -23,7 +23,8 @@ ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 
 
 class Events(Construct):
-    def __init__(self, scope: Construct, id: str, params: dict, **kwargs):  # pylint: disable=W0622
+    # pylint: disable=too-many-locals
+    def __init__(self, scope: Construct, id: str, params: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
         # pylint: disable=no-value-for-parameter
         stack = Stack.of(self)
@@ -48,7 +49,8 @@ class Events(Construct):
                 description=f'Triggers {name} on changes in source CodeCommit repository',
                 event_pattern=_events.EventPattern(
                     resources=[
-                        f'arn:{stack.partition}:codecommit:{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
+                        f'arn:{stack.partition}:codecommit:'
+                        f'{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
                     ],
                     source=["aws.codecommit"],
                     detail_type=[
@@ -102,7 +104,8 @@ class Events(Construct):
                 _targets.SnsTopic(
                     topic=_topic,
                     message=_events.RuleTargetInput.from_text(
-                        # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
+                        # Need to parse and get the pipeline: "$.detail.pipeline"
+                        # state: "$.detail.state"
                         f"The pipeline {_events.EventField.from_path('$.detail.pipeline')} "
                         f"from account {_events.EventField.account} "
                         f"has {_events.EventField.from_path('$.detail.state')} "

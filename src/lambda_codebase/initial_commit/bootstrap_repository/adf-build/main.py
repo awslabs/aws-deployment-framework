@@ -195,6 +195,7 @@ def _store_extension_parameters(parameter_store, config):
             )
 
 
+# pylint: disable=too-many-locals
 def worker_thread(
     account_id,
     sts,
@@ -268,7 +269,7 @@ def worker_thread(
                         'Unit within AWS Organizations.',
                         account_id,
                     )
-                raise Exception from error
+                raise LookupError from error
 
     except GenericAccountConfigureError as generic_account_error:
         LOGGER.info(generic_account_error)
@@ -303,9 +304,10 @@ def await_sfn_executions(sfn_client):
             "Account Management State Machine encountered a failed, "
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
-            f"https://{REGION_DEFAULT}.console.aws.amazon.com/states/home?"
-            f"region={REGION_DEFAULT}#/statemachines/"
-            f"view/{ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN}"
+            "https://%s.console.aws.amazon.com/states/home?region=%s#/statemachines/view/%s",
+            REGION_DEFAULT,
+            REGION_DEFAULT,
+            ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
         )
         sys.exit(1)
     if _sfn_execution_exists_with(

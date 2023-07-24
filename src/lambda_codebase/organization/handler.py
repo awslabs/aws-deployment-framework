@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: MIT-0
 
 """
-The Organization Handler that is called when ADF is installed to create the organization if required
+The Organization Handler that is called when ADF is installed to create the
+organization if required
 """
 
 try:
-    from main import lambda_handler # pylint: disable=unused-import
-except Exception as err: # pylint: disable=broad-except
+    from main import lambda_handler  # pylint: disable=unused-import
+except Exception as err:  # pylint: disable=broad-except
     import os
     import logging
     from urllib.request import Request, urlopen
@@ -17,17 +18,20 @@ except Exception as err: # pylint: disable=broad-except
     LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
 
     def lambda_handler(event, _context, prior_error=err):
-        payload = dict(
-            LogicalResourceId=event["LogicalResourceId"],
-            PhysicalResourceId=event.get(
+        """
+        Handler for custom resource
+        """
+        payload = {
+            "LogicalResourceId": event["LogicalResourceId"],
+            "PhysicalResourceId": event.get(
                 "PhysicalResourceId",
                 "NOT_YET_CREATED",
             ),
-            Status="FAILED",
-            RequestId=event["RequestId"],
-            StackId=event["StackId"],
-            Reason=str(prior_error),
-        )
+            "Status": "FAILED",
+            "RequestId": event["RequestId"],
+            "StackId": event["StackId"],
+            "Reason": str(prior_error),
+        }
         with urlopen(
             Request(
                 event["ResponseURL"],
