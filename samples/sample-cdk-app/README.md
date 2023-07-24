@@ -16,7 +16,7 @@ on the account `111111111111` in your main deployment region named
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
     targets:
       - /banking/testing
       - /banking/production

@@ -1,6 +1,5 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-
 """
 The Account main that is called when ADF is installed to initially create the
 deployment account if required.
@@ -168,7 +167,7 @@ def wait_on_account_creation(request_id: str) -> Tuple[AccountId, bool]:
         )
         if account_status["CreateAccountStatus"]["State"] == "FAILED":
             reason = account_status["CreateAccountStatus"]["FailureReason"]
-            raise Exception(f"Failed to create account because {reason}")
+            raise RuntimeError(f"Failed to create account because {reason}")
         if account_status["CreateAccountStatus"]["State"] == "IN_PROGRESS":
             LOGGER.info(
                 "Account creation still in progress, waiting.. "

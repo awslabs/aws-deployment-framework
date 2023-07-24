@@ -5,9 +5,7 @@
 """
 
 import os
-from aws_cdk import (
-    core
-)
+from constructs import Construct
 
 from cdk_constructs import adf_codepipeline
 
@@ -15,17 +13,18 @@ ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
-class CloudFormation(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, **kwargs): #pylint: disable=W0622, W0235
+class CloudFormation(Construct):
+    # pylint: disable=W0622, W0235
+    def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
 
     @staticmethod
     def generate_actions(targets, region, map_params, target_approval_mode):
-        _actions = []
+        actions = []
         if not isinstance(targets, list):
             targets = [targets]
         for target in targets:
-            _actions.append(
+            actions.append(
                 adf_codepipeline.Action(
                     name=f"{target['name']}-{region}-create",
                     provider="CloudFormation",
@@ -39,7 +38,7 @@ class CloudFormation(core.Construct):
                 ).config,
             )
             if target_approval_mode:
-                _actions.append(
+                actions.append(
                     adf_codepipeline.Action(
                         name=f"{target['name']}-{region}",
                         provider="Manual",
@@ -51,7 +50,7 @@ class CloudFormation(core.Construct):
                         action_name=f"{target['name']}-{region}",
                     ).config
                 )
-            _actions.append(
+            actions.append(
                 adf_codepipeline.Action(
                     name=f"{target['name']}-{region}-execute",
                     provider="CloudFormation",
@@ -64,4 +63,4 @@ class CloudFormation(core.Construct):
                     action_name=f"{target['name']}-{region}-execute",
                 ).config
             )
-        return _actions
+        return actions

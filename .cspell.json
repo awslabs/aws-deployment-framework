@@ -1,0 +1,32 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "dictionaries": [
+        "custom-adf",
+        "bash",
+        "python",
+        "en-US",
+        "corp-terms",
+        "softwareTerms",
+        "typescript",
+        "node",
+        "npm"
+    ],
+    "ignorePaths": [
+        ".pylintrc",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "maven-wrapper.jar",
+        ".cspell.json",
+        ".gitignore",
+        "custom-adf-dict.txt"
+    ],
+    "allowCompoundWords": true,
+    "dictionaryDefinitions": [
+        {
+            "name": "custom-adf",
+            "path": "./linters/custom-adf-dict.txt",
+            "addWords": true
+        }
+    ]
+}

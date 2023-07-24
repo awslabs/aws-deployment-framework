@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - curl -L "$(curl -s https://api.github.com/repositories/103084166/releases/latest | grep -o -E "https:\/\/.+?_Linux_x86_64.tar.gz")" > terrascan.tar.gz
+      - tar -xf terrascan.tar.gz terrascan && rm terrascan.tar.gz
+      - install terrascan /usr/local/bin && rm terrascan
+  build:
+    commands:
+      - cd tf
+      - terrascan scan -o yaml

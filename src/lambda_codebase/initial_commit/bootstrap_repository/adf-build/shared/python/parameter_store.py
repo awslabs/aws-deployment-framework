@@ -12,9 +12,9 @@ from logger import configure_logger
 LOGGER = configure_logger(__name__)
 PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
 SSM_CONFIG = Config(
-    retries=dict(
-        max_attempts=10
-    )
+    retries={
+        "max_attempts": 10,
+    },
 )
 
 
@@ -31,7 +31,12 @@ class ParameterStore:
         try:
             current_value = self.fetch_parameter(name)
             assert current_value == value
-            LOGGER.debug('No need to update parameter %s with value %s since they are the same', name, value)
+            LOGGER.debug(
+                'No need to update parameter %s with value %s since they '
+                'are the same',
+                name,
+                value,
+            )
         except (ParameterNotFoundError, AssertionError):
             LOGGER.debug('Putting SSM Parameter %s with value %s', name, value)
             self.client.put_parameter(
@@ -50,7 +55,10 @@ class ParameterStore:
                 Name=name
             )
         except self.client.exceptions.ParameterNotFound:
-            LOGGER.debug('Attempted to delete Parameter %s but it was not found', name)
+            LOGGER.debug(
+                'Attempted to delete Parameter %s but it was not found',
+                name,
+            )
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
@@ -64,8 +72,9 @@ class ParameterStore:
                 WithDecryption=False
             )
         except self.client.exceptions.ParameterNotFound as error:
-            raise ParameterNotFoundError(f'Parameter Path {path} Not Found') from error
-
+            raise ParameterNotFoundError(
+                f'Parameter Path {path} Not Found',
+            ) from error
 
     def fetch_parameter(self, name, with_decryption=False):
         """Gets a Parameter from Parameter Store (Returns the Value)
@@ -78,4 +87,6 @@ class ParameterStore:
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
-            raise ParameterNotFoundError(f'Parameter {name} Not Found') from error
+            raise ParameterNotFoundError(
+                f'Parameter {name} Not Found',
+            ) from error

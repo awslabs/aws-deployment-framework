@@ -31,9 +31,9 @@ Parameters:
     Default: cross_account_access_role
 
   Image:
-    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:5.0).
+    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:7.0).
     Type: String
-    Default: "aws/codebuild/standard:5.0"
+    Default: "aws/codebuild/standard:7.0"
 
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
@@ -64,10 +64,18 @@ Parameters:
     Type: String
     Default: "adf-"
 
+  ADFTerraformExtension:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /adf/extensions/terraform/enabled
+
+Conditions:
+  ADFTerraformExtensionEnabled:
+    !Equals [!Ref ADFTerraformExtension, "True"]
+
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.9
+    Runtime: python3.10
 
 Resources:
   LambdaLayerVersion:
@@ -75,7 +83,7 @@ Resources:
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -89,6 +97,8 @@ Resources:
 
   KMSKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
       EnableKeyRotation: true
@@ -170,6 +180,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
   PipelineManagementApplication:
     Type: AWS::Serverless::Application
     DeletionPolicy: Delete
@@ -179,7 +190,7 @@ Resources:
       Parameters:
         LambdaLayer: !Ref LambdaLayerVersion
         ADFVersion: !Ref ADFVersion
-        OrganizationID: !Ref OrganizationId
+        OrganizationId: !Ref OrganizationId
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
         RootAccountId: !Ref MasterAccountId
@@ -268,6 +279,15 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
+            Sid: "DynamoDB"
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:GetItem
+              - dynamodb:DeleteItem
+              - dynamodb:DescribeTable
+            Resource:
+              - !Sub "arn:${AWS::Partition}:dynamodb:*:${AWS::AccountId}:table/adf-tflocktable*"
+          - Effect: Allow
             Sid: "S3"
             Action:
               - s3:Get*
@@ -277,10 +297,17 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
+          - Effect: Allow
+            Sid: "S3ReadOnly"
+            Action:
+              - s3:Get*
+              - s3:GetBucketPolicy
+              - s3:List*
+            Resource:
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
               - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.DefinitionBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.DefinitionBucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -339,13 +366,34 @@ Resources:
               - "ecr:PutImage"
             Resource:
               - "*"
+          - Effect: Allow
+            Sid: "CodeBuildVPC"
+            Action:
+              - "ec2:CreateNetworkInterface"
+              - "ec2:DescribeDhcpOptions"
+              - "ec2:DescribeNetworkInterfaces"
+              - "ec2:DeleteNetworkInterface"
+              - "ec2:DescribeSubnets"
+              - "ec2:DescribeSecurityGroups"
+              - "ec2:DescribeVpcs"
+            Resource:
+              - "*"
+          - Effect: Allow
+            Sid: "CodeBuildENI"
+            Action:
+              - "ec2:CreateNetworkInterfacePermission"
+            Resource:
+              - "*"
+            Condition:
+              StringEquals:
+                ec2:AuthorizedService: "codebuild.amazonaws.com"
       Roles:
         - !Ref CodeBuildRole
 
-  PipelineProvisionerCodeBuildRole:
+  PipelineGenerationProvisionerCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-pipeline-provisioner-codebuild-role"
+      Path: "/adf-automation/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -356,10 +404,10 @@ Resources:
             Action:
               - sts:AssumeRole
 
-  PipelineProvisionerCodeBuildRolePolicy:
+  PipelineGenerationProvisionerCodeBuildRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-pipeline-provisioner-codebuild-policy"
+      PolicyName: "adf-pipeline-generation-provisioner-codebuild-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -370,13 +418,20 @@ Resources:
               - s3:GetBucketPolicy
               - s3:List*
               - s3:PutObject
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
-              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineManagementApplication.Outputs.Bucket}/*
+          - Effect: Allow
+            Sid: "S3ReadOnly"
+            Action:
+              - s3:Get*
+              - s3:GetBucketPolicy
+              - s3:List*
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${SharedModulesBucket}/*
           - Effect: Allow
             Sid: "KMS"
             Action:
@@ -388,140 +443,19 @@ Resources:
             Resource: !GetAtt KMSKey.Arn
           - Effect: Allow
             Action:
-              - "sts:AssumeRole"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${MasterAccountId}:role/${CrossAccountAccessRole}-readonly"
-              - !Sub "arn:${AWS::Partition}:iam::*:role/adf-automation-role"
-          - Effect: Allow
-            Action:
-              - "secretsmanager:Get*"
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"  # Only allow CodeBuild access to secrets that start with /adf/*
-          - Effect: Allow
-            Action:
-              - "events:PutPermission"
-            Resource:
-              - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
-          - Effect: Allow
-            Action:
-              - "events:PutRule"
-              - "events:PutTargets"
-              - "events:PutPermission"
-              - "events:RemoveTargets"
-              - "events:DeleteRule"
-              - "events:DescribeRule"
-            Resource:
-              - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${PipelinePrefix}*
-          - Effect: Allow
-            Action:
-              - "cloudformation:CancelUpdateStack"
-              - "cloudformation:ContinueUpdateRollback"
-              - "cloudformation:CreateChangeSet"
-              - "cloudformation:CreateStack"
-              - "cloudformation:CreateUploadBucket"
-              - "cloudformation:DeleteStack"
-              - "cloudformation:DeleteChangeSet"
-              - "cloudformation:DescribeStacks"
-              - "cloudformation:DescribeChangeSet"
-              - "cloudformation:ExecuteChangeSet"
-              - "cloudformation:SetStackPolicy"
-              - "cloudformation:SignalResource"
-              - "cloudformation:UpdateStack"
-              - "cloudformation:UpdateTerminationProtection"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${PipelinePrefix}*/*"
-          - Effect: Allow
-            Action:
-              - "cloudformation:ValidateTemplate"
-              - "lambda:CreateEventSourceMapping"
-              - "lambda:AddPermission"
-              - "lambda:CreateFunction"
-              - "lambda:DeleteFunction"
-              - "lambda:GetFunction"
-              - "lambda:GetFunctionConfiguration"
-              - "lambda:RemovePermission"
-              - "lambda:UpdateFunctionCode"
-              - "lambda:UpdateFunctionConfiguration"
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-              - "iam:TagResource"
-              - "ssm:DeleteParameter"
-              - "ssm:GetParameter"
-              - "ssm:GetParameters"
-              - "ssm:GetParametersByPath"
-              - "ssm:PutParameter"
-              - "organizations:DescribeOrganization"
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - "sns:DeleteTopic"
-              - "sns:CreateTopic"
-              - "sns:Unsubscribe"
-              - "sns:Subscribe"
-              - "sns:SetTopicAttributes"
-              - "sns:GetTopicAttributes"
-              - "sns:TagResource"
             Resource:
-              - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
           - Effect: Allow
+            Sid: "DescripePipelineTrigger"
             Action:
-              - "codebuild:CreateProject"
-              - "codebuild:DeleteProject"
-              - "codebuild:UpdateProject"
+              - "codepipeline:ListPipelineExecutions"
             Resource:
-              - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-*
-          - Effect: Allow
-            Action:
-              - "iam:CreateRole"
-              - "iam:CreateRolePolicy"
-              - "iam:DeleteRole"
-              - "iam:DeleteRolePolicy"
-              - "iam:GetRole"
-              - "iam:GetRolePolicy"
-              - "iam:PassRole"
-              - "iam:PutRolePolicy"
-            Resource:
-              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-          - Effect: Allow
-            Action:
-              # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html
-              - "iam:PassRole"
-            Resource:
-              # This role can pass to any other role in the organization.
-              - !Sub arn:${AWS::Partition}:iam::*:role/*
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-          - Effect: Allow
-            Action:
-              - "codepipeline:CreatePipeline"
-              - "codepipeline:DeletePipeline"
-              - "codepipeline:DeleteWebhook"
-              - "codepipeline:DeregisterWebhookWithThirdParty"
-              - "codepipeline:GetPipeline"
-              - "codepipeline:GetPipelineState"
-              - "codepipeline:PutWebhook"
-              - "codepipeline:RegisterWebhookWithThirdParty"
-              - "codepipeline:StartPipelineExecution"
-              - "codepipeline:TagResource"
-              - "codepipeline:UpdatePipeline"
-            Resource:
-              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
-              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
-          - Effect: Allow
-            Action:
-              - "codestar-connections:GetConnection"
-              - "codestar-connections:GetHost"
-              - "codestar-connections:ListConnections"
-              - "codestar-connections:ListHosts"
-              - "codestar-connections:PassConnection"
-              - "codestar-connections:UseConnection"
-            Resource: "*"
+              - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-pipelines
       Roles:
-        - !Ref PipelineProvisionerCodeBuildRole
+        - !Ref PipelineGenerationProvisionerCodeBuildRole
 
   CloudFormationRole:
     Type: AWS::IAM::Role
@@ -616,7 +550,8 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !GetAtt PipelineProvisionerCodeBuildRole.Arn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
+                - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Action:
               - sts:AssumeRole
       Path: /
@@ -681,6 +616,7 @@ Resources:
               - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
+              - "codecommit:UntagResource"
             Resource:
               - "*"
           - Effect: Allow
@@ -727,31 +663,21 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-        ComputeType: !Ref ComputeType
+        ComputeType: "BUILD_GENERAL1_SMALL"
         Image: !Ref Image
         EnvironmentVariables:
           - Name: PYTHONPATH
             Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
-          - Name: MASTER_ACCOUNT_ID
-            Value: !Ref MasterAccountId
-          - Name: S3_BUCKET_NAME
-            Value: !Ref PipelineBucket
           - Name: SHARED_MODULES_BUCKET
             Value: !Ref SharedModulesBucket
           - Name: ADF_PIPELINES_BUCKET
             Value: !GetAtt PipelineManagementApplication.Outputs.Bucket
-          - Name: ADF_PIPELINE_PREFIX
-            Value: !Ref PipelinePrefix
-          - Name: ADF_STACK_PREFIX
-            Value: !Ref StackPrefix
           - Name: ADF_LOG_LEVEL
             Value: INFO
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
-          - Name: ORGANIZATION_ID
-            Value: !Ref OrganizationId
         Type: LINUX_CONTAINER
       Name: "aws-deployment-framework-base"
       Source:
@@ -761,22 +687,25 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
-                nodejs: 14
+                python: 3.11
+                nodejs: 18
               commands:
-                - npm install cdk@1.169 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
-                - pip install -r adf-build/requirements.txt -q -t ./adf-build
+                - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
+            pre_build:
+              commands:
+                - mkdir -p deployment_maps
             build:
               commands:
-                - bash -c "[[ -e deployment_map.yml ]] && echo 'Copying deployment_map.yml' && aws s3 cp deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml || echo 'No deployment_map.yml, skipping copy'"
-                - bash -c "[[ -e deployment_maps ]] && echo 'Syncing deployment_maps folder' && aws s3 sync deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps || echo 'No deployment_maps folder, skipping sync'"
+                - python adf-build/helpers/describe_codepipeline_trigger.py --should-match StartPipelineExecution aws-deployment-framework-pipelines ${!CODEPIPELINE_EXECUTION_ID} && EXTRA_OPTS="--force" || EXTRA_OPTS=""
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --delete --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} deployment_map.yml s3://$ADF_PIPELINES_BUCKET/deployment_map.yml
+                - python adf-build/helpers/sync_to_s3.py ${!EXTRA_OPTS} --delete --extension .yml --extension .yaml  --metadata adf_version=${!ADF_VERSION} --upload-with-metadata execution_id=${!CODEPIPELINE_EXECUTION_ID} --recursive deployment_maps s3://$ADF_PIPELINES_BUCKET/deployment_maps
             post_build:
               commands:
                 - echo "Pipelines are updated in the AWS Step Functions ADFPipelineManagementStateMachine."
                 - echo "Please track their progress via:"
                 - echo "https://${AWS::Region}.console.aws.amazon.com/states/home?region=${AWS::Region}#/statemachines/view/arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
-      ServiceRole: !GetAtt PipelineProvisionerCodeBuildRole.Arn
+      ServiceRole: !GetAtt PipelineGenerationProvisionerCodeBuildRole.Arn
       Tags:
         - Key: "Name"
           Value: "aws-deployment-framework-base"
@@ -806,7 +735,7 @@ Resources:
                 RepositoryName: !GetAtt CodeCommitRepository.Name
                 PollForSourceChanges: false
               RunOrder: 1
-        - Name: CreateOrUpdatePipelines
+        - Name: KickoffCreateOrUpdatePipelines
           Actions:
             - Name: CreateOrUpdate
               ActionTypeId:
@@ -820,6 +749,14 @@ Resources:
                 - Name: "Source"
               Configuration:
                 ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: >-
+                  [
+                    {
+                      "name": "CODEPIPELINE_EXECUTION_ID",
+                      "value": "#{codepipeline.PipelineExecutionId}",
+                      "type": "PLAINTEXT"
+                    }
+                  ]
               RunOrder: 1
 
   PipelineSNSTopic:
@@ -1081,7 +1018,7 @@ Resources:
       Description: "ADF Lambda Function - Send Slack Notification"
       FunctionName: SendSlackNotification
       Handler: slack.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt SendSlackNotificationLambdaRole.Arn
       Environment:
         Variables:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
@@ -1100,9 +1037,10 @@ Resources:
           KMS_KEY_ID: !Ref KMSKey
           S3_BUCKET_NAME: !Ref PipelineBucket
           ADF_LOG_LEVEL: !Ref ADFLogLevel
+          DEPLOYMENT_ACCOUNT_ID: !Ref AWS::AccountId
       FunctionName: UpdateCrossAccountIAM
       Handler: enable_cross_account_access.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt EnableCrossAccountAccessLambdaRole.Arn
       Timeout: 900
 
   CheckPipelineStatus:
@@ -1118,13 +1056,13 @@ Resources:
           ADF_LOG_LEVEL: !Ref ADFLogLevel
       FunctionName: CheckPipelineStatus
       Handler: update_pipelines.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt CheckPipelineStatusLambdaRole.Arn
       Timeout: 120
 
-  LambdaRole:
+  SendSlackNotificationLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: "adf-lambda-role"
+      RoleName: "adf-send-slack-notification-lambda-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1132,64 +1070,121 @@ Resources:
             Principal:
               Service:
                 - "lambda.amazonaws.com"
-                - "states.amazonaws.com"
-                - "sns.amazonaws.com"
             Action:
               - "sts:AssumeRole"
       Path: "/"
       Policies:
-        - PolicyName: "adf-lambda-execution-role"
+        - PolicyName: "adf-send-slack-notification"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notification_endpoint/*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource:
+                  # Only allow Lambda access to get secrets that start with /adf/*
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/slack/*"
+
+  CheckPipelineStatusLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "adf-check-pipeline-status-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-check-pipeline-status"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codepipeline:GetPipelineState"
+                  - "codepipeline:StartPipelineExecution"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+
+  EnableCrossAccountAccessLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "adf-enable-cross-account-access-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "adf-enable-cross-account-access"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
                 Action: "sts:AssumeRole"
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf-update-cross-account-access-role"
                 Condition:
                   StringEquals:
                     aws:PrincipalOrgID: !Ref OrganizationId
-              - Effect: "Allow"
-                Action:
-                  - "codepipeline:GetPipelineState"
-                  - "codepipeline:ListPipelines"
-                  - "codepipeline:PutJobFailureResult"
-                  - "codepipeline:PutJobSuccessResult"
-                  - "codepipeline:StartPipelineExecution"
-                  - "events:PutPermission"
-                  - "iam:GetRolePolicy"
-                  - "iam:PutRolePolicy"
-                  - "kms:Decrypt"
-                  - "kms:Describe*"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey*"
-                  - "kms:Get*"
-                  - "kms:List*"
-                  - "kms:PutKeyPolicy"
-                  - "kms:ReEncrypt*"
-                  - "lambda:GetLayerVersion"
-                  - "s3:Get*"
-                  - "s3:Put*"
-                  - "sns:Publish"
-                  - "ssm:GetParameter"
-                  - "ssm:GetParameters"
-                Resource: "*"
               - Effect: Allow
                 Action:
-                  - "secretsmanager:Get*"
+                  - "ssm:GetParameter"
                 Resource:
-                  # Only allow Lambda access to get secrets that start with /adf/*
-                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"
-              - Effect: "Allow"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/kms_arn/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/s3_regional_bucket/*"
+              - Effect: Allow
                 Action:
-                  - "s3:Get*"
-                  - "s3:Put*"
-                  - "s3:List*"
+                  - "codepipeline:GetPipelineState"
+                  - "codepipeline:StartPipelineExecution"
                 Resource:
-                  - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
-                  - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-              - Effect: "Allow"
-                Action: "logs:*"
-                Resource: !Sub "arn:${AWS::Partition}:logs:*:*:*"
+                  - !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+              - Effect: Allow
+                Action:
+                  - "iam:GetRolePolicy"
+                  - "iam:PutRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-lambda-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "lambda:GetLayerVersion"
+            Resource:
+              - !Ref LambdaLayerVersion
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: '*'
+      Roles:
+        - !Ref SendSlackNotificationLambdaRole
+        - !Ref CheckPipelineStatusLambdaRole
+        - !Ref EnableCrossAccountAccessLambdaRole
 
   StatesExecutionRole:
     Type: "AWS::IAM::Role"
@@ -1270,10 +1265,11 @@ Resources:
                     "Retry": [
                       {
                         "ErrorEquals": [
-                          "States.TaskFailed"
+                          "States.TaskFailed",
+                          "ClientError"
                         ],
-                        "BackoffRate": 1.1,
-                        "IntervalSeconds": 1,
+                        "BackoffRate": 2,
+                        "IntervalSeconds": 2,
                         "MaxAttempts": 10
                       }, {
                         "ErrorEquals": [
@@ -1472,6 +1468,21 @@ Resources:
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
           Id: adf-codepipeline-trigger-pipeline
 
+  TerraformLockTable:
+    Condition: ADFTerraformExtensionEnabled
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: adf-tflocktable
+
 Outputs:
   ADFVersionNumber:
     Value: !Ref ADFVersion
@@ -1513,11 +1524,6 @@ Outputs:
     Value: !GetAtt CodeCommitRepository.CloneUrlHttp
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-http-url"
-
-  LambdaRoleArn:
-    Value: !GetAtt LambdaRole.Arn
-    Export:
-      Name: "LambdaRoleArn"
 
   CodeCommitSshURL:
     Description: "The CodeCommit SSH Url"

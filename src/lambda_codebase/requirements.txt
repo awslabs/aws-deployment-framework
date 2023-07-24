@@ -1,1 +1,1 @@
-tenacity==8.0.1
+tenacity==8.2.2

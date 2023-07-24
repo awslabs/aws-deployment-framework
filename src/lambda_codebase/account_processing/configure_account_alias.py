@@ -37,11 +37,12 @@ def create_account_alias(account, iam_client):
         iam_client.create_account_alias(AccountAlias=account.get("alias"))
     except iam_client.exceptions.EntityAlreadyExistsException as error:
         LOGGER.error(
-            f"The account alias {account.get('alias')} already exists."
+            "The account alias %s already exists."
             "The account alias must be unique across all Amazon Web Services "
             "products. Refer to "
             "https://docs.aws.amazon.com/IAM/latest/UserGuide/"
-            "console_account-alias.html#AboutAccountAlias"
+            "console_account-alias.html#AboutAccountAlias",
+            account.get('alias'),
         )
         raise error
 

@@ -58,9 +58,9 @@ class OrganizationPolicy:
         return region.startswith("us-gov")
 
     @staticmethod
-    def set_scp_attachment(access_identifer, organization_mapping, path, organizations):
-        if access_identifer:
-            if access_identifer.get("keep-default-scp") != "enabled":
+    def set_scp_attachment(access_identifier, organization_mapping, path, organizations):
+        if access_identifier:
+            if access_identifier.get("keep-default-scp") != "enabled":
                 try:
                     organizations.detach_policy(
                         "p-FullAWSAccess", organization_mapping[path]
@@ -110,7 +110,8 @@ class OrganizationPolicy:
 
     def apply(
         self, organizations, parameter_store, config
-    ):  # pylint: disable=R0912, R0915
+    ):
+        # pylint: disable=too-many-locals
         status = organizations.get_organization_info()
         if status.get("feature_set") != "ALL":
             LOGGER.info(
@@ -165,7 +166,6 @@ class OrganizationPolicy:
                     "Parameter %s was not found in Parameter Store, continuing.",
                     policy,
                 )
-                pass
 
             for _policy in _policies:
                 path = (

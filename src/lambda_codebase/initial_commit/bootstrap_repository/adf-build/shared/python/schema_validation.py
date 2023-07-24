@@ -12,7 +12,7 @@ LOGGER = configure_logger(__name__)
 
 NOTIFICATION_PROPS = {
     Optional("target"): str,
-    Optional("type") : Or("lambda", "chat_bot")
+    Optional("type"): Or("lambda", "chat_bot")
 }
 
 # Pipeline Params
@@ -47,6 +47,12 @@ AWS_ACCOUNT_ID_SCHEMA = Schema(
     )
 )
 
+SOURCE_OUTPUT_ARTIFACT_FORMAT = Or(
+    "CODEBUILD_CLONE_REF",
+    "CODE_ZIP",
+    None,
+)
+
 # CodeCommit Source
 CODECOMMIT_SOURCE_PROPS = {
     "account_id": AWS_ACCOUNT_ID_SCHEMA,
@@ -56,7 +62,9 @@ CODECOMMIT_SOURCE_PROPS = {
     Optional("owner"): str,
     Optional("role"): str,
     Optional("trigger_on_changes"): bool,
-    Optional("output_artifact_format", default=None): Or("CODEBUILD_CLONE_REF", "CODE_ZIP", None)
+    Optional("output_artifact_format", default=None): (
+        SOURCE_OUTPUT_ARTIFACT_FORMAT
+    ),
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
@@ -82,7 +90,10 @@ CODESTAR_SOURCE_PROPS = {
     Optional("repository"): str,
     Optional("branch"): str,
     "owner": str,
-    "codestar_connection_path": str
+    "codestar_connection_path": str,
+    Optional("output_artifact_format", default=None): (
+        SOURCE_OUTPUT_ARTIFACT_FORMAT
+    ),
 }
 
 CODESTAR_SOURCE = {
@@ -114,7 +125,9 @@ CODEBUILD_PROPS = {
     Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
     Optional("size"): Or('small', 'medium', 'large'),
     Optional("spec_filename"): str,
-    Optional("environment_variables"): {Optional(str): Or(str, bool, int, object)},
+    Optional("environment_variables"): {
+        Optional(str): Or(str, bool, int, object)
+    },
     Optional("role"): str,
     Optional("timeout"): int,
     Optional("privileged"): bool,
@@ -163,6 +176,7 @@ CLOUDFORMATION_ACTIONS = Or(
 
 CLOUDFORMATION_PROPS = {
     Optional("stack_name"): str,
+    Optional("param_filename"): str,
     Optional("template_filename"): str,
     Optional("root_dir"): str,
     Optional("role"): str,
@@ -273,7 +287,8 @@ PROVIDER_SCHEMA = {
             'provider': Or('codecommit', 'github', 's3', 'codestar'),
             'properties': dict,
         },
-        lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
+        # pylint: disable=W0108
+        lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
     ),
     Optional('build'): And(
         {
@@ -281,7 +296,10 @@ PROVIDER_SCHEMA = {
             Optional('enabled'): bool,
             Optional('properties'): dict,
         },
-        lambda x: PROVIDER_BUILD_SCHEMAS[x.get('provider', 'codebuild')].validate(x),  #pylint: disable=W0108
+        # pylint: disable=W0108
+        lambda x: PROVIDER_BUILD_SCHEMAS[
+            x.get('provider', 'codebuild')
+        ].validate(x),
     ),
     Optional('deploy'): And(
         {
@@ -292,7 +310,8 @@ PROVIDER_SCHEMA = {
             Optional('enabled'): bool,
             Optional('properties'): dict,
         },
-        lambda x: PROVIDER_DEPLOY_SCHEMAS[x['provider']].validate(x),  #pylint: disable=W0108
+        # pylint: disable=W0108
+        lambda x: PROVIDER_DEPLOY_SCHEMAS[x['provider']].validate(x),
     ),
 }
 REGION_SCHEMA = Or(
@@ -313,11 +332,31 @@ TARGET_WAVE_SCHEME = {
 
 TARGET_SCHEMA = {
     Optional("path"): Or(str, int, TARGET_LIST_SCHEMA),
-    Optional("tags"): {And(str, Regex(r"\A.{1,128}\Z")): And(str, Regex(r"\A.{0,256}\Z"))},
+    Optional("tags"): {
+        And(str, Regex(r"\A.{1,128}\Z")): And(str, Regex(r"\A.{0,256}\Z"))
+    },
     Optional("target"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("name"): str,
-    Optional("provider"): Or('lambda', 's3', 'codedeploy', 'cloudformation', 'service_catalog', 'approval', 'codebuild', 'jenkins'),
-    Optional("properties"): Or(CODEBUILD_PROPS, JENKINS_PROPS, CLOUDFORMATION_PROPS, CODEDEPLOY_PROPS, S3_DEPLOY_PROPS, SERVICECATALOG_PROPS, LAMBDA_PROPS, APPROVAL_PROPS),
+    Optional("provider"): Or(
+        'lambda',
+        's3',
+        'codedeploy',
+        'cloudformation',
+        'service_catalog',
+        'approval',
+        'codebuild',
+        'jenkins',
+    ),
+    Optional("properties"): Or(
+        CODEBUILD_PROPS,
+        JENKINS_PROPS,
+        CLOUDFORMATION_PROPS,
+        CODEDEPLOY_PROPS,
+        S3_DEPLOY_PROPS,
+        SERVICECATALOG_PROPS,
+        LAMBDA_PROPS,
+        APPROVAL_PROPS,
+    ),
     Optional("regions"): REGION_SCHEMA,
     Optional("exclude", default=[]): [str],
     Optional("wave", default={"size": 50}): TARGET_WAVE_SCHEME
@@ -348,8 +387,9 @@ PIPELINE_SCHEMA = {
 }
 TOP_LEVEL_SCHEMA = {
     "pipelines": [PIPELINE_SCHEMA],
-    # Allow any toplevel key starting with "x-" or "x_".
-    # ADF will ignore these, but users can use them to define anchors in one place.
+    # Allow any top level key starting with "x-" or "x_".
+    # ADF will ignore these, but users can use them to define anchors
+    # in one place.
     Optional(Regex('^[x][-_].*')): object
 }
 

@@ -3,7 +3,7 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Stack for processing deployment maps.
 
 Parameters:
-  OrganizationID:
+  OrganizationId:
     Type: String
     MinLength: "1"
 
@@ -56,14 +56,14 @@ Globals:
     Architectures:
       - arm64
     CodeUri: lambda_codebase/pipeline_management
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
     Tracing: Active
     Layers:
       - !Ref LambdaLayer
 
 Resources:
-  ADFPipelineMangementLambdaBasePolicy:
+  ADFPipelineManagementLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
       Description: "Base policy for all ADF pipeline management lambdas"
@@ -150,6 +150,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-create-update-rule"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -164,6 +165,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf-automation/"
+      RoleName: "adf-pipeline-create-repository"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -362,6 +364,11 @@ Resources:
                 Condition:
                   StringEquals:
                     'aws:ResourceTag/createdBy': "ADF"
+              - Effect: Allow
+                Action:
+                  - "ssm:DeleteParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment/*"
 
   PipelineManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -430,6 +437,13 @@ Resources:
               "Retry": [
                 {
                   "ErrorEquals": [
+                    "NoAccountsFoundError",
+                    "InvalidDeploymentMapError"
+                  ],
+                  "MaxAttempts": 0
+                },
+                {
+                  "ErrorEquals": [
                     "States.TaskFailed"
                   ],
                   "IntervalSeconds": 1,
@@ -484,6 +498,16 @@ Resources:
                 "SourceTypeOverride": "S3",
                 "SourceLocationOverride.$": "$.definition_location"
               },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "CodeBuild.AWSCodeBuildException"
+                  ],
+                  "BackoffRate": 1.05,
+                  "IntervalSeconds": 150,
+                  "MaxAttempts": 12
+                }
+              ],
               "Next": "IdentifyOutOfDatePipelines"
             },
             "IdentifyOutOfDatePipelines": {
@@ -570,16 +594,26 @@ Resources:
                   "DeleteStack": {
                     "Type": "Task",
                     "Parameters": {
-                      "StackName.$": "$.pipeline"
+                      "StackName.$": "$.full_pipeline_name"
                     },
                     "Resource": "arn:${AWS::Partition}:states:::aws-sdk:cloudformation:deleteStack",
+                    "ResultPath": "$.cfn_delete_stack.result",
+                    "Next": "DeletePipelineParams"
+                  },
+                  "DeletePipelineParams": {
+                    "Type": "Task",
+                    "Parameters": {
+                      "Name.$": "States.Format('/deployment/{}/regions', $.pipeline_name)"
+                    },
+                    "Resource": "arn:${AWS::Partition}:states:::aws-sdk:ssm:deleteParameter",
+                    "ResultPath": "$.ssm_delete_param.result",
                     "End": true
                   }
                 }
               },
               "MaxConcurrency": 10,
               "Next": "Success",
-              "ItemsPath": "$.pipelines_to_be_deleted"
+              "ItemsPath": "$"
             },
             "Success": {
               "Type": "Succeed"
@@ -615,9 +649,9 @@ Resources:
           - Name: ADF_VERSION
             Value: !Ref ADFVersion
           - Name: ORGANIZATION_ID
-            Value: !Ref OrganizationID
+            Value: !Ref OrganizationId
           - Name: CLOUDFORMATION_ROLE_ARN
-            Value: !GetAtt ADFPipelineMangementCloudFormationRole.Arn
+            Value: !GetAtt ADFPipelineManagementCloudFormationRole.Arn
         Type: LINUX_CONTAINER
       Source:
         Type: NO_SOURCE
@@ -626,10 +660,10 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
-                nodejs: 14
+                python: 3.11
+                nodejs: 18
               commands:
-                - npm install cdk@1.169 -g -y --quiet --no-progress
+                - npm install aws-cdk@2.79 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
@@ -688,12 +722,24 @@ Resources:
                 Action:
                   - cloudformation:CreateStack
                   - cloudformation:UpdateStack
-                  - cloudformation:UpdateTerminationProtection
                 Resource:
                   - "*"
                 Condition:
                   StringEquals:
                     'aws:RequestTag/createdBy': "ADF"
+        - PolicyName: "adf-deploy-cloudformation-delete"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:DeleteStack
+                  - cloudformation:UpdateTerminationProtection
+                Resource:
+                  - "*"
+                Condition:
+                  StringEquals:
+                    'aws:ResourceTag/createdBy': "ADF"
         - PolicyName: "adf-deploy-cloudformation-template"
           PolicyDocument:
             Version: "2012-10-17"
@@ -714,13 +760,13 @@ Resources:
                 Action:
                   - 'iam:PassRole'
                 Resource:
-                  - !GetAtt ADFPipelineMangementCloudFormationRole.Arn
+                  - !GetAtt ADFPipelineManagementCloudFormationRole.Arn
                 Condition:
                   StringEqualsIfExists:
                     'iam:PassedToService':
                       - cloudformation.amazonaws.com
 
-  ADFPipelineMangementCloudFormationRole:
+  ADFPipelineManagementCloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -750,6 +796,7 @@ Resources:
                   - "codepipeline:RegisterWebhookWithThirdParty"
                   - "codepipeline:StartPipelineExecution"
                   - "codepipeline:TagResource"
+                  - "codepipeline:UntagResource"
                   - "codepipeline:UpdatePipeline"
                 Resource:
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
@@ -761,6 +808,7 @@ Resources:
                   - "codebuild:UpdateProject"
                 Resource:
                   - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-build-*
+                  - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-deploy-*
               - Effect: Allow
                 Action:
                   - "sns:DeleteTopic"
@@ -770,6 +818,8 @@ Resources:
                   - "sns:SetTopicAttributes"
                   - "sns:GetTopicAttributes"
                   - "sns:TagResource"
+                  - "sns:UntagResource"
+                  - "sns:ListSubscriptionsByTopic"
                 Resource:
                   - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
               - Effect: Allow
@@ -783,6 +833,37 @@ Resources:
                   - "iam:PutRolePolicy"
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-*
+              - Effect: Allow
+                Sid: "AllowPassRole"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/*
+              - Effect: Allow
+                Sid: "CodeBuildVPC"
+                Action:
+                  - "ec2:AuthorizeSecurityGroupEgress"
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                  - "ec2:CreateSecurityGroup"
+                  - "ec2:CreateTags"
+                  - "ec2:DeleteSecurityGroup"
+                  - "ec2:DeleteSecurityGroup"
+                  - "ec2:DeleteTags"
+                  - "ec2:Describe*"
+                  - "ec2:List*"
+                  - "ec2:RevokeSecurityGroupEgress"
+                  - "ec2:RevokeSecurityGroupIngress"
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Sid: "AllowCodeStarConnection"
+                Action:
+                  - "codestar-connections:PassConnection"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/*
+                Condition:
+                  StringEquals:
+                    'codestar-connections:PassedToService': 'codepipeline.amazonaws.com'
               - Effect: Allow
                 Action:
                   - "events:PutRule"
@@ -807,8 +888,14 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - "iam:TagResource"
+                  - "iam:TagPolicy"
+                  - "iam:TagRole"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/github_token-*"
 
   DeploymentMapProcessingFunction:
     Type: 'AWS::Serverless::Function'
@@ -818,7 +905,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           PIPELINE_MANAGEMENT_STATE_MACHINE: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
@@ -856,7 +943,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -872,7 +959,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -888,7 +975,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -905,7 +992,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -922,7 +1009,7 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !Ref OrganizationID
+          ORGANIZATION_ID: !Ref OrganizationId
           ADF_VERSION: !Ref ADFVersion
           ADF_LOG_LEVEL: !Ref ADFLogLevel
           ADF_ROLE_NAME: !Ref CrossAccountAccessRole
@@ -949,6 +1036,13 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  DefinitionBucketParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/adf/pipeline_definition_bucket"
+      Type: "String"
+      Value: !Ref ADFDefinitionBucket
 
   ADFPipelineBucket:
     Type: "AWS::S3::Bucket"
@@ -987,3 +1081,12 @@ Resources:
 Outputs:
   Bucket:
     Value: !Ref ADFPipelineBucket
+
+  DefinitionBucket:
+    Value: !Ref ADFDefinitionBucket
+
+  CreateOrUpdateRuleLambdaRoleArn:
+    Value: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
+
+  CreateRepositoryLambdaRoleArn:
+    Value: !GetAtt CreateRepositoryLambdaRole.Arn

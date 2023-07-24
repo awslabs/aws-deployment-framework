@@ -1,13 +1,5 @@
-astroid==2.11.7
-botocore==1.27.59
-boto3==1.24.59
-isort==5.10.1
-mock==4.0.3
-pylint==2.13.9
-pytest==6.2.5
-pyyaml>=5.4.1
+astroid==2.15.6
+boto3==1.28.8
+botocore==1.31.8
+pyyaml~=6.0.1
 schema==0.7.5
-tox==3.25.1
-yamllint==1.27.1
-cfn-lint==0.63.0
-docutils==0.15.2

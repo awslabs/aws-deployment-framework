@@ -2,9 +2,9 @@
 set -e
 
 apt-get install --assume-yes jq
-terraform_url=$(curl https://releases.hashicorp.com/index.json | jq '{terraform}' | egrep "linux.*amd64" | sort --version-sort -r | head -1 | awk -F[\"] '{print $4}')
-echo "Downloading $terraform_url."
-curl -o terraform.zip $terraform_url
+TERRAFORM_URL="https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+echo "Downloading $TERRAFORM_URL."
+curl -o terraform.zip $TERRAFORM_URL
 unzip terraform.zip
 export PATH=$PATH:$(pwd)
 terraform --version

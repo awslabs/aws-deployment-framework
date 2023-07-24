@@ -105,7 +105,7 @@ def test_get_input_artifacts_deploy_with_cfn_multiple_param_overrides(base_input
         provider='CloudFormation',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'param_overrides': [
                     {
@@ -145,7 +145,7 @@ def test_get_input_artifacts_deploy_with_cfn_param_overrides_different_input(bas
         provider='CloudFormation',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'param_overrides': [
                     {
@@ -188,7 +188,7 @@ def test_get_input_artifacts_deploy_with_cfn_param_overrides_is_cse(base_input_n
         action_mode='CHANGE_SET_EXECUTE',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'param_overrides': [
                     {
@@ -221,7 +221,7 @@ def test_get_input_artifacts_deploy_with_cfn_param_overrides_not_cse(base_input_
         action_mode='CHANGE_SET_REPLACE',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
             'properties': {
                 'param_overrides': [
                     {
@@ -265,7 +265,7 @@ def test_get_base_input_artifact_name_deploy_build_disabled(action_decl_mock):
         provider='CodeBuild',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
         },
     )
     assert action._get_base_input_artifact_name() == 'output-source'
@@ -280,7 +280,7 @@ def test_get_base_input_artifact_name_deploy_build_enabled(action_decl_mock):
         provider='CodeBuild',
         target={
             'name': 'targetname',
-            'id': 'someid',
+            'id': 'some_id',
         },
     )
     assert action._get_base_input_artifact_name() == '{0}-build'.format(BASE_MAP_PARAMS['name'])

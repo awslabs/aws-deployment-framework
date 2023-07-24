@@ -13,7 +13,11 @@ import boto3
 
 from botocore.exceptions import ClientError
 from logger import configure_logger
-from errors import GenericAccountConfigureError, ParameterNotFoundError
+from errors import (
+    AccountCreationNotFinishedError,
+    GenericAccountConfigureError,
+    ParameterNotFoundError,
+)
 from parameter_store import ParameterStore
 from cloudformation import CloudFormation
 from s3 import S3
@@ -55,8 +59,12 @@ def configure_generic_account(sts, event, region, role):
             region,
             role,
         )
-        kms_arn = parameter_store_deployment_account.fetch_parameter(f'/cross_region/kms_arn/{region}')
-        bucket_name = parameter_store_deployment_account.fetch_parameter(f'/cross_region/s3_regional_bucket/{region}')
+        kms_arn = parameter_store_deployment_account.fetch_parameter(
+            f'/cross_region/kms_arn/{region}',
+        )
+        bucket_name = parameter_store_deployment_account.fetch_parameter(
+            f'/cross_region/s3_regional_bucket/{region}',
+        )
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             f'Account {event["account_id"]} cannot yet be bootstrapped '
@@ -65,19 +73,34 @@ def configure_generic_account(sts, event, region, role):
         ) from None
     parameter_store_target_account.put_parameter('kms_arn', kms_arn)
     parameter_store_target_account.put_parameter('bucket_name', bucket_name)
-    parameter_store_target_account.put_parameter('deployment_account_id', event['deployment_account_id'])
+    parameter_store_target_account.put_parameter(
+        'deployment_account_id',
+        event['deployment_account_id'],
+    )
 
 
 def configure_master_account_parameters(event):
     """
-    Update the Master account parameter store in us-east-1 with the
+    Update the management account parameter store in us-east-1 with the
     deployment_account_id then updates the main deployment region
     with that same value
     """
-    parameter_store_master_account_region = ParameterStore(os.environ["AWS_REGION"], boto3)
-    parameter_store_master_account_region.put_parameter('deployment_account_id', event['account_id'])
-    parameter_store_deployment_account_region = ParameterStore(event['deployment_account_region'], boto3)
-    parameter_store_deployment_account_region.put_parameter('deployment_account_id', event['account_id'])
+    parameter_store_master_account_region = ParameterStore(
+        os.environ["AWS_REGION"],
+        boto3,
+    )
+    parameter_store_master_account_region.put_parameter(
+        'deployment_account_id',
+        event['account_id'],
+    )
+    parameter_store_deployment_account_region = ParameterStore(
+        event['deployment_account_region'],
+        boto3,
+    )
+    parameter_store_deployment_account_region.put_parameter(
+        'deployment_account_id',
+        event['account_id'],
+    )
 
 
 def configure_deployment_account_parameters(event, role):
@@ -109,6 +132,17 @@ def is_inter_ou_account_move(event):
 
 
 def lambda_handler(event, context):
+    try:
+        return _lambda_handler(event, context)
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'SubscriptionRequiredException':
+            raise AccountCreationNotFinishedError(
+                f"The AWS Account is not ready yet. Error thrown: {error}"
+            ) from error
+        raise
+
+
+def _lambda_handler(event, context):
     sts = STS()
 
     account_id = event["account_id"]
