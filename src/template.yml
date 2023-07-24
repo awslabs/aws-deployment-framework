@@ -402,6 +402,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "organizations:TagResource"
+                  - "organizations:UntagResource"
                 Resource: "*"
 
   AccountTagConfigFunction:
@@ -1300,7 +1301,7 @@ Resources:
                 python: 3.11
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt -r adf-build/shared/helpers/requirements.txt --quiet
+                - pip install -r adf-build/requirements.txt -r adf-build/requirements-dev.txt -r adf-build/shared/helpers/requirements.txt --quiet
                 - pytest -vvv
             build:
               commands:

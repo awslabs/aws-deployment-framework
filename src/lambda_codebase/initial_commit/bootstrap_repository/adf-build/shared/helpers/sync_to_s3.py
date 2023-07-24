@@ -535,6 +535,7 @@ def _get_upload_reason(
     return "metadata changed"
 
 
+# pylint: disable=too-many-locals
 def upload_changed_files(
     s3_client: any,
     s3_bucket: str,

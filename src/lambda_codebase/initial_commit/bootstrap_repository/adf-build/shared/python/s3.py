@@ -73,7 +73,7 @@ class S3:
         if style == 'virtual-hosted':
             return f"https://{self.bucket}.{s3_region_name}.amazonaws.com/{key}"
 
-        raise Exception(
+        raise ValueError(
             f"Unknown upload style syntax: {style}. "
             "Valid options include: s3-uri, path, or "
             "virtual-hosted."
@@ -199,13 +199,18 @@ class S3:
             # searching
             if len(key_level_up) == 1:
                 LOGGER.debug(
-                    'Nothing could be found for %s when traversing the bucket', key)
+                    'Nothing could be found for %s when traversing the bucket',
+                    key,
+                )
                 return []
 
             LOGGER.debug(
-                'Unable to find the specified Key: %s - looking one level up', key)
-            # remove the key name in which we did not find the file we wanted this attempt
-            # (-1 will be json/yml file, -2 will be the key prefix) which we want to leave
+                'Unable to find the specified Key: %s - looking one level up',
+                key,
+            )
+            # remove the key name in which we did not find the file we wanted
+            # this attempt (-1 will be json/yml file, -2 will be the key
+            # prefix) which we want to leave
             del key_level_up[-2]
 
             # Join it back together, and recursive call the function with the
