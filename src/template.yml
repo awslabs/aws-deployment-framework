@@ -1301,7 +1301,13 @@ Resources:
                 python: 3.11
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt -r adf-build/requirements-dev.txt -r adf-build/shared/helpers/requirements.txt --quiet
+                - >-
+                  pip install
+                  -r adf-build/requirements.txt
+                  -r adf-build/requirements-dev.txt
+                  -r adf-build/shared/helpers/requirements.txt
+                  -r adf-build/shared/helpers/requirements-dev.txt
+                  --quiet
                 - pytest -vvv
             build:
               commands:
