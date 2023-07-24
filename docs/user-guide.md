@@ -271,9 +271,15 @@ targets:
       # stages, each stage containing up to X accounts
       size: 30
     exclude:
-      # (Optional) List of accounts to exclude from this target.
-      # Currently only supports account Ids
+      # (Optional) List of accounts to exclude from this path.
       - 9999999999
+    properties: ...
+  - path: /my_ou/production/**/*  # This would target all accounts in the OU path
+    regions: [eu-central-1, us-west-1]
+    name: production_step
+    exclude: # (Optional) List of OU Paths and Account Ids
+      - /my-ou/production/alpha # excludes any accounts and OUs in this path.
+      - 11111111111 # Excludes this account, regardless of OU path.
     properties: ...
 ```
 
@@ -543,9 +549,10 @@ pipelines:
         # ...
       build:
         provider: codebuild
-        image:
-          repository_arn: arn:aws:ecr:region:111111111111:repository/test
-          tag: latest  # optional (defaults to latest)
+        properties:
+          image:
+            repository_arn: arn:aws:ecr:region:111111111111:repository/test
+            tag: latest  # optional (defaults to latest)
     targets:
       - # ...
 ```
@@ -928,7 +935,7 @@ extra step required to deploy a SAM template is that you execute
 so:
 
 For example, deploying a NodeJS Serverless Application from AWS CodeBuild with
-the `aws/codebuild/standard:5.0` image can be done with a `buildspec.yml` that
+the `aws/codebuild/standard:7.0` image can be done with a `buildspec.yml` that
 looks like the following
 [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 
@@ -938,8 +945,8 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.9
-      nodejs: 14
+      python: 3.11
+      nodejs: 18
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
@@ -1076,6 +1083,8 @@ stages defined in the following CodeBuild build specification:
   run a Terraform plan.
 - `tf_apply.yml`: get the list of accounts from the organization and
   run a Terraform plan and apply.
+- `tf_destroy.yml`: get the list of accounts from the organization and
+  run a Terraform plan and destroy.
 
 An optional approval step could be added between plan and apply as
 shown in the pipeline definition below.
@@ -1100,36 +1109,40 @@ pipeline for more details in the setup and integration.
 Example Terraform deployment map:
 
 ```yaml
-- name: sample-terraform
-  default_providers:
-    source:
-      provider: codecommit
-      properties:
-        account_id: 111111111111  # Source account id
-    build:
-      provider: codebuild
-    deploy:
-      provider: codebuild
-      properties:
-        image: "STANDARD_5_0"
-        environment_variables:
-          TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
-          TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
-          MANAGEMENT_ACCOUNT_ID: 333333333333  # Billing account
-          # Target regions, as a comma separated list is supported
-          # For example, "eu-west-1,us-east-1".
-          REGIONS: eu-west-1
-  targets:
-    - name: terraform-scan  # optional
-      properties:
-        spec_filename: tf_scan.yml  # Terraform scan
-    - name: terraform-plan
-      properties:
-        spec_filename: tf_plan.yml  # Terraform plan
-    - approval  # manual approval
-    - name: terraform-apply
-      properties:
-        spec_filename: tf_apply.yml  # Terraform apply
+pipelines:
+  - name: sample-terraform
+    default_providers:
+      source:
+        provider: codecommit
+        properties:
+          account_id: 111111111111  # Source account id
+      build:
+        provider: codebuild
+      deploy:
+        provider: codebuild
+        properties:
+          image: "STANDARD_7_0"
+          environment_variables:
+            TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
+            TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
+            MANAGEMENT_ACCOUNT_ID: 333333333333  # Billing account
+            # Target regions, as a comma separated list is supported
+            # For example, "eu-west-1,us-east-1".
+            REGIONS: eu-west-1
+    targets:
+      - name: terraform-scan  # optional
+        properties:
+          spec_filename: tf_scan.yml  # Terraform scan
+      - name: terraform-plan
+        properties:
+          spec_filename: tf_plan.yml  # Terraform plan
+      - approval  # manual approval
+      - name: terraform-apply
+        properties:
+          spec_filename: tf_apply.yml  # Terraform apply
+      - name: terraform-destroy # (optional stage)
+        properties:
+          spec_filename: tf_destroy.yml  # Terraform destroy
 ```
 
 1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.

@@ -15,9 +15,7 @@ Parameters:
 
 Conditions:
   ADFTerraformExtensionEnabled:
-    Fn::Equals:
-      - !Ref ADFTerraformExtension
-      - true
+    !Equals [!Ref ADFTerraformExtension, "True"]
 
 Resources:
   DeploymentFrameworkRegionalS3Bucket:
@@ -60,6 +58,8 @@ Resources:
 
   DeploymentFrameworkRegionalKMSKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
       EnableKeyRotation: true

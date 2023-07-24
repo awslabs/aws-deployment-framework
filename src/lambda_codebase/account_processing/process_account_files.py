@@ -12,6 +12,7 @@ import os
 import tempfile
 import logging
 from typing import Any, TypedDict
+import re
 import yaml
 
 from yaml.error import YAMLError
@@ -42,6 +43,7 @@ class AccountFileData(TypedDict):
     Class used to return YAML account file data and its related
     metadata like the execution_id of the CodePipeline that uploaded it.
     """
+
     content: Any
     execution_id: str
 
@@ -65,8 +67,8 @@ def get_file_from_s3(
     try:
         LOGGER.debug(
             "Reading YAML from S3: %s from %s",
-            s3_object_location.get('object_key'),
-            s3_object_location.get('bucket_name'),
+            s3_object_location.get("object_key"),
+            s3_object_location.get("bucket_name"),
         )
         s3_object = s3_resource.Object(**s3_object_location)
         object_adf_version = s3_object.metadata.get(
@@ -80,12 +82,9 @@ def get_file_from_s3(
                 s3_object_location,
                 object_adf_version,
             )
-            return {
-                "content": {},
-                "execution_id": ""
-            }
+            return {"content": {}, "execution_id": ""}
 
-        with tempfile.TemporaryFile(mode='w+b') as file_pointer:
+        with tempfile.TemporaryFile(mode="w+b") as file_pointer:
             s3_object.download_fileobj(file_pointer)
 
             # Move pointer to the start of the file
@@ -98,16 +97,16 @@ def get_file_from_s3(
     except ClientError as error:
         LOGGER.error(
             "Failed to download %s from %s, due to %s",
-            s3_object_location.get('object_key'),
-            s3_object_location.get('bucket_name'),
+            s3_object_location.get("object_key"),
+            s3_object_location.get("bucket_name"),
             error,
         )
         raise
     except YAMLError as yaml_error:
         LOGGER.error(
             "Failed to parse YAML file: %s from %s, due to %s",
-            s3_object_location.get('object_key'),
-            s3_object_location.get('bucket_name'),
+            s3_object_location.get("object_key"),
+            s3_object_location.get("bucket_name"),
             yaml_error,
         )
         raise
@@ -129,17 +128,21 @@ def process_account(account_lookup, account):
 
 
 def process_account_list(all_accounts, accounts_in_file):
-    account_lookup = {
-        account["Name"]: account["Id"] for account in all_accounts
-    }
-    processed_accounts = list(map(
-        lambda account: process_account(
-            account_lookup=account_lookup,
-            account=account,
-        ),
-        accounts_in_file
-    ))
+    account_lookup = {account["Name"]: account["Id"] for account in all_accounts}
+    processed_accounts = list(
+        map(
+            lambda account: process_account(
+                account_lookup=account_lookup,
+                account=account,
+            ),
+            accounts_in_file,
+        )
+    )
     return processed_accounts
+
+
+def sanitize_account_name_for_snf(account_name):
+    return re.sub("[^a-zA-Z0-9_]", "_", account_name[:30])
 
 
 def start_executions(
@@ -158,14 +161,14 @@ def start_executions(
         run_id,
     )
     for account in processed_account_list:
-        full_account_name = account.get('account_full_name', 'no-account-name')
+        full_account_name = account.get("account_full_name", "no-account-name")
         # AWS Step Functions supports max 80 characters.
         # Since the run_id equals 49 characters plus the dash, we have 30
         # characters available. To ensure we don't run over, lets use a
         # truncated version instead:
-        truncated_account_name = full_account_name[:30]
-        sfn_execution_name = f"{truncated_account_name}-{run_id}"
-
+        sfn_execution_name = (
+            f"{sanitize_account_name_for_snf(full_account_name)}-{run_id}"
+        )
         LOGGER.debug(
             "Payload for %s: %s",
             sfn_execution_name,
@@ -182,8 +185,9 @@ def lambda_handler(event, context):
     """Main Lambda Entry point"""
     LOGGER.debug(
         "Processing event: %s",
-        json.dumps(event, indent=2) if LOGGER.isEnabledFor(logging.DEBUG)
-        else "--data-hidden--"
+        json.dumps(event, indent=2)
+        if LOGGER.isEnabledFor(logging.DEBUG)
+        else "--data-hidden--",
     )
     sfn_client = boto3.client("stepfunctions")
     s3_resource = boto3.resource("s3")

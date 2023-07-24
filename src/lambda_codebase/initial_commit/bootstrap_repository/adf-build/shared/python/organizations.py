@@ -21,20 +21,52 @@ LOGGER = configure_logger(__name__)
 AWS_REGION = os.getenv("AWS_REGION")
 
 
+class OrganizationsException(Exception):
+    pass
+
+
 class Organizations:  # pylint: disable=R0904
     """
     Class used for modeling Organizations
     """
 
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(
+        retries={
+            "max_attempts": 30,
+        },
+    )
 
-    def __init__(self, role, account_id=None):
-        self.client = role.client("organizations", config=Organizations._config)
+    def __init__(
+        self, role=None, account_id=None, org_client=None, tagging_client=None
+    ):
+        if role:
+            LOGGER.warning(
+                "Deprecation warning: Using a role in the organizations client is being "
+                "deprecated. Please provide the relevant clients to remove this warning"
+            )
+        if not role:
+            if not org_client:
+                raise OrganizationsException(
+                    "If a role isn't provided, please provide an org_client"
+                )
+            if not tagging_client:
+                raise OrganizationsException(
+                    "If a role isn't provided, please provide a tagging_client"
+                )
+        self.client = (
+            role.client("organizations", config=Organizations._config)
+            if not org_client
+            else org_client
+        )
         organization_api_region = get_organization_api_region(AWS_REGION)
-        self.tags_client = role.client(
-            "resourcegroupstaggingapi",
-            region_name=organization_api_region,
-            config=Organizations._config,
+        self.tags_client = (
+            role.client(
+                "resourcegroupstaggingapi",
+                region_name=organization_api_region,
+                config=Organizations._config,
+            )
+            if not tagging_client
+            else tagging_client
         )
         self.account_id = account_id
         self.root_id = None
@@ -130,7 +162,8 @@ class Organizations:  # pylint: disable=R0904
                 )
                 org_structure[trimmed_path] = account_id
         counter = counter + 1
-        # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
+        # Counter is greater than 5 here is the conditional as organizations
+        # cannot have more than 5 levels of nested OUs + 1 accounts "level"
         return (
             org_structure
             if counter > 5
@@ -268,8 +301,10 @@ class Organizations:  # pylint: disable=R0904
     def get_organization_info(self):
         response = self.client.describe_organization()
         return {
-            "organization_master_account_id": response.get("Organization").get(
-                "MasterAccountId"
+            "organization_master_account_id": (
+                response
+                .get("Organization")
+                .get("MasterAccountId")
             ),
             "organization_id": response.get("Organization").get("Id"),
             "feature_set": response.get("Organization").get("FeatureSet"),
@@ -315,20 +350,51 @@ class Organizations:  # pylint: disable=R0904
     def get_ou_root_id(self):
         return self.client.list_roots().get("Roots")[0].get("Id")
 
-    def dir_to_ou(self, path):
-        p = path.split("/")[1:]
+    def ou_path_to_id(self, path):
+        nested_dir_paths = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
-        while p:
+        while nested_dir_paths:
             for ou in self.get_child_ous(ou_id):
-                if ou["Name"] == p[0]:
-                    p.pop(0)
-                    ou_id = ou["Id"]
+                if ou['Name'] == nested_dir_paths[0]:
+                    nested_dir_paths.pop(0)
+                    ou_id = ou['Id']
                     break
             else:
-                raise Exception(f"Path {path} failed to return a child OU at '{p[0]}'")
-        else:  # pylint: disable=W0120
-            return self.get_accounts_for_parent(ou_id)
+                raise ValueError(
+                    f"Path {path} failed to return a child OU at '{nested_dir_paths[0]}'",
+                )
+        return ou_id
+
+    def dir_to_ou(self, path):
+        LOGGER.warning(
+            "Deprecation warning: The method dir_to_ou() is deprecated, "
+            "use get_accounts_in_path() instead"
+        )
+        return self.get_accounts_in_path(path)
+
+    # pylint: disable=W0102
+
+    def get_accounts_in_path(
+        self, path, resolve_children=False, ou_id=None, excluded_paths=[]
+    ):
+        ou_id = self.ou_path_to_id(path) if not ou_id else ou_id
+        accounts = []
+        for page in self.get_accounts_for_parent(ou_id):
+            accounts.append(page)
+        if resolve_children:
+            LOGGER.info("Resolving OUs for %s (%s)", path, ou_id)
+            child_query = self.get_child_ous(ou_id)
+            for child in child_query:
+                if f"{path}/{child.get('Name')}" not in excluded_paths:
+                    accounts.extend(
+                        self.get_accounts_in_path(
+                            f"{path}/{child.get('Name')}",
+                            resolve_children,
+                            child.get("Id"),
+                        )
+                    )
+        return accounts
 
     def build_account_path(self, ou_id, account_path, cache):
         """
@@ -374,9 +440,10 @@ class Organizations:  # pylint: disable=R0904
     def list_organizational_units_for_parent(self, parent_ou):
         organizational_units = [
             ou
-            for org_units in self.client.get_paginator(
-                "list_organizational_units_for_parent"
-            ).paginate(ParentId=parent_ou)
+            for org_units in (
+                self.client.get_paginator("list_organizational_units_for_parent")
+                .paginate(ParentId=parent_ou)
+            )
             for ou in org_units["OrganizationalUnits"]
         ]
         return organizational_units
@@ -421,7 +488,7 @@ class Organizations:  # pylint: disable=R0904
                     break
             else:
                 raise ValueError(
-                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}."
+                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}.",
                 )
 
         return parent_ou_id
@@ -441,14 +508,6 @@ class Organizations:  # pylint: disable=R0904
             SourceParentId=source_parent_id,
             DestinationParentId=ou_id,
         )
-
-    def create_account_tags(self, account_id, tags):
-        formatted_tags = [
-            {"Key": str(key), "Value": str(value)}
-            for tag in tags
-            for key, value in tag.items()
-        ]
-        self.client.tag_resource(ResourceId=account_id, Tags=formatted_tags)
 
     @staticmethod
     def create_account_alias(account_alias, role):

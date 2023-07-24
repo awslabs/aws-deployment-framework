@@ -11,8 +11,9 @@ from aws_cdk import (
     aws_events_targets as _targets,
     aws_codepipeline as _codepipeline,
     aws_sns as _sns,
-    core
+    Stack,
 )
+from constructs import Construct
 
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -21,11 +22,12 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 
 
-class Events(core.Construct):
-    def __init__(self, scope: core.Construct, id: str, params: dict, **kwargs):  # pylint: disable=W0622
+class Events(Construct):
+    # pylint: disable=too-many-locals
+    def __init__(self, scope: Construct, id: str, params: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
         # pylint: disable=no-value-for-parameter
-        stack = core.Stack.of(self)
+        stack = Stack.of(self)
         _pipeline = _codepipeline.Pipeline.from_pipeline_arn(self, 'pipeline', params["pipeline"])
         _source_account = params.get('source', {}).get('account_id')
         _provider = params.get('source', {}).get('provider')
@@ -47,7 +49,8 @@ class Events(core.Construct):
                 description=f'Triggers {name} on changes in source CodeCommit repository',
                 event_pattern=_events.EventPattern(
                     resources=[
-                        f'arn:{stack.partition}:codecommit:{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
+                        f'arn:{stack.partition}:codecommit:'
+                        f'{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
                     ],
                     source=["aws.codecommit"],
                     detail_type=[
@@ -101,7 +104,8 @@ class Events(core.Construct):
                 _targets.SnsTopic(
                     topic=_topic,
                     message=_events.RuleTargetInput.from_text(
-                        # Need to parse and get the pipeline: "$.detail.pipeline" state: "$.detail.state"
+                        # Need to parse and get the pipeline: "$.detail.pipeline"
+                        # state: "$.detail.state"
                         f"The pipeline {_events.EventField.from_path('$.detail.pipeline')} "
                         f"from account {_events.EventField.account} "
                         f"has {_events.EventField.from_path('$.detail.state')} "
