@@ -203,16 +203,6 @@ Resources:
             Action:
               - sts:AssumeRole
           - Effect: Allow
-            Sid: "AssumeRoleLambda"
-            Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
-            Action:
-              - sts:AssumeRole
-            Condition:
-              ArnEquals:
-                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-lambda-role"
-          - Effect: Allow
             Sid: "AssumeRole"
             Principal:
               AWS:
