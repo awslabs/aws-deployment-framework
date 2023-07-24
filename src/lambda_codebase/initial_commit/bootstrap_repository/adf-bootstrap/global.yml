@@ -34,8 +34,11 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role"
             Principal:
-              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
           - Effect: Allow
@@ -154,9 +157,12 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -203,12 +209,13 @@ Resources:
             Sid: "AssumeRole"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
             Condition:
               ArnEquals:
                 "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role"
       Path: /
 
   UpdateCrossAccountAccessByDeploymentAccountRole:
@@ -220,9 +227,11 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRoleByEnableCrossAccountLambda"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
             Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
       Path: /
@@ -252,10 +261,14 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-update-rule"
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-repository"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-update-rule
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-repository
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:root"
             Action:
               - sts:AssumeRole
       Path: /
@@ -356,9 +369,12 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role"
             Principal:
               AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codebuild-role
+                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
       Path: /

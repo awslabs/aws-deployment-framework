@@ -263,6 +263,7 @@ Resources:
         - !Ref GetAccountRegionsFunctionRole
         - !Ref DeleteDefaultVPCFunctionRole
         - !Ref AccountAliasConfigFunctionRole
+        - !Ref AccountRegionConfigFunctionRole
         - !Ref AccountTagConfigFunctionRole
         - !Ref AccountOUConfigFunctionRole
         - !Ref CreateAccountFunctionRole
@@ -301,6 +302,7 @@ Resources:
                   - !GetAtt AccountOUConfigFunction.Arn
                   - !GetAtt GetAccountRegionsFunction.Arn
                   - !GetAtt DeleteDefaultVPCFunction.Arn
+                  - !GetAtt AccountRegionConfigFunction.Arn
 
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
@@ -424,6 +426,54 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
+
+  AccountRegionConfigFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/aws-deployment-framework/account-management/"
+      Policies:
+        - PolicyName: "adf-lambda-account-region-resource-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "account:ListRegions"
+                  - "account:EnableRegion"
+                  - "sts:GetCallerIdentity"
+                Resource: "*"
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/target_regions"
+
+  AccountRegionConfigFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: configure_account_regions.lambda_handler
+      Description: "ADF Lambda Function - Account region Configuration"
+      CodeUri: lambda_codebase/account_processing
+      Architectures:
+        - arm64
+      Tracing: Active
+      Layers:
+        - !Ref LambdaLayerVersion
+      Environment:
+        Variables:
+          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+      FunctionName: AccountRegionConfigurationFunction
+      Role: !GetAtt AccountRegionConfigFunctionRole.Arn
 
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
@@ -668,7 +718,7 @@ Resources:
                   "Next": "CreateAccount"
                 }
               ],
-              "Default": "ConfigureAccountAlias"
+              "Default": "ConfigureAccountRegions"
             },
             "ConfigureAccountAlias": {
               "Type": "Task",
@@ -745,7 +795,41 @@ Resources:
                   "MaxAttempts": 6
                 }
               ],
-              "Next": "ConfigureAccountAlias"
+              "Next": "ConfigureAccountRegions"
+            },
+            "ConfigureAccountRegions": {
+              "Type": "Task",
+              "Resource": "${AccountRegionConfigFunction.Arn}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "AreRegionsConfigured"
+            },
+            "AreRegionsConfigured": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.all_regions_enabled",
+                  "BooleanEquals": true,
+                  "Next": "ConfigureAccountAlias"
+                }
+              ],
+              "Default": "Wait 15 seconds"
+            },
+            "Wait 15 seconds": {
+              "Type": "Wait",
+              "Seconds": 15,
+              "Next": "ConfigureAccountRegions"
             },
             "ConfigureAccountTags": {
               "Type": "Task",
@@ -1301,7 +1385,15 @@ Resources:
                 python: 3.11
             pre_build:
               commands:
-                - pip install -r adf-build/requirements.txt -r adf-build/requirements-dev.txt -r adf-build/shared/helpers/requirements.txt --quiet
+                - >-
+                  pip install
+                  -r adf-build/requirements.txt
+                  -r adf-build/requirements-dev.txt
+                  -r adf-build/shared/requirements.txt
+                  -r adf-build/shared/requirements-dev.txt
+                  -r adf-build/shared/helpers/requirements.txt
+                  -r adf-build/shared/helpers/requirements-dev.txt
+                  --quiet
                 - pytest -vvv
             build:
               commands:
