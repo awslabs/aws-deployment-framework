@@ -80,7 +80,8 @@ def lambda_handler(event, _):
     desired_regions = []
     if event.get("regions"):
         LOGGER.info(
-            "Account Level Regions is not currently supported. Ignoring these values for now and using SSM only"
+            "Account Level Regions is not currently supported."
+            "Ignoring these values for now and using SSM only"
         )
     desired_regions.extend(get_regions_from_ssm(boto3.client("ssm")))
     org_root_account_id = boto3.client("sts").get_caller_identity().get("Account")
