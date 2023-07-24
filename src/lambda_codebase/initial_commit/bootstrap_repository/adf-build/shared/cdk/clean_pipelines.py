@@ -54,7 +54,7 @@ def clean(parameter_store, deployment_map):
             for pipeline in deployment_map.map_contents["pipelines"]
         ]
         if name not in defined_pipelines:
-            LOGGER.info(f'Deleting {parameter.get("Name")}')
+            LOGGER.info('Deleting %s', parameter.get("Name"))
             parameter_store.delete_parameter(parameter.get("Name"))
             stacks_to_remove.append(name)
 

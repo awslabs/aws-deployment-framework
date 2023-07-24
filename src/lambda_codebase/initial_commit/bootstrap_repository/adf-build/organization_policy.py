@@ -110,7 +110,8 @@ class OrganizationPolicy:
 
     def apply(
         self, organizations, parameter_store, config
-    ):  # pylint: disable=R0912, R0915
+    ):
+        # pylint: disable=too-many-locals
         status = organizations.get_organization_info()
         if status.get("feature_set") != "ALL":
             LOGGER.info(
@@ -165,7 +166,6 @@ class OrganizationPolicy:
                     "Parameter %s was not found in Parameter Store, continuing.",
                     policy,
                 )
-                pass
 
             for _policy in _policies:
                 path = (

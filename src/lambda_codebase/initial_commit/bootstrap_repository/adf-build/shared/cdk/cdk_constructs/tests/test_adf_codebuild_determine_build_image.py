@@ -7,16 +7,16 @@ from copy import deepcopy
 from mock import patch
 from aws_cdk import (
     aws_codebuild as _codebuild,
-    core,
+    Stack,
 )
 from cdk_constructs.adf_codebuild import CodeBuild, DEFAULT_CODEBUILD_IMAGE
 
 SIMPLE_TARGET = {
     'properties': {},
 }
-SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_5_0'
-SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_4_0'
-SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_3_0'
+SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_7_0'
+SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_6_0'
+SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_5_0'
 SPECIFIC_CODEBUILD_IMAGE_ECR = {
     'repository_arn': 'arn:aws:ecr:region:111111111111:repository/test',
     'tag': 'specific',
@@ -68,7 +68,7 @@ def test_determine_build_image_build_defaults(ecr_repo, build_image):
         step. As no specific config for the default build provider is set
         it should return the default config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = None
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     # Set deploy one to alternative, so we can test
@@ -105,7 +105,7 @@ def test_determine_build_image_build_str(ecr_repo, build_image):
         step. As specific config for the default build provider is set
         it should use these, not the deploy specific config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = None
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['build'] = \
@@ -145,7 +145,7 @@ def test_determine_build_image_build_ecr(ecr_repo, build_image):
         it should use these with ECR, not the deploy specific config.
         Plus setting the 'specific' tag, as that is specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = None
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['build'] = \
@@ -196,7 +196,7 @@ def test_determine_build_image_build_ecr_no_tag(ecr_repo, build_image):
         it should use these with ECR, not the deploy specific config.
         Plus setting the 'latest' default tag, as that is not specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = None
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['build'] = deepcopy(
@@ -249,7 +249,7 @@ def test_determine_build_image_deploy_defaults(ecr_repo, build_image):
         step. As no specific config for the default deploy provider is set
         it should return the default config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = SIMPLE_TARGET
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     # Set build one to alternative, so we can test
@@ -287,7 +287,7 @@ def test_determine_build_image_deploy_target_str(ecr_repo, build_image):
         step. As specific config for the target is set it should use these,
         not the default deploy specific config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = CODEBUILD_SPECIFIC_MAP_PARAMS_STR
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     # Set build one to alternative, so we can test
@@ -324,7 +324,7 @@ def test_determine_build_image_deploy_str(ecr_repo, build_image):
         step. As specific config for the default deploy provider is set
         it should use these, not the build specific config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = SIMPLE_TARGET
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['deploy'] = \
@@ -363,7 +363,7 @@ def test_determine_build_image_deploy_target_str_too(ecr_repo, build_image):
         step. As specific config for the target is set it should use these,
         not the default build or deploy specific config.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = CODEBUILD_SPECIFIC_MAP_PARAMS_ALT2_STR
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['deploy'] = \
@@ -403,7 +403,7 @@ def test_determine_build_image_deploy_ecr(ecr_repo, build_image):
         it should use these with ECR, not the build specific config.
         Plus setting the 'specific' tag, as that is specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = SIMPLE_TARGET
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['deploy'] = \
@@ -453,7 +453,7 @@ def test_determine_build_image_deploy_ecr_too(ecr_repo, build_image):
         with ECR, not the default build or deploy specific config.
         Plus setting the 'specific' tag, as that is specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = deepcopy(CODEBUILD_SPECIFIC_MAP_PARAMS_ECR)
     target['properties']['image']['repository_arn'] = 'arn:other:one'
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
@@ -505,7 +505,7 @@ def test_determine_build_image_deploy_ecr_no_tag(ecr_repo, build_image):
         it should use these with ECR, not the build specific config.
         Plus setting the 'latest' default tag, as that is not specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = SIMPLE_TARGET
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['deploy'] = deepcopy(
@@ -558,7 +558,7 @@ def test_determine_build_image_deploy_ecr_no_tag_too(ecr_repo, build_image):
         with ECR, not the default build or deploy specific config.
         Plus setting the 'latest' default tag, as that is not specified.
     """
-    scope = core.Stack()
+    scope = Stack()
     target = deepcopy(CODEBUILD_SPECIFIC_MAP_PARAMS_ECR)
     target['properties']['image']['repository_arn'] = 'arn:other:one'
     del target['properties']['image']['tag']

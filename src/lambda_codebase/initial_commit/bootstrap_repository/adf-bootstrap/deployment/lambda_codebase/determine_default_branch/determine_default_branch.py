@@ -12,6 +12,8 @@ from cfn_custom_resource import (  # pylint: disable=unused-import
     delete,
 )
 
+# pylint: disable=invalid-name
+
 PhysicalResourceId = str
 ResponseData = TypedDict("ResponseData", {
     "DefaultBranchName": str,
@@ -81,7 +83,10 @@ def determine_default_branch_name(repo_name) -> str:
 
 
 @create()
-def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, PhysicalResourceId], ResponseData]:
+def create_(
+    event: Mapping[str, Any],
+    _context: Any,
+) -> Tuple[Union[None, PhysicalResourceId], ResponseData]:
     create_event = CreateEvent(**event)
     repo_name = repo_arn_to_name(create_event.ResourceProperties.RepositoryArn)
     default_branch_name = determine_default_branch_name(repo_name)
@@ -94,7 +99,10 @@ def create_(event: Mapping[str, Any], _context: Any) -> Tuple[Union[None, Physic
 
 
 @update()
-def update_(event: Mapping[str, Any], _context: Any) -> Tuple[PhysicalResourceId, ResponseData]: #pylint: disable=R0912, R0915
+def update_(
+    event: Mapping[str, Any],
+    _context: Any,
+) -> Tuple[PhysicalResourceId, ResponseData]: #pylint: disable=R0912, R0915
     update_event = UpdateEvent(**event)
     repo_name = repo_arn_to_name(update_event.ResourceProperties.RepositoryArn)
     default_branch_name = determine_default_branch_name(repo_name)
