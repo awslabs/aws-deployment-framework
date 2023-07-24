@@ -12,7 +12,7 @@ from ..configure_account_tags import (
 
 global_sdk_config.set_sdk_enabled(False)
 
-# pylint: disable=W0106,R0201
+# pylint: disable=W0106
 class SuccessTestCase(unittest.TestCase):
     def test_account_tag_creation(self):
         test_event = {"account_id": "123456789012", "tags": [{"CreatedBy": "ADF"}]}
