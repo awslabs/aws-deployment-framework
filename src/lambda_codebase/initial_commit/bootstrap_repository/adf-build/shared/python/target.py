@@ -94,7 +94,8 @@ class TargetStructure:
         )
 
         if actions_per_target_account > wave_size:
-            #TODO: Theoretically the region deployment actions could be split
+            # Left of scope:
+            # Theoretically the region deployment actions could be split
             # across different waves but that requires a whole bunch more
             # refactoring as waves are representing accounts not actions today
             raise InsufficientWaveSizeError(
