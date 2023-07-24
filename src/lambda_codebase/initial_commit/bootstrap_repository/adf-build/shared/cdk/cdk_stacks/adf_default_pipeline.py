@@ -175,6 +175,7 @@ def _generate_build_stage_for_pipeline(scope, stack_input):
 
 
 def _generate_stages_with_targets_for_pipeline(scope, stack_input):
+    # pylint: disable=too-many-locals
     stages = []
     for index, targets in enumerate(
         stack_input["pipeline_input"]

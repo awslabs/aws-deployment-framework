@@ -97,6 +97,8 @@ Resources:
 
   KMSKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
       EnableKeyRotation: true
@@ -546,10 +548,13 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
+                  - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Principal:
-              AWS:
-                - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
-                - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
             Action:
               - sts:AssumeRole
       Path: /
@@ -614,6 +619,7 @@ Resources:
               - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
+              - "codecommit:UntagResource"
             Resource:
               - "*"
           - Effect: Allow

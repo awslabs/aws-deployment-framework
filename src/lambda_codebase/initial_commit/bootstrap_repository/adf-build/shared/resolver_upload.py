@@ -57,7 +57,7 @@ class ResolverUpload(BaseResolver):
             item in lookup_str
             for item in S3.supported_path_styles()
         ):
-            raise Exception(
+            raise ValueError(
                 'When uploading to S3 you need to specify a path style'
                 'to use for the returned value to be used. '
                 f'Supported path styles include: {S3.supported_path_styles()}'
@@ -83,7 +83,6 @@ class ResolverUpload(BaseResolver):
     # To enable an easy interface that could do lookups
     # whether a specific lookup string is supported or not it
     # should be instance based. Disabling: no-self-use warning
-    # pylint: disable=R0201
     def supports(self, lookup_str: str) -> bool:
         """
         Check if this resolver supports the lookup_str syntax.

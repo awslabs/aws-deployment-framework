@@ -98,7 +98,7 @@ class ResolverStackOutput(BaseResolver):
             LOGGER.info("Stack output value is %s", stack_output)
             self.cache.add(lookup_str, stack_output)
         elif not optional:
-            raise Exception(
+            raise LookupError(
                 f"No Stack Output found on {account_id} in {region} "
                 f"with stack name {stack_name} and "
                 f"output key {output_key}"
@@ -108,7 +108,6 @@ class ResolverStackOutput(BaseResolver):
     # To enable an easy interface that could do lookups
     # whether a specific lookup string is supported or not it
     # should be instance based. Disabling: no-self-use warning
-    # pylint: disable=R0201
     def supports(self, lookup_str: str) -> bool:
         """
         Check if this resolver supports the lookup_str syntax.

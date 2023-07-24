@@ -21,7 +21,9 @@ class MockOrgClient:
     def __init__(self, return_value) -> None:
         self.values = return_value
 
-    def dir_to_ou(self, path):
+    def get_accounts_in_path(
+        self, path, ou_id, resolve_children=False, excluded_paths=[]
+    ):
         return self.values
 
 
@@ -55,7 +57,7 @@ def test_fetch_accounts_for_target_ou_path():
 
     with patch.object(cls, "_target_is_ou_path") as mock:
         cls.fetch_accounts_for_target()
-        mock.assert_called_once_with()
+        mock.assert_called_once_with(resolve_children=False)
 
 
 def test_fetch_accounts_for_target_account_id():
