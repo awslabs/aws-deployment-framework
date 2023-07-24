@@ -39,7 +39,6 @@ AWS Control Tower prior to installing ADF.**
    for AWS Organizations can only be acted upon in the US East (N. Virginia)
    Region.
 
-
 2. In the AWS Console from your management account within `us-east-1`, head
    over to the Serverless Application Repository *(SAR)*. From there, search
    for `aws-deployment-framework` *(or "adf")* (ensure the checkbox
@@ -64,7 +63,6 @@ AWS Control Tower prior to installing ADF.**
    It is **MANDATORY**, that your designated deployment AWS Account resides in
    the OU `deployment` (case-sensitive!). This can't be changed currently.
    Otherwise, the ADF deployment will fail!
-
 
    Next, specify the `DeploymentAccountMainRegion` parameter as the region that
    will host your deployment pipelines and would be considered your main AWS
