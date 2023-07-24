@@ -18,18 +18,18 @@ def vpc_cleanup(account_id, vpcid, role, region):
         ec2client = ec2.meta.client
         vpc = ec2.Vpc(vpcid)
         # Detach and delete all gateways associated with the VPC
-        for gw in vpc.internet_gateways.all():
-            vpc.detach_internet_gateway(InternetGatewayId=gw.id)
-            gw.delete()
+        for gateway in vpc.internet_gateways.all():
+            vpc.detach_internet_gateway(InternetGatewayId=gateway.id)
+            gateway.delete()
         # Route table associations
-        for rt in vpc.route_tables.all():
-            for rta in rt.associations:
-                if not rta.main:
-                    rta.delete()
+        for route_table in vpc.route_tables.all():
+            for rt_association in route_table.associations:
+                if not rt_association.main:
+                    rt_association.delete()
         # Security Group
-        for sg in vpc.security_groups.all():
-            if sg.group_name != 'default':
-                sg.delete()
+        for security_group in vpc.security_groups.all():
+            if security_group.group_name != 'default':
+                security_group.delete()
         # Network interfaces
         for subnet in vpc.subnets.all():
             for interface in subnet.network_interfaces.all():
@@ -74,7 +74,7 @@ def delete_default_vpc(client, account_id, region, role):
             max_retry_seconds = + 2
             sleep(2)
             if max_retry_seconds <= 0:
-                raise Exception(
+                raise StopIteration(
                     "Could not describe VPCs within retry limit.",
                 ) from error
 

@@ -97,6 +97,8 @@ Resources:
 
   KMSKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Description: Used by Assumed Roles in Accounts accounts to Encrypt/Decrypt code
       EnableKeyRotation: true
@@ -614,6 +616,7 @@ Resources:
               - "codecommit:PutRepositoryTriggers"
               - "codecommit:GetRepository"
               - "codecommit:TagResource"
+              - "codecommit:UntagResource"
             Resource:
               - "*"
           - Effect: Allow

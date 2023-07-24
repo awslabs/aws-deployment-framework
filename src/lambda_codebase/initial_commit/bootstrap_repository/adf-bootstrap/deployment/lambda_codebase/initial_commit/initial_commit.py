@@ -19,6 +19,8 @@ from cfn_custom_resource import (  # pylint: disable=unused-import
     delete,
 )
 
+# pylint: disable=invalid-name
+
 PhysicalResourceId = str
 Data = Mapping[str, str]
 
@@ -51,6 +53,7 @@ AWS Deployment Framework.
 
 @dataclass
 class CustomResourceProperties:
+    # pylint: disable=too-many-instance-attributes
     ServiceToken: str
     RepositoryArn: str
     DirectoryName: str
@@ -247,6 +250,7 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
     Returns:
         str[]: The commit ids of the commits that were created.
     """
+    # pylint: disable=too-many-locals
     directory_path = HERE / directory
     version = event.ResourceProperties.Version
     default_branch_name = event.ResourceProperties.DefaultBranchName
