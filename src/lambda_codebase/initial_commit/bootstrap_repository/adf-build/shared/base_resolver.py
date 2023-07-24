@@ -35,7 +35,6 @@ class BaseResolver(ABC):
         Returns:
             str: The value as looked up using the intrinsic function.
         """
-        pass
 
     @abstractmethod
     def supports(self, lookup_str: str) -> bool:
@@ -50,7 +49,6 @@ class BaseResolver(ABC):
             bool: True if this resolver supports the lookup_str syntax.
                 False if not.
         """
-        pass
 
     @staticmethod
     def _is_optional(value: str) -> bool:

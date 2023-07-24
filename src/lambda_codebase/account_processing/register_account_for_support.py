@@ -29,7 +29,9 @@ class SupportLevel(Enum):
 class Support:  # pylint: disable=R0904
     """Class used for accessing AWS Support API"""
 
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(retries={
+        "max_attempts": 30,
+    })
 
     def __init__(self, role):
         self.client = role.client(
@@ -119,7 +121,11 @@ class Support:  # pylint: disable=R0904
                 account.get("account_full_name"),
                 account_id,
             )
-            self._enable_support_for_account(account, account_id, desired_level)
+            self._enable_support_for_account(
+                account,
+                account_id,
+                desired_level,
+            )
 
         else:
             LOGGER.error(
@@ -142,8 +148,8 @@ class Support:  # pylint: disable=R0904
         support for the account specified by account_id.
 
         :param account: Instance of Account class
-        :param account_id: AWS Account ID, of the account that will have support
-            configured
+        :param account_id: AWS Account ID, of the account that will have
+            support configured
         :param desired_level: Desired Support Level
 
         :return: Void

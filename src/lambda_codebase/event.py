@@ -19,6 +19,8 @@ class Event:
     """
     Class for structuring the Event in Step Functions
     """
+
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, event, parameter_store, organizations, account_id):
         self.parameter_store = parameter_store
         self.config = ast.literal_eval(
