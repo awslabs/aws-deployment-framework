@@ -37,7 +37,8 @@ class Organizations:  # pylint: disable=R0904
     ):
         if role:
             LOGGER.warning(
-                "Using a role in the organizations client is being deprecated. Please provide the relevant clients to remove this warning"
+                "Deprecation warning: Using a role in the organizations client is being "
+                "deprecated. Please provide the relevant clients to remove this warning"
             )
         if not role:
             if not org_client:
@@ -362,7 +363,8 @@ class Organizations:  # pylint: disable=R0904
 
     def dir_to_ou(self, path):
         LOGGER.warning(
-            "Deprecation Warning: The method dir_to_ou() is deprecated, use get_accounts_in_path() instead"
+            "Deprecation warning: The method dir_to_ou() is deprecated, "
+            "use get_accounts_in_path() instead"
         )
         return self.get_accounts_in_path(path)
 
