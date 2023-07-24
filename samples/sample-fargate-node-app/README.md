@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
           privileged: true
           # ^ Required for Docker in Docker to work as expected (since
           #   CodeBuild will run our docker commands to create and push our

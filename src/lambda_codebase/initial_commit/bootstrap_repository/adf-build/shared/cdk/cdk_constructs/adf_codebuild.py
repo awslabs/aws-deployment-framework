@@ -12,27 +12,29 @@ from aws_cdk import (
     aws_kms as _kms,
     aws_ecr as _ecr,
     aws_ec2 as _ec2,
-    core
+    Stack,
+    Duration,
+    Aws,
 )
+from constructs import Construct
 
 from cdk_constructs.adf_codepipeline import Action
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-DEFAULT_CODEBUILD_IMAGE = "UBUNTU_14_04_PYTHON_3_7_1"
+DEFAULT_CODEBUILD_IMAGE = "STANDARD_7_0"
 DEFAULT_BUILD_SPEC_FILENAME = 'buildspec.yml'
 DEFAULT_DEPLOY_SPEC_FILENAME = 'deployspec.yml'
 ADF_DEFAULT_BUILD_ROLE_NAME = 'adf-codebuild-role'
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
-class CodeBuild(core.Construct):
-    # pylint: disable=no-value-for-parameter
+class CodeBuild(Construct):
+    # pylint: disable=no-value-for-parameter, too-many-locals
 
-    # pylint: disable=W0622
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         id: str,
         shared_modules_bucket: str,
         deployment_region_kms: str,
@@ -43,7 +45,7 @@ class CodeBuild(core.Construct):
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
-        stack = core.Stack.of(self)
+        stack = Stack.of(self)
 
         # if CodeBuild is being used as a deployment action we want to allow
         # target specific values.
@@ -123,7 +125,7 @@ class CodeBuild(core.Construct):
                 ),
                 description=f"ADF CodeBuild Project for {id}",
                 project_name=f"adf-deploy-{id}",
-                timeout=core.Duration.minutes(timeout),
+                timeout=Duration.minutes(timeout),
                 role=_iam.Role.from_role_arn(
                     self,
                     'build_role',
@@ -205,7 +207,7 @@ class CodeBuild(core.Construct):
                 ),
                 description=f"ADF CodeBuild Project for {map_params['name']}",
                 project_name=f"adf-build-{map_params['name']}",
-                timeout=core.Duration.minutes(timeout),
+                timeout=Duration.minutes(timeout),
                 build_spec=build_spec,
                 role=_iam.Role.from_role_arn(
                     self,
@@ -244,7 +246,7 @@ class CodeBuild(core.Construct):
         )
         if vpc_id:
             if not subnet_ids:
-                raise Exception(
+                raise ValueError(
                     "CodeBuild environment of "
                     f"{self.pipeline_project.project_name} has a "
                     f"VPC Id ({vpc_id}) set, but no subnets are configured. "
@@ -280,7 +282,7 @@ class CodeBuild(core.Construct):
                 },
             )
         elif subnet_ids or security_group_ids:
-            raise Exception(
+            raise ValueError(
                 "CodeBuild environment of "
                 f"{self.pipeline_project.project_name} requires a VPC Id when "
                 "configured to connect to specific subnets."
@@ -296,7 +298,7 @@ class CodeBuild(core.Construct):
         filename = props.get('spec_filename')
         spec_inline = props.get('spec_inline', {})
         if filename and spec_inline:
-            raise Exception(
+            raise AssertionError(
                 "The spec_filename and spec_inline are both present "
                 f"inside the {stage_name} stage definition of {codebuild_id}. "
                 "Whereas only one of these two is allowed."
@@ -350,7 +352,7 @@ class CodeBuild(core.Construct):
             return _codebuild.LinuxBuildImage.from_docker_registry(
                 specific_image,
             )
-        raise Exception(
+        raise ValueError(
             f"The CodeBuild image {specific_image} could not be found."
         )
 
@@ -399,7 +401,7 @@ class CodeBuild(core.Construct):
             "ADF_DEPLOYMENT_MAP_SOURCE": deployment_map_source,
             "ADF_DEPLOYMENT_MAP_NAME": deployment_map_name,
             "S3_BUCKET_NAME": shared_modules_bucket,
-            "ACCOUNT_ID": core.Aws.ACCOUNT_ID,
+            "ACCOUNT_ID": Aws.ACCOUNT_ID,
             **(
                 map_params
                 .get('default_providers', {})
