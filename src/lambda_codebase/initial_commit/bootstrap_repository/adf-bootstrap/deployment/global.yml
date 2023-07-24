@@ -554,7 +554,7 @@ Resources:
                   - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
                   - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Principal:
-              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
             Action:
               - sts:AssumeRole
       Path: /
