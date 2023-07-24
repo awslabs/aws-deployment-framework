@@ -11,8 +11,10 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_events as _eventbridge,
     aws_events_targets as _eventbridge_targets,
-    core
+    SecretValue,
+    Fn,
 )
+from constructs import Construct
 
 from cdk_constructs import adf_events
 from logger import configure_logger
@@ -44,6 +46,7 @@ def get_partition(region_name: str) -> str:
 ADF_DEPLOYMENT_PARTITION = get_partition(ADF_DEPLOYMENT_REGION)
 
 
+# pylint: disable=too-many-instance-attributes
 class Action:
     _version = "1"
 
@@ -194,7 +197,7 @@ class Action:
                 .get('repository', self.map_params['name'])
             )
             if not default_source_props.get('codestar_connection_arn'):
-                raise Exception(
+                raise ValueError(
                     "The CodeStar Connection Arn could not be resolved for "
                     f"the {self.map_params['name']} pipeline. Please check "
                     "whether the codestar_connection_path is setup correctly "
@@ -241,7 +244,7 @@ class Action:
                     .get('branch', self.default_scm_branch)
                 ),
                 # pylint: disable=no-value-for-parameter
-                "OAuthToken": core.SecretValue.secrets_manager(
+                "OAuthToken": SecretValue.secrets_manager(
                     (
                         self.map_params['default_providers']['source']
                         .get('properties', {})
@@ -500,7 +503,7 @@ class Action:
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props
-        raise Exception(f"{self.provider} is not a valid provider")
+        raise ValueError(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
         account_id = (
@@ -561,7 +564,7 @@ class Action:
             )
         if self.provider == "Manual":
             return None
-        raise Exception(f'Invalid Provider {self.provider}')
+        raise ValueError(f'Invalid Provider {self.provider}')
 
     def generate(self):
         pipeline_role = self._generate_codepipeline_access_role()
@@ -682,7 +685,7 @@ class Action:
         return []
 
 
-class Pipeline(core.Construct):
+class Pipeline(Construct):
     _import_arns = [
         'CodePipelineRoleArn',
         'CodeBuildRoleArn',
@@ -696,7 +699,7 @@ class Pipeline(core.Construct):
     # pylint: disable=W0622
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         id: str,
         map_params: dict,
         ssm_params: dict,
@@ -827,16 +830,18 @@ class Pipeline(core.Construct):
         output = []
         for arn in Pipeline._import_arns:
             # pylint: disable=no-value-for-parameter
-            output.append(core.Fn.import_value(arn))
+            output.append(Fn.import_value(arn))
         return output
 
     def add_pipeline_trigger(self, trigger_type, trigger_config):
         if trigger_type not in self._accepted_triggers:
             LOGGER.error(
-                f"{trigger_type} is not currently supported. "
-                f"Supported values are: {self._accepted_triggers.keys()}"
+                "%s is not currently supported. "
+                "Supported values are: %s",
+                trigger_type,
+                ', '.join(self._accepted_triggers.keys()),
             )
-            raise Exception(
+            raise ValueError(
                 f"{trigger_type} is not currently supported as "
                 "a pipeline trigger"
             )

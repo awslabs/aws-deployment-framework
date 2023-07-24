@@ -12,9 +12,9 @@ from logger import configure_logger
 LOGGER = configure_logger(__name__)
 PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
 SSM_CONFIG = Config(
-    retries=dict(
-        max_attempts=10
-    )
+    retries={
+        "max_attempts": 10,
+    },
 )
 
 

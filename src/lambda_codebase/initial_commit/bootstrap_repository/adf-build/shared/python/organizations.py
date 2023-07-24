@@ -30,7 +30,11 @@ class Organizations:  # pylint: disable=R0904
     Class used for modeling Organizations
     """
 
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(
+        retries={
+            "max_attempts": 30,
+        },
+    )
 
     def __init__(
         self, role=None, account_id=None, org_client=None, tagging_client=None
@@ -158,7 +162,8 @@ class Organizations:  # pylint: disable=R0904
                 )
                 org_structure[trimmed_path] = account_id
         counter = counter + 1
-        # Counter is greater than 5 here is the conditional as organizations cannot have more than 5 levels of nested OUs + 1 accounts "level"
+        # Counter is greater than 5 here is the conditional as organizations
+        # cannot have more than 5 levels of nested OUs + 1 accounts "level"
         return (
             org_structure
             if counter > 5
@@ -348,17 +353,19 @@ class Organizations:  # pylint: disable=R0904
         return self.client.list_roots().get("Roots")[0].get("Id")
 
     def ou_path_to_id(self, path):
-        p = path.split("/")[1:]
+        nested_dir_paths = path.split('/')[1:]
         ou_id = self.get_ou_root_id()
 
-        while p:
+        while nested_dir_paths:
             for ou in self.get_child_ous(ou_id):
-                if ou["Name"] == p[0]:
-                    p.pop(0)
-                    ou_id = ou["Id"]
+                if ou['Name'] == nested_dir_paths[0]:
+                    nested_dir_paths.pop(0)
+                    ou_id = ou['Id']
                     break
             else:
-                raise Exception(f"Path {path} failed to return a child OU at '{p[0]}'")
+                raise ValueError(
+                    f"Path {path} failed to return a child OU at '{nested_dir_paths[0]}'",
+                )
         return ou_id
 
     def dir_to_ou(self, path):
@@ -435,9 +442,10 @@ class Organizations:  # pylint: disable=R0904
     def list_organizational_units_for_parent(self, parent_ou):
         organizational_units = [
             ou
-            for org_units in self.client.get_paginator(
-                "list_organizational_units_for_parent"
-            ).paginate(ParentId=parent_ou)
+            for org_units in (
+                self.client.get_paginator("list_organizational_units_for_parent")
+                .paginate(ParentId=parent_ou)
+            )
             for ou in org_units["OrganizationalUnits"]
         ]
         return organizational_units
@@ -482,7 +490,7 @@ class Organizations:  # pylint: disable=R0904
                     break
             else:
                 raise ValueError(
-                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}."
+                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}.",
                 )
 
         return parent_ou_id

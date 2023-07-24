@@ -22,7 +22,7 @@ example:
     deploy:
       provider: codebuild
       properties:
-        image: "STANDARD_5_0"
+        image: "STANDARD_7_0"
         environment_variables:
           TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
           TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs

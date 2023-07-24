@@ -12,7 +12,7 @@
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0" # So we can specify which Python version we need
+          image: "STANDARD_7_0" # So we can specify which Python version we need
     targets:
       - 222222222222
       - path: 333333333333

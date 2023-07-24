@@ -8,8 +8,9 @@ import os
 from aws_cdk import (
     aws_codestarnotifications as cp_notifications,
     aws_codepipeline as codepipeline,
-    core,
+    Stack,
 )
+from constructs import Construct
 from logger import configure_logger
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
@@ -28,17 +29,17 @@ EVENT_TYPE_IDS = [
 ]
 
 
-class PipelineNotifications(core.Construct):
+class PipelineNotifications(Construct):
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         id: str,
         pipeline: codepipeline.CfnPipeline,
         notification_config,
         **kwargs,
     ):  # pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
-        stack = core.Stack.of(self)
+        stack = Stack.of(self)
         slack_channel_arn = (
             f"arn:{stack.partition}:chatbot::{ADF_DEPLOYMENT_ACCOUNT_ID}:"
             f"chat-configuration/slack-channel/"
