@@ -157,9 +157,12 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role
+                  - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
             Action:
               - sts:AssumeRole
       Path: /
@@ -224,9 +227,11 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRoleByEnableCrossAccountLambda"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
             Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
       Path: /

@@ -548,10 +548,13 @@ Resources:
         Statement:
           - Effect: Allow
             Sid: "AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
+                  - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
             Principal:
-              AWS:
-                - !GetAtt PipelineManagementApplication.Outputs.CreateRepositoryLambdaRoleArn
-                - !GetAtt PipelineManagementApplication.Outputs.CreateOrUpdateRuleLambdaRoleArn
+              AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
       Path: /
