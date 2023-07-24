@@ -6,8 +6,7 @@
 - [git](https://git-scm.com/)
   - [AWS CodeCommit Setup](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html)
 - [AWS CloudTrail configured](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
-
-in the `us-east-1` region within the AWS Organizations Management AWS Account.
+  in the `us-east-1` region within the AWS Organizations Management AWS Account.
 
 ## ADF-Compability with AWS Control Tower
 
@@ -20,9 +19,10 @@ ADF augments AWS Control Tower. A common operations model is defined as follows:
 
 In the following, we assume that you install ADF without AWS Control Tower.
 However, if a specific installation step requires a "AWS Control Tower-specific
-actions, we call those out explicitly.
+action, we call those out explicitly.
 
 It is okay to install ADF and AWS Control Tower in different regions. Example:
+
 - Install AWS Control Tower in eu-central-1.
 - Install ADF in us-east-1.
 
@@ -115,11 +115,11 @@ AWS Control Tower prior to installing ADF.**
       console, or add your deployment account into a `.yml` file within the
       `adf-accounts` folder *(see docs)*.
 
-   OPTION 4.3: ONLY applies when reusing an pre-created deployment account
+   OPTION 4.3: ONLY applies when reusing a pre-existing deployment account
    AND when using AWS Control Tower for vending AWS Accounts
 
-    - Ensure that AWS Control Tower-created deployment AWS Account resides in
-      the OU `deployment` (case-sensitive!).
+    - Ensure that the AWS Control Tower-created deployment AWS Account
+      resides in the OU `deployment` (case-sensitive!).
 
    Regardless of the option taken above, after AWS Account creation, you should
    see an [AWS Step Functions](https://aws.amazon.com/step-functions/) run
