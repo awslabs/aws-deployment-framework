@@ -796,6 +796,7 @@ Resources:
                   - "codepipeline:RegisterWebhookWithThirdParty"
                   - "codepipeline:StartPipelineExecution"
                   - "codepipeline:TagResource"
+                  - "codepipeline:UntagResource"
                   - "codepipeline:UpdatePipeline"
                 Resource:
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
@@ -817,6 +818,7 @@ Resources:
                   - "sns:SetTopicAttributes"
                   - "sns:GetTopicAttributes"
                   - "sns:TagResource"
+                  - "sns:UntagResource"
                   - "sns:ListSubscriptionsByTopic"
                 Resource:
                   - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
@@ -889,6 +891,11 @@ Resources:
                   - "iam:TagPolicy"
                   - "iam:TagRole"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/github_token-*"
 
   DeploymentMapProcessingFunction:
     Type: 'AWS::Serverless::Function'

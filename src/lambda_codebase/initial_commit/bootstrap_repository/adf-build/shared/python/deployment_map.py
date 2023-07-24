@@ -89,7 +89,8 @@ class DeploymentMap:
         if os.path.isdir(self.map_dir_path):
             self._process_dir(self.map_dir_path)
         self.determine_extend_map(
-            self._read()  # Calling with default no args to get deployment_map.yml in root if it exists
+            # Calling with default no args to get deployment_map.yml in root if it exists
+            self._read()
         )
         if not self.map_contents['pipelines']:
             LOGGER.error(
@@ -103,7 +104,7 @@ class DeploymentMap:
     def _process_dir(self, path):
         files = [os.path.join(path, f) for f in os.listdir(path)]
         for filename in files:
-            LOGGER.info(f"Processing {filename} in path {path}")
+            LOGGER.info("Processing %s in path %s", filename, path)
             if os.path.isdir(filename):
                 self._process_dir(filename)
             elif filename.endswith(".yml") and filename != "example-deployment_map.yml":
@@ -111,4 +112,7 @@ class DeploymentMap:
                     self._read(filename)
                 )
             else:
-                LOGGER.warning("%s is not a directory and doesn't hold the .yml suffix", filename)
+                LOGGER.warning(
+                    "%s is not a directory and doesn't hold the .yml suffix",
+                    filename,
+                )

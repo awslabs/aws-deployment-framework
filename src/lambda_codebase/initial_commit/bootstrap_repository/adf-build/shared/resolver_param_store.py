@@ -73,7 +73,6 @@ class ResolverParamStore(BaseResolver):
     # To enable an easy interface that could do lookups
     # whether a specific lookup string is supported or not it
     # should be instance based. Disabling: no-self-use warning
-    # pylint: disable=R0201
     def supports(self, lookup_str: str) -> bool:
         """
         Check if this resolver supports the lookup_str syntax.

@@ -112,7 +112,8 @@ def main():
     The two options defined using the `-f` argument, specify that we are
     interested in the `Id` and the `Email` of the member accounts.
     All other details that would otherwise be returned by the
-    [Organizations: ListAccounts](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/organizations.html#Organizations.Client.list_accounts)
+    [Organizations: ListAccounts](
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/organizations.html#Organizations.Client.list_accounts)
     API will be ignored.
 
     ---
