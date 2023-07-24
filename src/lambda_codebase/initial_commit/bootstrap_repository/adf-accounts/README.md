@@ -7,6 +7,12 @@ Organization. This process enables to end-to-end bootstrapping and associated
 pipeline generation for new AWS Accounts and is the recommended way to provision
 and setup AWS Accounts via ADF.
 
+**Note on Provisioning AWS Accounts via AWS Control Tower**
+ADF is fully compatible with [AWS Control Tower](https://aws.amazon.com/de/controltower/).
+If you deployed ADF and AWS Control Tower in your AWS Organization and if you
+opted for vending AWS Accounts via AWS Control Tower, you can ignore the ADF
+Account Provisioning feature.
+
 ## Overview
 
 When setting ADF for the first time you will have an auto-generated `adf.yml`
