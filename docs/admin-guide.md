@@ -215,13 +215,14 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
 - `org` configures settings in case of staged multi-organization ADF deployments.
   - `stage` defines the AWS Organization stage in case of staged multi-
     organization ADF deployments. This is an optional setting. In enterprise-
-    grade deployments, it is a common practice to define an explicit dev, int and 
-    prod AWS Organization with its own ADF instance per AWS organization. This 
-    approach allows for well-tested and stable prod AWS Organization deployments. 
-    If set, a matching SSM parameter `/adf/org/stage` gets created that you can 
-    reference in your buildspec files to allow for org-specific deployments; without 
-    hardcoding the AWS Organization stage in your buildspec. If this variable is not 
-    set, the SSM parameter `/adf/org/stage` defaults to "none".
+    grade deployments, it is a common practice to define an explicit dev, int
+    and prod AWS Organization with its own ADF instance per AWS organization.
+    This approach allows for well-tested and stable prod AWS Organization
+    deployments.  If set, a matching SSM parameter `/adf/org/stage` gets
+    created that you can reference in your buildspec files to allow for
+    org-specific deployments; without hardcoding the AWS Organization stage in
+    your buildspec. If this variable is not set, the SSM parameter
+    `/adf/org/stage` defaults to "none".
 
 ## Accounts
 
