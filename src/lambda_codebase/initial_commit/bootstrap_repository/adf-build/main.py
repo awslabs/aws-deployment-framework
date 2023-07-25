@@ -121,8 +121,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         f'{config.cross_account_access_role}',
         'master'
     )
-    for region in list(
-            set([config.deployment_account_region] + config.target_regions)):
+    for region in sorted(list(
+            set([config.deployment_account_region] + config.target_regions))):
         deployment_account_parameter_store = ParameterStore(
             region,
             deployment_account_role
