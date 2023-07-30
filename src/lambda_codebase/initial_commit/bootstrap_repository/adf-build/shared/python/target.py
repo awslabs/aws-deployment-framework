@@ -12,7 +12,7 @@ import os
 from errors import InvalidDeploymentMapError, NoAccountsFoundError
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
-
+from botocore.exceptions import ClientError
 from errors import ParameterNotFoundError
 from parameter_store import ParameterStore
 import boto3
@@ -99,10 +99,12 @@ class Target:
         )
         self.target_structure = target_structure
         self.organizations = organizations
+        # Set allow_empty_deployment_maps as bool
         parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
-        self.allow_empty_deployment_maps = parameter_store.fetch_parameter(
-            "/adf/deployment-maps/allow-empty-target"
-        )
+        adf_deployment_maps_allow_empty_bool = parameter_store.fetch_parameter(
+            "/adf/deployment-maps/allow-empty"
+        ).lower().capitalize() == "True"
+        self.allow_empty_deployment_maps = adf_deployment_maps_allow_empty_bool
 
 
     @staticmethod
@@ -144,21 +146,27 @@ class Target:
                     )
                 )
 
-        if self.allow_empty_deployment_maps == "TRUE":
-            # We now allow empty deployment maps
-            if accounts_found == 0:
+        if accounts_found == 0:
+            if self.allow_empty_deployment_maps is True:
                 LOGGER.info(
-                    'Create_response_object: AWS accounts found is 0',
+                    "Create_response_object: AWS accounts found is 0 for path %s. Continue with empty response.", self.path
                 )
-        else:
-            if accounts_found == 0:
-                raise NoAccountsFoundError(f"No accounts found in {self.path}")
+            else:
+                raise NoAccountsFoundError(f"No accounts found in {self.path}.")
 
     def _target_is_account_id(self):
-        responses = self.organizations.client.describe_account(
-            AccountId=str(self.path)
-        ).get('Account')
-        self._create_response_object([responses])
+        try:
+            responses = self.organizations.client.describe_account(
+                AccountId=str(self.path)
+            ).get('Account')
+            responses_list = [responses]
+        except ClientError as client_err:
+            if (client_err.response["Error"]["Code"] == "AccountNotFoundException") and self.allow_empty_deployment_maps is True:
+                LOGGER.info("IGNORE - Account was not found in AWS Org for id %s", self.path)
+                responses_list = []
+            else:
+                raise
+        self._create_response_object(responses_list)
 
     def _target_is_tags(self):
         responses = self.organizations.get_account_ids_for_tags(self.path)
@@ -177,13 +185,29 @@ class Target:
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
-        responses = self.organizations.get_accounts_for_parent(
-            str(self.path)
-        )
+        try: 
+            # Check if ou exists - otherwise throw clean exception here
+            self.organizations.client.list_children(ParentId=self.path, ChildType="ACCOUNT")
+            responses = self.organizations.get_accounts_for_parent(
+                str(self.path)
+            )
+        except ClientError as client_err:
+            if client_err.response["Error"]["Code"] == "ParentNotFoundException" and self.allow_empty_deployment_maps is True:
+                LOGGER.info("IGNORE - Target OU was not found in AWS Org for %s", self.path)
+                responses = []
+            else:
+                raise
         self._create_response_object(responses)
 
     def _target_is_ou_path(self):
-        responses = self.organizations.dir_to_ou(self.path)
+        try: 
+            responses = self.organizations.dir_to_ou(self.path)
+        except Exception:
+            if self.allow_empty_deployment_maps is True:
+                LOGGER.info("IGNORE - Target OU was not found in AWS Org for path %s", self.path)
+                responses = []
+            else:
+                raise        
         self._create_response_object(responses)
 
     def _target_is_null_path(self):
@@ -222,13 +246,13 @@ class Target:
         if str(self.path).startswith('/'):
             return self._target_is_ou_path()
         
-        if self.allow_empty_deployment_maps == "TRUE":
+        if self.allow_empty_deployment_maps is True:
             return
-        else: 
-            if self.path is None:
-                # No path/target has been passed, path will default to /deployment
-                return self._target_is_null_path()
+
+        if self.path is None:
+            # No path/target has been passed, path will default to /deployment
+            return self._target_is_null_path()
             
-            raise InvalidDeploymentMapError(
-                f"Unknown definition for target: {self.path}"
-            )
+        raise InvalidDeploymentMapError(
+            f"Unknown definition for target: {self.path}"
+        )
