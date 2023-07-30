@@ -140,12 +140,16 @@ def generate_pipeline_inputs(
             list(target_structure.generate_waves()),
         )
 
-    # Print out if final target list is empty...
-    number_targets_total = 0
+    # Print out final target list...
+    LOGGER.info("Targets Found:")
+    LOGGER.info(pipeline_object.template_dictionary["targets"])
+    number_of_targets = 0
     for target in pipeline_object.template_dictionary["targets"]:
-        number_targets_total = number_targets_total + len(target)
-    LOGGER.info("Total number of accounts found: %d", number_targets_total)
-    if number_targets_total == 0:
+        for target_accounts in target:
+            number_of_targets = number_of_targets + len(target_accounts)
+    if number_of_targets > 0:
+        LOGGER.info("Found %s targets total", number_of_targets)
+    else:
         LOGGER.info("Creating empty pipeline as there were no targets found")
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
