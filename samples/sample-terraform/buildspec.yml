@@ -10,6 +10,7 @@ phases:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
       - export PATH=$PATH:$(pwd)
       - bash adf-build/helpers/terraform/install_terraform.sh
+      - pip install --upgrade pip
       - pip install -r adf-build/requirements.txt -q
   build:
     commands:
