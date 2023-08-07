@@ -141,16 +141,17 @@ def generate_pipeline_inputs(
         )
 
     # Print out final target list...
-    LOGGER.info("Targets Found:")
-    LOGGER.info(pipeline_object.template_dictionary["targets"])
+    LOGGER.info(
+        "Targets found: %s",
+        pipeline_object.template_dictionary["targets"],
+    )
     number_of_targets = 0
     for target in pipeline_object.template_dictionary["targets"]:
         for target_accounts in target:
             number_of_targets = number_of_targets + len(target_accounts)
-    if number_of_targets > 0:
-        LOGGER.info("Found %s targets total", number_of_targets)
-    else:
-        LOGGER.info("Creating empty pipeline as there were no targets found")
+    LOGGER.info("Number of targets found: %d", number_of_targets)
+    if number_of_targets == 0:
+        LOGGER.info("Attempting to create an empty pipeline as there were no targets found")
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)

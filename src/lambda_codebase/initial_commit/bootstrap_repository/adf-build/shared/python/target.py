@@ -143,12 +143,13 @@ class Target:
                 )
 
         if accounts_found == 0:
-            if self.allow_empty_deployment_maps is True:
-                LOGGER.info(
-                    "Create_response_object: AWS accounts found is 0 for path %s. Continue with empty response.", self.path
-                )
-            else:
+            if self.allow_empty_deployment_maps is False:
                 raise NoAccountsFoundError(f"No accounts found in {self.path}.")
+            LOGGER.info(
+                "Create_response_object: 0 AWS accounts found for path %s. "
+                "Continue with empty response.",
+                self.path,
+            )
 
     def _target_is_account_id(self):
         try:
@@ -181,34 +182,46 @@ class Target:
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
-        try: 
+        try:
             # Check if ou exists - otherwise throw clean exception here
             self.organizations.client.list_children(ParentId=self.path, ChildType="ACCOUNT")
             responses = self.organizations.get_accounts_for_parent(
                 str(self.path)
             )
         except ClientError as client_err:
-            if client_err.response["Error"]["Code"] == "ParentNotFoundException" and self.allow_empty_deployment_maps is True:
-                LOGGER.info("IGNORE - Target OU was not found in AWS Org for %s", self.path)
+            no_target_found = (
+                client_err.response["Error"]["Code"] == "ParentNotFoundException"
+            )
+            if no_target_found and self.allow_empty_deployment_maps is True:
+                LOGGER.info(
+                    "Note: Target OU was not found in the AWS Org for id %s",
+                    self.path,
+                )
                 responses = []
             else:
                 raise
         self._create_response_object(responses)
 
     def _target_is_ou_path(self, resolve_children=False):
-        try: 
+        try:
           responses = self.organizations.get_accounts_in_path(
               self.path,
               resolve_children=resolve_children,
               ou_id=None,
               excluded_paths=[],
           )
-        except Exception:
-            if self.allow_empty_deployment_maps is True:
-                LOGGER.info("IGNORE - Target OU was not found in AWS Org for path %s", self.path)
+        except ClientError as client_err:
+            no_target_found = (
+                client_err.response["Error"]["Code"] == "ParentNotFoundException"
+            )
+            if no_target_found and self.allow_empty_deployment_maps is True:
+                LOGGER.info(
+                    "Note: Target OU was not found in AWS Org for path %s",
+                    self.path,
+                )
                 responses = []
             else:
-                raise        
+                raise
         self._create_response_object(responses)
 
     def _target_is_null_path(self):
@@ -248,7 +261,7 @@ class Target:
             return self._target_is_ou_path(
                 resolve_children=str(self.path).endswith(RECURSIVE_SUFFIX)
             )
-          
+
         if self.allow_empty_deployment_maps is True:
             return
 
