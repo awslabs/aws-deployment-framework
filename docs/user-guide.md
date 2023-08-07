@@ -271,9 +271,15 @@ targets:
       # stages, each stage containing up to X accounts
       size: 30
     exclude:
-      # (Optional) List of accounts to exclude from this target.
-      # Currently only supports account Ids
+      # (Optional) List of accounts to exclude from this path.
       - 9999999999
+    properties: ...
+  - path: /my_ou/production/**/*  # This would target all accounts in the OU path
+    regions: [eu-central-1, us-west-1]
+    name: production_step
+    exclude: # (Optional) List of OU Paths and Account Ids
+      - /my-ou/production/alpha # excludes any accounts and OUs in this path.
+      - 11111111111 # Excludes this account, regardless of OU path.
     properties: ...
 ```
 

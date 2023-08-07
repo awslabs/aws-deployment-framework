@@ -30,9 +30,8 @@ ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
 class CodeBuild(Construct):
-    # pylint: disable=no-value-for-parameter
+    # pylint: disable=no-value-for-parameter, too-many-locals
 
-    # pylint: disable=W0622
     def __init__(
         self,
         scope: Construct,
@@ -247,7 +246,7 @@ class CodeBuild(Construct):
         )
         if vpc_id:
             if not subnet_ids:
-                raise Exception(
+                raise ValueError(
                     "CodeBuild environment of "
                     f"{self.pipeline_project.project_name} has a "
                     f"VPC Id ({vpc_id}) set, but no subnets are configured. "
@@ -283,7 +282,7 @@ class CodeBuild(Construct):
                 },
             )
         elif subnet_ids or security_group_ids:
-            raise Exception(
+            raise ValueError(
                 "CodeBuild environment of "
                 f"{self.pipeline_project.project_name} requires a VPC Id when "
                 "configured to connect to specific subnets."
@@ -299,7 +298,7 @@ class CodeBuild(Construct):
         filename = props.get('spec_filename')
         spec_inline = props.get('spec_inline', {})
         if filename and spec_inline:
-            raise Exception(
+            raise AssertionError(
                 "The spec_filename and spec_inline are both present "
                 f"inside the {stage_name} stage definition of {codebuild_id}. "
                 "Whereas only one of these two is allowed."
@@ -353,7 +352,7 @@ class CodeBuild(Construct):
             return _codebuild.LinuxBuildImage.from_docker_registry(
                 specific_image,
             )
-        raise Exception(
+        raise ValueError(
             f"The CodeBuild image {specific_image} could not be found."
         )
 

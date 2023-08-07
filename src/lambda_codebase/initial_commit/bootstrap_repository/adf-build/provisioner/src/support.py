@@ -17,11 +17,15 @@ class SupportLevel(Enum):
     ENTERPRISE = "enterprise"
 
 
-class Support: # pylint: disable=R0904
+class Support:  # pylint: disable=R0904
     """
     Class used for accessing AWS Support API
     """
-    _config = Config(retries=dict(max_attempts=30))
+    _config = Config(
+        retries={
+            "max_attempts": 30,
+        },
+    )
 
     def __init__(self, role):
         self.client = role.client(
@@ -126,7 +130,12 @@ class Support: # pylint: disable=R0904
                 f'Invalid Support Tier Value: {desired_level.value}'
             )
 
-    def _enable_support_for_account(self, account: Account, account_id, desired_level: SupportLevel):
+    def _enable_support_for_account(
+        self,
+        account: Account,
+        account_id,
+        desired_level: SupportLevel,
+    ):
         """
         Raises a support ticket in the organization root account, enabling]
         support for the account specified by account_id.
