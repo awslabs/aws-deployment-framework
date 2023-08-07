@@ -48,7 +48,7 @@ class Repo:
             if repository.get('repositoryMetadata', {}).get('Arn'):
                 LOGGER.debug("Found Repository: %s", repository)
                 return True
-        except codecommit.exceptions.RepositoryDoesNotExistException as err: # Let any other exception raise
+        except codecommit.exceptions.RepositoryDoesNotExistException as err:
             LOGGER.debug("Exception Caught: %s", err)
             LOGGER.debug(
                 "The Repository: %s doesn't exist within account: %s returning repo_exists=False", 
@@ -91,7 +91,8 @@ class Repo:
             if _stack_status == "ROLLBACK_COMPLETE":
                 # Theres some manual cleanup necessary here so lets log a warning and continue.
                 LOGGER.info(
-                    "Stack %s in ROLLBACK_COMPLETE but the repository still exists, manual intervention maybe necessary",
+                    "Stack %s in ROLLBACK_COMPLETE but the repository still exists, "
+                    "manual intervention maybe necessary",
                     self.stack_name,
                 )
                 return
