@@ -146,20 +146,25 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     )
     deployment_account_parameter_store.put_parameter(
         'default_scm_branch',
-        config.config.get('scm', {}).get(
-            'default-scm-branch',
-            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        (
+            config.config
+            .get('scm', {})
+            .get('default-scm-branch', ADF_DEFAULT_SCM_FALLBACK_BRANCH)
         )
     )
     deployment_account_parameter_store.put_parameter(
         '/adf/scm/default-scm-codecommit-account-id',
-        config.config.get('scm', {}).get(
-            'default-scm-codecommit-account-id',
-            deployment_account_id,
+        (
+            config.config
+            .get('scm', {})
+            .get('default-scm-codecommit-account-id', deployment_account_id)
         )
     )
-    auto_create_repositories = config.config.get(
-        'scm', {}).get('auto-create-repositories')
+    auto_create_repositories = (
+        config.config
+        .get('scm', {})
+        .get('auto-create-repositories')
+    )
     if auto_create_repositories is not None:
         deployment_account_parameter_store.put_parameter(
             'auto_create_repositories', str(auto_create_repositories)

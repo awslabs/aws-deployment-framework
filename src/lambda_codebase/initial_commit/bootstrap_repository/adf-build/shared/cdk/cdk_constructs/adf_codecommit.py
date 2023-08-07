@@ -24,20 +24,29 @@ class CodeCommit(Construct):
         super().__init__(scope, id, **kwargs)
         default_providers = map_params.get("default_providers", {})
         source_props = default_providers.get("source", {}).get("properties", {})
-        
+
         # Resolve account_id in case it is not set
-        # Evaluate as follows: 
+        # Evaluate as follows:
         # If account_id not set, we have to set it as follows:
         #   - set via default_scm_codecommit_account_id (if exists)
         #   - or set via ADF_DEPLOYMENT_ACCOUNT_ID
-        default_scm_codecommit_account_id = map_params.get("default_scm_codecommit_account_id", "")
+        default_scm_codecommit_account_id = (
+            map_params
+            .get("default_scm_codecommit_account_id", "")
+        )
         if not source_props.get("account_id"):
             if default_scm_codecommit_account_id:
                 account_id = default_scm_codecommit_account_id
-                LOGGER.debug("account_id not found in source_props - ADF will set it from default_scm_codecommit_account_id.")
+                LOGGER.debug(
+                    "account_id not found in source_props - ADF will set it "
+                    "from default_scm_codecommit_account_id.",
+                )
             else:
                 account_id = ADF_DEPLOYMENT_ACCOUNT_ID
-                LOGGER.debug("account_id not found in source_props and not found in SSM param - Fall back to ADF_DEPLOYMENT_ACCOUNT_ID")
+                LOGGER.debug(
+                    "account_id not found in source_props and not found in "
+                    "SSM param - Fall back to ADF_DEPLOYMENT_ACCOUNT_ID",
+                )
             if "properties" in map_params["default_providers"]["source"]:
                 # append to properties
                 map_params["default_providers"]["source"]["properties"]["account_id"] = account_id

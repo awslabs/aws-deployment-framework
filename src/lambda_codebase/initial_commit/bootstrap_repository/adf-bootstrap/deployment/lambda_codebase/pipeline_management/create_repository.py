@@ -70,7 +70,7 @@ def lambda_handler(event, _):
     )
 
     # Resolve code_account_id in case it is not set
-    # Evaluate as follows: 
+    # Evaluate as follows:
     # If source_account_id not set, we have to set it as follows:
     #   - set via default_scm_codecommit_account_id (if exists)
     #   - or set via ADF_DEPLOYMENT_ACCOUNT_ID
@@ -80,19 +80,21 @@ def lambda_handler(event, _):
         )
     except ParameterNotFoundError:
         default_scm_codecommit_account_id = DEPLOYMENT_ACCOUNT_ID
-        LOGGER.debug("default_scm_codecommit_account_id not found in SSM - Fall back to deployment_account_id.")
+        LOGGER.debug(
+            "default_scm_codecommit_account_id not found in SSM - "
+            "Fall back to deployment_account_id.",
+        )
     if not code_account_id:
         code_account_id = default_scm_codecommit_account_id
-        LOGGER.debug("account_id not found in source_props - ADF will set it from default_scm_codecommit_account_id.")
-        if "properties" in pipeline["default_providers"]["source"]:
-            # append to properties
-            pipeline["default_providers"]["source"]["properties"]["account_id"] = code_account_id
-        else:
-            # recreate properties
-            source_props =  {
-                "account_id": code_account_id
-            }
-            pipeline["default_providers"]["source"]["properties"] = source_props
+        LOGGER.debug(
+            "account_id not found in source_props - ADF will set it from "
+            "default_scm_codecommit_account_id.",
+        )
+        if pipeline["default_providers"]["source"].get("properties") is None:
+            pipeline["default_providers"]["source"]["properties"] = {}
+        pipeline["default_providers"]["source"]["properties"]["account_id"] = (
+            code_account_id
+        )
 
     if (
         code_account_id

@@ -155,11 +155,13 @@ def generate_pipeline_inputs(
         data["pipeline_input"]["default_providers"]["source"]["properties"][
             "codestar_connection_arn"
         ] = data["ssm_params"]["codestar_connection_arn"]
-    data["pipeline_input"]["default_scm_branch"] = data["ssm_params"].get(
-        "default_scm_branch",
+    data["pipeline_input"]["default_scm_branch"] = (
+        data["ssm_params"]
+        .get("default_scm_branch")
     )
-    data["pipeline_input"]["default_scm_codecommit_account_id"] = data["ssm_params"].get(
-        "default_scm_codecommit_account_id",
+    data["pipeline_input"]["default_scm_codecommit_account_id"] = (
+        data["ssm_params"]
+        .get("default_scm_codecommit_account_id")
     )
     store_regional_parameter_config(
         pipeline_object,

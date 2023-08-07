@@ -68,7 +68,7 @@ CODECOMMIT_SOURCE_PROPS = {
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
-    "properties": CODECOMMIT_SOURCE_PROPS
+    Optional("properties"): CODECOMMIT_SOURCE_PROPS,
 }
 
 # GitHub Source
@@ -82,7 +82,7 @@ GITHUB_SOURCE_PROPS = {
 }
 GITHUB_SOURCE = {
     "provider": 'github',
-    Optional("properties"): CODECOMMIT_SOURCE_PROPS
+    "properties": GITHUB_SOURCE_PROPS
 }
 
 # CodeStar Source
