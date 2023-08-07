@@ -865,6 +865,19 @@ Resources:
                   StringEquals:
                     'codestar-connections:PassedToService': 'codepipeline.amazonaws.com'
               - Effect: Allow
+                Sid: "AllowChatBotOperations"
+                Action:
+                  - "codestar-notifications:CreateNotificationRule"
+                  - "codestar-notifications:DeleteNotificationRule"
+                  - "codestar-notifications:DescribeNotificationRule"
+                  - "codestar-notifications:ListNotificationRules"
+                  - "codestar-notifications:Subscribe"
+                  - "codestar-notifications:TagResource"
+                  - "codestar-notifications:Unsubscribe"
+                  - "codestar-notifications:UntagResource"
+                  - "codestar-notifications:UpdateNotificationRule"
+                Resource: "*"
+              - Effect: Allow
                 Action:
                   - "events:PutRule"
                   - "events:PutTargets"
