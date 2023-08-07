@@ -51,7 +51,8 @@ class Repo:
         except codecommit.exceptions.RepositoryDoesNotExistException as err:
             LOGGER.debug("Exception Caught: %s", err)
             LOGGER.debug(
-                "The Repository: %s doesn't exist within account: %s returning repo_exists=False", 
+                "The Repository: %s doesn't exist within account: %s "
+                "returning repo_exists=False",
                 self.name,
                 self.account_id,
             )
