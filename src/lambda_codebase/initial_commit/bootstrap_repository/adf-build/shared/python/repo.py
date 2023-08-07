@@ -52,8 +52,8 @@ class Repo:
             LOGGER.debug("Exception Caught: %s", err)
             LOGGER.debug(
                 "The Repository: %s doesn't exist within account: %s returning repo_exists=False", 
-                self.name, 
-                self.account_id
+                self.name,
+                self.account_id,
             )
         return False  # Return False if the repository does not exist
 
@@ -85,14 +85,14 @@ class Repo:
         )
 
         _repo_exists = self.repo_exists()
-        
+
         _stack_status = cloudformation.get_stack_status()
         if _repo_exists:
             if _stack_status == "ROLLBACK_COMPLETE":
                 # Theres some manual cleanup necessary here so lets log a warning and continue.
                 LOGGER.info(
-                    "Stack %s in ROLLBACK_COMPLETE but the repository still exists, manual intervention maybe necessary", 
-                    self.stack_name
+                    "Stack %s in ROLLBACK_COMPLETE but the repository still exists, manual intervention maybe necessary",
+                    self.stack_name,
                 )
                 return
             if not _stack_status:
@@ -100,7 +100,7 @@ class Repo:
                 # deploy the repository if the repo exists already and it was not
                 # created with the ADF CodeCommit Repository stack.
                 return
-        
+
         LOGGER.info(
             "Ensuring State for CodeCommit Repository Stack %s on Account %s",
             self.name,
