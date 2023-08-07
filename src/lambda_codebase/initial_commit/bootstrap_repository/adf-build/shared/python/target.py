@@ -204,12 +204,12 @@ class Target:
 
     def _target_is_ou_path(self, resolve_children=False):
         try:
-          responses = self.organizations.get_accounts_in_path(
-              self.path,
-              resolve_children=resolve_children,
-              ou_id=None,
-              excluded_paths=[],
-          )
+            responses = self.organizations.get_accounts_in_path(
+                self.path,
+                resolve_children=resolve_children,
+                ou_id=None,
+                excluded_paths=[],
+            )
         except ClientError as client_err:
             no_target_found = (
                 client_err.response["Error"]["Code"] == "ParentNotFoundException"
