@@ -38,19 +38,23 @@ class Repo:
             f'create_repo_{account_id}'
         )
 
-    def repo_exists(self):
+    def repo_exists(self) -> bool:
         try:
             codecommit = self.session.client(
                 'codecommit',
                 DEPLOYMENT_ACCOUNT_REGION,
             )
             repository = codecommit.get_repository(repositoryName=self.name)
-            if repository['repositoryMetadata']['Arn']:
+            if repository.get('repositoryMetadata', {}).get('Arn'):
+                LOGGER.debug("Found Repository: %s", repository)
                 return True
-        except Exception:  # pylint: disable=broad-except
+        except codecommit.exceptions.RepositoryDoesNotExistException as err:
+            LOGGER.debug("Exception Caught: %s", err)
             LOGGER.debug(
-                'Attempted to find the repo %s but it failed.',
+                "The Repository: %s doesn't exist within account: %s "
+                "returning repo_exists=False",
                 self.name,
+                self.account_id,
             )
         return False  # Return False if the repository does not exist
 
@@ -82,12 +86,22 @@ class Repo:
         )
 
         _repo_exists = self.repo_exists()
-        _stack_exists = cloudformation.get_stack_status()
-        if _repo_exists and not _stack_exists:
-            # No need to create or update the CloudFormation stack to
-            # deploy the repository if the repo exists already and it was not
-            # created with the ADF CodeCommit Repository stack.
-            return
+
+        _stack_status = cloudformation.get_stack_status()
+        if _repo_exists:
+            if _stack_status == "ROLLBACK_COMPLETE":
+                # Theres some manual cleanup necessary here so lets log a warning and continue.
+                LOGGER.info(
+                    "Stack %s in ROLLBACK_COMPLETE but the repository still exists, "
+                    "manual intervention maybe necessary",
+                    self.stack_name,
+                )
+                return
+            if not _stack_status:
+                # No need to create or update the CloudFormation stack to
+                # deploy the repository if the repo exists already and it was not
+                # created with the ADF CodeCommit Repository stack.
+                return
 
         LOGGER.info(
             "Ensuring State for CodeCommit Repository Stack %s on Account %s",
