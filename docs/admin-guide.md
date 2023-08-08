@@ -760,7 +760,7 @@ it will be enabled.
 
 Inside your adf-bootstrap folder, create a directory named `adf-policies`,
 Inside the `adf-policies` directory you then create subdirectories per policy type.
-(Currently only `scp` and `tagging-policy` are supported in the AWS partition)
+Currently, only `scp` and `tagging-policy` are supported in the AWS partition.
 Inside this directory you can create a JSON file that defines your policy.
 So in the following example, if you wanted to create an scp policy it would be in
 `adf-policies/scp/<your-file-name>.json`
@@ -769,7 +769,7 @@ Using the following Schema:
 ```json
 {
     "Targets": [
-        "YourOrg", "YourOtherOrg", "
+        "YourOrg", "YourOtherOrg",
     ],
     "Version": "2022-10-14", # Optional, Specifies the version of the API to use.
     "PolicyName": "Example", # Name for the Policy
