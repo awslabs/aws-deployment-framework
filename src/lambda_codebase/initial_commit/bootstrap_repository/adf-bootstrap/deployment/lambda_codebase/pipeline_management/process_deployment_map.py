@@ -12,6 +12,7 @@ import tempfile
 from typing import Any, TypedDict
 import hashlib
 import yaml
+import uuid
 from yaml.error import YAMLError
 
 import boto3
@@ -168,18 +169,34 @@ def start_executions(
         PIPELINE_MANAGEMENT_STATEMACHINE,
         run_id
     )
+    truncated_pipeline_name_list = []
     for pipeline in deployment_map.get("pipelines"):
         LOGGER.debug("Payload: %s", pipeline)
         full_pipeline_name = pipeline.get('name', 'no-pipeline-name')
-        # AWS Step Functions supports max 80 characters.
-        # Since the run_id equals 49 characters plus the dash, we have 30
-        # characters available. To ensure we don't run over, lets use a
-        # truncated version concatenated with an hash generated from
-        # the pipeline name
-        truncated_pipeline_name = full_pipeline_name[:24]
-        name_bytes_to_hash = bytes(full_pipeline_name + run_id, 'utf-8')
-        execution_unique_hash = hashlib.md5(name_bytes_to_hash).hexdigest()[:5]
-        sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"
+        # Creation of unique StepFunction execution Ids:
+        # - AWS Step Functions execution id supports max 80 characters.
+        # - However, CodePipeline names can be up to 100 characters.
+        # That means CodePipeline names might need to be truncted. Truncating CodePipeline names
+        # can lead to pipelines having the same name. In that case only the first instance of the 
+        # pipeline with the identical truncated name gets created. The other pipelines doesn't get created
+        # without any error or warning. 
+        # To ensure all defined CodePipelines get created, we check that the truncated pipeline name  
+        # is unique across all deployment maps. If duplicates are detected, we stop using the 
+        # codepipeline_execution_id and generate a fresh one just for this pipeline.
+        # Truncation happens as follows:
+        # - Total max length: stepfunction execution id 80 characters
+        # - full_pipeline_name - Nativly, can be up to 100 characters.
+        #   Gets truncated to 60 chars.
+        # - run_id (uuid) equals 49 characters nativly plus the dash. 
+        #   Gets truncated to 29 chars.
+        truncated_pipeline_name = full_pipeline_name[:60]
+        if len(full_pipeline_name) > 60 and truncated_pipeline_name in truncated_pipeline_name_list:
+            # Stop using codepipeline_execution_id and generarte fresh uuid to avoid collisions
+            run_id_new = str(uuid.uuid4())
+            sfn_execution_name = f"{truncated_pipeline_name}-{run_id_new}"[:80]
+        else:
+            sfn_execution_name = f"{truncated_pipeline_name}-{run_id}"[:80]
+        truncated_pipeline_name_list.append(truncated_pipeline_name)
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
