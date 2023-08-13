@@ -191,7 +191,7 @@ def start_executions(
         #   Gets truncated to 29 chars.
         truncated_pipeline_name = full_pipeline_name[:60]
         if len(full_pipeline_name) > 60 and truncated_pipeline_name in truncated_pipeline_name_list:
-            # Stop using codepipeline_execution_id and generarte fresh uuid to avoid collisions
+            # Stop using codepipeline_execution_id and generate fresh uuid to avoid collisions
             run_id_new = str(uuid.uuid4())
             sfn_execution_name = f"{truncated_pipeline_name}-{run_id_new}"[:80]
         else:
