@@ -47,7 +47,7 @@ class PipelineNotifications(Construct):
         )
         pipeline_arn = (
             f"arn:{stack.partition}:codepipeline:{ADF_DEPLOYMENT_REGION}:"
-            "{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
+            f"{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
         )
         cp_notifications.CfnNotificationRule(
             scope,

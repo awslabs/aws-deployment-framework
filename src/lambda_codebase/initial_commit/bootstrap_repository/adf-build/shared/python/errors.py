@@ -65,3 +65,9 @@ class NoAccountsFoundError(Exception):
     """
     Raised when there are no Accounts found a specific OU defined in the Deployment Map
     """
+
+
+class InsufficientWaveSizeError(Exception):
+    """
+    Raised when the defined wave size is less than the calculated minimum actions
+    """
