@@ -22,6 +22,7 @@ class Config:
     """
     Class used for modeling adfconfig and its properties.
     """
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, parameter_store=None, config_path=None):
         self.parameters_client = parameter_store or ParameterStore(

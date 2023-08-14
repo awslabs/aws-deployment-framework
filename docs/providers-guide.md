@@ -247,7 +247,7 @@ Provider type: `codebuild`.
 
 #### Properties
 
-- *image* *(String)* - default: `UBUNTU_14_04_PYTHON_3_7_1`.
+- *image* *(String)* - default: `STANDARD_7_0`.
   - The Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
   - Image can also take an object that contains a property key of

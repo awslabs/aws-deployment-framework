@@ -6,7 +6,7 @@
 
 import os
 
-from aws_cdk import aws_codepipeline as _codepipeline, core
+from aws_cdk import aws_codepipeline as _codepipeline, Stack
 from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_jenkins
@@ -27,7 +27,7 @@ LOGGER = configure_logger(__name__)
 PIPELINE_TYPE = "default"
 
 
-def generate_adf_default_pipeline(scope: core.Stack, stack_input):
+def generate_adf_default_pipeline(scope: Stack, stack_input):
     stages = []
 
     notification_config = (
@@ -175,6 +175,7 @@ def _generate_build_stage_for_pipeline(scope, stack_input):
 
 
 def _generate_stages_with_targets_for_pipeline(scope, stack_input):
+    # pylint: disable=too-many-locals
     stages = []
     for index, targets in enumerate(
         stack_input["pipeline_input"]
@@ -244,7 +245,7 @@ def _generate_stages_with_targets_for_pipeline(scope, stack_input):
                             # operate from the deployment account.
                             (
                                 f"{stack_input['pipeline_input']['name']}-"
-                                f"target-{index + 1}-wave-{wave_index}"
+                                f"target-{index + 1}-{target['id']}-wave-{wave_index}"
                             ),
                             deploy_params["modules"],
                             deploy_params["kms"],

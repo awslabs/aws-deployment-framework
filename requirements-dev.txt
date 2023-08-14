@@ -1,0 +1,8 @@
+cfn-lint==0.78.2
+isort==5.12.0
+mock==5.1.0
+pylint==2.17.4
+pytest~=7.4.0
+pytest-cov==3.0.0
+tox==3.28.0
+yamllint==1.32.0

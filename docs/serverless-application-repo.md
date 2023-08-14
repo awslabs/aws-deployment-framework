@@ -1,6 +1,6 @@
 # AWS Deployment Framework
 
-[![Build Status](https://travis-ci.org/awslabs/aws-deployment-framework.svg?branch=master)](https://travis-ci.org/awslabs/aws-deployment-framework)
+[![Build Status](https://github.com/awslabs/aws-deployment-framework/workflows/ADF%20CI/badge.svg?branch=master)](https://github.com/awslabs/aws-deployment-framework/actions?query=workflow%3AADF%20CI+branch%3Amaster)
 
 The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framework)
 *(ADF)* is an extensive and flexible framework to manage and deploy resources

@@ -271,9 +271,15 @@ targets:
       # stages, each stage containing up to X accounts
       size: 30
     exclude:
-      # (Optional) List of accounts to exclude from this target.
-      # Currently only supports account Ids
+      # (Optional) List of accounts to exclude from this path.
       - 9999999999
+    properties: ...
+  - path: /my_ou/production/**/*  # This would target all accounts in the OU path
+    regions: [eu-central-1, us-west-1]
+    name: production_step
+    exclude: # (Optional) List of OU Paths and Account Ids
+      - /my-ou/production/alpha # excludes any accounts and OUs in this path.
+      - 11111111111 # Excludes this account, regardless of OU path.
     properties: ...
 ```
 
@@ -290,8 +296,17 @@ The default of 50 will make sense for most pipelines.
 However, in some situations, you would like to limit the rate at which an
 update is rolled out to the list of accounts/regions.
 
-This can be configured using the `wave/size` target property. Setting these to
-`30` as shown above, will introduce a new stage for every 30 accounts/regions.
+This can be configured using the `wave/size` target property. Setting this to
+`30` as shown above, will introduce a new stage for every 30 accounts allocated
+within the target stage.
+
+Note: Each account defined within a stage may consist of several actions
+depending on the specific provider action type defined as well as how many
+regions are selected for the target stage. This should be taken into
+consideration when utilizing custom wave sizes.
+
+The minimum wave size should not be set less than the amount of actions
+necessary to deploy a single target account.
 
 If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26,
 but account `9999999999` is excluded by the setup above), multiplied by the two
@@ -388,12 +403,12 @@ pipelines:
   - name: ami-builder
     # Default providers and parameters are the same as defined above.
     # Only difference: instead of using `triggers` it uses the
-    # `completion_triggers`
+    # `completion_trigger`
     params:
       schedule: rate(7 days)
     # What should trigger this pipeline
     # and what should be triggered when it completes
-    completion_triggers:
+    completion_trigger:
       pipelines:
         - my-web-app-pipeline  # Start this pipeline
 
@@ -929,7 +944,7 @@ extra step required to deploy a SAM template is that you execute
 so:
 
 For example, deploying a NodeJS Serverless Application from AWS CodeBuild with
-the `aws/codebuild/standard:5.0` image can be done with a `buildspec.yml` that
+the `aws/codebuild/standard:7.0` image can be done with a `buildspec.yml` that
 looks like the following
 [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 
@@ -939,8 +954,8 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.9
-      nodejs: 14
+      python: 3.11
+      nodejs: 18
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
@@ -1077,6 +1092,8 @@ stages defined in the following CodeBuild build specification:
   run a Terraform plan.
 - `tf_apply.yml`: get the list of accounts from the organization and
   run a Terraform plan and apply.
+- `tf_destroy.yml`: get the list of accounts from the organization and
+  run a Terraform plan and destroy.
 
 An optional approval step could be added between plan and apply as
 shown in the pipeline definition below.
@@ -1113,7 +1130,7 @@ pipelines:
       deploy:
         provider: codebuild
         properties:
-          image: "STANDARD_5_0"
+          image: "STANDARD_7_0"
           environment_variables:
             TARGET_ACCOUNTS: 111111111111,222222222222  # Target accounts
             TARGET_OUS: /core/infrastructure,/sandbox  # Target OUs
@@ -1132,6 +1149,9 @@ pipelines:
       - name: terraform-apply
         properties:
           spec_filename: tf_apply.yml  # Terraform apply
+      - name: terraform-destroy # (optional stage)
+        properties:
+          spec_filename: tf_destroy.yml  # Terraform destroy
 ```
 
 1. Add a sample-terraform pipeline in ADF `deployment-map.yml` as shown above.

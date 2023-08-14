@@ -56,7 +56,7 @@ Globals:
     Architectures:
       - arm64
     CodeUri: lambda_codebase/pipeline_management
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
     Tracing: Active
     Layers:
@@ -603,10 +603,21 @@ Resources:
                   "DeletePipelineParams": {
                     "Type": "Task",
                     "Parameters": {
-                      "Name.$": "States.Format('/deployment/{}/regions', $.pipeline_name)"
+                      "Name.$": "States.Format('/deployment/S3/{}/regions', $.pipeline_name)"
                     },
+                    "Catch": [
+                      {
+                        "ErrorEquals": "ParameterNotFound",
+                        "Next": "ParameterNotFoundFallback"
+                      }
+                    ],
                     "Resource": "arn:${AWS::Partition}:states:::aws-sdk:ssm:deleteParameter",
                     "ResultPath": "$.ssm_delete_param.result",
+                    "End": true
+                  },
+                  "ParameterNotFoundFallback": {
+                    "Type": "Pass",
+                    "Result": "Parameter not found, nothing to delete, all good",
                     "End": true
                   }
                 }
@@ -660,10 +671,10 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
-                nodejs: 14
+                python: 3.11
+                nodejs: 18
               commands:
-                - npm install cdk@1.188 -g -y --quiet --no-progress
+                - npm install aws-cdk@2.79 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
@@ -796,6 +807,7 @@ Resources:
                   - "codepipeline:RegisterWebhookWithThirdParty"
                   - "codepipeline:StartPipelineExecution"
                   - "codepipeline:TagResource"
+                  - "codepipeline:UntagResource"
                   - "codepipeline:UpdatePipeline"
                 Resource:
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:webhook:adf-webhook-*
@@ -817,6 +829,7 @@ Resources:
                   - "sns:SetTopicAttributes"
                   - "sns:GetTopicAttributes"
                   - "sns:TagResource"
+                  - "sns:UntagResource"
                   - "sns:ListSubscriptionsByTopic"
                 Resource:
                   - !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${PipelinePrefix}*
@@ -863,6 +876,19 @@ Resources:
                   StringEquals:
                     'codestar-connections:PassedToService': 'codepipeline.amazonaws.com'
               - Effect: Allow
+                Sid: "AllowChatBotOperations"
+                Action:
+                  - "codestar-notifications:CreateNotificationRule"
+                  - "codestar-notifications:DeleteNotificationRule"
+                  - "codestar-notifications:DescribeNotificationRule"
+                  - "codestar-notifications:ListNotificationRules"
+                  - "codestar-notifications:Subscribe"
+                  - "codestar-notifications:TagResource"
+                  - "codestar-notifications:Unsubscribe"
+                  - "codestar-notifications:UntagResource"
+                  - "codestar-notifications:UpdateNotificationRule"
+                Resource: "*"
+              - Effect: Allow
                 Action:
                   - "events:PutRule"
                   - "events:PutTargets"
@@ -889,6 +915,11 @@ Resources:
                   - "iam:TagPolicy"
                   - "iam:TagRole"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/github_token-*"
 
   DeploymentMapProcessingFunction:
     Type: 'AWS::Serverless::Function'

@@ -137,7 +137,11 @@ def generate_pipeline_inputs(
         # consisting of multiple "waves". So if you see any reference to
         # a wave going forward it will be the individual batch of account ids.
         pipeline_object.template_dictionary["targets"].append(
-            list(target_structure.generate_waves()),
+            list(
+                target_structure.generate_waves(
+                    target=pipeline_target
+                )
+            ),
         )
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:

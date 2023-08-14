@@ -3,7 +3,7 @@
 
 # pylint: skip-file
 
-from aws_cdk import core
+from aws_cdk import App
 from cdk_stacks.main import PipelineStack
 
 
@@ -53,7 +53,7 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
         "modules": "fake-bucket-name",
         "kms": f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id",
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
@@ -120,7 +120,7 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
         "modules": "fake-bucket-name",
         "kms": f"arn:aws:kms:{region_name}:{account_id}:key/my-unique-kms-key-id",
     }
-    app = core.App()
+    app = App()
     PipelineStack(app, stack_input)
 
     cloud_assembly = app.synth()
