@@ -20,7 +20,9 @@
       - [Bootstrapping Recommendations](#bootstrapping-recommendations)
     - [Pipelines](#pipelines)
       - [Pipeline Parameters](#pipeline-parameters)
-      - [Using Github](#using-github)
+      - [Using CodeStar Connections for Bitbucket, GitHub, or GitHub
+        Enterprise](#using-codestar-connections-for-bitbucket-github-or-github-enterprise)
+      - [Using GitHub with an OAuth token](#using-github-with-an-oauth-token)
       - [Chaining Pipelines](#chaining-pipelines)
   - [Service Control Policies](#service-control-policies)
   - [Tagging Policies](#tagging-policies)
@@ -223,6 +225,17 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
       temporarily).
     - target AWS Accounts by tag with no AWS Accounts having that tag assigned
       (yet).
+- `org` configures settings in case of staged multi-organization ADF deployments.
+  - `stage` defines the AWS Organization stage in case of staged multi-
+    organization ADF deployments. This is an optional setting. In enterprise-
+    grade deployments, it is a common practice to define an explicit dev, int
+    and prod AWS Organization with its own ADF instance per AWS organization.
+    This approach allows for well-tested and stable prod AWS Organization
+    deployments.  If set, a matching SSM parameter `/adf/org/stage` gets
+    created that you can reference in your buildspec files to allow for
+    org-specific deployments; without hardcoding the AWS Organization stage in
+    your buildspec. If this variable is not set, the SSM parameter
+    `/adf/org/stage` defaults to "none".
 
 ## Accounts
 
@@ -255,7 +268,7 @@ SCPs or CloudFormation templates that ADF will apply.
 The Deployment Account is the gatekeeper for all deployments throughout an
 Organization. Once the baselines have been applied to your accounts via the
 bootstrapping process, the Deployment account connects the dots by taking
-source code and resources from a repository _(e.g. Github, CodeCommit or S3)_
+source code and resources from a repository _(e.g. GitHub, CodeCommit or S3)_
 and into the numerous target accounts and regions as defined in the deployment
 map files via AWS CodePipeline.
 
@@ -530,26 +543,30 @@ pipelines:
 
 Here is an example of passing in a parameter to a pipeline to override the
 default branch that is used to trigger the pipeline from, this time using
-Github as a source _(No need for `source_account_id`)_.
+a CodeStar Connection to Bitbucket, GitHub, or GitHub Enterprise as a source
+_(No need for `source_account_id`)_.
 
 ```yaml
 pipelines:
-  - name: vpc  # The Github repo would have this name
+  - name: vpc  # The GitHub repo would have this name
     default_providers:
       source:
-        provider: github
+        provider: codestar
         properties:
           branch: dev/feature
           # Optional, name property will be used if repository is not specified
           repository: example-vpc
-          owner: bundyfx
-          # The path in AWS Secrets Manager that holds the GitHub Oauth token,
-          # ADF only has access to /adf/ prefix in Secrets Manager
-          oauth_token_path: /adf/github_token
-          # The field (key) name of the json object stored in AWS Secrets
-          # Manager that holds the Oauth token.
-          # e.g. {"token": "123"}
-          json_field: token
+          owner: example-owner
+          # The Code Connection ARN should be stored inside a AWS Systems
+          # Manager Parameter Store parameter name.
+          # Where the parameter key can have any name, as long as it starts
+          # with /adf/. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          codestar_connection_path: /adf/my_codestar_connection_param
     targets:
       - /security  # Shorthand example
 ```
@@ -598,10 +615,81 @@ globally unique we need some way to define which bucket we want to deploy our
 `output.zip` into at a stage level. The way we accomplish this is we can pass
 in `properties` in the form of `key/value` into the stage itself.
 
-#### Using Github
+#### Using CodeStar Connections for Bitbucket, GitHub, or GitHub Enterprise
 
-In order for a pipeline to be connected to Github you will need to create a
-Personal Access Token in Github that allows its connection to AWS CodePipeline.
+**Please note:** This is the preferred method to setup GitHub as your source
+provider.
+
+**Prerequisite:** To enable CodeStar Connections to be used the following step
+is required:
+
+- Rename file `example-global-iam.yml` to `global-iam.yml` in the following
+  path `aws-deployment-framework-bootstrap/adf-bootstrap/deployment/` and
+  ensure the CloudFormation resources `CodeStarConnectionPolicy` is no longer
+  commented out.
+  **Please note:** the use of `deployment` at the end)
+
+**Important note**: `CodeStarConnectionPolicy` IAM policy is a sample.
+Please make sure you update this policy and scope it properly for the use cases
+you want to support.
+
+In order for a pipeline to be connected to Bitbucket, GitHub, or GitHub
+Enterprise you will need to setup an CodeStar Connection first.
+Please follow the [steps as described in the AWS Developer Tools
+documentation](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html)
+on how-to setup a new Connection with your code repository.
+
+Once the connection is created you can store the Connection ARN into
+the Deployment Account with AWS Systems Manager Parameter Store.
+
+Please use the `/adf/` prefix for this parameter. For example:
+`/adf/my_source_connection_param`
+As ADF has read access to parameters that start with `/adf/`.
+
+Once the values are stored, you can create the Repository in GitHub as per
+normal. Once its created you no further steps are required on GitHub's side,
+just update your [deployment map](user-guide.md#deployment-map) to use the new
+source type and push to the deployment account. Here is an example of a
+deployment map with a single pipeline from GitHub, in this case the repository
+on GitHub must be named 'vpc'.
+
+```yaml
+pipelines:
+  - name: vpc
+    default_providers:
+      source:
+        provider: github
+        properties:
+          # Optional, name property will be used if repository is not specified
+          repository: example-vpc
+          owner: awslabs
+          # The path in Amazon Systems Manager Parameter Store that holds the
+          # Connections Arn.
+          # Please note, by default ADF only has access to read /adf/
+          # parameters. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          #
+          # Example content of the parameter, plain ARN as a simple string:
+          # arn:aws:codestar-connections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          codestar_connection_path: /adf/my_github_connection_arn_param
+    targets:
+      - /security
+```
+
+#### Using GitHub With An OAuth Token
+
+**Important note:** Before you continue. It is important to understand that
+this method is not advised to be used by CodePipeline. Instead, please follow
+the instructions to setup a CodeStar connection to pull the code from GitHub.
+Please read the [Using CodeStar Connections for Bitbucket, GitHub, or GitHub
+Enterprise section](#using-codestar-connections-for-bitbucket-github-or-github-enterprise).
+
+In order for a pipeline to be connected to GitHub you will need to create a
+Personal Access Token in GitHub that allows its connection to AWS CodePipeline.
 You can read more about creating a Token
 [here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html).
 Once the token has been created you can store that in AWS Secrets Manager on
@@ -609,12 +697,12 @@ the Deployment Account. The Webhook Secret is a value you define and store in
 AWS Secrets Manager with a path of `/adf/my_teams_token`. By Default, ADF only
 has read access access to Secrets with a path that starts with `/adf/`.
 
-Once the values are stored, you can create the Repository in Github as per
-normal. Once its created you do not need to do anything else on Github's side
+Once the values are stored, you can create the Repository in GitHub as per
+normal. Once its created you do not need to do anything else on GitHub's side
 just update your [deployment map](user-guide.md#deployment-map) to use the new
 source type and push to the deployment account. Here is an example of a
-deployment map with a single pipeline from Github, in this case the repository
-on github must be named 'vpc'.
+deployment map with a single pipeline from GitHub, in this case the repository
+on GitHub must be named 'vpc'.
 
 ```yaml
 pipelines:
@@ -1135,7 +1223,7 @@ The main components to look at are:
 ### How to share debug information
 
 **Important**: If you are about to share any debug information through an
-issue on the [ADF Github repository](https://github.com/awslabs/aws-deployment-framework/issues),
+issue on the [ADF GitHub repository](https://github.com/awslabs/aws-deployment-framework/issues),
 please replace:
 
 - the account ids with simple account ids like: `111111111111`, `222222222222`,
