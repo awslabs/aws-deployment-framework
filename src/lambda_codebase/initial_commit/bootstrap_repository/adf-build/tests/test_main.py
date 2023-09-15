@@ -133,7 +133,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            11 if param_store == deploy_param_store else 2
+            12 if param_store == deploy_param_store else 2
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -153,7 +153,9 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
             call('/adf/extensions/terraform/enabled', 'False'),
+            call('/adf/deployment-maps/allow-empty-target', 'False'),
         ],
+        any_order=True,
     )
 
 
@@ -193,6 +195,9 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     cls.config['org'] = {
         'stage': 'test-stage',
     }
+    cls.config['deployment-maps'] = {
+        'allow-empty-target': 'False',
+    }
     prepare_deployment_account(
         sts=sts,
         deployment_account_id=deployment_account_id,
@@ -222,7 +227,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            13 if param_store == deploy_param_store else 2
+            14 if param_store == deploy_param_store else 2
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -248,5 +253,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
             ),
             call('/notification_endpoint/main', 'slack-channel'),
             call('/adf/extensions/terraform/enabled', 'False'),
+            call('/adf/deployment-maps/allow-empty-target', 'False'),
         ],
+        any_order=True,
     )

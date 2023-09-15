@@ -1,0 +1,71 @@
+{
+    "name": "proxy-vir",
+    "version": "0.0.1",
+    "description": "An easier Proxy.",
+    "keywords": [
+        "proxy",
+        "vir",
+        "wrapper",
+        "object"
+    ],
+    "homepage": "https://github.com/electrovir/proxy-vir",
+    "bugs": {
+        "url": "https://github.com/electrovir/proxy-vir/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/electrovir/proxy-vir"
+    },
+    "license": "(MIT or CC0 1.0)",
+    "author": {
+        "name": "electrovir",
+        "url": "https://github.com/electrovir"
+    },
+    "main": "dist/cjs/index.js",
+    "module": "dist/esm/index.js",
+    "types": "dist/types/index.d.ts",
+    "scripts": {
+        "compile": "rm -rf dist && tsc --project tsconfig.json && tsc --project tsconfig.cjs.json",
+        "docs:update": "virmator code-in-markdown README.md --index src/index.ts",
+        "format": "virmator format",
+        "publish": "virmator publish \"npm run compile && npm run test:all\"",
+        "start": "npm install && virmator frontend",
+        "test": "virmator test-web",
+        "test:all": "concurrently --kill-others-on-fail \"npm run test:types\" \"npm run test:coverage\" \"npm run test:spelling\" \"npm run test:format\" \"npm run test:docs\"",
+        "test:coverage": "npm run test coverage",
+        "test:docs": "virmator code-in-markdown check README.md --index src/index.ts",
+        "test:format": "virmator format check",
+        "test:spelling": "virmator spellcheck",
+        "test:types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@augment-vir/common": "^13.3.0"
+    },
+    "devDependencies": {
+        "@augment-vir/browser-testing": "^13.3.0",
+        "@augment-vir/node-js": "^13.3.0",
+        "@open-wc/testing": "^3.1.8",
+        "@types/mocha": "^10.0.1",
+        "@web/dev-server-esbuild": "^0.4.1",
+        "@web/test-runner": "^0.16.1",
+        "@web/test-runner-commands": "^0.7.0",
+        "@web/test-runner-playwright": "^0.10.0",
+        "@web/test-runner-visual-regression": "^0.8.0",
+        "cspell": "^6.31.1",
+        "esbuild": "^0.17.18",
+        "istanbul-smart-text-reporter": "^1.1.1",
+        "markdown-code-example-inserter": "^0.3.0",
+        "npm-check-updates": "^16.10.9",
+        "prettier": "^2.8.8",
+        "prettier-plugin-interpolated-html-tags": "^0.0.3",
+        "prettier-plugin-jsdoc": "^0.4.2",
+        "prettier-plugin-multiline-arrays": "^1.1.3",
+        "prettier-plugin-organize-imports": "^3.2.2",
+        "prettier-plugin-packagejson": "^2.4.3",
+        "prettier-plugin-sort-json": "^1.0.0",
+        "prettier-plugin-toml": "^0.3.1",
+        "virmator": "^6.5.0",
+        "vite": "^4.3.3",
+        "vite-tsconfig-paths": "^4.2.0"
+    }
+}

@@ -17,7 +17,6 @@ from errors import (
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 from botocore.exceptions import ClientError
-from errors import ParameterNotFoundError
 from parameter_store import ParameterStore
 import boto3
 
@@ -205,7 +204,10 @@ class Target:
             ).get('Account')
             responses_list = [responses]
         except ClientError as client_err:
-            if (client_err.response["Error"]["Code"] == "AccountNotFoundException") and self.allow_empty_deployment_maps is True:
+            if (
+                client_err.response["Error"]["Code"] == "AccountNotFoundException" and
+                self.allow_empty_deployment_maps is True
+            ):
                 LOGGER.info("IGNORE - Account was not found in AWS Org for id %s", self.path)
                 responses_list = []
             else:

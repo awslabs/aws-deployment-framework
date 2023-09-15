@@ -159,7 +159,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             'allow-empty-target',
             ADF_DEFAULT_ALLOW_EMPTY_DEPLOYMENT_MAPS,
         )
-    )    
+    )
     deployment_account_parameter_store.put_parameter(
         '/adf/org/stage',
         config.config.get('org', {}).get(
