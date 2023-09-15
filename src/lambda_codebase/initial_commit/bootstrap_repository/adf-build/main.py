@@ -56,6 +56,7 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
 
 
@@ -120,8 +121,8 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         f'{config.cross_account_access_role}',
         'master'
     )
-    for region in list(
-            set([config.deployment_account_region] + config.target_regions)):
+    for region in sorted(list(
+            set([config.deployment_account_region] + config.target_regions))):
         deployment_account_parameter_store = ParameterStore(
             region,
             deployment_account_role
@@ -160,11 +161,15 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             .get('default-scm-codecommit-account-id', deployment_account_id)
         )
     )
-    auto_create_repositories = (
-        config.config
-        .get('scm', {})
-        .get('auto-create-repositories')
+    deployment_account_parameter_store.put_parameter(
+        '/adf/org/stage',
+        config.config.get('org', {}).get(
+            'stage',
+            ADF_DEFAULT_ORG_STAGE,
+        )
     )
+    auto_create_repositories = config.config.get(
+        'scm', {}).get('auto-create-repositories')
     if auto_create_repositories is not None:
         deployment_account_parameter_store.put_parameter(
             'auto_create_repositories', str(auto_create_repositories)

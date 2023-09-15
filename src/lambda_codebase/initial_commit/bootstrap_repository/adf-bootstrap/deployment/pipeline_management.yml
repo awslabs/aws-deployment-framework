@@ -615,10 +615,21 @@ Resources:
                   "DeletePipelineParams": {
                     "Type": "Task",
                     "Parameters": {
-                      "Name.$": "States.Format('/deployment/{}/regions', $.pipeline_name)"
+                      "Name.$": "States.Format('/deployment/S3/{}/regions', $.pipeline_name)"
                     },
+                    "Catch": [
+                      {
+                        "ErrorEquals": "ParameterNotFound",
+                        "Next": "ParameterNotFoundFallback"
+                      }
+                    ],
                     "Resource": "arn:${AWS::Partition}:states:::aws-sdk:ssm:deleteParameter",
                     "ResultPath": "$.ssm_delete_param.result",
+                    "End": true
+                  },
+                  "ParameterNotFoundFallback": {
+                    "Type": "Pass",
+                    "Result": "Parameter not found, nothing to delete, all good",
                     "End": true
                   }
                 }
@@ -876,6 +887,19 @@ Resources:
                 Condition:
                   StringEquals:
                     'codestar-connections:PassedToService': 'codepipeline.amazonaws.com'
+              - Effect: Allow
+                Sid: "AllowChatBotOperations"
+                Action:
+                  - "codestar-notifications:CreateNotificationRule"
+                  - "codestar-notifications:DeleteNotificationRule"
+                  - "codestar-notifications:DescribeNotificationRule"
+                  - "codestar-notifications:ListNotificationRules"
+                  - "codestar-notifications:Subscribe"
+                  - "codestar-notifications:TagResource"
+                  - "codestar-notifications:Unsubscribe"
+                  - "codestar-notifications:UntagResource"
+                  - "codestar-notifications:UpdateNotificationRule"
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - "events:PutRule"
