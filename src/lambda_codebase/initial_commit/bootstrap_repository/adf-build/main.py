@@ -56,7 +56,7 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
-ADF_DEFAULT_ALLOW_EMPTY_DEPLOYMENT_MAPS = False
+ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = False
 ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
 
@@ -157,7 +157,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         '/adf/deployment-maps/allow-empty-target',
         config.config.get('deployment-maps', {}).get(
             'allow-empty-target',
-            ADF_DEFAULT_ALLOW_EMPTY_DEPLOYMENT_MAPS,
+            ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET,
         )
     )
     deployment_account_parameter_store.put_parameter(
