@@ -1199,9 +1199,6 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - events.amazonaws.com
-                - lambda.amazonaws.com
-                - sns.amazonaws.com
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/"
@@ -1214,8 +1211,10 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                   - "sns:Publish"
-                  - "states:StartExecution"
-                Resource: "*"
+                Resource:
+                  - !GetAtt EnableCrossAccountAccess.Arn
+                  - !GetAtt CheckPipelineStatus.Arn
+                  - !GetAtt PipelineSNSTopic.TopicArn
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
