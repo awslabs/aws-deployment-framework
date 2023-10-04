@@ -174,7 +174,7 @@ def start_executions(
         # AWS Step Functions supports max 80 characters.
         # Since the run_id equals 49 characters plus the dash, we have 30
         # characters available. To ensure we don't run over in case of 80+
-        # characters, lets use a truncated version concatenated with an 
+        # characters, lets use a truncated version concatenated with an
         # hash generated from the pipeline name. If below 80 characters, the
         # full_pipeline_name + run_id is used.
         sfn_execution_name_raw = f"{full_pipeline_name}-{run_id}"
