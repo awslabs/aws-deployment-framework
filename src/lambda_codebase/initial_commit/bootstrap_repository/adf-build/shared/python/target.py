@@ -316,5 +316,6 @@ class Target:
 
         if self.path is None:
             # No path/target has been passed, path will default to /deployment
-            return self._target_is_null_path()
+            self._target_is_null_path()
+            return
         raise InvalidDeploymentMapError(f"Unknown definition for target: {self.path}")
