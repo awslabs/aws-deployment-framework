@@ -282,13 +282,17 @@ class Target:
     # pylint: disable=R0911
     def fetch_accounts_for_target(self):
         if self.path == "approval":
-            return self._target_is_approval()
+            self._target_is_approval()
+            return
         if isinstance(self.path, dict):
-            return self._target_is_tags()
+            self._target_is_tags()
+            return
         if str(self.path).startswith("ou-"):
-            return self._target_is_ou_id()
+            self._target_is_ou_id()
+            return
         if AWS_ACCOUNT_ID_REGEX.match(str(self.path)):
-            return self._target_is_account_id()
+            self._target_is_account_id()
+            return
         if str(self.path).isnumeric():
             LOGGER.warning(
                 "The specified path is numeric, but is not 12 chars long. "
@@ -308,9 +312,10 @@ class Target:
                 str(oct(int(self.path))).replace("o", ""),
             )
         if str(self.path).startswith("/"):
-            return self._target_is_ou_path(
+            self._target_is_ou_path(
                 resolve_children=str(self.path).endswith(RECURSIVE_SUFFIX)
             )
+            return
 
         if self.adf_deployment_maps_allow_empty_target is True:
             return
