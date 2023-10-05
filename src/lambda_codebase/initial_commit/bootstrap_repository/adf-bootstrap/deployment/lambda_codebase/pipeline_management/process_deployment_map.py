@@ -177,14 +177,12 @@ def start_executions(
         # characters, lets use a truncated version concatenated with an
         # hash generated from the pipeline name. If below 80 characters, the
         # full_pipeline_name + run_id is used.
-        sfn_execution_name_raw = f"{full_pipeline_name}-{run_id}"
-        if len(sfn_execution_name_raw) > 80:
+        sfn_execution_name = f"{full_pipeline_name}-{run_id}"
+        if len(sfn_execution_name) > 80:
             truncated_pipeline_name = full_pipeline_name[:60]
             name_bytes_to_hash = bytes(full_pipeline_name + run_id, 'utf-8')
             execution_unique_hash = hashlib.md5(name_bytes_to_hash).hexdigest()[:5]
             sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"[:80]
-        else:
-            sfn_execution_name = f"{full_pipeline_name}-{run_id}"
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
