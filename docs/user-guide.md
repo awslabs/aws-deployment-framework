@@ -1205,7 +1205,7 @@ Given the structure above, terraform can possibly find 3 files:
 - `region.auto.tfvars`
 
 and it means that `region.auto.tfvars` can override variables passed in
-`local.auto.tfvars`, that in turn can override variables passed in 
+`local.auto.tfvars`, that in turn can override variables passed in
 `global.auto.tfvars`.
 
 Terraform state files are stored in the regional S3 buckets in the deployment
