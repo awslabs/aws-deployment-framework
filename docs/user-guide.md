@@ -1194,7 +1194,7 @@ pipelines:
    Terraform apply. Confirm to proceed.
 
 **Note**:
-The pipeline leverages the terraform behaviour on reading *.local.tfvars files,
+The pipeline leverages the terraform behavior on reading *.local.tfvars files,
 so the latter file in lexicographical order overrides variables already defined
 in preceding files.
 
