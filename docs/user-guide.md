@@ -1176,11 +1176,11 @@ pipelines:
      │
      └───111111111111 <-- this folders contains variable files related to
      │   │                the account
-     │   └──────│   local.auto.tfvars <-- this file contains variables related
-     │          │                         to the account
+     │   └──────│   local.auto.tfvars <-- this file contains variables
+     │          │                         related to the account
      │          └───eu-west-1
-     │              └────── region.auto.tfvars <-- this file containes variables
-     │                                             related to the account and the region
+     │              └────── region.auto.tfvars <-- this file containes
+     │                      variables related to the account and the region
      │
      └───222222222222
          └──────│   local.auto.tfvars
@@ -1194,14 +1194,19 @@ pipelines:
    Terraform apply. Confirm to proceed.
 
 **Note**:
-The pipeline leverages the terraform behaviour on reading *.local.tfvars files, so the latter file in lexicographical order overrides variables already defined in preceding files.
+The pipeline leverages the terraform behaviour on reading *.local.tfvars files,
+so the latter file in lexicographical order overrides variables already defined
+in preceding files.
+
 Given the structure above, terraform can possibly find 3 files:
 
-* `global.auto.tfvars`
-* `local.auto.tfvars`
-* `region.auto.tfvars`
+- `global.auto.tfvars`
+- `local.auto.tfvars`
+- `region.auto.tfvars`
 
-and it means that `region.auto.tfvars` can override variables passed in `local.auto.tfvars`, that in turn can override variables passed in `global.auto.tfvars`.
+and it means that `region.auto.tfvars` can override variables passed in
+`local.auto.tfvars`, that in turn can override variables passed in 
+`global.auto.tfvars`.
 
 Terraform state files are stored in the regional S3 buckets in the deployment
 account. One state file per account/region/module is created.
