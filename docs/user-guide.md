@@ -1179,7 +1179,7 @@ pipelines:
      │   └──────│   local.auto.tfvars <-- this file contains variables
      │          │                         related to the account
      │          └───eu-west-1
-     │              └────── region.auto.tfvars <-- this file containes
+     │              └────── region.auto.tfvars <-- this file contains
      │                      variables related to the account and the region
      │
      └───222222222222
