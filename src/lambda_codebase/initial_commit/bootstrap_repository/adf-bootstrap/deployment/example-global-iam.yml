@@ -4,6 +4,28 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Template (Global) for IAM in the Deployment Account
 
+Parameters:
+  # OrgStage can be set in the respective adfconfig file using the 
+  # path config.org.stage
+  OrgStage:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: A stage used to differentiate Multi-Org ADF environments
+    Default: /adf/org/stage
+
+# Org StageCustom Mappings allows you to dynamically build different IAM 
+# Conditions / Principals ARN / Resource ARN per Organization applying Least 
+# Privilege Principals whilst retaining a Single Stack Definition for all
+# environments.
+# Usage: !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
+Mappings:
+  OrgStageMap:
+    Dev:
+      ExampleCustomProperty: 1234
+    Int:
+      ExampleCustomProperty: 5678
+    Prod:
+      ExampleCustomProperty: 9102
+
 Resources:
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from

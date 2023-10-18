@@ -28,7 +28,14 @@ config:
     default-scm-branch: master
     # ^ The default branch is used when the pipeline does not specify a specific branch.
     # If this parameter is not specified, it defaults to the "master" branch.
-
+  org: 
+    stage: prod
+    # ^ This value will be set as an SSM Parameter named /adf/org/stage 
+    # in both the deployment account and and all
+    # Target member accounts as part of the Bootstrap Statemachine.
+    # It is useful as a flag to drive Organization specific logic within
+    # IAM Role definitions/conditions aswell as Build spec behavior. 
+    
 extensions:
   terraform:
     enabled: false  # If true resources needed to run Terraform template will be deployed

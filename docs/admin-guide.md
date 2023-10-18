@@ -100,6 +100,8 @@ config:
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
     default-scm-branch: main          # Optional
+  org:
+    stage: dev # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
@@ -225,6 +227,8 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     org-specific deployments; without hardcoding the AWS Organization stage in
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
+    More information about Multi-Org ADF setup can be found in the
+   [Multi-Org Guide](#multi-Org-Guide)
 
 ## Accounts
 

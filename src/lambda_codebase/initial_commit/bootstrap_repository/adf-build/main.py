@@ -253,6 +253,15 @@ def worker_thread(
                 'bucket_name',
                 updated_kms_bucket_dict[region]['s3_regional_bucket'],
             )
+
+            # Ensuring the stage parameter on the target account is up-to-date
+            parameter_store.put_parameter(
+                '/adf/org/stage',
+                config.config.get('org', {}).get(
+                    'stage',
+                    ADF_DEFAULT_ORG_STAGE,
+                )
+            )
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
