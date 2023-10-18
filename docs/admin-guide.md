@@ -228,7 +228,7 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
     More information about Multi-Org ADF setup can be found in the
-   [Multi-Org Guide](#multi-Org-Guide)
+   [Multi-Org Guide](multi-org-guide)
 
 ## Accounts
 
