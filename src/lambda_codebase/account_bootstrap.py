@@ -65,6 +65,9 @@ def configure_generic_account(sts, event, region, role):
         bucket_name = parameter_store_deployment_account.fetch_parameter(
             f'/cross_region/s3_regional_bucket/{region}',
         )
+        org_stage = parameter_store_deployment_account.fetch_parameter(
+            '/adf/org/stage'
+        )
     except (ClientError, ParameterNotFoundError):
         raise GenericAccountConfigureError(
             f'Account {event["account_id"]} cannot yet be bootstrapped '
@@ -77,6 +80,7 @@ def configure_generic_account(sts, event, region, role):
         'deployment_account_id',
         event['deployment_account_id'],
     )
+    parameter_store_target_account.put_parameter('/adf/org/stage', org_stage)
 
 
 def configure_master_account_parameters(event):
