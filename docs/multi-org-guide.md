@@ -17,7 +17,7 @@ dedicated ADF installation.
 The benefits of such a configuration is that in Enteprise organizations 
 hosting with many production cloud workloads and applications which are deployed 
 and governed by ADF, can apply the same common `Software Development Lifecycle` 
-approachs to configuration changes in the deployment and governance tooling as
+approaches to configuration changes in the deployment and governance tooling as
 they do with the workloads they run. 
 
 With a dedicated AWS Organization and ADF install setup with Dev, Int and Prod 
@@ -40,7 +40,7 @@ would define a customized configuration, and bootstrapped Global Roles and or
 resources.
 
 As the requirements of the bootstrapped resources and adf configuration evolve
-they need to be updated over time, and these changes ideally propogated from one
+they need to be updated over time, and these changes ideally propagated from one
  Installation to the next in a coordinated, controlled fashion.
 
 One approach to promoting validated changes in an `ADF Installation` from 
@@ -59,7 +59,7 @@ Here with an `Environment Branching` approach it's possible to build a 'hands-of
 automated mechanism to Promote from a Dev ADF Installation to a Prod Installation.
 
 # Customizing adfconfig.yml Per AWS Organization
-One challenge with syncronising the aws-deployment-framework-bootstrap repository
+One challenge with synchronising the aws-deployment-framework-bootstrap repository
 across AWS Organizations is that the contents of the `adfconfig.yml` configuration
 file is typically tailored to the ADF installation. The can be solved by adding a 
 custom adfconfig file for the given organization.
@@ -93,8 +93,8 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Org Stage
     Default: /adf/org/stage
-# At the time this Stack is deployed, the FinOps Account ID SSM Parameter doesnt exist, so we derived it from mapping it to 
-# the org stage
+# At the time this Stack is deployed, the FinOps Account ID SSM Parameter doesn't
+# exist, so we derive it from mapping it to the org stage
 Mappings:
   # Usage:!FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]
   OrgStageBasedPropertyMap:
@@ -137,10 +137,10 @@ account.
 Some additional Multi-Org challenges exist when defining Targets for Deployments.
 
 The following considerations should be observed:
-- Avoid utlizing Account Ids for Deplyment Map Targets unless the deployment
+- Avoid utilizing Account Ids for Deployment Map Targets unless the deployment
  is destined for a single organization.
   - As an alternative Deploy via `Account Names`, `Account Tags` or `OU Paths`
-   which ADF will then use to dynamically genrate the respective Account IDs 
+   which ADF will then use to dynamically generate the respective Account IDs 
    Target List when updating the Pipelines.
 - Consider in a Large Enteprise Setup the number of targets that a Production
 stage generates may be much greater than in predecessing Stages and design accordingly 
