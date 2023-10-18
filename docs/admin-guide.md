@@ -223,12 +223,13 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     and prod AWS Organization with its own ADF instance per AWS organization.
     This approach allows for well-tested and stable prod AWS Organization
     deployments.  If set, a matching SSM parameter `/adf/org/stage` gets
-    created that you can reference in your buildspec files to allow for
+    created in deployment aswell as all target accounts.
+    You can reference it within your buildspec files to allow for
     org-specific deployments; without hardcoding the AWS Organization stage in
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
     More information about Multi-Org ADF setup can be found in the
-   [Multi-Org Guide](multi-org-guide)
+   [Multi-Org Guide](multi-org-guide.md)
 
 ## Accounts
 
