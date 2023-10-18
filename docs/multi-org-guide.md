@@ -3,7 +3,7 @@
 - [Multi Org Guide](#multi-org-guide)
   - [What is A Multi-Org AWS-Deployment-Framework Setup](#what-is-a-multi-org-aws-deployment-framework-setup)
   - [Coordinating Changes Between ADF Installations](#Coordinating-Changes-Between-ADF-Installations)
-  - [Customizing ADF Config Per AWS Organization](#customizing-adfconfig-per-aws-organization)
+  - [Customizing ADF Config Per AWS Organization](#customizing-adfconfig.yml-per-aws-organization)
   - [Customizing Base IAM Roles Per Organization](#customizing-base-iam-roles-per-organization)
   - [Customizing Codepipeline BuildSpecs Per Organization](#customizing-codepipeline-buildspecs-per-organization)
   - [Considerations for Multi-Org Deployment Maps](#considerations-for-multi-org-deployment-maps)
@@ -74,7 +74,7 @@ file can be defined.
 # Customizing Base IAM Roles Per Organization
 ADF Supports Bootstrapping Baseline Cloudformation Stacks to all accounts
 when they first join an AWS Organization and centrally governing the subsequent 
-Lifecycle of those Stacks. [See Here]("admin-guide.md#bootstrapping-accounts) 
+Lifecycle of those Stacks. [See Here](admin-guide.md#bootstrapping-accounts) 
 
 These Baseline Templates are typically used for Setting up Default IAM Roles and
 Policies necessary for the foundations of an ADF Based Enteprise Landing Zone. 
