@@ -95,10 +95,10 @@ class Config:
         and executes _parse_config
         """
         org_config_path = self.config_path.replace(".yml", f".{self.organization_id}.yml")
-        if os.exists(org_config_path):
+        if os.path.exists(org_config_path):
             with open(org_config_path, encoding="utf-8") as org_config_file:
                 LOGGER.info("Using custom org config")
-                self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader) 
+                self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
         else:
             LOGGER.info("Using default org config")
             with open(self.config_path, encoding="utf-8") as config: 
