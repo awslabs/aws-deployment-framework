@@ -177,7 +177,9 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except Exception as e:
                 LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Unexpected exception"
+                    "Error fetching targets for policy %s %s: Unexpected exception",
+                    self.name,
+                    self.id,
                 )
                 LOGGER.error(e)
                 raise e
