@@ -64,21 +64,6 @@ ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
 
 
-def is_account_in_invalid_state(ou_id, config):
-    """
-    Check if Account is sitting in the root
-    of the Organization or in Protected OU
-    """
-    if ou_id.startswith("r-"):
-        return "Is in the Root of the Organization, it will be skipped."
-
-    protected = config.get("protected", [])
-    if ou_id in protected:
-        return f"Is in a protected Organizational Unit {ou_id}, it will be skipped."
-
-    return False
-
-
 def ensure_generic_account_can_be_setup(sts, config, account_id):
     """
     If the target account has been configured returns the role to assume
