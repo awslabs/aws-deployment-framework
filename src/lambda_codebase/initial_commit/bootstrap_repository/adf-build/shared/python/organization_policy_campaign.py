@@ -167,7 +167,9 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except self.organizations_client.exceptions.TooManyRequestsException as e:
                 LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Too Many Requests "
+                    "Error fetching targets for policy %s %s: Too Many Requests ",
+                    self.name,
+                    self.id,
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(
