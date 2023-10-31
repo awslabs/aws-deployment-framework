@@ -29,6 +29,9 @@ config:
     default-scm-branch: main
     # Optional:
     # default-scm-codecommit-account-id: "123456789012"
+  deployment-maps:
+    allow-empty-target: "False"
+    # ^ Needs to be "True" or "False". Defaults to "False" when not set.
   #org:
     # Optional: Use this variable to define the AWS Organization in case of staged multi-organization ADF deployments
     #stage: dev

@@ -89,6 +89,20 @@ def fetch_required_ssm_params(pipeline_input, regions):
     return output
 
 
+def report_final_pipeline_targets(pipeline_object):
+    number_of_targets = 0
+    LOGGER.info(
+        "Targets found: %s",
+        pipeline_object.template_dictionary["targets"],
+    )
+    for target in pipeline_object.template_dictionary["targets"]:
+        for target_accounts in target:
+            number_of_targets = number_of_targets + len(target_accounts)
+    LOGGER.info("Number of targets found: %d", number_of_targets)
+    if number_of_targets == 0:
+        LOGGER.info("Attempting to create an empty pipeline as there were no targets found")
+
+
 def generate_pipeline_inputs(
     pipeline,
     deployment_map_source,
@@ -146,6 +160,8 @@ def generate_pipeline_inputs(
                 )
             ),
         )
+
+    report_final_pipeline_targets(pipeline_object)
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)

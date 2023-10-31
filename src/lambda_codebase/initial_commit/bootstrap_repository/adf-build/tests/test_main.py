@@ -153,6 +153,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
             call('/adf/extensions/terraform/enabled', 'False'),
+            call('/adf/deployment-maps/allow-empty-target', 'False'),
         ],
         any_order=True,
     )
@@ -193,6 +194,9 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     }
     cls.config['org'] = {
         'stage': 'test-stage',
+    }
+    cls.config['deployment-maps'] = {
+        'allow-empty-target': 'False',
     }
     prepare_deployment_account(
         sts=sts,
@@ -249,6 +253,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
             ),
             call('/notification_endpoint/main', 'slack-channel'),
             call('/adf/extensions/terraform/enabled', 'False'),
+            call('/adf/deployment-maps/allow-empty-target', 'False'),
         ],
         any_order=True,
     )
