@@ -3,7 +3,7 @@
 This document describes how ADF can be run and managed in a multi AWS organization setup.
 
 - [Intended Audience](#intended-audience)
-- [Defintion of a Multi-Organization ADF Setup](#defintion-of-a-multi-organization-adf-setup)
+- [Definition of a Multi-Organization ADF Setup](#definition-of-a-multi-organization-adf-setup)
 - [Common Use Case for a Multi-Organization ADF Setup - A Multi-Stage Landing Zone](#common-use-case-for-a-multi-organization-adf-setup---a-multi-stage-landing-zone)
 - [Propagating Code Changes Between ADF Installations](#propagating-code-changes-between-adf-installations)
 - [Customizing ADF Config Per AWS Organization](#customizing-adfconfig.yml-per-aws-organization)
@@ -18,7 +18,7 @@ This guide is intended for users that run a large scale AWS Organization with co
 Enterprises usually best meet the criteria for a multi AWS organization setup. We therefore refer to "Enterprises" as the target audience in the section below.
 However, the approach described here should be applied to smaller organizations as well; assuming that sufficient engineering staff is available to support a multi AWS organization setup.
 
-## Defintion of a Multi-Organization ADF Setup 
+## Definition of a Multi-Organization ADF Setup 
 A multi-organization AWS-Deployment-Framework (ADF) setup describes a scenario where an 
 enterprise (or any user) maintains more than one AWS Organizations and each with it's own
 dedicated ADF installation. 
