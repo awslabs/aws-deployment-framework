@@ -1153,39 +1153,6 @@ Resources:
           RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
-  CodeCommitRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: "adf-codecommit-role-base"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codecommit.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-
-  CodeCommitPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-organizations-codecommit-role-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - "codecommit:BatchGetRepositories"
-              - "codecommit:Get*"
-              - "codecommit:GitPull"
-              - "codecommit:List*"
-              - "codecommit:CancelUploadArchive"
-              - "codecommit:UploadArchive"
-            Resource: "*"
-      Roles:
-        - !Ref CodeCommitRole
-
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
