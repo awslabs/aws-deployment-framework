@@ -27,6 +27,9 @@ config:
   scm:
     auto-create-repositories: enabled
     default-scm-branch: main
+  deployment-maps:
+    allow-empty-target: "False"
+    # ^ Needs to be "True" or "False". Defaults to "False" when not set.
   #org:
     # Optional: Use this variable to define the AWS Organization in case of staged multi-organization ADF deployments
     #stage: dev
