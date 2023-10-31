@@ -18,3 +18,5 @@ config:
     - ou-a9ny-123test
   scp:
     keep-default-scp: enabled
+  deployment-maps:
+    allow-empty-target: "False"

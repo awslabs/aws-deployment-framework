@@ -16,10 +16,14 @@ from errors import (
 )
 from logger import configure_logger
 from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
-
+from botocore.exceptions import ClientError
+from parameter_store import ParameterStore
+import boto3
 
 LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
+
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 CLOUDFORMATION_PROVIDER_NAME = "cloudformation"
 RECURSIVE_SUFFIX = "/**/*"
@@ -141,6 +145,13 @@ class Target:
         )
         self.target_structure = target_structure
         self.organizations = organizations
+        # Set adf_deployment_maps_allow_empty_target as bool
+        parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+        adf_deployment_maps_allow_empty_target_bool = parameter_store.fetch_parameter(
+            "/adf/deployment-maps/allow-empty-target"
+        ).lower().capitalize() == "True"
+        self.adf_deployment_maps_allow_empty_target = adf_deployment_maps_allow_empty_target_bool
+
 
     @staticmethod
     def _account_is_active(account):
@@ -176,14 +187,32 @@ class Target:
                         response.get("Name"), str(response.get("Id"))
                     )
                 )
+
         if accounts_found == 0:
-            raise NoAccountsFoundError(f"No accounts found in {self.path}")
+            if self.adf_deployment_maps_allow_empty_target is False:
+                raise NoAccountsFoundError(f"No accounts found in {self.path}.")
+            LOGGER.info(
+                "Create_response_object: 0 AWS accounts found for path %s. "
+                "Continue with empty response.",
+                self.path,
+            )
 
     def _target_is_account_id(self):
-        responses = self.organizations.client.describe_account(
-            AccountId=str(self.path)
-        ).get("Account")
-        self._create_response_object([responses])
+        try:
+            responses = self.organizations.client.describe_account(
+                AccountId=str(self.path)
+            ).get('Account')
+            responses_list = [responses]
+        except ClientError as client_err:
+            if (
+                client_err.response["Error"]["Code"] == "AccountNotFoundException" and
+                self.adf_deployment_maps_allow_empty_target is True
+            ):
+                LOGGER.info("IGNORE - Account was not found in AWS Org for id %s", self.path)
+                responses_list = []
+            else:
+                raise
+        self._create_response_object(responses_list)
 
     def _target_is_tags(self):
         responses = self.organizations.get_account_ids_for_tags(self.path)
@@ -202,16 +231,46 @@ class Target:
         self._create_response_object(accounts)
 
     def _target_is_ou_id(self):
-        responses = self.organizations.get_accounts_for_parent(str(self.path))
+        try:
+            # Check if ou exists - otherwise throw clean exception here
+            self.organizations.client.list_children(ParentId=self.path, ChildType="ACCOUNT")
+            responses = self.organizations.get_accounts_for_parent(
+                str(self.path)
+            )
+        except ClientError as client_err:
+            no_target_found = (
+                client_err.response["Error"]["Code"] == "ParentNotFoundException"
+            )
+            if no_target_found and self.adf_deployment_maps_allow_empty_target is True:
+                LOGGER.info(
+                    "Note: Target OU was not found in the AWS Org for id %s",
+                    self.path,
+                )
+                responses = []
+            else:
+                raise
         self._create_response_object(responses)
 
     def _target_is_ou_path(self, resolve_children=False):
-        responses = self.organizations.get_accounts_in_path(
-            self.path,
-            resolve_children=resolve_children,
-            ou_id=None,
-            excluded_paths=[],
-        )
+        try:
+            responses = self.organizations.get_accounts_in_path(
+                self.path,
+                resolve_children=resolve_children,
+                ou_id=None,
+                excluded_paths=[],
+            )
+        except ClientError as client_err:
+            no_target_found = (
+                client_err.response["Error"]["Code"] == "ParentNotFoundException"
+            )
+            if no_target_found and self.adf_deployment_maps_allow_empty_target is True:
+                LOGGER.info(
+                    "Note: Target OU was not found in AWS Org for path %s",
+                    self.path,
+                )
+                responses = []
+            else:
+                raise
         self._create_response_object(responses)
 
     def _target_is_null_path(self):
@@ -220,15 +279,20 @@ class Target:
         responses = self.organizations.dir_to_ou(self.path)
         self._create_response_object(responses)
 
+    # pylint: disable=R0911
     def fetch_accounts_for_target(self):
         if self.path == "approval":
-            return self._target_is_approval()
+            self._target_is_approval()
+            return
         if isinstance(self.path, dict):
-            return self._target_is_tags()
+            self._target_is_tags()
+            return
         if str(self.path).startswith("ou-"):
-            return self._target_is_ou_id()
+            self._target_is_ou_id()
+            return
         if AWS_ACCOUNT_ID_REGEX.match(str(self.path)):
-            return self._target_is_account_id()
+            self._target_is_account_id()
+            return
         if str(self.path).isnumeric():
             LOGGER.warning(
                 "The specified path is numeric, but is not 12 chars long. "
@@ -248,10 +312,16 @@ class Target:
                 str(oct(int(self.path))).replace("o", ""),
             )
         if str(self.path).startswith("/"):
-            return self._target_is_ou_path(
+            self._target_is_ou_path(
                 resolve_children=str(self.path).endswith(RECURSIVE_SUFFIX)
             )
+            return
+
+        if self.adf_deployment_maps_allow_empty_target is True:
+            return
+
         if self.path is None:
             # No path/target has been passed, path will default to /deployment
-            return self._target_is_null_path()
+            self._target_is_null_path()
+            return
         raise InvalidDeploymentMapError(f"Unknown definition for target: {self.path}")

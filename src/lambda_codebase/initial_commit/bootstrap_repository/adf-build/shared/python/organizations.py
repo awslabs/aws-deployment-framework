@@ -194,7 +194,7 @@ class Organizations:  # pylint: disable=R0904
     def get_policy_body(path):
         bootstrap_path = f"./adf-bootstrap/{path}"
         with open(bootstrap_path, mode="r", encoding="utf-8") as policy:
-            return json.dumps(json.load(policy))
+            return json.dumps(json.load(policy), separators=(',', ':'))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
         response = list(paginator(self.client.list_policies, Filter=policy_type))
