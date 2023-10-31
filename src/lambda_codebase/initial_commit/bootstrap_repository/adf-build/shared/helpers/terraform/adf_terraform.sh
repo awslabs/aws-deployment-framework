@@ -16,7 +16,7 @@ tfinit(){
         cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}"/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     fi
     if [ -d "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}/${AWS_REGION}" ]; then
-        cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}/${AWS_REGION}"/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
+        cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}/${AWS_REGION}"/. "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     fi
     if [ -f "${CURRENT}/tfvars/global.auto.tfvars" ]; then
         cp -R "${CURRENT}/tfvars/global.auto.tfvars" "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
