@@ -36,3 +36,4 @@ within the AWS Console.
 - Refer to the [User Guide](docs/user-guide.md) for using ADF once it is setup.
 - Refer to the [Samples Guide](docs/samples-guide.md) for a detailed walk
   through of the provided samples.
+- Refer to the [Multi-Orgaization ADF Setup](docs/multi-organization-guide.md) for using ADF in an enterprise-grade setup.
