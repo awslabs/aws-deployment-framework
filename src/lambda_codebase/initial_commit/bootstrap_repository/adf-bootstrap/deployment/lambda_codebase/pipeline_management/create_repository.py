@@ -17,6 +17,7 @@ METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/REPO")
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 
+
 def lambda_handler(event, _):
     """
     Main Lambda Entry point, responsible for creating the CodeCommit

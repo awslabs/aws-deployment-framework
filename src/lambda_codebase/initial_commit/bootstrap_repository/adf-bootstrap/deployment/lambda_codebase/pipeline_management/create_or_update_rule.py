@@ -87,7 +87,7 @@ def lambda_handler(event, _):
         source_account_id = default_scm_codecommit_account_id
 
         # Create the properties object if it does not exist
-        if not pipeline["default_providers"]["source"].get("properties") is None:
+        if pipeline["default_providers"]["source"].get("properties") is None:
             pipeline["default_providers"]["source"]["properties"] = {}
 
         pipeline["default_providers"]["source"]["properties"]["account_id"] = (
