@@ -188,6 +188,28 @@ class Action:
                         .get('object_key')
                     ))
                 ),
+                "KMSEncryptionKeyARN": (
+                    self.target
+                    .get('properties', {})
+                    .get('kms_encryption_key_arn', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('kms_encryption_key_arn')
+                    ))
+                ),
+                "CacheControl": (
+                    self.target
+                    .get('properties', {})
+                    .get('cache_control', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('cache_control')
+                    ))
+                ),
             }
         if self.provider == "CodeStarSourceConnection":
             default_source_props = (
