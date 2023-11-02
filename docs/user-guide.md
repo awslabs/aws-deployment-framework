@@ -1109,6 +1109,11 @@ pipeline for more details in the setup and integration.
 - `TARGET_ACCOUNTS`: comma separated list of target accounts.
 - `TARGET_OUS`: comma separated list of target leaf OUs (parent
   OUs are supported).
+- `TARGET_TAGS`: comma separated list of tag=value couples. All accounts
+  matching at least one of the tags will be targeted by the pipeline.
+  
+  **Eg:** `TARGET_TAGS=environment=prd,cost-center=ccoe` will match all
+  accounts tagged with `environment = prd` OR `cost-center = ccoe`
 - `REGIONS`: comma separated list of target regions. If this parameter
   is empty, the main ADF region is used.
 - `MANAGEMENT_ACCOUNT_ID`: id of the AWS Organizations management account.

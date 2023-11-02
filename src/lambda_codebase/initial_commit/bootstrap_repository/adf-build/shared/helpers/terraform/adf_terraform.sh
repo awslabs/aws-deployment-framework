@@ -94,7 +94,7 @@ do
     AWS_REGION=$(echo -n "$REGION" | sed 's/^[ \t]*//;s/[ \t]*$//')  # sed trims whitespaces
     export TF_VAR_TARGET_REGION=$AWS_REGION
     # if TARGET_ACCOUNTS and TARGET_OUS are not defined apply to all accounts
-    if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]]
+    if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]] && [[ -z "$TARGET_TAGS" ]]
     then
         echo "Apply to all accounts"
         for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts.json" | sed 's/"//g' )
@@ -117,6 +117,15 @@ do
     then
         echo "List target OUs: $TARGET_OUS"
         for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_ous.json" | sed 's/"//g' )
+        do
+            tfrun
+        done
+    fi
+
+    if ! [[ -z "$TARGET_TAGS" ]]
+    then
+        echo "List target TAGS: $TARGET_TAGS"
+        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_tags.json" | sed 's/"//g' )
         do
             tfrun
         done

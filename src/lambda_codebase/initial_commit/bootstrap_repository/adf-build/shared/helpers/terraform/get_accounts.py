@@ -19,6 +19,7 @@ LOGGER.setLevel(logging.INFO)
 
 MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 TARGET_OUS = os.environ.get("TARGET_OUS")
+TARGET_TAGS = os.environ.get("TARGET_TAGS")
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 sts = boto3.client('sts')
@@ -36,6 +37,12 @@ def main():
         accounts_from_ous = get_accounts_from_ous()
         with open('accounts_from_ous.json', 'w', encoding='utf-8') as outfile:
             json.dump(accounts_from_ous, outfile)
+
+    if TARGET_TAGS:
+        print("filtering by tags")
+        accounts_from_tags = get_accounts_from_tags()
+        with open('accounts_from_tags.json', 'w', encoding='utf-8') as outfile:
+            json.dump(accounts_from_tags, outfile)
 
 
 def list_organizational_units_for_parent(parent_ou):
@@ -87,6 +94,45 @@ def get_accounts():
             )
         )
     )
+
+
+def get_accounts_from_tags():
+    accounts = get_accounts()
+    tag_filters = []
+    for tag in TARGET_TAGS.split(','):
+        tag_name = tag.split('=')[0]
+        tag_value = tag.split('=')[1]
+        tag_filters.append({
+            "Key": tag_name,
+            "Value": tag_value})
+
+    LOGGER.info(
+        "Tag filters %s",
+        tag_filters
+    )
+
+    organizations = get_boto3_client(
+        'organizations',
+        (
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
+            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+        ),
+        'getaccountIDs',
+    )
+    filtered_accounts = []
+    for account in accounts:
+        tags = account['Tags'] = organizations.list_tags_for_resource(
+            ResourceId=account['AccountId']
+        )['Tags']
+        for tag_filter in tag_filters:
+            found = list(filter(lambda item: (
+                item["Key"] == tag_filter["Key"] and item["Value"] == tag_filter["Value"]), tags))
+            if len(found) > 0:
+                print(
+                    f"{account['AccountId']} matched {tag_filter['Key']}={tag_filter['Value']}")
+                filtered_accounts.append(account)
+                break
+    return filtered_accounts
 
 
 def get_accounts_from_ous():
