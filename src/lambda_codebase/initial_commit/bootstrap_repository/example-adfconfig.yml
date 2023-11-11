@@ -34,7 +34,7 @@ config:
     # in both the deployment account and and all
     # Target member accounts as part of the Bootstrap Statemachine.
     # It is useful as a flag to drive Organization specific logic within
-    # IAM Role definitions/conditions aswell as Build spec behavior. 
+    # IAM Role definitions/conditions as well as Build spec behavior. 
     
 extensions:
   terraform:
