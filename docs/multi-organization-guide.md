@@ -11,7 +11,7 @@ This document describes how ADF can be run and managed in a multi AWS organizati
   - [1. Create a dedicated adfconfig.yml Per AWS Organization](#1-create-a-dedicated-adfconfigyml-per-aws-organization)
   - [2. Design Multi-Organization ADF Deployment Maps](#2-design-multi-organization-adf-deployment-maps)
   - [3. Make the AWS Organization Stage Context Available in CodePipeline Build jobs](#3-make-the-aws-organization-stage-context-available-in-codepipeline-build-jobs)
-  - [4. Customize the Base IAM Roles Per Organization](#4-customize-the-base-iam-roles-per-organization)
+  - [4. Customize the Base IAM Roles Per AWS Organization](#4-customize-the-base-iam-roles-per-aws-organization)
 
 ## Intended Audience
 This guide is intended for users that run a large scale AWS Organization with complex ADF application deployments and large numbers of ADF deployment pipelines.
