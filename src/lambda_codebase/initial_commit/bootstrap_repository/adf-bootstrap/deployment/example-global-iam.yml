@@ -9,7 +9,7 @@ Parameters:
   # path config.org.stage
   OrgStage:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Description: A stage used to differentiate Multi-Org ADF environments
+    Description: A stage used to differentiate Multi-Organization ADF environments
     Default: /adf/org/stage
 
 # Org StageCustom Mappings allows you to dynamically build different IAM 
