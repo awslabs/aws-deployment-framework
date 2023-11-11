@@ -40,7 +40,7 @@ The development flow is as follows:
 4. Once all tests passed successfully, the code is moved from the "int" AWS Organization to the "prod" AWS Organization.
 5. Assuming that the propagation and the deploymemt in the "prod" AWS Organization was successful, the code is now fully deployed in the "prod" AWS Organization and is available to the end-users.
 
-The benefits of such a setup is that an Enteprise can apply the same common `Software Development Lifecycle` to typical "one-off" landing zone services that are hard to test in a single-orgaization setup. It enables an Enterprises 'Cloud Center of Excellence' (landing zone team) a 
+The benefits of such a setup is that an Enterprise can apply the same common `Software Development Lifecycle` to typical "one-off" landing zone services that are hard to test in a single-organization setup. It provides the enterprise's 'Cloud Center of Excellence' (landing zone team) a 
 controlled process to develop, test and validate changes to wide reaching mission-critical 
 services, including but not limited to:
 - Service Control Policies changes.
