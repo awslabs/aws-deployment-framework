@@ -45,7 +45,7 @@ controlled process to develop, test and validate changes to wide reaching missio
 services, including but not limited to:
 - Service Control Policies changes.
 - Identity Center and IAM based Access Management Configuration changes.
-- Deployment Framework changes.
+- AWS Deployment Framework changes.
 - AWS Organization changes; including OU structure.
 - Control Tower and Account Provisioning configurations changes.
 - Centralized security service configuration changes.
