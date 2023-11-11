@@ -239,8 +239,8 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     org-specific deployments; without hardcoding the AWS Organization stage in
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
-    More information about Multi-AWS Organization ADF setup can be found in the
-   [Multi-Organization Guide](multi-org-guide.md)
+    More information about setting up ADF with multiple AWS Organizations can
+    be found in the [Multi-Organization Guide](multi-organization-guide.md)
 
 ## Accounts
 
