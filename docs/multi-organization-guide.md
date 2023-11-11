@@ -179,4 +179,4 @@ Mappings:
 In the above usage example you can see how the Cloudformation function FindInMap
 `!FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]` can be
 utilized to dynamically reference a custom 'AccountId' within the template,
-enabling the construction account specific granular Resource/Principal ARNS.
+enabling the construction of account specific granular Resource and Principal ARNs.
