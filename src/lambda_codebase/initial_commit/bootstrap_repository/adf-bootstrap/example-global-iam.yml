@@ -17,8 +17,8 @@ Parameters:
     Default: /adf/org/stage
 
 # Org StageCustom Mappings allows you to dynamically build different IAM 
-# Conditions / Principals ARN / Resource ARN per Organization applying Least 
-# Privilege Principals whilst retaining a Single Stack Definition for all
+# Conditions / Principals ARN / Resource ARN per Organization applying
+# least-privilege principles whilst retaining a Single Stack Definition for all
 # environments.
 # usage !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
 Mappings:
