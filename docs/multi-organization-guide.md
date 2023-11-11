@@ -20,8 +20,8 @@ However, the approach described here should be applied to smaller organizations 
 
 ## Definition of a Multi-Organization ADF Setup 
 A multi-organization AWS-Deployment-Framework (ADF) setup describes a scenario where an 
-enterprise (or any user) maintains more than one AWS Organizations and each with it's own
-dedicated ADF installation. 
+enterprise (or any user) maintains more than one AWS Organizations.
+Where each AWS Organization holds its own dedicated ADF installation. 
 
 The following diagram shows such a setup in the most generic level:
 
