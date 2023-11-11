@@ -9,9 +9,10 @@ This document describes how ADF can be run and managed in a multi AWS organizati
 - [Customizing ADF Config Per AWS Organization](#customizing-adfconfig.yml-per-aws-organization)
 - [Best Practices for Multi-Organization ADF setups](#best-practices-for-multi-organization-adf-setups)
   - [1. Create a dedicated adfconfig.yml Per AWS Organization](#1-create-a-dedicated-adfconfigyml-per-aws-organization)
-  - [2. Design Multi-Organization ADF Deployment Maps](#2-design-multi-organization-adf-deployment-maps)
-  - [3. Make the AWS Organization Stage Context Available in CodePipeline Build jobs](#3-make-the-aws-organization-stage-context-available-in-codepipeline-build-jobs)
-  - [4. Customize the Base IAM Roles Per AWS Organization](#4-customize-the-base-iam-roles-per-aws-organization)
+  - [2. Customize the ADF Config File Per AWS Organization](#2-customize-the-adf-config-file-per-aws-organization)
+  - [3. Design Multi-Organization ADF Deployment Maps](#2-design-multi-organization-adf-deployment-maps)
+  - [4. Make the AWS Organization Stage Context Available in AWS CodePipeline Build jobs](#3-make-the-aws-organization-stage-context-available-in-aws-codepipeline-build-jobs)
+  - [5. Customize the Base IAM Roles Per AWS Organization](#4-customize-the-base-iam-roles-per-aws-organization)
 
 ## Intended Audience
 This guide is intended for users that run a large scale AWS Organization with complex ADF application deployments and large numbers of ADF deployment pipelines.
@@ -33,7 +34,7 @@ The most common use case for a multi-organization ADF setup is a multi-stage (an
 Let's assume that "Enterprise A" has a dedicated production (referenced as "prod" hereafter) AWS Organization. This "prod" AWS Organization is used by it's end users to run all their workloads.
 In a single AWS Organization setup, the "prod" AWS Organization is the only AWS Organization that exists.
 Applying changes to this single organization, for example updating ADF, changing SCPs or applying enforcing controls via AWS Config, introduces the risk or disrupting your production workloads.
-To mitigate this risk, it is recommended to apply the mutl-organization ADF setup as described in this document.
+To mitigate this risk, it is recommended to apply the multi-organization ADF setup as described in this document.
 
 As part of the multi-organization ADF setup, one or more AWS Organizations are added. In the instructions below, a separate development ("dev") and integration ("int") AWS Organization are added. The following diagram shows such an architecture:
 ![Multi Org Intro](images/aws-multi-org-2.png)
@@ -41,12 +42,12 @@ As part of the multi-organization ADF setup, one or more AWS Organizations are a
 The development flow is as follows: 
 1. Development work for any landing zone feature always starts in the "dev" AWS Organization. The ADF repository `aws-deployment-framework-bootstrap` and `aws-deployment-framework-pipelines` are also considered a landing zone feature. The "dev" AWS Organization is exclusively reserved for the landing zone development team. End-users do not have access to the "dev" AWS Organization.
 2. Once the code under development is stable and underwent successful unit and basic integration tests, it is moved from the "dev" AWS Organization to the "int" AWS Organization. The process of propagating code from one AWS Organization to another is described in the [Propagating Code Changes Between ADF Installations section](#Propagating-Code-Changes-Between-ADF-Installations).
-3. The "int" AWS Organization is used for final integration testing and verification. The "int" AWS Organization is exclusively reserved for the landing zone development team. No end-user has access to the "int" AWS Organization.
+3. The "int" AWS Organization is used for final integration testing and verification. The "int" AWS Organization is exclusively reserved for the landing zone development team. End-users do not have access to the "int" AWS Organization.
 4. Once all tests passed successfully, the code is moved from the "int" AWS Organization to the "prod" AWS Organization.
 5. Assuming that the propagation and the deployment in the "prod" AWS Organization was successful, the code is now fully deployed in the "prod" AWS Organization and is available to the end-users.
 
 The benefits of such a setup is that an Enterprise can apply the same common `Software Development Lifecycle` to typical "one-off" landing zone services that are hard to test in a single-organization setup. It provides the enterprise's 'Cloud Center of Excellence' (landing zone team) a 
-controlled process to develop, test and validate changes to wide reaching mission-critical 
+controlled process to develop, test, and validate changes to wide reaching mission-critical 
 services, including but not limited to:
 - Service Control Policies changes.
 - Identity Center and IAM based Access Management Configuration changes.
@@ -57,10 +58,10 @@ services, including but not limited to:
 - Centralized cost management configuration changes.
 - Centralized networking changes.
 
-The following sections are written in the context of this "".
+The following sections are written in the context of the above described use case; a multi-stage landing zone.
 
 ## Propagating Code Changes Between ADF Installations 
-With multiple ADF configurations across multiple AWS Organization there comes a new challenge to maintain repositories and its configurations across multiple environments. 
+With multiple ADF configurations across multiple AWS Organizations there comes a new challenge to maintain repositories and its configurations across multiple environments. 
 This applies to the following repositories: 
 - aws-deployment-framework-bootstrap
 - aws-deployment-framework-pipelines
@@ -91,49 +92,99 @@ in the root of the `aws-deployment-framework-bootstrap` repository will take
 precedence over the default `adfconfig.yml` settings file for that organization.
 
 For each AWS organization used with the ADF Framework setup an additional adfconfig
-file can be defined.
+file can be defined. 
 
+The following screenshot shows the ADF root directory of a multi-organisation ADF setup with three stages ("dev", "int", "prod").
+Each AWS Organization has its own ADF config file with environment-specific values.
+![adf-multi-org-root-directory-screenshot](images/aws-multi-org-adf-config-multi-organization.png)
 
-### 2. Design Multi-Organization ADF Deployment Maps
-The Deployment Maps for ADF exist in the CodeCommit repository
+## 2. Customize the ADF Config File Per AWS Organization
+Once a dedicated  ADF config file per tenant is setup, it needs to be customized for each AWS Organizations context. It is recommended to make use of the following ADF configuration options in a multi-organization context:
+
+```yaml
+  scm:
+    default-scm-branch: prod  # This setting ensures, that the "prod" branch is selected as the source branch for any ADF deployment pipeline.
+    default-scm-codecommit-account-id: "123456789012" # This setting ensure that the AWS Account 123456789012 is selected as the default AWS account to 
+  org:
+    stage: prod # This setting will create the SSM parameter "/adf/org/stage" in the ADF deployment AWS Account. This parameter then can be referenced as an environement variable in application buildspec files to establish the AWS organization context.
+  deployment-maps:
+    allow-empty: "True" # It is recommened to set this setting to "True". When this setting is set to `True`, temporary empty OUs are just ignored and do not lead to an error.
+```
+
+The following sample ADF config file `adfconfig.o-a123456789.yml` shows a complete example for a "prod" AWS organization.
+
+```yaml
+# The following configuration is only loaded for int Organization:  o-a123456789
+roles:
+  cross-account-access: AWSControlTowerExecution
+  # ^ The role by ADF to assume cross account access
+
+regions:
+  deployment-account: eu-central-1
+  # ^ The region you define as your main deployment region
+  targets: # A list of regions you wish to bootstrap and also deploy into via pipelines
+    - us-east-1
+config:
+  main-notification-endpoint:
+    - type: email
+      target: john.doe@example.com
+      # ^ Email/Slack channel who receives notifications for the main bootstrapping pipeline
+  protected:
+    - ou-1234-abcdefgh # OU Lockdown
+  moves:
+    - name: to-root
+      action: safe  # Can be safe or remove-base
+  scp:
+    keep-default-scp: enabled
+    # ^ Determines if the default AWSFullAccess SCP stays attached to all OU's
+  scm:
+    auto-create-repositories: enabled
+    default-scm-branch: prod
+    default-scm-codecommit-account-id: "123456789012"
+  org:
+    stage: prod
+  deployment-maps:
+    allow-empty: "True" # Defaults to "False". Needs to be "True" or "False"
+```
+
+### 3. Design Multi-Organization ADF Deployment Maps
+The Deployment Maps for ADF exist in the AWS CodeCommit repository
 `aws-deployment-framwork-pipelines` within the deployment 
 account. Some additional multi-organization challenges exist when defining targets for deployments. As a high-level goal, a deployment map should be setup in such a way, that it can be copied over from one ADF instance to another without breaking / requiring any change.
 
 The following considerations should be observed when creating deployment maps for a multi-organization ADF setup:
 1. Create Organization-agnostic deployment maps
     - As a best-practice, deployment maps should be free of any hard-coded AWS Account IDs for deployment map targets, unless the deployment is destined for a single AWS Organization only.
-    - Instead, target AWS accounts via `Account Names`, `Account Tags` or `OU Paths`.
-    This will allow ADF to dynamically generate the respective AWS Account IDs 
-    for the target list when updating the pipelines. 
+    - Instead, target AWS Accounts via `Account Names`, `Account Tags` or `OU Paths`.
+    This will allow ADF to dynamically generate the respective AWS Account IDs for the target list when updating the pipelines. 
 2. Consider AWS service limits for AWS CodePipeline
-    - In a large enterprise setup, the number of targets in a "prod" AWS Organizations for an AWS CodePipeline
-  stage may be much larger than its preceding stages in the "dev" and "int" AWS Organizations.
-    - Review the CodePipeline action limitations.
-    - ADF distributes targets across AWS CodePipeline stages within a deployment pipeline, spreading the accounts across multiple stages to workaround the AWS CodePipeline actions-per-stage limitation. 
-    deployments may need to be distributed across multiple AWS CodePipeline when upper limits are reached.
-    - The current limits are ([AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html))
+    - Review the AWS CodePipeline action limitations. The current limits are ([AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html))
       - 1000 AWS CodePipeline per AWS Account per region
       - 500 Actions per AWS CodePipeline
       - 50 Actions per AWS CodePipeline Stage
-    - This implies that a single ADF pipeline can target 500 AWS Accounts max. This may require you to manually balance the targets across multiple deployment pipelines.
+    - Those limits imply that a single ADF pipeline can target 500 AWS Accounts max. This may require you to manually balance the targets across multiple deployment pipelines.
+    - ADF distributes targets across AWS CodePipeline stages within a deployment pipeline, spreading the accounts across multiple stages to workaround the AWS CodePipeline actions-per-stage limitation. Deployments may need to be manually distributed across multiple deployment pipelines if they target hundreds of accounts in an AWS Organization.
+    - In a large enterprise setup, the number of targets in a "prod" AWS Organization for an AWS CodePipeline
+  stage may be much larger than its preceding stages in the "dev" and "int" AWS Organizations.
 3. Allow for empty deployment map targets
-    - With the adfconfig setting `allow-empty-target` ([ADF Admin Guide](admin-guide.md)), ADF can be instructed to ignore any target that is not resolvable or empty (because no AWS Accounts exists in it). It is suggested to set this setting to `True`. Even though the OU structure and general setup across the different AWS Organization stages is usually identical, the number of created AWS Accounts might not be. With this setting is set to `True`, temporary empty OUs are just ignored and do not lead to an error.
+    - With the adfconfig setting `allow-empty-target` ([ADF Admin Guide](admin-guide.md)), ADF can be instructed to ignore any target that is not resolvable or empty (because no AWS Accounts exists in it). It is suggested to set this setting to `True`. Even though the OU structure and general setup across the different AWS Organization stages is usually identical, the number of created AWS Accounts might not be. When this setting is set to `True`, temporary empty OUs are just ignored and do not lead to an error.
 
  4. The source branch for the application code may be different per AWS Organization
-    - The above described custom `adfconfig` configuration allows a different default 
-  branch to be specified in the path `config.scm.default-scm-branch` per AWS Organization.
+    - The above described custom `adfconfig` configuration allows a different default branch to be specified in the path `config.scm.default-scm-branch` per AWS Organization.
 
-### 3. Make the AWS Organization Stage Context Available in CodePipeline Build jobs
+### 4. Make the AWS Organization Stage Context Available in AWS CodePipeline Build jobs
 ADF applications often contain environment / AWS Organization stage specific configuration files. 
 In order to allow AWS CodeBuild to select the proper configuration context for an application, the environment / AWS Organization stage context needs to be made available. 
-A simple pattern to solve this problem is the introduction of the SSM parameter `adf/org/stage` in the buildspec file of the application.
+A simple pattern to solve this problem is the introduction of the SSM parameter `adf/org/stage` in the buildspec file of the application. This SSM parameter will be auto-created by ADF, if the 
 The following snippet shows the header of such a `codebuild.yaml` file. 
-```
+
+```yaml
 env:
   parameter-store:
     ADF_ORG_STAGE: "/adf/org/stage"
 [...]
 ```
+
 This environment variable can then be used to drive decision/deployment logic
 within any of the subsequent build commands/actions.
 
@@ -148,7 +199,7 @@ a specific CDK application
     - `config-int.yaml`
     - `config-prod.yaml`
 
-### 4. Customize the Base IAM Roles Per AWS Organization
+### 5. Customize the Base IAM Roles Per AWS Organization
 ADF Supports Bootstrapping Baseline CloudFormation Stacks to all AWS Accounts
 when they first join an AWS Organization and centrally governing the subsequent 
 lifecycle of those stacks. [More information on bootstrapping accounts can be found in the admin guide](admin-guide.md#bootstrapping-accounts).
@@ -164,7 +215,7 @@ To customize the scope of which resources or principals are permitted within the
 IAM Policies of the baseline templates CFN Mapping fields can be utilized based 
 on the `Org Stage` SSM Parameter. As shown below:
 
-```
+```yaml
 Parameters:
   OrgStage:
     Type: "AWS::SSM::Parameter::Value<String>"
@@ -182,6 +233,7 @@ Mappings:
     prod:
       FinOpsAccountId: 1234567891014 # Prod Org
 ```
+
 In the above usage example you can see how the CloudFormation function FindInMap
 `!FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]` can be
 utilized to dynamically reference a custom 'AccountId' within the template,
