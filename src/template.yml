@@ -77,9 +77,9 @@ Parameters:
 
   DeploymentAccountMainRegion:
     Type: String
-    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa)-(central|(north|south)?(east|west)?)-\\d"
+    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa|cn)-(central|(north|south)?(east|west)?)-\\d"
     MinLength: 6
-    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
+    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1, cn-northwest-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList

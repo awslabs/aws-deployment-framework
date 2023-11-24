@@ -19,7 +19,7 @@ _govcloud_regions = [
     'us-gov-east-1'
 ]
 
-_incompatible_regions = [
+_china_regions = [
     'cn-north-1',
     'cn-northwest-1'
 ]
@@ -35,10 +35,6 @@ def test_partition_us_commercial_regions(region):
     assert get_partition(region) == 'aws'
 
 
-@pytest.mark.parametrize('region', _incompatible_regions)
-def test_partition_incompatible_regions(region):
-    with pytest.raises(IncompatiblePartitionError) as excinfo:
-        get_partition(region)
-
-    error_message = str(excinfo.value)
-    assert error_message.find("partition is not supported") >= 0
+@pytest.mark.parametrize('region', _china_regions)
+def test_partition_china_regions(region):
+    assert get_partition(region) == 'aws-cn'
