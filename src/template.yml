@@ -1315,7 +1315,7 @@ Resources:
         Type: CODEPIPELINE
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
-        PrivilegedMode: false
+        PrivilegedMode: true
         Image: "aws/codebuild/standard:7.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
