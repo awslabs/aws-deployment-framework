@@ -138,6 +138,8 @@ class Event:
                 'cross_account_access_role': self.cross_account_access_role,
                 'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
                 'adf_version': ADF_VERSION,
-                'adf_log_level': ADF_LOG_LEVEL
+                'adf_log_level': ADF_LOG_LEVEL,
+                'deployment_account_id': self.deployment_account_id,
+                '/adf/extensions/terraform/enabled': os.getenv("TERRAFORM_ENABLE", "False")
             }
         }
