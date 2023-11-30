@@ -18,7 +18,7 @@ get_role_policy = {
                 "Effect": "Allow",
                 "Action": ["iam:ChangePassword"],
                 "Resource": (
-                    "arn:aws:kms:eu-west-1:111111111111:key/existing_key"
+                    "arn:aws-cn:kms:eu-west-1:111111111111:key/existing_key"
                 ),
             },
             {
@@ -26,8 +26,8 @@ get_role_policy = {
                 "Effect": "Allow",
                 "Action": "s3:ListAllMyBuckets",
                 "Resource": [
-                    "arn:aws:s3:::existing_bucket",
-                    "arn:aws:s3:::existing_bucket/*",
+                    "arn:aws-cn:s3:::existing_bucket",
+                    "arn:aws-cn:s3:::existing_bucket/*",
                 ],
             },
             {

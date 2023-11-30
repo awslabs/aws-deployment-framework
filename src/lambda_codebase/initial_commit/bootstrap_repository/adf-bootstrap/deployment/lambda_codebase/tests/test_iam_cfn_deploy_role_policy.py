@@ -84,7 +84,6 @@ def test_grant_access_to_s3_buckets_exists_already(iam_client):
     policy_doc_before = deepcopy(instance.policy_document)
 
     instance.grant_access_to_s3_buckets(['existing_bucket'])
-
     assert instance.policy_changed is False
     assert instance.policy_document == policy_doc_before
 
@@ -114,8 +113,8 @@ def test_grant_access_to_s3_buckets_new_bucket_single_resource(iam_client):
     )
     assert instance.policy_document['Statement'][1]['Resource'] == [
         policy_doc_before['Statement'][1]['Resource'],
-        'arn:aws:s3:::new_bucket',
-        'arn:aws:s3:::new_bucket/*',
+        'arn:aws-cn:s3:::new_bucket',
+        'arn:aws-cn:s3:::new_bucket/*',
     ]
     assert instance.policy_document['Statement'][2] == (
         policy_doc_before['Statement'][2]
@@ -149,15 +148,14 @@ def test_grant_access_to_s3_buckets_new_buckets(iam_client):
     assert instance.policy_document['Statement'][1]['Resource'] == [
         policy_doc_before['Statement'][1]['Resource'][0],
         policy_doc_before['Statement'][1]['Resource'][1],
-        'arn:aws:s3:::new_bucket',
-        'arn:aws:s3:::new_bucket/*',
-        'arn:aws:s3:::another_new_bucket',
-        'arn:aws:s3:::another_new_bucket/*',
+        'arn:aws-cn:s3:::new_bucket',
+        'arn:aws-cn:s3:::new_bucket/*',
+        'arn:aws-cn:s3:::another_new_bucket',
+        'arn:aws-cn:s3:::another_new_bucket/*',
     ]
     assert instance.policy_document['Statement'][2] == (
         policy_doc_before['Statement'][2]
     )
-
 
 def test_grant_access_to_kms_keys_empty_list(iam_client):
     instance = IAMCfnDeployRolePolicy(iam_client, 'RoleName', 'PolicyName')
@@ -187,8 +185,9 @@ def test_grant_access_to_kms_keys_new_key_single_resource(iam_client):
         instance.policy_document['Statement'][1]['Resource'][0]
     )
     policy_doc_before = deepcopy(instance.policy_document)
+    print(policy_doc_before)
 
-    new_key_arn = 'arn:aws:kms:eu-west-1:111111111111:key/new_key'
+    new_key_arn = 'arn:aws-cn:kms:eu-west-1:111111111111:key/new_key'
     instance.grant_access_to_kms_keys([
         new_key_arn,
     ])
@@ -226,8 +225,8 @@ def test_grant_access_to_kms_keys_new_keys(iam_client):
     ]
     policy_doc_before = deepcopy(instance.policy_document)
 
-    new_key_arn_1 = 'arn:aws:kms:eu-west-1:111111111111:key/new_key_no_1'
-    new_key_arn_2 = 'arn:aws:kms:eu-west-1:111111111111:key/new_key_no_2'
+    new_key_arn_1 = 'arn:aws-cn:kms:eu-west-1:111111111111:key/new_key_no_1'
+    new_key_arn_2 = 'arn:aws-cn:kms:eu-west-1:111111111111:key/new_key_no_2'
     instance.grant_access_to_kms_keys([
         new_key_arn_1,
         existing_key_arn_1,
@@ -350,8 +349,8 @@ def test_update_iam_role_policies_updated(iam_client):
     policy_doc['Statement'][1]['Resource'] = [
         policy_doc['Statement'][1]['Resource'][0],
         policy_doc['Statement'][1]['Resource'][1],
-        'arn:aws:s3:::new_bucket',
-        'arn:aws:s3:::new_bucket/*',
+        'arn:aws-cn:s3:::new_bucket',
+        'arn:aws-cn:s3:::new_bucket/*',
     ]
     policy_doc_json = json.dumps(policy_doc)
 
