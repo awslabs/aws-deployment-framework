@@ -3,7 +3,7 @@
     "Parameters": {
         "RuleName": "EC2_CHECKS_TERMINATION_PROTECTION_ADF",
         "Description": "EC2_CHECKS_TERMINATION_PROTECTION_ADF",
-        "SourceRuntime": "python3.10",
+        "SourceRuntime": "python3.11",
         "CodeKey": "EC2_CHECKS_TERMINATION_PROTECTION_ADFeu-central-1.zip",
         "InputParameters": "{}",
         "OptionalParameters": "{}",

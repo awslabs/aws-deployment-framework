@@ -114,7 +114,7 @@ Parameters:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.11
     Timeout: 300
 
 Resources:
@@ -971,7 +971,7 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleRuntimes:
-        - python3.10
+        - python3.11
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
