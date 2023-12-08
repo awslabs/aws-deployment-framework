@@ -214,6 +214,17 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     `master` instead. We recommend configuring the main scm branch name to
     `main`. As new repositories will most likely use this branch name as their
     default branch.
+- `deployment-maps` tracks all source code management configuration.
+  - **allow-empty-target** allows you to configure deployment maps with empty
+    targets.
+    If all targets get evaluated to empty, the ADF pipeline is still created
+    based on the remaining providers (e.g. source and build). It just does not
+    have a deploy stage.
+    This is useful when you need to:
+    - target an OU that does not have any AWS Accounts (initially or
+      temporarily).
+    - target AWS Accounts by tag with no AWS Accounts having that tag assigned
+      (yet).
 - `org` configures settings in case of staged multi-organization ADF deployments.
   - `stage` defines the AWS Organization stage in case of staged multi-
     organization ADF deployments. This is an optional setting. In enterprise-
