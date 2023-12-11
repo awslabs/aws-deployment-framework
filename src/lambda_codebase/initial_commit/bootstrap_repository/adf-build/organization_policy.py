@@ -31,6 +31,16 @@ class OrganizationPolicy:
         )
         return [f.replace("./adf-bootstrap", ".") for f in _files]
 
+    @staticmethod
+    def _find_all_polices_v2(policy):
+        _files = list(
+            glob.iglob(
+                f"./adf-bootstrap/{policy}/*.json",
+                recursive=True,
+            )
+        )
+        return [f.replace("./adf-bootstrap", ".") for f in _files]
+
     def _compare_ordered_policy(self, obj):
         if isinstance(obj, dict):
             return sorted((k, self._compare_ordered_policy(v)) for k, v in obj.items())
@@ -135,6 +145,22 @@ class OrganizationPolicy:
         if self._is_govcloud(REGION_DEFAULT):
             supported_policies = ["scp"]
 
+        self.apply_policies_v1(
+            organizations,
+            parameter_store,
+            config,
+            organization_mapping,
+            supported_policies,
+        )
+
+    def apply_policies_v1(
+        self,
+        organizations,
+        parameter_store,
+        config,
+        organization_mapping,
+        supported_policies,
+    ):
         for policy in supported_policies:
             _type = "SERVICE_CONTROL_POLICY" if policy == "scp" else "TAG_POLICY"
             organizations.enable_organization_policies(_type)

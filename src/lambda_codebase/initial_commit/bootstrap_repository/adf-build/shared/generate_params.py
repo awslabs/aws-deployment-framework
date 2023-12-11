@@ -11,6 +11,7 @@ import re
 from copy import deepcopy
 import json
 import secrets
+
 # Not all string functions are deprecated, the ones we use are not.
 # Hence disabling the lint finding:
 from string import ascii_lowercase, digits  # pylint: disable=deprecated-module
@@ -31,6 +32,7 @@ class ParametersAndTags(TypedDict):
     """
     The param files will have Parameters and Tags, where these are
     """
+
     Parameters: Dict[str, str]
     Tags: Dict[str, str]
 
@@ -50,6 +52,7 @@ class ParamGenWaveTarget(TypedDict):
     Optimized parameter generation wave target with clearly
     identified fields as used in the generate parameters process.
     """
+
     id: str
     account_name: str
     path: WaveTargetPath
@@ -73,6 +76,7 @@ class InputPipelineWaveTarget(TypedDict):
     Each wave target in a pipeline will have the following
     fields to point to the target account.
     """
+
     id: str
     name: str
     path: WaveTargetPath
@@ -84,9 +88,7 @@ class InputPipelineWaveTarget(TypedDict):
 # make sure that referencing 100 accounts for example will be broken down
 # into two waves of 50 accounts each as max supported by CodePipeline.
 TargetWavesWithNestedWaveTargets = List[  # Waves
-    List[  # Wave Targets
-        InputPipelineWaveTarget
-    ]
+    List[InputPipelineWaveTarget]  # Wave Targets
 ]
 
 
@@ -95,6 +97,7 @@ class InputEnvironmentDefinition(TypedDict):
     Inside the pipeline input environment, the list of targets
     is defined as a list of waves that each contain a list of wave targets.
     """
+
     targets: TargetWavesWithNestedWaveTargets
 
 
@@ -103,6 +106,7 @@ class InputDefinition(TypedDict):
     The input of the pipeline definition holds the environment
     with all the targets defined inside.
     """
+
     environment: InputEnvironmentDefinition
 
 
@@ -111,19 +115,21 @@ class PipelineDefinition(TypedDict):
     Bare minimum input pipeline definition as required for traversal
     in this generation of parameters.
     """
+
     input: InputDefinition
 
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
-EMPTY_PARAMS_DICT: ParametersAndTags = {'Parameters': {}, 'Tags': {}}
+EMPTY_PARAMS_DICT: ParametersAndTags = {"Parameters": {}, "Tags": {}}
 
 
 class Parameters:
     """
     Parameter generation class.
     """
+
     def __init__(
         self,
         build_name: str,
@@ -137,8 +143,7 @@ class Parameters:
         self.build_name = build_name
         self.definition_s3 = definition_s3
         self.file_name = "".join(
-            secrets.choice(ascii_lowercase + digits)
-            for _ in range(6)
+            secrets.choice(ascii_lowercase + digits) for _ in range(6)
         )
 
     def _retrieve_pipeline_definition(self) -> PipelineDefinition:
@@ -154,43 +159,47 @@ class Parameters:
         pipeline_input_key = (
             # Support to fallback to 'input' definition key.
             # This is scheduled to be deprecated in v4.0
-            "pipeline_input" if "pipeline_input" in pipeline_definition
+            "pipeline_input"
+            if "pipeline_input" in pipeline_definition
             else "input"
         )
-        input_targets: TargetWavesWithNestedWaveTargets = (
-            pipeline_definition[pipeline_input_key]['environments']['targets']
-        )
+        input_targets: TargetWavesWithNestedWaveTargets = pipeline_definition[
+            pipeline_input_key
+        ]["environments"]["targets"]
         # Since the input_targets returns a list of waves that each contain
         # a list of wave_targets, we need to flatten them to iterate:
         wave_targets: Iterator[ParamGenWaveTarget] = map(
             lambda wt: {
                 # Change wt: InputPipelineWaveTarget to ParamGenWaveTarget
-                'id': wt['id'],
-                'account_name': wt['name'],
-                'path': wt['path'],
-                'regions': wt['regions'],
+                "id": wt["id"],
+                "account_name": wt["name"],
+                "path": wt["path"],
+                "regions": wt["regions"],
             },
             filter(
-                lambda wt: wt['id'] != 'approval',
+                lambda wt: wt["id"] != "approval",
                 # Flatten the three levels of nested arrays to one iterable:
                 chain.from_iterable(
                     chain.from_iterable(
                         input_targets,
                     ),
                 ),
-            )  # Returns an Iterator[InputPipelineWaveTarget]
+            ),  # Returns an Iterator[InputPipelineWaveTarget]
         )
         for wave_target in wave_targets:
-            if wave_target['id'] in pipeline_targets:
+            if wave_target["id"] in pipeline_targets:
                 # Lets merge the regions to show what regions it deploys
                 # to
-                stored_target = pipeline_targets[wave_target['id']]
-                stored_target['regions'] = sorted(list(set(
-                    stored_target['regions']
-                    + wave_target['regions'],
-                )))
+                stored_target = pipeline_targets[wave_target["id"]]
+                stored_target["regions"] = sorted(
+                    list(
+                        set(
+                            stored_target["regions"] + wave_target["regions"],
+                        )
+                    )
+                )
             else:
-                pipeline_targets[wave_target['id']] = wave_target
+                pipeline_targets[wave_target["id"]] = wave_target
         # Returns a list of targets:
         # [
         #   {
@@ -209,7 +218,7 @@ class Parameters:
 
     def _create_params_folder(self) -> None:
         try:
-            dir_path = f'{self.cwd}/params'
+            dir_path = f"{self.cwd}/params"
             os.mkdir(dir_path)
             LOGGER.debug("Created directory: %s", dir_path)
         except FileExistsError:
@@ -243,10 +252,10 @@ class Parameters:
         this case.
         """
         for target in self._retrieve_pipeline_targets().values():
-            for region in target['regions']:
+            for region in target["regions"]:
                 LOGGER.debug(
                     "Generating parameters for the %s account in %s",
-                    target['account_name'],
+                    target["account_name"],
                     region,
                 )
                 current_params = deepcopy(EMPTY_PARAMS_DICT)
@@ -260,18 +269,17 @@ class Parameters:
                 current_params = self._merge_params(
                     Parameters._parse(
                         params_root_path=self.cwd,
-                        params_filename=target['account_name'],
+                        params_filename=target["account_name"],
                     ),
                     current_params,
                 )
-                path_references_ou = (
-                    isinstance(target['path'], str)
-                    and not Parameters._is_account_id(target['path'])
-                )
+                path_references_ou = isinstance(
+                    target["path"], str
+                ) and not Parameters._is_account_id(target["path"])
                 if path_references_ou:
                     # Compare account_region final to ou_region
-                    ou_id_or_path = target['path']
-                    if ou_id_or_path.startswith('/'):
+                    ou_id_or_path = target["path"]
+                    if ou_id_or_path.startswith("/"):
                         # Skip the first slash
                         ou_id_or_path = ou_id_or_path[1:]
                     # Cleanup the ou name to include only alphanumeric, dashes,
@@ -281,7 +289,7 @@ class Parameters:
                             params_root_path=self.cwd,
                             params_filename=f"{ou_id_or_path}_{region}",
                         ),
-                        current_params
+                        current_params,
                     )
                     # Compare account_region final to ou
                     current_params = self._merge_params(
@@ -289,7 +297,7 @@ class Parameters:
                             params_root_path=self.cwd,
                             params_filename=ou_id_or_path,
                         ),
-                        current_params
+                        current_params,
                     )
                 # Compare account_region final to deployment_account_region
                 current_params = self._merge_params(
@@ -297,7 +305,7 @@ class Parameters:
                         params_root_path=self.cwd,
                         params_filename=f"global_{region}",
                     ),
-                    current_params
+                    current_params,
                 )
                 # Compare account_region final to global
                 current_params = self._merge_params(
@@ -305,7 +313,7 @@ class Parameters:
                         params_root_path=self.cwd,
                         params_filename="global",
                     ),
-                    current_params
+                    current_params,
                 )
                 if current_params:
                     self._write_params(
@@ -321,7 +329,7 @@ class Parameters:
     def _clean_params_filename(params_filename: str) -> str:
         # Cleanup the params_filename to include only alphanumeric, dashes,
         # slashes, and underscores:
-        return re.sub(r'[^0-9a-zA-Z_\-/]+', '_', params_filename)
+        return re.sub(r"[^0-9a-zA-Z_\-/]+", "_", params_filename)
 
     @staticmethod
     def _parse(
@@ -352,7 +360,7 @@ class Parameters:
         )
         file_path = f"{params_root_path}/params/{clean_file_name}"
         try:
-            with open(f"{file_path}.json", encoding='utf-8') as file:
+            with open(f"{file_path}.json", encoding="utf-8") as file:
                 json_content = json.load(file)
                 LOGGER.debug(
                     "Read %s.yml: %s",
@@ -362,7 +370,7 @@ class Parameters:
                 return json_content
         except FileNotFoundError:
             try:
-                with open(f"{file_path}.yml", encoding='utf-8') as file:
+                with open(f"{file_path}.yml", encoding="utf-8") as file:
                     yaml_content = yaml.load(file, Loader=yaml.FullLoader)
                     LOGGER.debug(
                         "Read %s.yml: %s",
@@ -371,14 +379,14 @@ class Parameters:
                     )
                     return yaml_content
             except yaml.scanner.ScannerError:
-                LOGGER.exception('Invalid Yaml for %s.yml', file_path)
+                LOGGER.exception("Invalid Yaml for %s.yml", file_path)
                 raise
             except FileNotFoundError:
                 LOGGER.debug(
                     "File not found for %s.{json or yml}, defaulting to empty",
                     file_path,
                 )
-                return {'Parameters': {}, 'Tags': {}}
+                return {"Parameters": {}, "Tags": {}}
 
     def _write_params(
         self,
@@ -400,13 +408,11 @@ class Parameters:
             filepath,
             new_params,
         )
-        with open(filepath, mode='w', encoding='utf-8') as outfile:
+        with open(filepath, mode="w", encoding="utf-8") as outfile:
             json.dump(new_params, outfile)
 
     def _merge_params(
-        self,
-        new_params: ParametersAndTags,
-        current_params: ParametersAndTags
+        self, new_params: ParametersAndTags, current_params: ParametersAndTags
     ) -> ParametersAndTags:
         """
         Merge the new_params Parameters and Tags found into a clone of the
@@ -431,12 +437,12 @@ class Parameters:
             if root_key not in merged_params:
                 merged_params[root_key] = {}
             for key in new_params[root_key]:
-                if merged_params[root_key].get(key, '') == '':
-                    merged_params[root_key][key] = (
-                        self.resolver.apply_intrinsic_function_if_any(
-                            new_params[root_key][key],
-                            self.file_name,
-                        )
+                if merged_params[root_key].get(key, "") == "":
+                    merged_params[root_key][
+                        key
+                    ] = self.resolver.apply_intrinsic_function_if_any(
+                        new_params[root_key][key],
+                        self.file_name,
                     )
         LOGGER.debug(
             "Merged result %s",
@@ -462,5 +468,5 @@ def main() -> None:
     parameters.create_parameter_files()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
