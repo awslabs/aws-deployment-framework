@@ -75,7 +75,7 @@ Conditions:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.11
+    Runtime: python3.12
 
 Resources:
   LambdaLayerVersion:
@@ -83,7 +83,7 @@ Resources:
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes:
-        - python3.11
+        - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -689,8 +689,8 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
-                nodejs: 18
+                python: 3.12
+                nodejs: 20
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build

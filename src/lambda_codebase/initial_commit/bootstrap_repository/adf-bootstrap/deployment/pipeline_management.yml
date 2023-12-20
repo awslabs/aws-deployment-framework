@@ -56,7 +56,7 @@ Globals:
     Architectures:
       - arm64
     CodeUri: lambda_codebase/pipeline_management
-    Runtime: python3.11
+    Runtime: python3.12
     Timeout: 300
     Tracing: Active
     Layers:
@@ -671,10 +671,10 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
-                nodejs: 18
+                python: 3.12
+                nodejs: 20
               commands:
-                - npm install aws-cdk@2.114 -g -y --quiet --no-progress
+                - npm install aws-cdk@2.115 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py

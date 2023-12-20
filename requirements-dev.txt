@@ -1,7 +1,7 @@
-cfn-lint==0.83.4
-isort==5.12.0
+cfn-lint==0.83.6
+isort==5.13.2
 mock==5.1.0
-pylint==3.0.2
+pylint==3.0.3
 pytest~=7.4.3
 pytest-cov==4.1.0
 tox==4.11.4

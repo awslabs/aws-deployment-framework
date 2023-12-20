@@ -34,7 +34,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Role: !GetAtt LambdaVPCPolicyRole.Arn
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: 600
       Environment:
         Variables:
