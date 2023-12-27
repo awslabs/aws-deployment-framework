@@ -971,14 +971,14 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleArchitectures:
-        - arm64
+        - x86_64
       CompatibleRuntimes:
         - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
     Metadata:
       BuildMethod: python3.12
-      BuildArchitecture: arm64
+      BuildArchitecture: x86_64
 
   LambdaLayerVersionPermission:
     Type: "AWS::Lambda::LayerVersionPermission"
@@ -1043,7 +1043,7 @@ Resources:
     Properties:
       Handler: wait_until_complete.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - StackWaiterFunction"
@@ -1063,7 +1063,7 @@ Resources:
     Properties:
       Handler: determine_event.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - DetermineEvent"
@@ -1084,7 +1084,7 @@ Resources:
     Properties:
       Handler: account_bootstrap.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - CrossAccountExecuteFunction"
@@ -1106,7 +1106,7 @@ Resources:
     Properties:
       Handler: deployment_account_config.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - RoleStackDeploymentFunction"
@@ -1125,7 +1125,7 @@ Resources:
     Properties:
       Handler: moved_to_root.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - MovedToRootActionFunction"
@@ -1145,7 +1145,7 @@ Resources:
     Properties:
       Handler: generic_account_config.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
@@ -1791,7 +1791,7 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       CodeUri: lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/determine_default_branch
       Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
       Policies:
@@ -1826,7 +1826,7 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       Architectures:
-        - arm64
+        - x86_64
       CodeUri: lambda_codebase/initial_commit
       Description: "ADF Lambda Function - BootstrapCreateInitialCommitFunction"
       Policies:
@@ -1886,7 +1886,7 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/cross_region_bucket
       Architectures:
-        - arm64
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - Create Deployment Bucket in Main Deployment Region"
@@ -1924,7 +1924,7 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization
       Architectures:
-        - arm64
+        - x86_64
       Description: "ADF Lambda Function - Enable AWS Organizations"
       Policies:
         - Version: "2012-10-17"
@@ -1954,7 +1954,7 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization_unit
       Architectures:
-        - arm64
+        - x86_64
       Description: "ADF Lambda Function - Create Organization Unit"
       Policies:
         - Version: "2012-10-17"
@@ -1983,7 +1983,7 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/account
       Architectures:
-        - arm64
+        - x86_64
       Description: "ADF Lambda Function - Create Account"
       Policies:
         - Version: "2012-10-17"
