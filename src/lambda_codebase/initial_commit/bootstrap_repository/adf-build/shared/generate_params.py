@@ -118,6 +118,7 @@ LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 EMPTY_PARAMS_DICT: ParametersAndTags = {'Parameters': {}, 'Tags': {}}
+ADF_ORG_STAGE = os.getenv("ADF_ORG_STAGE", "dev")
 
 
 class Parameters:
@@ -229,6 +230,7 @@ class Parameters:
                 i.e. "/devsecops/security_eu-west-1"
             1. f"{organization_unit_path}" i.e. "/devsecops/security"
             1. f"{global}_{region}" i.e. "global_eu-west-1"
+            1. f"{global}_{stage}" i.e. "global_dev"
             1. f"{global}" i.e. "global"
 
         It will then generate a JSON file that holds all the parameters per
@@ -296,6 +298,15 @@ class Parameters:
                     Parameters._parse(
                         params_root_path=self.cwd,
                         params_filename=f"global_{region}",
+                    ),
+                    current_params
+                )
+                # Compare account_region final to global_stage
+                adf_org_stage = ADF_ORG_STAGE # Fetch from Environ for Start
+                current_params = self._merge_params(
+                    Parameters._parse(
+                        params_root_path=self.cwd,
+                        params_filename=f"global_{adf_org_stage}",
                     ),
                     current_params
                 )
