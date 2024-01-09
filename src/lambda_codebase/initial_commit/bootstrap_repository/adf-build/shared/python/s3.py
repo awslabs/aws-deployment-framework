@@ -9,6 +9,10 @@ import boto3
 
 from logger import configure_logger
 
+from partition import (
+    get_aws_domain,
+    get_partition
+)
 
 LOGGER = configure_logger(__name__)
 
@@ -23,6 +27,8 @@ class S3:
         self.client = boto3.client('s3', region_name=region)
         self.resource = boto3.resource('s3', region_name=region)
         self.bucket = bucket
+        self.domain_suffix = get_aws_domain(region)
+        self.partition = get_partition(region)
 
     @staticmethod
     def supported_path_styles():
@@ -49,8 +55,8 @@ class S3:
                 's3-url' returns: 's3://{bucket}/{key}'
                 's3-uri' returns: '{bucket}/{key}'
                 's3-key-only' return: '{key}'
-                'path': returns: 'https://{s3-region}.amazonaws.com/{bucket}/{key}'
-                'virtual-hosted' returns: 'https://{buycket}.{s3-region}.amazonaws.com/{key}'
+                'path': returns: 'https://{s3-region}.{self.domain_suffix}/{bucket}/{key}'
+                'virtual-hosted' returns: 'https://{buycket}.{s3-region}.{self.domain_suffix}/{key}'
 
             key (str): The object key to include in the path.
 
@@ -69,9 +75,11 @@ class S3:
             s3_region_name = f"s3-{self.region}"
 
         if style == 'path':
-            return f"https://{s3_region_name}.amazonaws.com/{self.bucket}/{key}"
+            if self.partition == "aws-cn":
+                return f"https://{self.bucket}.s3.{self.region}.{self.domain_suffix}/{key}"
+            return f"https://{s3_region_name}.{self.domain_suffix}/{self.bucket}/{key}"
         if style == 'virtual-hosted':
-            return f"https://{self.bucket}.{s3_region_name}.amazonaws.com/{key}"
+            return f"https://{self.bucket}.{s3_region_name}.{self.domain_suffix}/{key}"
 
         raise ValueError(
             f"Unknown upload style syntax: {style}. "
@@ -190,8 +198,10 @@ class S3:
             s3_object.get()
             LOGGER.debug('Found Template at: %s', s3_object.key)
             if self.region == 'us-east-1':
-                return f"https://s3.amazonaws.com/{self.bucket}/{key}"
-            return f"https://s3-{self.region}.amazonaws.com/{self.bucket}/{key}"
+                return f"https://s3.{self.domain_suffix}/{self.bucket}/{key}"
+            if self.partition == 'aws-cn':
+                return self.build_pathing_style("path", key)
+            return f"https://s3-{self.region}.{self.domain_suffix}/{self.bucket}/{key}"
         except self.client.exceptions.NoSuchKey:
             # Split the path to remove the last key entry from the string
             key_level_up = key.split('/')
