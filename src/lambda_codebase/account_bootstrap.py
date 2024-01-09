@@ -83,7 +83,8 @@ def configure_generic_account(sts, event, region, role):
 
 def configure_master_account_parameters(event):
     """
-    Update the management account parameter store in us-east-1 with the
+    Update the management account parameter store in the base region
+    of the partition (us-east-1, us-gov-west-1 or cn-north-1) with the
     deployment_account_id then updates the main deployment region
     with that same value
     """

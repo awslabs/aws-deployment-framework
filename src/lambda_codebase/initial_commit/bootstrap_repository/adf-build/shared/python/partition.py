@@ -10,7 +10,7 @@ https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genre
 
 from boto3.session import Session
 
-COMPATIBLE_PARTITIONS = ['aws-us-gov', 'aws']
+COMPATIBLE_PARTITIONS = ['aws-us-gov', 'aws', 'aws-cn']
 
 
 class IncompatiblePartitionError(Exception):
@@ -44,4 +44,18 @@ def get_organization_api_region(region_name: str) -> str:
     if get_partition(region_name) == 'aws-us-gov':
         return 'us-gov-west-1'
 
+    elif region_name.startswith("cn-"):
+        return "aws-cn"
+
     return 'us-east-1'
+
+def get_aws_domain(region_name: str) -> str:
+    """
+    Get AWS domain suffix
+    """
+    import re
+    _partition = get_partition(region_name)
+    if re.match("^aws-.*", _partition):
+        return "amazonaws.com.{0}".format(_partition.split("-")[-1])
+    else:
+        return "amazonaws.com"
