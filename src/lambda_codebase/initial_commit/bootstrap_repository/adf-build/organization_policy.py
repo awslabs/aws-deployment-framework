@@ -58,6 +58,16 @@ class OrganizationPolicy:
         return region.startswith("us-gov")
 
     @staticmethod
+    def _is_china(region: str) -> bool:
+        """
+        Evaluates the region to determine if it is part of China Partition.
+
+        :param region: a region (cn-north-1)
+        :return: Returns True if the region is China Partition, False otherwise.
+        """
+        return region.startswith("cn-")
+
+    @staticmethod
     def set_scp_attachment(access_identifier, organization_mapping, path, organizations):
         if access_identifier:
             if access_identifier.get("keep-default-scp") != "enabled":

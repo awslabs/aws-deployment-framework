@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: ADF CloudFormation Initial Base Stack for the Management Account in the us-east-1 region.
+Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1).
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -77,9 +77,9 @@ Parameters:
 
   DeploymentAccountMainRegion:
     Type: String
-    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa)-(central|(north|south)?(east|west)?)-\\d"
+    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa|cn)-(central|(north|south)?(east|west)?)-\\d"
     MinLength: 6
-    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
+    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1 or cn-north-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
@@ -1321,7 +1321,7 @@ Resources:
         Type: CODEPIPELINE
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
-        PrivilegedMode: false
+        PrivilegedMode: true
         Image: "aws/codebuild/standard:7.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
@@ -1358,6 +1358,11 @@ Resources:
                 python: 3.11
             pre_build:
               commands:
+                - |
+                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
+                    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+                    npm config set registry https://registry.npmmirror.com
+                  fi
                 - >-
                   pip install
                   -r adf-build/requirements.txt

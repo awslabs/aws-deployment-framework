@@ -154,12 +154,15 @@ def main():
 def _get_partition(region_name: str) -> str:
     """Given the region, this function will return the appropriate partition.
 
-    :param region_name: The name of the region (us-east-1, us-gov-west-1)
+    :param region_name: The name of the region (us-east-1, us-gov-west-1 or cn-north-1)
     :return: Returns the partition name as a string.
     """
 
     if region_name.startswith("us-gov"):
         return "aws-us-gov"
+
+    elif region_name.startswith("cn-"):
+        return "aws-cn"
 
     return "aws"
 

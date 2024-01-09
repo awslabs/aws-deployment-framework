@@ -10,7 +10,7 @@ https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genre
 
 from boto3.session import Session
 
-COMPATIBLE_PARTITIONS = ['aws-us-gov', 'aws']
+COMPATIBLE_PARTITIONS = ['aws-us-gov', 'aws', 'aws-cn']
 
 
 class IncompatiblePartitionError(Exception):
