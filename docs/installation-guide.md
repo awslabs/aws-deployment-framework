@@ -6,7 +6,8 @@
 - [git](https://git-scm.com/)
   - [AWS CodeCommit Setup](https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-https-unixes.html)
 - [AWS CloudTrail configured](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
-  in the `us-east-1` region within the AWS Organizations Management AWS Account.
+  in the `us-east-1` region within the AWS Organizations Management AWS Account for global partition deployments; For Govcloud and China
+  deployments go to us-gov-west-1 or cn-north-1 respectively..
 
 ## ADF-Compability with AWS Control Tower
 
@@ -24,7 +25,8 @@ action, we call those out explicitly.
 It is okay to install ADF and AWS Control Tower in different regions. Example:
 
 - Install AWS Control Tower in eu-central-1.
-- Install ADF in us-east-1.
+- Install ADF in us-east-1 for global partition deployments; For Govcloud and China
+  deployments intall in us-gov-west-1 or cn-north-1 respectively.
 
 **If you want to use ADF and AWS Control Tower, we recommend that you setup
 AWS Control Tower prior to installing ADF.**
@@ -39,9 +41,10 @@ AWS Control Tower prior to installing ADF.**
    for AWS Organizations can only be acted upon in the US East (N. Virginia)
    Region.
 
-2. In the AWS Console from your management account within `us-east-1`, head
-   over to the Serverless Application Repository *(SAR)*. From there, search
-   for `aws-deployment-framework` *(or "adf")* (ensure the checkbox
+2. In the AWS Console from your management account within `us-east-1` for 
+   global partition deployments; For Govcloud and China deployments in 
+   us-gov-west-1 or cn-north-1 respectively, head over to the Serverless Application Repository *(SAR)*. 
+   From there, search for `aws-deployment-framework` *(or "adf")* (ensure the checkbox
    *"Show apps that create custom IAM roles or resource policies"* is checked).
 
    If you are deploying ADF for the first time, fill in the required parameters
@@ -82,8 +85,10 @@ AWS Control Tower prior to installing ADF.**
    When you have entered all required information press **'Deploy'**.
 
 3. As the stack `serverlessrepo-aws-deployment-framework` completes you can now
-   open AWS CodePipeline from within the management account in `us-east-1` and
-   see that there is an initial pipeline execution that has been started.
+   open AWS CodePipeline from within the management account in `us-east-1` for 
+   global partition deployments; For Govcloud and China deployments go to 
+   us-gov-west-1 or cn-north-1 respectively and see that there is an initial 
+   pipeline execution that has been started.
 
    When ADF is deployed for the first time, it will make the initial commit
    with the skeleton structure of the `aws-deployment-framework-bootstrap`
@@ -124,7 +129,8 @@ AWS Control Tower prior to installing ADF.**
    that started the bootstrap process for the deployment account. You can view
    the progress of this in the management account in the AWS Step Functions
    console for the step function `AccountBootstrappingStateMachine-` in the
-   `us-east-1` region.
+   `us-east-1` region for global partition deployments; For Govcloud and China
+   deployments go to us-gov-west-1 or cn-north-1 respectively.
 
 5. Once the Step Function has completed, switch roles over to the newly
    bootstrapped deployment account in the region you defined as your main

@@ -7,8 +7,9 @@ The [AWS Deployment Framework](https://github.com/awslabs/aws-deployment-framewo
 across multiple AWS accounts and regions within an AWS Organization. This
 application should be deployed via the SAR in the [Management AWS
 account](admin-guide.md#management-account) of your AWS Organization within the
-`us-east-1` region. For more information on setting up ADF please see the
-[installation
+`us-east-1` region for global partition deployments; For Govcloud and China
+deployments go to us-gov-west-1 or cn-north-1 respectively. For more information 
+on setting up ADF please see the [installation
 guide](https://github.com/awslabs/aws-deployment-framework/tree/master/docs/installation-guide.md).
 
 - **Application Name:** The stack name of this application created via AWS
@@ -57,9 +58,11 @@ base level settings for how ADF operates.
 
 When deploying ADF for the first time, part of the installation process will
 automatically create an AWS CodeCommit repository on this AWS Account within the
-`us-east-1` region. It will also make the initial commit to the default branch
-of this repository with a default set of examples that act as a starting point
-to help define the AWS Account bootstrapping processes for your Organization.
+`us-east-1` region for global partition deployments; For Govcloud and China
+deployments in us-gov-west-1 or cn-north-1 respectively. It will also make the 
+initial commit to the default branch of this repository with a default set of 
+examples that act as a starting point to help define the AWS Account bootstrapping 
+processes for your Organization.
 
 When making this initial commit into the repository, these below settings are
 passed directly the `adfconfig.yml` file prior to it being committed.

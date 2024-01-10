@@ -31,6 +31,24 @@ Launch ADF via the
 [Serverless Application Repository](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework)
 within the AWS Console.
 
+## Enabling ADF for GovCloud and China Regions
+
+To deploy ADF in GovCloud or China regions, follow these steps:
+
+### GovCloud
+
+1. Launch the ADF installation from an account with a base region on GovCloud (us-gov-west-1).
+2. Update your AWS CLI configuration to use the AWS GovCloud endpoint.
+
+### China
+
+1. Launch the ADF installation from an account with a base region on China (cn-north-1).
+2. Update your AWS CLI configuration to use the AWS China endpoint.
+
+### Considerations
+Be mindful that AWS Products and Services available may differ from the Global partition
+Ensure that you follow the specific guidelines and compliance requirements for deploying in GovCloud and China regions.
+
 - Refer to the [Installation Guide](docs/installation-guide.md) for
   Installation steps.
 - Refer to the [User Guide](docs/user-guide.md) for using ADF once it is setup.

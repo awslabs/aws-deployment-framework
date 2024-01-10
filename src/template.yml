@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: ADF CloudFormation Initial Base Stack for the Management Account in the cn-north-1 region.
+Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1).
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -114,7 +114,7 @@ Parameters:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
 
 Conditions:
@@ -897,7 +897,7 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -1319,7 +1319,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: true
-        Image: "aws/codebuild/standard:5.0"
+        Image: "aws/codebuild/standard:7.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
@@ -1352,12 +1352,13 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
+                python: 3.11
             pre_build:
               commands:
                 - |
-                  if [ "${AWS_REGION}" = "cn-north-1" ] || [ "${AWS_REGION}" = "cn-northwest-1" ]; then
+                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
                     pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+                    npm config set registry https://registry.npmmirror.com
                   fi
                 - >-
                   pip install
@@ -1378,7 +1379,7 @@ Resources:
                     --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
                 - python adf-build/store_config.py
                 - |
-                  if [ "${AWS_REGION}" = "cn-north-1" ] || [ "${AWS_REGION}" = "cn-northwest-1" ]; then
+                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
                     python adf-build/create_s3_cn.py
                     sam build -t adf-build/cn_northwest_deploy.yml --region cn-northwest-1
                     sam package --output-template-file adf-build/cn_northwest_deploy.yml --s3-prefix adf-bootstrap --s3-bucket adf-china-bootstrap-cn-northwest-1-${MASTER_ACCOUNT_ID} --region cn-northwest-1
