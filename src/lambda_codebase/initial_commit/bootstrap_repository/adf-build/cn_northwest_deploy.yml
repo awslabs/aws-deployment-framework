@@ -1,0 +1,83 @@
+# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: ADF CloudFormation Stack for deploy extra resources in China cn-northwest-1.
+
+Parameters:
+  AcoountBootstrapingStateMachineArn:
+    Type: String
+  AdfLogLevel:
+    Type: String
+
+Globals:
+  Function:
+    Architectures:
+      - arm64
+    CodeUri: china-forward-function
+    Runtime: python3.9
+    Timeout: 300
+    Tracing: Active
+
+Resources:
+  ForwardStateMachineFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf-china-extra/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  ForwardStateMachineFunctionRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "forward-state-machine-function-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "states:StartExecution"
+            Resource: !Ref AcoountBootstrapingStateMachineArn 
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "xray:PutTelemetryRecords"
+              - "xray:PutTraceSegments"
+              - "cloudwatch:PutMetricData"
+            Resource: "*"
+      Roles:
+        - !Ref ForwardStateMachineFunctionRole
+
+
+  ForwardStateMachineFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handler.lambda_handler
+      Description: "ADF Lambda Function - Forward events to statemachine"
+      Environment:
+        Variables:
+          SFN_ARN: !Ref AcoountBootstrapingStateMachineArn
+          ADF_LOG_LEVEL: !Ref AdfLogLevel
+      FunctionName: ForwardStateMachineFunction
+      Role: !GetAtt ForwardStateMachineFunctionRole.Arn
+      Events:
+        RuleEvent:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.organizations
+              detail:
+                eventSource:
+                  - organizations.amazonaws.com
+                eventName:
+                  - MoveAccount

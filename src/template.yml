@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1).
+Description: ADF CloudFormation Initial Base Stack for the Management Account in the cn-north-1 region.
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -114,9 +114,17 @@ Parameters:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.9
     Timeout: 300
 
+Conditions:
+  IsChinaMainRegion:
+    "Fn::Equals":
+      - !Sub "${AWS::Region}"
+      - "cn-north-1"
+  NotChinaMainRegion:
+      "Fn::Not":
+        - Condition: IsChinaMainRegion
 Resources:
   BootstrapTemplatesBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -151,9 +159,7 @@ Resources:
     UpdateReplacePolicy: Retain
     Type: AWS::S3::Bucket
     Properties:
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
+      AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -171,9 +177,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
+      AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -267,7 +271,6 @@ Resources:
         - !Ref GetAccountRegionsFunctionRole
         - !Ref DeleteDefaultVPCFunctionRole
         - !Ref AccountAliasConfigFunctionRole
-        - !Ref AccountRegionConfigFunctionRole
         - !Ref AccountTagConfigFunctionRole
         - !Ref AccountOUConfigFunctionRole
         - !Ref CreateAccountFunctionRole
@@ -306,7 +309,6 @@ Resources:
                   - !GetAtt AccountOUConfigFunction.Arn
                   - !GetAtt GetAccountRegionsFunction.Arn
                   - !GetAtt DeleteDefaultVPCFunction.Arn
-                  - !GetAtt AccountRegionConfigFunction.Arn
 
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
@@ -365,6 +367,15 @@ Resources:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
       Path: "/aws-deployment-framework/account-management/"
+      Policies:
+        - PolicyName: "adf-lambda-create-account-alias-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:CreateAccountAlias"
+                Resource: "*"
 
   AccountAliasConfigFunction:
     Type: 'AWS::Serverless::Function'
@@ -408,7 +419,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "organizations:TagResource"
-                  - "organizations:UntagResource"
                 Resource: "*"
 
   AccountTagConfigFunction:
@@ -430,54 +440,6 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
-
-  AccountRegionConfigFunctionRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
-      Policies:
-        - PolicyName: "adf-lambda-account-region-resource-policy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "account:ListRegions"
-                  - "account:EnableRegion"
-                  - "sts:GetCallerIdentity"
-                Resource: "*"
-              - Effect: Allow
-                Action: ssm:GetParameter
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/target_regions"
-
-  AccountRegionConfigFunction:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: configure_account_regions.lambda_handler
-      Description: "ADF Lambda Function - Account region Configuration"
-      CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
-      Tracing: Active
-      Layers:
-        - !Ref LambdaLayerVersion
-      Environment:
-        Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
-          ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: AccountRegionConfigurationFunction
-      Role: !GetAtt AccountRegionConfigFunctionRole.Arn
 
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
@@ -688,9 +650,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
+      AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -724,7 +684,7 @@ Resources:
                   "Next": "CreateAccount"
                 }
               ],
-              "Default": "ConfigureAccountRegions"
+              "Default": "ConfigureAccountAlias"
             },
             "ConfigureAccountAlias": {
               "Type": "Task",
@@ -801,41 +761,7 @@ Resources:
                   "MaxAttempts": 6
                 }
               ],
-              "Next": "ConfigureAccountRegions"
-            },
-            "ConfigureAccountRegions": {
-              "Type": "Task",
-              "Resource": "${AccountRegionConfigFunction.Arn}",
-              "Retry": [
-                {
-                  "ErrorEquals": [
-                    "Lambda.ServiceException",
-                    "Lambda.AWSLambdaException",
-                    "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
-                  ],
-                  "IntervalSeconds": 2,
-                  "MaxAttempts": 6,
-                  "BackoffRate": 2
-                }
-              ],
-              "Next": "AreRegionsConfigured"
-            },
-            "AreRegionsConfigured": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.all_regions_enabled",
-                  "BooleanEquals": true,
-                  "Next": "ConfigureAccountAlias"
-                }
-              ],
-              "Default": "Wait 15 seconds"
-            },
-            "Wait 15 seconds": {
-              "Type": "Wait",
-              "Seconds": 15,
-              "Next": "ConfigureAccountRegions"
+              "Next": "ConfigureAccountAlias"
             },
             "ConfigureAccountTags": {
               "Type": "Task",
@@ -971,7 +897,7 @@ Resources:
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
       CompatibleRuntimes:
-        - python3.10
+        - python3.9
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -1144,6 +1070,7 @@ Resources:
 
   CloudWatchEventsRule:
     Type: "AWS::Events::Rule"
+    Condition: NotChinaMainRegion
     Properties:
       Description: Triggers StateMachine on Move OU
       EventPattern:
@@ -1158,6 +1085,39 @@ Resources:
         - Arn: !Ref AccountBootstrappingStateMachine
           RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
+
+  CodeCommitRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "adf-codecommit-role-base"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codecommit.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "adf-organizations-codecommit-role-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "codecommit:BatchGetRepositories"
+              - "codecommit:Get*"
+              - "codecommit:GitPull"
+              - "codecommit:List*"
+              - "codecommit:CancelUploadArchive"
+              - "codecommit:UploadArchive"
+            Resource: "*"
+      Roles:
+        - !Ref CodeCommitRole
 
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -1269,6 +1229,7 @@ Resources:
               - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-global-base-*/*"
               - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-regional-base-*/*"
               - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:aws:transform/Serverless-2016-10-31"
           - Effect: "Allow"
             Action:
               - "s3:DeleteObject"
@@ -1306,6 +1267,42 @@ Resources:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
 
+  CodeBuildPolicyChina:
+    Type: "AWS::IAM::ManagedPolicy"
+    Condition: IsChinaMainRegion
+    Properties:
+      Description: "Policy to allow codebuild to perform actions for china region"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "lambda:*"
+              - "iam:PassRole"
+              - "iam:CreatePolicy"
+              - "iam:CreateRole"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:GetRole"
+              - "iam:PutRolePolicy"
+              - "iam:UpdateAssumeRolePolicy"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:ForwardStateMachineFunction"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-china-extra/adf-regional-base-*"
+          - Effect: "Allow"
+            Action:
+              - "s3:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::adf-china-bootstrap-cn-northwest-1-${AWS::AccountId}"
+              - !Sub "arn:${AWS::Partition}:s3:::adf-china-bootstrap-cn-northwest-1-${AWS::AccountId}/*"
+          - Effect: "Allow"
+            Action:
+              - "events:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:events:cn-northwest-1:${AWS::AccountId}:rule/adf-regional-base-china*"
+      Roles:
+        - !Ref BootstrapCodeBuildRole
+
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -1322,7 +1319,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: true
-        Image: "aws/codebuild/standard:7.0"
+        Image: "aws/codebuild/standard:5.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
@@ -1355,13 +1352,12 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
+                python: 3.9
             pre_build:
               commands:
                 - |
-                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
+                  if [ "${AWS_REGION}" = "cn-north-1" ] || [ "${AWS_REGION}" = "cn-northwest-1" ]; then
                     pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-                    npm config set registry https://registry.npmmirror.com
                   fi
                 - >-
                   pip install
@@ -1375,11 +1371,18 @@ Resources:
                 - pytest -vvv
             build:
               commands:
+                - sam build -t adf-bootstrap/deployment/pipeline_management.yml
                 - sam build -t adf-bootstrap/deployment/global.yml
                 - >-
                     sam package --output-template-file adf-bootstrap/deployment/global.yml
                     --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
                 - python adf-build/store_config.py
+                - |
+                  if [ "${AWS_REGION}" = "cn-north-1" ] || [ "${AWS_REGION}" = "cn-northwest-1" ]; then
+                    python adf-build/create_s3_cn.py
+                    sam build -t adf-build/cn_northwest_deploy.yml --region cn-northwest-1
+                    sam package --output-template-file adf-build/cn_northwest_deploy.yml --s3-prefix adf-bootstrap --s3-bucket adf-china-bootstrap-cn-northwest-1-${MASTER_ACCOUNT_ID} --region cn-northwest-1
+                  fi
                 # Shared Modules to be used with AWS CodeBuild:
                 - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
                 # Base templates:
