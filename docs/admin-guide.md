@@ -63,6 +63,9 @@ The `adfconfig.yml` file resides on the
 and defines the general high-level configuration for the AWS Deployment
 Framework.
 
+For Govcloud and China deployments, `adfconfig.yml` file resides on the
+[management account](#management-account) CodeCommit Repository (in us-gov-west-1 and cn-north-1 respectively)
+
 The configuration properties are synced into AWS Systems Manager Parameter
 Store and are used for certain orchestration options throughout your
 Organization.
@@ -917,8 +920,9 @@ To determine the current version, follow these steps:
 ### ADF version you have deployed
 
 To check the current version of ADF that you have deployed, go to the management
-account in us-east-1. Check the CloudFormation stack output or tag of the
-`serverlessrepo-aws-deployment-framework` Stack.
+account in us-east-1 for global partition deployments. For Govcloud and China
+deployments go to us-gov-west-1 and cn-north-1 respectively. Check the CloudFormation
+stack output or tag of the `serverlessrepo-aws-deployment-framework` Stack.
 
 - In the outputs tab, it will show the version as the `ADFVersionNumber`.
 - In the tags on the CloudFormation stack, it is presented as
@@ -938,8 +942,8 @@ releases](https://github.com/awslabs/aws-deployment-framework/releases).
 The `serverlessrepo-aws-deployment-framework` stack is updated through this
 process with new changes that were included in that release of ADF.
 
-To check the progress in the management account in `us-east-1`, follow these
-steps:
+To check the progress in the management account in `us-east-1` for global partition deployments; for Govcloud and China
+deployments go to us-gov-west-1 or cn-north-1 respectively, follow these steps:
 
 1. Go to the [CloudFormation
    console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=serverlessrepo-aws-deployment-framework&viewNested=true&hideStacks=false)
@@ -981,7 +985,8 @@ Which branch is used is determined by:
 
    Alternatively, you can also perform the update using the AWS CLI.
 
-In the management account in `us-east-1`:
+In the management account in `us-east-1` for global partition deployments; For Govcloud and China
+deployments in us-gov-west-1 or cn-north-1 respectively:
 
 1. Go to the Pull Request section of the `aws-deployment-framework-bootstrap`
    [CodeCommit
@@ -996,7 +1001,8 @@ In the management account in `us-east-1`:
    changes that it proposes. Once reviewed, merge the pull request to continue.
 
 Confirm the `aws-deployment-framework-bootstrap` pipeline in the management
-account in `us-east-1`:
+account in `us-east-1` for global partition deployments; For Govcloud and China
+deployments go to us-gov-west-1 or cn-north-1 respectively:
 
 1. Go to the [CodePipeline console for the aws-deployment-framework-bootstrap
    pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
@@ -1091,7 +1097,9 @@ Alternatively, you can also perform the update using the AWS CLI.
 
 If you wish to remove ADF you can delete the CloudFormation stack named
 `serverlessrepo-aws-deployment-framework` in the management account in
-the `us-east-1` region. This will move into a `DELETE_FAILED` at some stage because
+the `us-east-1` region for global partition deployments; For Govcloud and China
+deployments go to us-gov-west-1 or cn-north-1 respectively.
+This will move into a `DELETE_FAILED` at some stage because
 there is an S3 Bucket that is created via a custom resource _(cross region)_.
 After it moves into `DELETE_FAILED`, you can right-click on the stack and hit
 delete again while selecting to skip the Bucket the stack will successfully
@@ -1108,11 +1116,12 @@ the base stack when the account is moved to the Root of the AWS Organization.
 
 One thing to keep in mind if you are planning to re-install ADF is that you
 will want to clean up the parameter from SSM Parameter Store named
-_deployment_account_id_ in `us-east-1` on the management account. AWS Step
-Functions uses this parameter to determine if ADF has already got a deployment
-account setup. If you re-install ADF with this parameter set to a value,
-ADF will attempt an assume role to the account to do some work, which will fail
-since that role will not be on the account at that point.
+_deployment_account_id_ in `us-east-1` on the management account for global 
+partition deployments; For Govcloud and China deployments go to us-gov-west-1 
+or cn-north-1 respectively. AWS Step Functions uses this parameter to determine 
+if ADF has already got a deployment account setup. If you re-install ADF with 
+this parameter set to a value, ADF will attempt an assume role to the account 
+to do some work, which will fail since that role will not be on the account at that point.
 
 There is also a CloudFormation stack named `adf-global-base-adf-build` which
 lives on the management account in your main deployment region. This stack
@@ -1147,7 +1156,9 @@ There are two ways to enable this:
    to deploy the latest version again, set the `Log Level` to `DEBUG` to get
    extra logging information about the issue you are experiencing.
 2. If you are running an older version of ADF, please navigate to the
-   CloudFormation Console in `us-east-1` of the AWS Management account.
+   CloudFormation Console in `us-east-1` of the AWS Management account for global 
+   partition deployments; For Govcloud and China deployments go to us-gov-west-1 
+   or cn-north-1 respectively.
 3. Update the stack.
 4. For any ADF deployment of `v3.2.0` and later, please change the `Log Level`
    parameter and set it to `DEBUG`. Deploy those changes and revert them after
@@ -1162,7 +1173,8 @@ Please trace the failed component and dive into/report the debug information.
 
 The main components to look at are:
 
-1. In the AWS Management Account in `us-east-1`:
+1. In the AWS Management Account in `us-east-1` for global partition deployments; For Govcloud and China
+deployments go to us-gov-west-1 or cn-north-1 respectively:
 2. The [CloudFormation aws-deployment-framework stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks?filteringStatus=active&filteringText=aws-deployment-framework&viewNested=true&hideStacks=false).
 3. The [CloudWatch Logs for the Lambda functions deployed by ADF](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=true&n0=false&op=and&v0=ADF).
 4. Check if the [CodeCommit pull
@@ -1171,7 +1183,8 @@ The main components to look at are:
    branch for the `aws-deployment-framework-bootstrap` (ADF Bootstrap) repository.
 5. The [CodePipeline execution of the AWS Bootstrap pipeline](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=us-east-1).
 6. Navigate to the [AWS Step Functions service](https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/statemachines)
-   in the management account in `us-east-1`. Check the state machines named
+   in the management account in `us-east-1`for global partition deployments; For Govcloud and China
+   deployments go to us-gov-west-1 or cn-north-1 respectively, check the state machines named
    `AccountManagementStateMachine...` and
    `AccountBootstrappingStateMachine...`. Look at recent executions only.
     - When you find one that has a failed execution, check the components that
