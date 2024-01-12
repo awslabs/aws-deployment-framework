@@ -38,9 +38,7 @@ Parameters:
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    # BUILD_GENERAL1_LARGE - For threading with large amounts of pipelines
-    # this is the most effective default:
-    Default: "BUILD_GENERAL1_LARGE"
+    Default: "BUILD_GENERAL1_SMALL"
     AllowedValues:
       - "BUILD_GENERAL1_SMALL"  # 3 GB memory, 2 vCPU
       - "BUILD_GENERAL1_MEDIUM"  # 7 GB memory, 4 vCPU
@@ -75,7 +73,7 @@ Conditions:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.12
 
 Resources:
   LambdaLayerVersion:
@@ -83,7 +81,7 @@ Resources:
     Properties:
       ContentUri: "../../adf-build/shared/"
       CompatibleRuntimes:
-        - python3.10
+        - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
 
@@ -689,8 +687,8 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
-                nodejs: 18
+                python: 3.12
+                nodejs: 20
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
