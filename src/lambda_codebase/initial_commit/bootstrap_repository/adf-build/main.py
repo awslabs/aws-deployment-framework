@@ -416,6 +416,11 @@ def _sfn_execution_exists_with(
 
 
 def _china_region_extra_deploy(region: str):
+    '''
+    This method is used to deploy extra resources
+    params: region: aws region
+    return: None
+    '''
     if region != "cn-north-1":
         return
     else:
