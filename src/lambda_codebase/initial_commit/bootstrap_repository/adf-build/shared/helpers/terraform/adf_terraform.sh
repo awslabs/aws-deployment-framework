@@ -10,10 +10,10 @@ tfinit(){
     S3_BUCKET_REGION_NAME=$(aws ssm get-parameter --name "/cross_region/s3_regional_bucket/$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
     mkdir -p "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     cd "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}" || exit
-    cp -R "${CURRENT}"/tf/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
+    cp -R "${CURRENT}"/tf/. "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     # if account related variables exist copy the folder in the work directory
     if [ -d "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}" ]; then
-        cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}"/* "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
+        cp -R "${CURRENT}/tfvars/${TF_VAR_TARGET_ACCOUNT_ID}/." "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     fi
     if [ -f "${CURRENT}/tfvars/global.auto.tfvars" ]; then
         cp -R "${CURRENT}/tfvars/global.auto.tfvars" "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
