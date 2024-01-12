@@ -10,7 +10,7 @@ import os
 import sys
 import time
 from math import floor
-from datetime import datetime
+from datetime import datetime, timezone
 from thread import PropagatingThread
 
 import boto3
@@ -45,7 +45,7 @@ CODEBUILD_START_TIME_UNIXTS = floor(
             "CODEBUILD_START_TIME",
             # Fall back to 10 minutes ago + convert Python timestamp from
             # seconds to milliseconds:
-            floor(datetime.now().timestamp() - (10 * 60)) * 1000,
+            floor(datetime.now(timezone.utc).timestamp() - (10 * 60)) * 1000,
         )
     ) / 1000.0  # Convert milliseconds to seconds
 )
@@ -340,7 +340,7 @@ def await_sfn_executions(sfn_client):
         ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
         filter_lambda=lambda item: (
             (
-                item.get('startDate', datetime.now()).timestamp()
+                item.get('startDate', datetime.now(timezone.utc)).timestamp()
                 >= CODEBUILD_START_TIME_UNIXTS
             )
             and item.get('status') in ['FAILED', 'TIMED_OUT', 'ABORTED']

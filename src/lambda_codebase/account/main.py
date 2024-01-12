@@ -5,6 +5,7 @@ The Account main that is called when ADF is installed to initially create the
 deployment account if required.
 """
 
+import os
 from typing import Mapping, Any, Tuple
 from dataclasses import dataclass, asdict
 import logging
@@ -28,7 +29,8 @@ CloudFormationResponse = Tuple[PhysicalResourceId, Data]
 ORGANIZATION_CLIENT = boto3.client("organizations")
 SSM_CLIENT = boto3.client("ssm")
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 MAX_RETRIES = 120  # => 120 retries * 5 seconds = 10 minutes
 
 

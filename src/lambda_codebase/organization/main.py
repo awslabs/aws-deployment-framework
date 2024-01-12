@@ -29,7 +29,8 @@ CloudFormationResponse = Tuple[PhysicalResourceId, Data]
 # Globals:
 ORGANIZATION_CLIENT = boto3.client("organizations")
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 class InvalidPhysicalResourceId(Exception):

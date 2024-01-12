@@ -7,12 +7,14 @@ the bucket in the management account in the deployment region
 """
 
 
+import os
 from typing import Mapping, Any, Tuple, MutableMapping
 from dataclasses import dataclass, asdict
 import logging
 import json
 import secrets
-import string # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
+import string  # pylint: disable=deprecated-module
+# ^ https://www.logilab.org/ticket/2481
 import boto3
 from cfn_custom_resource import ( # pylint: disable=unused-import
     lambda_handler,
@@ -34,7 +36,8 @@ S3Client = Any
 
 # Globals:
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 S3CLIENTS: MutableMapping[Region, S3Client] = {}
 SSM_CLIENT = boto3.client("ssm")
 
