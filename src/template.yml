@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1).
+Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1), In China regions, as Organization service endpoint is located in cn-northwest-1 region, the org related service rule should be delpoyed in cn-northwest-1
 
 Metadata:
   AWS::ServerlessRepo::Application:
