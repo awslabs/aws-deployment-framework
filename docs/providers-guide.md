@@ -1,5 +1,8 @@
 # Providers Guide
 
+<!-- markdownlint-disable MD024 -->
+<!-- ^ Allow repeated headers to be used in this file -->
+
 Provider types and their properties can be defined as default config for a
 pipeline. But also at the stage level of a pipeline to structure the source,
 build, test, approval, deploy or invoke actions.

@@ -145,7 +145,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     deploy_param_store.put_parameter.assert_has_calls(
         [
             call('adf_version', '1.0.0'),
-            call('adf_log_level', 'INFO'),
+            call('adf_log_level', 'CRITICAL'),
             call('deployment_account_bucket', 'some_deployment_account_bucket'),
             call('default_scm_branch', 'master'),
             call('/adf/org/stage', 'none'),
@@ -187,10 +187,8 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         'auto-create-repositories': 'disabled',
         'default-scm-branch': 'main',
     }
-    cls.config['extensions'] = {
-        'terraform': {
-            'enabled': 'True',
-        },
+    cls.extensions['terraform'] = {
+        'enabled': 'True',
     }
     cls.config['org'] = {
         'stage': 'test-stage',
@@ -232,14 +230,14 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         param_store.put_parameter.assert_has_calls(
             [
                 call('organization_id', 'o-123456789'),
-                call('/adf/extensions/terraform/enabled', 'False'),
+                call('/adf/extensions/terraform/enabled', 'True'),
             ],
             any_order=False,
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
             call('adf_version', '1.0.0'),
-            call('adf_log_level', 'INFO'),
+            call('adf_log_level', 'CRITICAL'),
             call('deployment_account_bucket', 'some_deployment_account_bucket'),
             call('default_scm_branch', 'main'),
             call('/adf/org/stage', 'test-stage'),
@@ -252,7 +250,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
                 f"{deployment_account_id}:function:SendSlackNotification",
             ),
             call('/notification_endpoint/main', 'slack-channel'),
-            call('/adf/extensions/terraform/enabled', 'False'),
+            call('/adf/extensions/terraform/enabled', 'True'),
             call('/adf/deployment-maps/allow-empty-target', 'False'),
         ],
         any_order=True,
