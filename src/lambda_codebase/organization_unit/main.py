@@ -6,6 +6,7 @@ The Organization Unit Main that is called when ADF is installed to create the
 deployment OU.
 """
 
+import os
 from typing import Mapping, Any, Tuple
 from dataclasses import dataclass, asdict
 import logging
@@ -28,7 +29,8 @@ CloudFormationResponse = Tuple[PhysicalResourceId, Data]
 # Globals:
 ORGANIZATION_CLIENT = boto3.client("organizations")
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 class InvalidPhysicalResourceId(Exception):

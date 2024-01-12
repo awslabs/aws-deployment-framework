@@ -114,7 +114,7 @@ Parameters:
 Globals:
   Function:
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.12
     Timeout: 300
 
 Resources:
@@ -151,7 +151,9 @@ Resources:
     UpdateReplacePolicy: Retain
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -169,7 +171,9 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -684,7 +688,9 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -964,10 +970,15 @@ Resources:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
       ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
+      CompatibleArchitectures:
+        - x86_64
       CompatibleRuntimes:
-        - python3.10
+        - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
       LayerName: shared_layer
+    Metadata:
+      BuildMethod: python3.12
+      BuildArchitecture: x86_64
 
   LambdaLayerVersionPermission:
     Type: "AWS::Lambda::LayerVersionPermission"
@@ -1031,6 +1042,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: wait_until_complete.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - StackWaiterFunction"
@@ -1049,6 +1062,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: determine_event.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - DetermineEvent"
@@ -1068,6 +1083,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: account_bootstrap.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - CrossAccountExecuteFunction"
@@ -1088,6 +1105,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: deployment_account_config.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - RoleStackDeploymentFunction"
@@ -1105,6 +1124,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: moved_to_root.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - MovedToRootActionFunction"
@@ -1123,6 +1144,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: generic_account_config.lambda_handler
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
@@ -1349,7 +1372,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
+                python: 3.12
             pre_build:
               commands:
                 - >-
@@ -1767,6 +1790,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
+      Architectures:
+        - x86_64
       CodeUri: lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/determine_default_branch
       Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
       Policies:
@@ -1800,6 +1825,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
+      Architectures:
+        - x86_64
       CodeUri: lambda_codebase/initial_commit
       Description: "ADF Lambda Function - BootstrapCreateInitialCommitFunction"
       Policies:
@@ -1858,6 +1885,8 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/cross_region_bucket
+      Architectures:
+        - x86_64
       Layers:
         - !Ref LambdaLayerVersion
       Description: "ADF Lambda Function - Create Deployment Bucket in Main Deployment Region"
@@ -1894,6 +1923,8 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization
+      Architectures:
+        - x86_64
       Description: "ADF Lambda Function - Enable AWS Organizations"
       Policies:
         - Version: "2012-10-17"
@@ -1922,6 +1953,8 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization_unit
+      Architectures:
+        - x86_64
       Description: "ADF Lambda Function - Create Organization Unit"
       Policies:
         - Version: "2012-10-17"
@@ -1949,6 +1982,8 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/account
+      Architectures:
+        - x86_64
       Description: "ADF Lambda Function - Create Account"
       Policies:
         - Version: "2012-10-17"

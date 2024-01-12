@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: 3.12
     commands:
       # It will connect through the VPC to fetch all the resources.
       # Make sure the subnets and security groups are configured such that

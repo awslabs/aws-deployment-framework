@@ -15,7 +15,8 @@ from partition import get_partition
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 TARGET_OUS = os.environ.get("TARGET_OUS")
