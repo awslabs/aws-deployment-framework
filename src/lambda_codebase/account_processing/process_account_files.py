@@ -142,7 +142,7 @@ def process_account_list(all_accounts, accounts_in_file):
 
 
 def sanitize_account_name_for_snf(account_name):
-    return re.sub("[^a-zA-Z0-9_]", "_", account_name[:30])
+    return re.sub(r"[^a-zA-Z0-9_]", "_", account_name[:30])
 
 
 def start_executions(

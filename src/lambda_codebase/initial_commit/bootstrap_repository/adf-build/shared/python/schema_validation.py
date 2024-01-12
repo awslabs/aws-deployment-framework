@@ -390,7 +390,7 @@ TOP_LEVEL_SCHEMA = {
     # Allow any top level key starting with "x-" or "x_".
     # ADF will ignore these, but users can use them to define anchors
     # in one place.
-    Optional(Regex('^[x][-_].*')): object
+    Optional(Regex(r"^[x][-_].*")): object
 }
 
 
