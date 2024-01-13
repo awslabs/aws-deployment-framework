@@ -74,6 +74,12 @@ Please note that building on *Windows* is not supported, please use the
 - [python 3](https://www.python.org/downloads/)
   - To test if it is available, run `python --version`.
     This should return 3.11 or later.
+- [sed](https://www.gnu.org/software/sed/)
+  - To test if it is available, run `sed --version`.
+    This should return 4.3 or later.
+  - If you have BSD sed installed, as is by default on macOS.
+    You can test if it works with:
+    `echo 'does sed work' | sed 's/does.*work/sed works/g'`
 
 Install or update the above requirements as needed.
 Alternatively, jump to the [Cloud9 instructions](#22-cloud9-instructions) instead

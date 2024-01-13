@@ -78,24 +78,33 @@ update_makefile: report_makefile_version
 report_makefile_version:
 	@echo "Makefile: v$(MAKEFILE_VERSION) $$(shasum --algorithm 256 Makefile)"
 
-report_versions: report_makefile_version
+report_versions: .venv report_makefile_version
 	@echo "$(CLR_YELLOW)*** Beginning of ADF Version Report ***$(CLR_END)"
 	@echo "ADF Source version: $(SRC_VERSION)"
 	@echo "ADF $$(cat src/template.yml | grep SemanticVersion | xargs)"
 	@echo ""
-	@echo "Hardware platform: $$(uname --hardware-platform || echo 'n/a')"
-	@echo "Kernel name: $$(uname --kernel-name || echo 'n/a')"
-	@echo "Kernel release: $$(uname --kernel-release || echo 'n/a')"
+	@( \
+		uname --hardware-platform &> /dev/null && ( \
+			echo "Hardware platform: $$(uname --hardware-platform 2> /dev/null || echo 'n/a')" && \
+			echo "Kernel name: $$(uname --kernel-name 2> /dev/null || echo 'n/a')" && \
+			echo "Kernel release: $$(uname --kernel-release 2> /dev/null || echo 'n/a')" \
+		) || ( \
+			echo "Hardware platform: $$(uname -m 2> /dev/null || echo 'n/a')" && \
+			echo "Kernel name: $$(uname -s 2> /dev/null || echo 'n/a')" && \
+			echo "Kernel release: $$(uname -r 2> /dev/null || echo 'n/a')" \
+		) || exit 0; \
+	)
 	@echo ""
-	@test -e /etc/os-release && echo "OS Release:" && cat /etc/os-release
+	@test -e /etc/os-release && echo "OS Release:" && cat /etc/os-release || exit 0
 	@echo ""
 	@echo "Disk:"
-	@df -h $$PWD || echo 'N/A'
+	@df -h $$PWD 2> /dev/null || echo 'N/A'
 	@echo ""
 	@echo "Dependencies:"
-	@echo "docker: $$(docker --version || echo 'n/a')"
-	@echo "git: $$(git --version || echo 'n/a')"
-	@echo "make: $$(make --version || echo 'n/a')"
+	@echo "docker: $$(docker --version 2> /dev/null || echo '$(CLR_RED)Not installed!$(CLR_END)')"
+	@echo "git: $$(git --version 2> /dev/null || echo '$(CLR_RED)Not installed!$(CLR_END)')"
+	@echo "sed: $$(sed --version 2> /dev/null || echo 'test' | sed 's/test/works/g' || echo '$(CLR_RED)Not installed!$(CLR_END)')"
+	@echo "make: $$(make --version 2> /dev/null || echo '$(CLR_RED)Not installed!$(CLR_END)')"
 	@( \
 		. .venv/bin/activate; \
 		pip --version; \
@@ -139,12 +148,11 @@ docker:
 
 version_number: .venv
 	@echo "Generate a new version number..."
-	cp $(SRC_DIR)/template.yml $(SAM_VERSIONED_TEMPLATE)
 	( \
 		. .venv/bin/activate; \
-		BASE_ADF_VERSION=$$(cat $(SAM_VERSIONED_TEMPLATE) | yq '.Metadata."AWS::ServerlessRepo::Application".SemanticVersion' -r); \
+		BASE_ADF_VERSION=$$(cat $(SRC_DIR)/template.yml | yq '.Metadata."AWS::ServerlessRepo::Application".SemanticVersion' -r); \
 		COMMIT_ADF_VERSION=$(SRC_VERSION); \
-		sed "s/Version: $$BASE_ADF_VERSION/Version: $$COMMIT_ADF_VERSION/g" -i $(SAM_VERSIONED_TEMPLATE); \
+		sed "s/Version: $$BASE_ADF_VERSION/Version: $$COMMIT_ADF_VERSION/g" $(SRC_DIR)/template.yml > $(SAM_VERSIONED_TEMPLATE); \
 	)
 
 git_ignore:
