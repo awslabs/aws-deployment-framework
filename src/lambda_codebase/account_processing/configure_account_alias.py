@@ -6,9 +6,12 @@ Creates or updates an ALIAS for an account
 """
 
 import os
-from sts import STS
+
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
+from sts import STS
 
 patch_all()
 

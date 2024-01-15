@@ -8,12 +8,15 @@ when accounts are moved into Organizational Units.
 
 import ast
 import os
+
+# ADF imports
 from errors import ParameterNotFoundError, RootOUIDError
 
 DEPLOYMENT_ACCOUNT_OU_NAME = 'deployment'
 DEPLOYMENT_ACCOUNT_S3_BUCKET = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
+
 
 class Event:
     """
@@ -71,7 +74,6 @@ class Event:
         )
         self.set_destination_ou_name()
 
-
     def _determine_if_deployment_account(self):
         """
         Sets property based on if the account that has been moved
@@ -126,7 +128,7 @@ class Event:
             'full_path': "ROOT" if self.moved_to_root else account_path,
             'destination_ou_id': self.destination_ou_id,
             'source_ou_id': self.source_ou_id,
-            'deployment_account_parameters' : {
+            'deployment_account_parameters': {
                 'organization_id': organization_information.get(
                     "organization_id"
                 ),
@@ -139,5 +141,5 @@ class Event:
                 'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
                 'adf_version': ADF_VERSION,
                 'adf_log_level': ADF_LOG_LEVEL
-            }
+            },
         }

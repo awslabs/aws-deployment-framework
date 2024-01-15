@@ -11,8 +11,10 @@ from enum import Enum
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
-from logger import configure_logger
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
+from logger import configure_logger
 
 
 LOGGER = configure_logger(__name__)

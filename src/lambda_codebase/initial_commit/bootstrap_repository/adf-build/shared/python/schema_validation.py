@@ -6,6 +6,8 @@ Schema Validation for Deployment map files
 """
 
 from schema import Schema, And, Use, Or, Optional, Regex
+
+# ADF imports
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)

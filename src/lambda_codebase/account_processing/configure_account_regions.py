@@ -6,9 +6,10 @@ Takes regions that the account is not-opted into and opts into them.
 """
 from ast import literal_eval
 
-
 import boto3
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
 
 patch_all()

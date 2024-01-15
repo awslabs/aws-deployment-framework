@@ -79,6 +79,9 @@ Resources:
               - "xray:PutTraceSegments"
               - "cloudwatch:PutMetricData"
             Resource: "*"
+          - Effect: "Allow"
+            Action: "lambda:GetLayerVersion"
+            Resource: !Ref LambdaLayer
       Roles:
         - !Ref DeploymentMapProcessingLambdaRole
         - !Ref CreateOrUpdateRuleLambdaRole
@@ -98,9 +101,6 @@ Resources:
           - Effect: "Allow"
             Action: "s3:ListBucket"
             Resource: !GetAtt ADFPipelineBucket.Arn
-          - Effect: "Allow"
-            Action: "lambda:GetLayerVersion"
-            Resource: !Ref LambdaLayer
           - Effect: "Allow"
             Action: "states:StartExecution"
             Resource: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:ADFPipelineManagementStateMachine"
@@ -943,6 +943,8 @@ Resources:
             Bucket:
               Ref: ADFPipelineBucket
             Events: s3:ObjectCreated:*
+    Metadata:
+      BuildMethod: python3.12
 
   ADFAutomationRoleCrossAccountAccessRolePolicy:
     Type: "AWS::IAM::ManagedPolicy"
@@ -974,6 +976,8 @@ Resources:
           S3_BUCKET_NAME: !Ref PipelineBucket
       FunctionName: ADFPipelineCreateOrUpdateRuleFunction
       Role: !GetAtt CreateOrUpdateRuleLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   CreateRepositoryFunction:
     Type: 'AWS::Serverless::Function'
@@ -990,6 +994,8 @@ Resources:
           S3_BUCKET_NAME: !Ref PipelineBucket
       FunctionName: ADFPipelineCreateRepositoryFunction
       Role: !GetAtt CreateRepositoryLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   GeneratePipelineInputsFunction:
     Type: 'AWS::Serverless::Function'
@@ -1007,6 +1013,8 @@ Resources:
           ROOT_ACCOUNT_ID: !Ref RootAccountId
       FunctionName: ADFPipelineGenerateInputsFunction
       Role: !GetAtt GeneratePipelineInputsLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   StoreDefinitionFunction:
     Type: 'AWS::Serverless::Function'
@@ -1024,6 +1032,8 @@ Resources:
           ROOT_ACCOUNT_ID: !Ref RootAccountId
       FunctionName: ADFPipelineStoreDefinitionFunction
       Role: !GetAtt StoreDefinitionLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   IdentifyOutOfDatePipelinesFunction:
     Type: 'AWS::Serverless::Function'
@@ -1042,6 +1052,8 @@ Resources:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
       FunctionName: ADFPipelineIdentifyOutOfDatePipelinesFunction
       Role: !GetAtt IdentifyOutOfDatePipelinesLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   ADFDefinitionBucket:
     Type: "AWS::S3::Bucket"
