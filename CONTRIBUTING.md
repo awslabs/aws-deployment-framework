@@ -73,10 +73,20 @@ npx mega-linter-runner --fix
 
 ## Deploy your changes
 
-To deploy your changes, make sure to commit them in your local repository
-first. Once committed, follow the [installation
-guide](./docs/installation-guide.md) to deploy them into your management
-account.
+1. To deploy your changes, make sure to commit them in your local repository
+   first.
+2. If you are working on your own fork, make sure to add the upstream
+   repository as a remote and fetch its tags. As these tags are used to
+   generate the version number. You do this by:
+
+   ```bash
+   git remote add upstream https://github.com/awslabs/aws-deployment-framework
+   git fetch upstream --tags
+   ```
+
+3. Once you committed and optionally fetched the upstream repo tags, follow the
+   [installation guide](./docs/installation-guide.md) to deploy them into your
+   management account.
 
 ## Contributing via Pull Requests
 
