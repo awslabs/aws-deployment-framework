@@ -1333,7 +1333,7 @@ Resources:
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
-      TimeoutInMinutes: 40
+      TimeoutInMinutes: 60
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -1377,6 +1377,7 @@ Resources:
               commands:
                 - >-
                   pip install
+                  -r requirements-dev.txt
                   -r adf-build/requirements.txt
                   -r adf-build/requirements-dev.txt
                   -r adf-build/shared/requirements.txt
@@ -1384,7 +1385,7 @@ Resources:
                   -r adf-build/shared/helpers/requirements.txt
                   -r adf-build/shared/helpers/requirements-dev.txt
                   --quiet
-                - pytest -vvv
+                - tox
             build:
               commands:
                 - sam build -t adf-bootstrap/deployment/global.yml
