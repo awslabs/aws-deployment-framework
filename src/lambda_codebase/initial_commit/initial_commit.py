@@ -9,6 +9,7 @@ from typing import Mapping, Optional, Union, List, Dict, Any, Tuple
 from dataclasses import dataclass, fields
 from enum import Enum
 from pathlib import Path
+from datetime import datetime, timezone
 import re
 import boto3
 import jinja2
@@ -253,6 +254,31 @@ def generate_commit_input(
     return output
 
 
+def branch_exists(repo_name, branch_name):
+    try:
+        CC_CLIENT.get_branch(
+            repositoryName=repo_name,
+            branchName=branch_name,
+        )
+        return True
+    except CC_CLIENT.exceptions.BranchDoesNotExistException:
+        return False
+
+
+def determine_unique_branch_name(repo_name, branch_name):
+    for index in range(0, 10):
+        new_branch_name = (
+            branch_name
+            if index == 0 else
+            f"{branch_name}-no-{index}"
+        )
+        if not branch_exists(repo_name, new_branch_name):
+            return new_branch_name
+    # Fallback, use the unix timestamp in the branch name
+    timestamp = round(datetime.now(timezone.utc).timestamp())
+    return f"{branch_name}-at-{timestamp}"
+
+
 def generate_commits(event, repo_name, directory, parent_commit_id=None):
     """
     Generate the commits for the specified repository.
@@ -275,6 +301,10 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
     default_branch_name = event.ResourceProperties.DefaultBranchName
     branch_name = version
     if parent_commit_id:
+        branch_name = determine_unique_branch_name(
+            repo_name=repo_name,
+            branch_name=branch_name,
+        )
         CC_CLIENT.create_branch(
             repositoryName=repo_name,
             branchName=branch_name,
