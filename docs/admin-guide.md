@@ -65,11 +65,11 @@ The configuration properties are synced into AWS Systems Manager Parameter
 Store and are used for certain orchestration options throughout your
 Organization.
 
-Below is an example of an `adfconfig.yml` file. When you install ADF via the
-Serverless Application Repository, some of the information entered at the time
-of deployment will be passed into the `adfconfig.yml` that is committed to the
-bootstrap repository as a starting point. You can always edit it and push it
-back into the bootstrap repository to update any values.
+Below is an example of an `adfconfig.yml` file. When you deploy ADF,
+the information entered at the time of deployment will be passed into the
+`adfconfig.yml` that is committed to the bootstrap repository as a starting
+point. You can always edit it and push it back into the bootstrap repository
+to update these values.
 
 ```yaml
 roles:
@@ -289,7 +289,7 @@ that is moved into a specific Organizational Unit in AWS Organizations.
 Bootstrapping of AWS accounts is a convenient way to apply a baseline to an
 account or sub-set of accounts based on the structure of your AWS Organization.
 
-When deploying ADF via the Serverless Application Repository, a CodeCommit
+When deploying ADF, a CodeCommit
 repository titled `aws-deployment-framework-bootstrap` will also be created.
 This repository acts as an entry point for bootstrapping templates. The
 definition of which templates are applied to which Organization Unit are defined
@@ -442,8 +442,8 @@ template as required, however, the default resources should not be removed.
 #### Bootstrapping Regions
 
 When you setup the initial configuration for the AWS Deployment Framework you
-define your parameters in the Serverless Application Repository, some of these
-details get placed into the [adfconfig.yml](#adfconfig).
+define your initial parameters, a subset of these get placed into the
+[adfconfig.yml](#adfconfig).
 
 This file defines the regions you will use for not only bootstrapping but which
 regions will later be used as targets for deployment pipelines. Be sure you read
@@ -816,42 +816,21 @@ account in us-east-1. Check the CloudFormation stack output or tag of the
 
 - In the outputs tab, it will show the version as the `ADFVersionNumber`.
 - In the tags on the CloudFormation stack, it is presented as
-  `serverlessrepo:semanticVersion`.
+  `ADFVersion` or `serverlessrepo:semanticVersion`.
 
 ### Latest ADF version that is available
 
 If you want to check which version is the latest one available, go to the
-management account in `us-east-1`:
-
-1. Navigate to the AWS Deployment Framework Serverless Application Repository
-   _(SAR)_, it can be found
-   [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-2. You can find the latest version in the title of the page, like so:
-   `aws-deployment-framework — version x.y.z`.
+[Open Source ADF Repository on GitHub to browse through its
+releases](https://github.com/awslabs/aws-deployment-framework/releases).
 
 ## Updating Between Versions
 
-Go to the management account in `us-east-1`:
+1. Follow the build and deploy steps, as documented in the [installation guide,
+   steps 1 to 3](./installation-guide.md).
 
-1. Navigate to the AWS Deployment Framework Serverless Application Repository
-   _(SAR)_, it can be found
-   [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-2. To ease maintaining your ADF installation, it is recommended to ensure that
-   the values specified reflect what is installed/in use at the moment.
-   To gather the values, you can either find them in the
-   `aws-deployment-framework-bootstrap` repository in the `adfconfig.yml`
-   file. Or by looking up the values that were specified the last time ADF got
-   installed/updated via the CloudFormation template parameters of the
-   `serverlessrepo-aws-deployment-framework` stack in `us-east-1`.
-3. Tick the box at the bottom that states: _"I acknowledge that this app creates
-   custom IAM roles and resource policies."_
-4. Click the _Deploy_ button.
-
-This will take a few minutes to deploy and kick-off your SAR deployment using
-CloudFormation. Leave the browser window open until it changes pages.
-
-Your `serverlessrepo-aws-deployment-framework` stack is updating
-with new changes that were included in that release of ADF.
+The `serverlessrepo-aws-deployment-framework` stack is updated through this
+process with new changes that were included in that release of ADF.
 
 To check the progress in the management account in `us-east-1`, follow these
 steps:
@@ -874,7 +853,7 @@ steps:
    in your AWS management account too.
 
    To ease this process, the AWS CloudFormation stack will run the
-   _InitialCommit_ Custom CloudFormation resource when updating via the SAR.
+   _InitialCommit_ Custom CloudFormation resource when updating ADF.
    This resource will open a pull request against the default branch (i.e.
    `main`) on the _bootstrap_ repository with a set of changes that you can
    optionally choose to merge. If those changes are merged into the default

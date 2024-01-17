@@ -14,7 +14,7 @@ Metadata:
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: ../LICENSE.txt
-    ReadmeUrl: ../docs/serverless-application-repo.md
+    ReadmeUrl: ../docs/installation-guide.md
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
