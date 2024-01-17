@@ -23,7 +23,7 @@ Details like these are incredibly useful:
 
 - A reproducible test case or series of steps
 - The version of our code being used
-- For deployment related bugs, please include the details returns by the
+- For deployment related bugs, please include the details returned by the
   following command as executed on the development machine:
   `make report_versions`
 - Any modifications you have made relevant to the bug
