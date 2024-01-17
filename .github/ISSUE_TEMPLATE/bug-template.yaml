@@ -59,7 +59,7 @@ body:
     attributes:
       label: Possible Solution
       description: |
-        Suggest a fix/reason for the bug
+        Suggest a fix/reason for the bug.
     validations:
       required: false
   - type: textarea
@@ -70,6 +70,12 @@ body:
         Anything else that might be relevant for troubleshooting this bug.
         Providing context helps us come up with a solution that is most useful
         in the real world.
+
+        If you are facing a build or deployment issue, please include details
+        about the environment you are working in. You can run the following
+        command to capture all relevant details in one report:
+
+        make version_report
     validations:
       required: false
   - type: input
@@ -79,3 +85,11 @@ body:
       description: The ADF version you are running.
     validations:
       required: true
+  - type: checkboxes
+    attributes:
+      label: Contributing a fix?
+      description: >
+        Are you are able to contribute and resolve this issue?
+      options:
+        - label: Yes, I am working on a fix to resolve this issue
+          required: false

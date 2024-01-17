@@ -38,7 +38,7 @@ You can find the changelog at:
 https://github.com/awslabs/aws-deployment-framework/releases/tag/v{0}
 
 This PR was automatically created when you deployed version {0} of the
-AWS Deployment Framework through the Serverless Application Repository.
+AWS Deployment Framework.
 
 Review this PR to understand what changes will be made to your bootstrapping
 repository. If you also made changes to the repository yourself,
