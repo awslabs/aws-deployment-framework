@@ -139,6 +139,7 @@ class Event:
                 'master_account_id': organization_information.get(
                     "organization_master_account_id"
                 ),
+                'deployment_account_id': self.deployment_account_id,
                 'notification_endpoint': self.main_notification_endpoint,
                 'notification_type': self.notification_type,
                 'cross_account_access_role': self.cross_account_access_role,
