@@ -53,7 +53,7 @@ LOGGER.setLevel(ADF_LOG_LEVEL)
 PR_DESCRIPTION = """ADF Version {0}
 
 You can find the changelog at:
-https://github.com/awslabs/aws-deployment-framework/releases/tag/v{0}
+https://github.com/awslabs/aws-deployment-framework/releases/tag/{0}
 
 This PR was automatically created when you deployed version {0} of the
 AWS Deployment Framework.
