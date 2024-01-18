@@ -11,13 +11,14 @@ are met.
 
 import os
 
-from sts import STS
-from s3 import S3
-from parameter_store import ParameterStore
+# ADF imports
+from cloudformation import CloudFormation
 from errors import RetryError
 from logger import configure_logger
-from cloudformation import CloudFormation
+from parameter_store import ParameterStore
 from partition import get_partition
+from s3 import S3
+from sts import STS
 
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]

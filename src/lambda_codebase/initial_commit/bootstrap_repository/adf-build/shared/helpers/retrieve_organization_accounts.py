@@ -66,6 +66,7 @@ Example:
     retrieve_organization_accounts.py -v -f Id -f Email -o src/lambda/dat.json
 """
 
+import os
 import sys
 import logging
 import json
@@ -79,7 +80,8 @@ from docopt import docopt
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 def main():

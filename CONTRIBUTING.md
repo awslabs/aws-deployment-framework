@@ -16,33 +16,50 @@ features.
 When filing an issue, please check
 [existing open](https://github.com/awslabs/aws-deployment-framework/issues),
 and [recently closed](https://github.com/awslabs/aws-deployment-framework/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20)
-issues to make sure somebody else hasn't already reported the issue.
+issues to make sure somebody else has not already reported the issue.
 
 Please try to include as much information as you can.
 Details like these are incredibly useful:
 
 - A reproducible test case or series of steps
 - The version of our code being used
+- For deployment related bugs, please include the details returned by the
+  following command as executed on the development machine:
+  `make report_versions`
 - Any modifications you have made relevant to the bug
 - Anything unusual about your environment or deployment
 
 ## Running tests locally
 
-In order to run the tests locally you need a virtual environment that is used
-by [tox](https://pypi.org/project/tox/).
+In order to run the tests locally you need install the development requirements
+in the python virtual environment that is used.
 
-1. Create a virtual environment: `virtualenv .tox/env`
-2. Activate the virtual environment: `source .tox/env/bin/activate`
-3. Install dependencies: `make init`
-4. To run the tests, execute: `tox`
+To ensure test execute consistently, ADF relies on
+[tox](https://pypi.org/project/tox/).
+
+The easiest way to install and run these tests is to run:
+
+```bash
+make tox
+```
+
+Alternatively, you can also install the required dependencies in your
+python virtual environment by running:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+To run the tests, simply execute next: `tox`.
+This will create a virtual environment managed by tox to run the tests in.
 
 ## Running linters locally
 
 You need to have NodeJS and Docker installed on your computer to run MegaLinter
 locally with MegaLinter Runner.
 
-You can run mega-linter-runner without installation by using `npx` (Run from the
-root of the repository!).
+You can run mega-linter-runner without installation by using `npx`.
+Make sure to execute this from the root of the repository.
 
 ```sh
 npx mega-linter-runner
@@ -53,6 +70,23 @@ Some linters can automatically fix findings by running the command below.
 ```sh
 npx mega-linter-runner --fix
 ```
+
+## Deploy your changes
+
+1. To deploy your changes, make sure to commit them in your local repository
+   first.
+2. If you are working on your own fork, make sure to add the upstream
+   repository as a remote and fetch its tags. As these tags are used to
+   generate the version number. You do this by:
+
+   ```bash
+   git remote add upstream https://github.com/awslabs/aws-deployment-framework
+   git fetch upstream --tags
+   ```
+
+3. Once you committed and optionally fetched the upstream repo tags, follow the
+   [installation guide](./docs/installation-guide.md) to deploy them into your
+   management account.
 
 ## Contributing via Pull Requests
 
@@ -120,6 +154,39 @@ following account ids may be used:
 - `012345678910`
 - `012345671234`
 - `123456789012`
+
+## Resolving Build and deployment issues
+
+Please capture the environment the build/deployment issue occurs in:
+
+```bash
+make version_report
+```
+
+Before you report an issue, please try again after cleaning the environment:
+
+```bash
+make clean
+```
+
+Possibly, this issue is fixed already, please update your Makefile and try
+again after:
+
+```bash
+make update_makefile
+```
+
+If that did not resolve the issue, please try running:
+
+```bash
+make clean deps_build
+```
+
+Or download an older version of the Makefile by running:
+
+```bash
+make UPDATE_VERSION=make/2.0 update_makefile
+```
 
 ## Code of Conduct
 

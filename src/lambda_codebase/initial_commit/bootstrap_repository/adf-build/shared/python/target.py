@@ -9,16 +9,19 @@ require mutation depending on their structure.
 
 import re
 import os
+
+import boto3
+
+# ADF imports
 from errors import (
     InvalidDeploymentMapError,
     NoAccountsFoundError,
     InsufficientWaveSizeError,
 )
-from logger import configure_logger
-from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 from botocore.exceptions import ClientError
+from logger import configure_logger
 from parameter_store import ParameterStore
-import boto3
+from schema_validation import AWS_ACCOUNT_ID_REGEX_STR
 
 LOGGER = configure_logger(__name__)
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]

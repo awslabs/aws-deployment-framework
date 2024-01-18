@@ -4,6 +4,7 @@ adf
 adfconfig
 awscli
 backoff
+binfmt
 bitnami
 boto
 boto3
