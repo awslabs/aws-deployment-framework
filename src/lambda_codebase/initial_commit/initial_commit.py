@@ -33,6 +33,9 @@ REWRITE_PATHS: Dict[str, str] = {
     "bootstrap_repository/adf-bootstrap/example-global-iam.yml": (
         "adf-bootstrap/global-iam.yml"
     ),
+    "bootstrap_repository/adf-bootstrap/deployment/example-global-iam.yml": (
+        "adf-bootstrap/deployment/global-iam.yml"
+    ),
     "adf.yml.j2": "adf-accounts/adf.yml",
     "adfconfig.yml.j2": "adfconfig.yml",
 }
