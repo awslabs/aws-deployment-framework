@@ -9,14 +9,16 @@ This runs as part of Step Functions on the Deployment Account
 """
 
 import os
-import boto3
 
+import boto3
 from botocore.exceptions import ClientError
+
+# ADF imports
+from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
 from logger import configure_logger
 from parameter_store import ParameterStore
-from sts import STS
 from partition import get_partition
-from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
+from sts import STS
 
 
 KEY_ID = os.environ["KMS_KEY_ID"]

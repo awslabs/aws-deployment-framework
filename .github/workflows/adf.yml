@@ -19,10 +19,13 @@ jobs:
       - name: Set the correct Node version using nvm
         shell: bash -l {0}
         run: nvm install
-      - name: Install dependencies
-        run: make init
-      - name: Run tox
-        # Run tox using the version of Python in `PATH`
+      - name: Test compatibility of source dependencies
         run: |
-          tox --version
-          tox
+          make clean src_deps
+          echo "Source dependencies are compatible!"
+      - name: Run tox
+        run: |
+          make clean tox
+      - name: Build fully
+        run: |
+          make clean build
