@@ -147,10 +147,11 @@ Resources:
               AWS: !Ref AWS::AccountId
 
   BootstrapArtifactStorageBucket:
+    Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    Type: AWS::S3::Bucket
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -171,6 +172,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -688,6 +690,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
