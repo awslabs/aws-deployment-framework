@@ -607,7 +607,7 @@ Resources:
                     },
                     "Catch": [
                       {
-                        "ErrorEquals": "ParameterNotFound",
+                        "ErrorEquals": ["ParameterNotFound"],
                         "Next": "ParameterNotFoundFallback"
                       }
                     ],
