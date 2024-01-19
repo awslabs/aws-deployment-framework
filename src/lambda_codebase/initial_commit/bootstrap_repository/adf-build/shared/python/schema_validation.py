@@ -6,6 +6,8 @@ Schema Validation for Deployment map files
 """
 
 from schema import Schema, And, Use, Or, Optional, Regex
+
+# ADF imports
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
@@ -343,7 +345,10 @@ TARGET_WAVE_SCHEME = {
 TARGET_SCHEMA = {
     Optional("path"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("tags"): {
-        And(str, Regex(r"\A.{1,128}\Z")): And(str, Regex(r"\A.{0,256}\Z"))
+        And(str, Regex(r"\A.{1,128}\Z")): Or(
+            And(str, Regex(r"\A.{0,256}\Z")),
+            [And(str, Regex(r"\A.{0,256}\Z"))]
+        )
     },
     Optional("target"): Or(str, int, TARGET_LIST_SCHEMA),
     Optional("name"): str,

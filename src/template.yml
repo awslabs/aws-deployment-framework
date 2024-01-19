@@ -14,7 +14,7 @@ Metadata:
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: ../LICENSE.txt
-    ReadmeUrl: ../docs/serverless-application-repo.md
+    ReadmeUrl: ../docs/installation-guide.md
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
@@ -113,6 +113,8 @@ Parameters:
 
 Globals:
   Function:
+    Architectures:
+      - arm64
     CodeUri: lambda_codebase
     Runtime: python3.12
     Timeout: 300
@@ -147,10 +149,11 @@ Resources:
               AWS: !Ref AWS::AccountId
 
   BootstrapArtifactStorageBucket:
+    Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    Type: AWS::S3::Bucket
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -171,6 +174,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -218,9 +222,6 @@ Resources:
           - Effect: "Allow"
             Action: "s3:ListBucket"
             Resource: !GetAtt ADFAccountBucket.Arn
-          - Effect: "Allow"
-            Action: "lambda:GetLayerVersion"
-            Resource: !Ref LambdaLayerVersion
           - Effect: "Allow"
             Action: "states:StartExecution"
             Resource: !Ref AccountManagementStateMachine
@@ -314,11 +315,9 @@ Resources:
       Handler: process_account_files.lambda_handler
       Description: "ADF Lambda Function - Account File Processing"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -352,6 +351,8 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: yaml
+    Metadata:
+      BuildMethod: python3.12
 
   AccountAliasConfigFunctionRole:
     Type: "AWS::IAM::Role"
@@ -372,11 +373,9 @@ Resources:
       Handler: configure_account_alias.lambda_handler
       Description: "ADF Lambda Function - Account Alias Configuration"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
@@ -387,6 +386,8 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: AccountAliasConfigurationFunction
       Role: !GetAtt AccountAliasConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountTagConfigFunctionRole:
     Type: "AWS::IAM::Role"
@@ -417,11 +418,9 @@ Resources:
       Handler: configure_account_tags.lambda_handler
       Description: "ADF Lambda Function - Account Tag Configuration"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -430,6 +429,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountTagConfigurationFunction
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountRegionConfigFunctionRole:
     Type: "AWS::IAM::Role"
@@ -465,11 +466,9 @@ Resources:
       Handler: configure_account_regions.lambda_handler
       Description: "ADF Lambda Function - Account region Configuration"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -478,6 +477,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountRegionConfigurationFunction
       Role: !GetAtt AccountRegionConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
@@ -485,11 +486,9 @@ Resources:
       Handler: configure_account_ou.lambda_handler
       Description: "ADF Lambda Function - Account OU Configuration"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -498,6 +497,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: AccountOUConfigurationFunction
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountOUConfigFunctionRole:
     Type: "AWS::IAM::Role"
@@ -532,11 +533,9 @@ Resources:
       Handler: get_account_regions.lambda_handler
       Description: "ADF Lambda Function - Get Default Regions for an account"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
@@ -547,6 +546,8 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: GetAccountRegionsFunction
       Role: !GetAtt GetAccountRegionsFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   GetAccountRegionsFunctionRole:
     Type: "AWS::IAM::Role"
@@ -567,11 +568,9 @@ Resources:
       Handler: delete_default_vpc.lambda_handler
       Description: "ADF Lambda Function - Delete the default VPC for a region"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
@@ -582,6 +581,8 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: DeleteDefaultVPCFunction
       Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   DeleteDefaultVPCFunctionRole:
     Type: "AWS::IAM::Role"
@@ -602,11 +603,9 @@ Resources:
       Handler: create_account.lambda_handler
       Description: "ADF Lambda Function - Create an account"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -616,6 +615,8 @@ Resources:
           ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: CreateAccountFunction
       Role: !GetAtt CreateAccountFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   CreateAccountFunctionRole:
     Type: "AWS::IAM::Role"
@@ -646,11 +647,9 @@ Resources:
       Handler: register_account_for_support.lambda_handler
       Description: "ADF Lambda Function - Registers an account for enterprise support"
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           MASTER_ACCOUNT_ID: !Ref AWS::AccountId
@@ -659,6 +658,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RegisterAccountForSupportFunction
       Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   RegisterAccountForSupportFunctionRole:
     Type: "AWS::IAM::Role"
@@ -688,6 +689,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -966,27 +968,40 @@ Resources:
           }
   ### Account processing end
 
-  LambdaLayerVersion:
+  ADFSharedPythonLambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
-      ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
+      ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/python"
       CompatibleArchitectures:
-        - x86_64
+        - arm64
       CompatibleRuntimes:
         - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
-      LayerName: shared_layer
+      LayerName: adf_shared_layer
     Metadata:
       BuildMethod: python3.12
-      BuildArchitecture: x86_64
 
-  LambdaLayerVersionPermission:
-    Type: "AWS::Lambda::LayerVersionPermission"
+  LambdaLayerPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref LambdaLayerVersion
-      OrganizationId: !GetAtt Organization.OrganizationId
-      Principal: "*"
+      Description: "Policy to allow Lambda functions to use the ADF Shared Python layer"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "lambda:GetLayerVersion"
+            Resource: !Ref ADFSharedPythonLambdaLayerVersion
+      Roles:
+        - !Ref AccountAliasConfigFunctionRole
+        - !Ref AccountOUConfigFunctionRole
+        - !Ref AccountProcessingLambdaRole
+        - !Ref AccountRegionConfigFunctionRole
+        - !Ref AccountTagConfigFunctionRole
+        - !Ref CreateAccountFunctionRole
+        - !Ref DeleteDefaultVPCFunctionRole
+        - !Ref GetAccountRegionsFunctionRole
+        - !Ref LambdaRole
+        - !Ref RegisterAccountForSupportFunctionRole
 
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -1012,7 +1027,6 @@ Resources:
           - Effect: "Allow"
             Action:
               - "sts:AssumeRole"
-              - "lambda:GetLayerVersion"
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
@@ -1042,10 +1056,8 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: wait_until_complete.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - StackWaiterFunction"
       Environment:
         Variables:
@@ -1057,15 +1069,15 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: StackWaiter
       Role: !GetAtt LambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   DetermineEventFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: determine_event.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - DetermineEvent"
       Environment:
         Variables:
@@ -1078,15 +1090,15 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: DetermineEventFunction
       Role: !GetAtt LambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   CrossAccountExecuteFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: account_bootstrap.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - CrossAccountExecuteFunction"
       Environment:
         Variables:
@@ -1100,15 +1112,15 @@ Resources:
       FunctionName: CrossAccountExecuteFunction
       Role: !GetAtt LambdaRole.Arn
       Timeout: 900
+    Metadata:
+      BuildMethod: python3.12
 
   RoleStackDeploymentFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: deployment_account_config.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - RoleStackDeploymentFunction"
       Environment:
         Variables:
@@ -1119,15 +1131,15 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
       Role: !GetAtt LambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   MovedToRootActionFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: moved_to_root.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - MovedToRootActionFunction"
       Environment:
         Variables:
@@ -1139,15 +1151,15 @@ Resources:
       FunctionName: MovedToRootActionFunction
       Role: !GetAtt LambdaRole.Arn
       Timeout: 900
+    Metadata:
+      BuildMethod: python3.12
 
   UpdateResourcePoliciesFunction:
     Type: "AWS::Serverless::Function"
     Properties:
       Handler: generic_account_config.lambda_handler
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
       Environment:
         Variables:
@@ -1158,6 +1170,8 @@ Resources:
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
       Role: !GetAtt LambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   CloudWatchEventsRule:
     Type: "AWS::Events::Rule"
@@ -1333,7 +1347,7 @@ Resources:
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
-      TimeoutInMinutes: 40
+      TimeoutInMinutes: 60
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -1377,6 +1391,7 @@ Resources:
               commands:
                 - >-
                   pip install
+                  -r requirements-dev.txt
                   -r adf-build/requirements.txt
                   -r adf-build/requirements-dev.txt
                   -r adf-build/shared/requirements.txt
@@ -1384,20 +1399,41 @@ Resources:
                   -r adf-build/shared/helpers/requirements.txt
                   -r adf-build/shared/helpers/requirements-dev.txt
                   --quiet
-                - pytest -vvv
+                - tox
+                - >-
+                  docker run --privileged --rm
+                  public.ecr.aws/eks-distro-build-tooling/binfmt-misc:qemu-v7.0.0
+                  --install arm64
             build:
               commands:
-                - sam build -t adf-bootstrap/deployment/global.yml
                 - >-
-                    sam package --output-template-file adf-bootstrap/deployment/global.yml
-                    --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                  sam build
+                  --use-container
+                  --template adf-bootstrap/deployment/global.yml
+                - >-
+                  sam package
+                  --output-template-file adf-bootstrap/deployment/global.yml
+                  --s3-prefix adf-bootstrap/deployment
+                  --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
                 - python adf-build/store_config.py
                 # Shared Modules to be used with AWS CodeBuild:
-                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
+                - >-
+                  aws s3 sync
+                  ./adf-build/shared
+                  s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build
+                  --quiet
                 # Base templates:
-                - aws s3 sync . s3://$S3_BUCKET --quiet --delete
+                - >-
+                  aws s3 sync . s3://$S3_BUCKET --quiet --delete
                 # Upload account files to the ACCOUNT_BUCKET
-                - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                - >-
+                  python adf-build/shared/helpers/sync_to_s3.py
+                  --extension .yml
+                  --extension .yaml
+                  --metadata adf_version=${ADF_VERSION}
+                  --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID}
+                  --recursive adf-accounts
+                  s3://$ACCOUNT_BUCKET
                 # Sleep for 10 seconds so the state machine is able to kick start the processing
                 # of these newly uploaded files if any.
                 - sleep 10
@@ -1790,8 +1826,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
-      Architectures:
-        - x86_64
       CodeUri: lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/determine_default_branch
       Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
       Policies:
@@ -1802,6 +1836,8 @@ Resources:
                 - codecommit:GetRepository
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: ADFBootstrapDetermineDefaultBranchName
+    Metadata:
+      BuildMethod: python3.12
 
   InitialCommit:
     Type: Custom::InitialCommit
@@ -1825,8 +1861,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
-      Architectures:
-        - x86_64
       CodeUri: lambda_codebase/initial_commit
       Description: "ADF Lambda Function - BootstrapCreateInitialCommitFunction"
       Policies:
@@ -1842,6 +1876,8 @@ Resources:
                 - codecommit:GetDifferences
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: BootstrapCreateInitialCommitFunction
+    Metadata:
+      BuildMethod: python3.12
 
   SharedModulesBucket:
     Type: Custom::CrossRegionBucket
@@ -1885,10 +1921,8 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/cross_region_bucket
-      Architectures:
-        - x86_64
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - Create Deployment Bucket in Main Deployment Region"
       Policies:
         - Version: "2012-10-17"
@@ -1911,7 +1945,12 @@ Resources:
                 # dependency. Converting this to an inline policy can break the circle
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
                 - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
+            - Effect: "Allow"
+              Action: "lambda:GetLayerVersion"
+              Resource: !Ref ADFSharedPythonLambdaLayerVersion
       FunctionName: CrossRegionBucketHandler
+    Metadata:
+      BuildMethod: python3.12
 
   Organization:
     Type: Custom::Organization
@@ -1923,8 +1962,6 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization
-      Architectures:
-        - x86_64
       Description: "ADF Lambda Function - Enable AWS Organizations"
       Policies:
         - Version: "2012-10-17"
@@ -1940,6 +1977,8 @@ Resources:
               Action: "iam:CreateServiceLinkedRole"
               Resource: !Sub "arn:${AWS::Partition}:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
+    Metadata:
+      BuildMethod: python3.12
 
   DeploymentOrganizationUnit:
     Type: Custom::OrganizationUnit
@@ -1953,8 +1992,6 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization_unit
-      Architectures:
-        - x86_64
       Description: "ADF Lambda Function - Create Organization Unit"
       Policies:
         - Version: "2012-10-17"
@@ -1966,6 +2003,8 @@ Resources:
                 - "organizations:ListOrganizationalUnitsForParent"
               Resource: "*"
       FunctionName: OrganizationUnitHandler
+    Metadata:
+      BuildMethod: python3.12
 
   DeploymentAccount:
     Type: Custom::Account
@@ -1982,8 +2021,6 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/account
-      Architectures:
-        - x86_64
       Description: "ADF Lambda Function - Create Account"
       Policies:
         - Version: "2012-10-17"
@@ -1997,6 +2034,8 @@ Resources:
               Action: ssm:GetParameter
               Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
       FunctionName: AccountHandler
+    Metadata:
+      BuildMethod: python3.12
 
   PipelineCloudWatchEventRole:
     Type: AWS::IAM::Role
@@ -2047,12 +2086,6 @@ Outputs:
     Value: !FindInMap ["Metadata", "ADF", "Version"]
     Export:
       Name: "ADFVersionNumber"
-
-  LayerArn:
-    Description: "The Shared modules Lambda Layer Arn"
-    Value: !Ref LambdaLayerVersion
-    Export:
-      Name: "SharedLayerArn"
 
   CodeCommitHttpURL:
     Description: "The CodeCommit HTTP Url"

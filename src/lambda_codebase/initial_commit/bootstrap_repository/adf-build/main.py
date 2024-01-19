@@ -166,7 +166,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         '/adf/deployment-maps/allow-empty-target',
         config.config.get('deployment-maps', {}).get(
             'allow-empty-target',
-            ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET,
+            str(ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET),
         )
     )
     deployment_account_parameter_store.put_parameter(

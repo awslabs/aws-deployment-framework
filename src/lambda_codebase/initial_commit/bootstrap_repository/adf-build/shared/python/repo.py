@@ -7,11 +7,13 @@ properties associated with a pipeline.
 """
 
 import os
+
+# ADF imports
 from cloudformation import CloudFormation
-from s3 import S3
-from sts import STS
 from logger import configure_logger
 from partition import get_partition
+from s3 import S3
+from sts import STS
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]

@@ -8,6 +8,8 @@ properties associated with a pipeline.
 
 import os
 from copy import deepcopy
+
+# ADF imports
 from list_utils import flatten_to_unique_sorted
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
