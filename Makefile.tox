@@ -11,10 +11,8 @@ all: test lint
 
 test:
 	# Run unit tests
-	( \
-		for config in $(TEST_CONFIGS); do \
-			pytest $$(dirname $$config) -vvv -s -c $$config; \
-		done \
+	@ $(foreach config,$(TEST_CONFIGS), \
+		pytest $$(dirname $(config)) -vvv -s -c $(config) || exit 1; \
 	)
 
 lint:
