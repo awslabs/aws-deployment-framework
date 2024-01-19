@@ -40,7 +40,6 @@ def main():
             json.dump(accounts_from_ous, outfile)
 
     if TARGET_TAGS:
-        print("filtering by tags")
         accounts_from_tags = get_accounts_from_tags()
         with open('accounts_from_tags.json', 'w', encoding='utf-8') as outfile:
             json.dump(accounts_from_tags, outfile)
@@ -129,7 +128,7 @@ def get_accounts_from_tags():
             found = list(filter(lambda item: (
                 item["Key"] == tag_filter["Key"] and item["Value"] == tag_filter["Value"]), tags))
             if len(found) > 0:
-                print(
+                LOGGER.info(
                     f"{account['AccountId']} matched {tag_filter['Key']}={tag_filter['Value']}")
                 filtered_accounts.append(account)
                 break
