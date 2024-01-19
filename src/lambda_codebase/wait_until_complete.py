@@ -45,11 +45,11 @@ def update_deployment_account_output_parameters(
     for key, value in cloudformation.get_stack_regional_outputs().items():
         LOGGER.info('Updating %s on deployment account in %s', key, region)
         deployment_account_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
         regional_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
 

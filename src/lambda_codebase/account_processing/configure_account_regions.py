@@ -17,7 +17,10 @@ LOGGER = configure_logger(__name__)
 
 
 def get_regions_from_ssm(ssm_client):
-    regions = ssm_client.get_parameter(Name="target_regions")["Parameter"].get("Value")
+    regions = (
+        ssm_client.get_parameter(Name="/adf/target_regions")["Parameter"]
+        .get("Value")
+    )
     regions = literal_eval(regions)
     return regions
 

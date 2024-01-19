@@ -458,7 +458,7 @@ Resources:
               - Effect: Allow
                 Action: ssm:GetParameter
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/target_regions"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/target_regions"
 
   AccountRegionConfigFunction:
     Type: 'AWS::Serverless::Function'
@@ -1002,6 +1002,7 @@ Resources:
         - !Ref GetAccountRegionsFunctionRole
         - !Ref LambdaRole
         - !Ref RegisterAccountForSupportFunctionRole
+        - !Ref AccountHandlerFunctionRole
 
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -1039,9 +1040,18 @@ Resources:
               - "iam:PutRolePolicy"
               - "organizations:DescribeOrganization"
               - "organizations:DescribeAccount"
-              - "ssm:*"
               - "states:StartExecution"
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - "ssm:DeleteParameter"
+              - "ssm:DeleteParameters"
+              - "ssm:GetParameter"
+              - "ssm:GetParameters"
+              - "ssm:GetParametersByPath"
+              - "ssm:PutParameter"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: "Allow"
             Action: "s3:ListBucket"
             Resource: !GetAtt BootstrapTemplatesBucket.Arn
@@ -1234,7 +1244,7 @@ Resources:
   CodeBuildPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      Description: "Policy to allow codebuild to perform actions"
+      Description: "Policy to allow CodeBuild to perform actions"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1265,15 +1275,17 @@ Resources:
               - "organizations:MoveAccount"
               - "organizations:DescribeCreateAccountStatus"
               - "organizations:TagResource"
+              - "sts:GetCallerIdentity"
+              - "sts:AssumeRole"
+              - "cloudformation:ValidateTemplate"
+            Resource: "*"
+          - Effect: Allow
+            Action:
               - "ssm:GetParameter"
               - "ssm:GetParameters"
               - "ssm:PutParameter"
-              - "states:Describe*"
-              - "states:StartExecution"
-              - "sts:GetCallerIdentity"
-              - "sts:assumeRole"
-              - "cloudformation:ValidateTemplate"
-            Resource: "*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: "Allow"
             Action:
               - "states:ListExecutions"
@@ -1847,7 +1859,7 @@ Resources:
       Version: !FindInMap ["Metadata", "ADF", "Version"]
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
-      ExistingAccountId: !Ref DeploymentAccountId
+      ExistingAccountId: !GetAtt DeploymentAccount.AccountId
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
       DeploymentAccountFullName: !Ref DeploymentAccountName
       DeploymentAccountEmailAddress: !Ref DeploymentAccountEmailAddress
@@ -1905,7 +1917,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
-      Name: shared_modules_bucket
+      Name: /adf/shared_modules_bucket
       Type: String
       Value: !GetAtt SharedModulesBucket.BucketName
 
@@ -1913,7 +1925,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
-      Name: adf_log_level
+      Name: /adf/adf_log_level
       Type: String
       Value: !Ref LogLevel
 
@@ -1944,8 +1956,8 @@ Resources:
               Resource:
                 # Hardcoded name (instead of ${SharedModulesBucketName}) to avoid a circular
                 # dependency. Converting this to an inline policy can break the circle
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/shared_modules_bucket"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_region"
             - Effect: "Allow"
               Action: "lambda:GetLayerVersion"
               Resource: !Ref ADFSharedPythonLambdaLayerVersion
@@ -2016,6 +2028,44 @@ Resources:
       AccountEmailAddress: !Ref DeploymentAccountEmailAddress
       CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
       ExistingAccountId: !Ref DeploymentAccountId
+      TriggerOnUpdateOfADF: !FindInMap ["Metadata", "ADF", "Version"]
+
+  AccountHandlerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/aws-deployment-framework/"
+      Policies:
+        - PolicyName: "adf-account-management-access"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "organizations:CreateAccount"
+                  - "organizations:DescribeCreateAccountStatus"
+                  - "organizations:ListAccountsForParent"
+                  - "organizations:ListOrganizationalUnitsForParent"
+                  - "organizations:ListRoots"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:PutParameter"
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_id"
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
 
   AccountHandler:
     Type: AWS::Serverless::Function
@@ -2023,18 +2073,10 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/account
       Description: "ADF Lambda Function - Create Account"
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - "organizations:CreateAccount"
-                - "organizations:DescribeCreateAccountStatus"
-              Resource: "*"
-            - Effect: Allow
-              Action: ssm:GetParameter
-              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+      Role: !GetAtt AccountHandlerFunctionRole.Arn
       FunctionName: AccountHandler
+      Layers:
+        - !Ref ADFSharedPythonLambdaLayerVersion
     Metadata:
       BuildMethod: python3.12
 

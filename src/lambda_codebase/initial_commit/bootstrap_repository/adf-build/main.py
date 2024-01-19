@@ -100,11 +100,11 @@ def update_deployment_account_output_parameters(
     )
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
         parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
 
@@ -167,14 +167,14 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/deployment-maps/allow-empty-target',
+        'deployment_maps/allow_empty_target',
         config.config.get('deployment-maps', {}).get(
             'allow-empty-target',
             str(ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET),
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/org/stage',
+        'org/stage',
         config.config.get('org', {}).get(
             'stage',
             ADF_DEFAULT_ORG_STAGE,
@@ -201,7 +201,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         if getattr(config, item) is not None:
             deployment_account_parameter_store.put_parameter(
                 (
-                    '/notification_endpoint/main'
+                    'notification_endpoint/main'
                     if item == 'notification_channel'
                     else item
                 ),
@@ -219,7 +219,7 @@ def _store_extension_parameters(parameter_store, config):
     for extension, attributes in config.extensions.items():
         for attribute in attributes:
             parameter_store.put_parameter(
-                f"/adf/extensions/{extension}/{attribute}",
+                f"extensions/{extension}/{attribute}",
                 str(attributes[attribute]),
             )
 
@@ -342,7 +342,8 @@ def await_sfn_executions(sfn_client):
             "Account Management State Machine encountered a failed, "
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
-            "https://%s.console.aws.amazon.com/states/home?region=%s#/statemachines/view/%s",
+            "https://%s.console.aws.amazon.com/states/home"
+            "?region=%s#/statemachines/view/%s",
             REGION_DEFAULT,
             REGION_DEFAULT,
             ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,

@@ -191,7 +191,7 @@ def lambda_handler(event, _):
         region_name=os.environ["AWS_REGION"],
     )
     channel = parameter_store.fetch_parameter(
-        name=f'/notification_endpoint/{pipeline["name"]}',
+        name=f'notification_endpoint/{pipeline["name"]}',
         with_decryption=False,
     )
     # All slack url's must be stored in /adf/slack/channel_name since ADF only

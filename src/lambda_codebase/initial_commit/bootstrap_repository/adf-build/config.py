@@ -154,7 +154,8 @@ class Config:
         )
         self.client_deployment_region.put_parameter("adf_version", ADF_VERSION)
         self.client_deployment_region.put_parameter(
-            "cross_account_access_role", self.cross_account_access_role
+            "cross_account_access_role",
+            self.cross_account_access_role,
         )
 
     def _store_config(self):
@@ -178,6 +179,6 @@ class Config:
         for extension, attributes in self.extensions.items():
             for attribute in attributes:
                 self.parameters_client.put_parameter(
-                    f"/adf/extensions/{extension}/{attribute}",
+                    f"extensions/{extension}/{attribute}",
                     str(attributes[attribute]),
                 )

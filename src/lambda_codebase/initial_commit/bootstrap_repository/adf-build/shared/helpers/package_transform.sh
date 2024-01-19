@@ -34,7 +34,7 @@ fi
 
 # Get list of regions supported by this application
 echo "Determine which regions need to be prepared"
-app_regions=`aws ssm get-parameters --names /deployment/$ADF_DEPLOYMENT_MAP_SOURCE/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
+app_regions=`aws ssm get-parameters --names /adf/deployment/$ADF_DEPLOYMENT_MAP_SOURCE/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
 # Convert json list to bash list (space delimited regions)
 regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g"`"
 
@@ -42,7 +42,7 @@ for region in $regions
 do
   if [ $CONTAINS_TRANSFORM ]; then
     echo "Packaging templates for region $region"
-    ssm_bucket_name="/cross_region/s3_regional_bucket/$region"
+    ssm_bucket_name="/adf/cross_region/s3_regional_bucket/$region"
     bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`
     sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
   else

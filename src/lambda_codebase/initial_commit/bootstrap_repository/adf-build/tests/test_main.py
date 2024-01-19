@@ -65,11 +65,11 @@ def test_update_deployment_account_output_parameters(cls, sts):
     with patch.object(ParameterStore, 'put_parameter') as mock:
         expected_calls = [
             call(
-                '/cross_region/kms_arn/eu-central-1',
+                'cross_region/kms_arn/eu-central-1',
                 'some_kms_arn',
             ),
             call(
-                '/cross_region/s3_regional_bucket/eu-central-1',
+                'cross_region/s3_regional_bucket/eu-central-1',
                 'some_s3_bucket',
             ),
         ]
@@ -138,7 +138,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
         param_store.put_parameter.assert_has_calls(
             [
                 call('organization_id', 'o-123456789'),
-                call('/adf/extensions/terraform/enabled', 'False'),
+                call('extensions/terraform/enabled', 'False'),
             ],
             any_order=False,
         )
@@ -149,12 +149,12 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
             call('deployment_account_bucket', 'some_deployment_account_bucket'),
             call('deployment_account_id', deployment_account_id),
             call('default_scm_branch', 'master'),
-            call('/adf/org/stage', 'none'),
+            call('org/stage', 'none'),
             call('cross_account_access_role', 'some_role'),
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
-            call('/adf/extensions/terraform/enabled', 'False'),
-            call('/adf/deployment-maps/allow-empty-target', 'False'),
+            call('extensions/terraform/enabled', 'False'),
+            call('deployment_maps/allow_empty_target', 'False'),
         ],
         any_order=True,
     )
@@ -231,7 +231,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         param_store.put_parameter.assert_has_calls(
             [
                 call('organization_id', 'o-123456789'),
-                call('/adf/extensions/terraform/enabled', 'True'),
+                call('extensions/terraform/enabled', 'True'),
             ],
             any_order=False,
         )
@@ -242,7 +242,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
             call('deployment_account_bucket', 'some_deployment_account_bucket'),
             call('deployment_account_id', deployment_account_id),
             call('default_scm_branch', 'main'),
-            call('/adf/org/stage', 'test-stage'),
+            call('org/stage', 'test-stage'),
             call('auto_create_repositories', 'disabled'),
             call('cross_account_access_role', 'some_role'),
             call('notification_type', 'slack'),
@@ -251,9 +251,9 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
                 "arn:aws:lambda:eu-central-1:"
                 f"{deployment_account_id}:function:SendSlackNotification",
             ),
-            call('/notification_endpoint/main', 'slack-channel'),
-            call('/adf/extensions/terraform/enabled', 'True'),
-            call('/adf/deployment-maps/allow-empty-target', 'False'),
+            call('notification_endpoint/main', 'slack-channel'),
+            call('extensions/terraform/enabled', 'True'),
+            call('deployment_maps/allow_empty_target', 'False'),
         ],
         any_order=True,
     )

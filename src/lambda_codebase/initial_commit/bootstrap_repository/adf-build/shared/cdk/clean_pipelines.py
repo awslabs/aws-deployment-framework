@@ -37,7 +37,7 @@ def clean(parameter_store, deployment_map):
     Deployment Pipelines that are no longer in the Deployment Map
     """
     current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
-        "/deployment/"
+        "deployment/"
     )
 
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
