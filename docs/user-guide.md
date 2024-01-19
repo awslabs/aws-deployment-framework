@@ -646,13 +646,16 @@ each account under that OU.
 deployment map as a target. If only the account number is in the deployment map
 the corresponding OU parameter file will not be referenced.
 
+
+
 ```txt
 global.yml
-└───deployment_account_region.yml (e.g. global_eu-west-1.yml)
-    └───ou.yml (e.g. ou-1a2b-3c4d5e.yml)
-        └───ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
-            └───account.yml (e.g. dev-account-1.yml)
-                └───account_region.yml (e.g. dev-account-1_eu-west-1.yml)
+└───deployment_org_stage.yml (e.g. global_dev.yml)
+  └───deployment_account_region.yml (e.g. global_eu-west-1.yml)
+      └───ou.yml (e.g. ou-1a2b-3c4d5e.yml)
+          └───ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
+              └───account.yml (e.g. dev-account-1.yml)
+                  └───account_region.yml (e.g. dev-account-1_eu-west-1.yml)
 ```
 
 This concept also works for applying **Tags** to the resources within your
@@ -711,6 +714,28 @@ the root of the repository.
 
 *Note:* Currently only Strings type values are supported as parameters to
 CloudFormation templates when deploying via AWS CodePipeline.
+
+**CloudFormation Parameters in a Multi-Organization ADF Setup** 
+The CloudFormation Parameter generation feature is fully compatible with 
+the [Multi-Organization ADF Setup](./multi-organization-guide.md) approach. 
+Let's assume that we have a three AWS Org setup with a dev, int and prod 
+AWS Organization. This implies that the SSM param `/adf/org/stage` will have 
+one of the following three values: `[dev, int, prod]`; depending on the AWS 
+Organization you are in. Let's further assume that your application in scope 
+requires AWS Organization specific parameters.In that case, the `params` should 
+have the following content: 
+
+```txt
+params
+└───global_dev.yml
+└───global_int.yml
+└───global_prod.yml
+└───global.yml
+```
+
+When the application gets deployed, ADF will choose the right parameter file 
+based on the value of the SSM prameter "/adf/org/stage".
+
 
 ### Serverless Transforms
 
