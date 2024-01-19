@@ -21,7 +21,7 @@ _govcloud_regions = [
 
 _china_region = [
     'cn-north-1'
- ]
+]
 
 _incompatible_region = [
     'cn-northwest-1'

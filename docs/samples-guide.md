@@ -70,8 +70,9 @@ Management Account. By default, there is a `global.yml` in the root of the
 be appended to as required.
 
 If we look at AWS Step Functions in the management account in `us-east-1`
-we can see the progress of the bootstrap process for global partition deployments; 
-For Govcloud and China deployments go to us-gov-west-1 or cn-north-1 respectively.
+we can see the progress of the bootstrap process for global partition
+deployments; For Govcloud and China deployments go to us-gov-west-1 or
+cn-north-1 respectively.
 
 ![run-state-machine](./images/run-state-machine.png)
 

@@ -25,7 +25,7 @@ def _create_s3_bucket(bucket_name):
                     'ParameterKey': 'BucketName',
                     'ParameterValue': bucket_name,
                     'UsePreviousValue': False,
-                },          
+                },
             ]
         cloudformation = CloudFormation(
             region=extra_deploy_region,

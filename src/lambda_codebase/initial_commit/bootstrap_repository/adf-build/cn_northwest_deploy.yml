@@ -6,7 +6,7 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Stack for deploy extra resources in China cn-northwest-1.
 
 Parameters:
-  AcoountBootstrapingStateMachineArn:
+  AccountBootstrapingStateMachineArn:
     Type: String
   AdfLogLevel:
     Type: String
@@ -44,7 +44,7 @@ Resources:
         Statement:
           - Effect: "Allow"
             Action: "states:StartExecution"
-            Resource: !Ref AcoountBootstrapingStateMachineArn 
+            Resource: !Ref AccountBootstrapingStateMachineArn
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -65,7 +65,7 @@ Resources:
       Description: "ADF Lambda Function - Forward events to statemachine"
       Environment:
         Variables:
-          SFN_ARN: !Ref AcoountBootstrapingStateMachineArn
+          SFN_ARN: !Ref AccountBootstrapingStateMachineArn
           ADF_LOG_LEVEL: !Ref AdfLogLevel
       FunctionName: ForwardStateMachineFunction
       Role: !GetAtt ForwardStateMachineFunctionRole.Arn

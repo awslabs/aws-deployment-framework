@@ -341,7 +341,7 @@ class CloudFormation(StackProperties):
                 cfn_template_map = {
                     "TemplateBody": self._handle_template_path(self.local_template_path)
                 }
-            else:    
+            else:
                 self.template_url = (
                     self.template_url
                     if self.template_url is not None
@@ -351,7 +351,7 @@ class CloudFormation(StackProperties):
                     self.validate_template()
                     cfn_template_map = {
                         "TemplateURL": self.template_url
-                    }                    
+                    }
 
             if cfn_template_map:
                 change_set_params = {

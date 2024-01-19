@@ -424,7 +424,7 @@ def _china_region_extra_deploy(region: str):
 
         parameters = [
             {
-                'ParameterKey': 'AcoountBootstrapingStateMachineArn',
+                'ParameterKey': 'AccountBootstrapingStateMachineArn',
                 'ParameterValue': ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
                 'UsePreviousValue': False,
             },
