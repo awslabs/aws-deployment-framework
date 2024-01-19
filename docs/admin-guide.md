@@ -1125,7 +1125,8 @@ partition deployments; For Govcloud and China deployments go to us-gov-west-1
 or cn-north-1 respectively. AWS Step Functions uses this parameter to determine
 if ADF has already got a deployment account setup. If you re-install ADF with
 this parameter set to a value, ADF will attempt an assume role to the account
-to do some work, which will fail since that role will not be on the account at that point.
+to do some work, which will fail since that role will not be on the account at
+that point.
 
 There is also a CloudFormation stack named `adf-global-base-adf-build` which
 lives on the management account in your main deployment region. This stack
