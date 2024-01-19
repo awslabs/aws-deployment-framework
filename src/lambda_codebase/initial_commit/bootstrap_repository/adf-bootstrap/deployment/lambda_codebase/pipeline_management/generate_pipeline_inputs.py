@@ -33,7 +33,7 @@ def store_regional_parameter_config(
     These are only used to track pipelines.
     """
     parameter_store.put_parameter(
-        f"/deployment/{deployment_map_source}/{pipeline.name}/regions",
+        f"deployment/{deployment_map_source}/{pipeline.name}/regions",
         str(pipeline.get_all_regions()),
     )
 
@@ -59,10 +59,10 @@ def fetch_required_ssm_params(pipeline_input, regions):
         parameter_store = ParameterStore(region, boto3)
         output[region] = {
             "s3": parameter_store.fetch_parameter(
-                f"/cross_region/s3_regional_bucket/{region}",
+                f"cross_region/s3_regional_bucket/{region}",
             ),
             "kms": parameter_store.fetch_parameter(
-                f"/cross_region/kms_arn/{region}",
+                f"cross_region/kms_arn/{region}",
             ),
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:

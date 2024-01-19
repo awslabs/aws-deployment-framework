@@ -8,27 +8,27 @@ Description: ADF CloudFormation Template (Global) for Deployment Account
 Parameters:
   ADFVersion:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: adf_version
+    Default: /adf/adf_version
 
   ADFLogLevel:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: adf_log_level
+    Default: /adf/adf_log_level
 
   MasterAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: master_account_id
+    Default: /adf/master_account_id
 
   SharedModulesBucket:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: deployment_account_bucket
+    Default: /adf/deployment_account_bucket
 
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: organization_id
+    Default: /adf/organization_id
 
   CrossAccountAccessRole:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: cross_account_access_role
+    Default: /adf/cross_account_access_role
 
   Image:
     Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:7.0).
@@ -46,11 +46,11 @@ Parameters:
 
   NotificationEndpoint:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: notification_endpoint
+    Default: /adf/notification_endpoint
 
   NotificationType:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: notification_type
+    Default: /adf/notification_type
 
   PipelinePrefix:
     Description: The Prefix that will be attached to pipeline stacks and names for ADF.
@@ -335,7 +335,7 @@ Resources:
               - "ssm:GetParameter"
               - "ssm:GetParameters"
             Resource:
-              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/*
               - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}::parameter/aws/service/*
           - Effect: Deny
             Action:
@@ -636,9 +636,9 @@ Resources:
               - "ssm:GetParameters"
               - "ssm:GetParameter"
             Resource:
-              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/bucket_name"
-              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/deployment_account_id"
-              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/kms_arn"
+              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/adf/bucket_name"
+              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/adf/deployment_account_id"
+              - !Sub "arn:${AWS::Partition}:ssm:*:*:parameter/adf/kms_arn"
       Roles:
         - !Ref AdfAutomationRole
 
@@ -1087,7 +1087,7 @@ Resources:
                 Action:
                   - "ssm:GetParameter"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notification_endpoint/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/notification_endpoint/*"
               - Effect: Allow
                 Action:
                   - "secretsmanager:GetSecretValue"
@@ -1151,8 +1151,8 @@ Resources:
                 Action:
                   - "ssm:GetParameter"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/kms_arn/*"
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cross_region/s3_regional_bucket/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/cross_region/kms_arn/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/cross_region/s3_regional_bucket/*"
               - Effect: Allow
                 Action:
                   - "codepipeline:GetPipelineState"
@@ -1428,7 +1428,7 @@ Resources:
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"
     Properties:
-      Name: "kms_arn"
+      Name: "/adf/kms_arn"
       Type: "String"
       Value: !GetAtt KMSKey.Arn
 

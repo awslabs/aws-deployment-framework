@@ -27,9 +27,7 @@ class Event:
     def __init__(self, event, parameter_store, organizations, account_id):
         self.parameter_store = parameter_store
         self.config = ast.literal_eval(
-            parameter_store.fetch_parameter(
-                'config'
-            )
+            parameter_store.fetch_parameter('config'),
         )
         self.account_id = account_id
         self.organizations = organizations

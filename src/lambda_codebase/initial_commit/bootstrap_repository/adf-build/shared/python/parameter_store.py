@@ -13,6 +13,7 @@ from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
+PARAMETER_PREFIX = '/adf'
 SSM_CONFIG = Config(
     retries={
         "max_attempts": 10,
@@ -34,15 +35,21 @@ class ParameterStore:
             current_value = self.fetch_parameter(name)
             assert current_value == value
             LOGGER.debug(
-                'No need to update parameter %s with value %s since they '
+                'No need to update parameter %s/%s with value %s since they '
                 'are the same',
+                PARAMETER_PREFIX,
                 name,
                 value,
             )
         except (ParameterNotFoundError, AssertionError):
-            LOGGER.debug('Putting SSM Parameter %s with value %s', name, value)
+            LOGGER.debug(
+                'Putting SSM Parameter %s/%s with value %s',
+                PARAMETER_PREFIX,
+                name,
+                value,
+            )
             self.client.put_parameter(
-                Name=name,
+                Name=f"{PARAMETER_PREFIX}/{name}",
                 Description=PARAMETER_DESCRIPTION,
                 Value=value,
                 Type='String',
@@ -54,11 +61,12 @@ class ParameterStore:
         try:
             LOGGER.debug('Deleting Parameter %s', name)
             self.client.delete_parameter(
-                Name=name
+                Name=f"{PARAMETER_PREFIX}/{name}",
             )
         except self.client.exceptions.ParameterNotFound:
             LOGGER.debug(
-                'Attempted to delete Parameter %s but it was not found',
+                'Attempted to delete Parameter %s/%s but it was not found',
+                PARAMETER_PREFIX,
                 name,
             )
 
@@ -66,29 +74,33 @@ class ParameterStore:
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
         """
         try:
-            LOGGER.debug('Fetching Parameters from path %s', path)
+            LOGGER.debug(
+                'Fetching Parameters from path %s/%s',
+                PARAMETER_PREFIX,
+                path,
+            )
             return paginator(
                 self.client.get_parameters_by_path,
-                Path=path,
+                Path=f"{PARAMETER_PREFIX}/{path}",
                 Recursive=True,
                 WithDecryption=False
             )
         except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
-                f'Parameter Path {path} Not Found',
+                f'Parameter Path {PARAMETER_PREFIX}/{path} Not Found',
             ) from error
 
     def fetch_parameter(self, name, with_decryption=False):
         """Gets a Parameter from Parameter Store (Returns the Value)
         """
         try:
-            LOGGER.debug('Fetching Parameter %s', name)
+            LOGGER.debug('Fetching Parameter %s/%s', PARAMETER_PREFIX, name)
             response = self.client.get_parameter(
-                Name=name,
+                Name=f"{PARAMETER_PREFIX}/{name}",
                 WithDecryption=with_decryption
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
-                f'Parameter {name} Not Found',
+                f'Parameter {PARAMETER_PREFIX}/{name} Not Found',
             ) from error

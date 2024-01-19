@@ -62,10 +62,10 @@ def configure_generic_account(sts, event, region, role):
             role,
         )
         kms_arn = parameter_store_deployment_account.fetch_parameter(
-            f'/cross_region/kms_arn/{region}',
+            f'cross_region/kms_arn/{region}',
         )
         bucket_name = parameter_store_deployment_account.fetch_parameter(
-            f'/cross_region/s3_regional_bucket/{region}',
+            f'cross_region/s3_regional_bucket/{region}',
         )
         org_stage = parameter_store_deployment_account.fetch_parameter(
             '/adf/org/stage'
@@ -124,10 +124,7 @@ def configure_deployment_account_parameters(event, role):
     for region in regions:
         parameter_store = ParameterStore(region, role)
         for key, value in event['deployment_account_parameters'].items():
-            parameter_store.put_parameter(
-                key,
-                value
-            )
+            parameter_store.put_parameter(key, value)
 
 
 def is_inter_ou_account_move(event):

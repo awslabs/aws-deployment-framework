@@ -21,8 +21,8 @@ LOGGER = configure_logger(__name__)
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
-DEPLOYMENT_PREFIX = "/deployment/"
-S3_BACKED_DEPLOYMENT_PREFIX = f"{DEPLOYMENT_PREFIX}S3/"
+DEPLOYMENT_PREFIX = "deployment"
+S3_BACKED_DEPLOYMENT_PREFIX = f"{DEPLOYMENT_PREFIX}/S3/"
 
 
 def download_deployment_maps(s3_resource, prefix, local):

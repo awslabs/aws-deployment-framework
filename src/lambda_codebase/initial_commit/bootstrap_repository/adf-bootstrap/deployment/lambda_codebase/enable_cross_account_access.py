@@ -113,11 +113,11 @@ def lambda_handler(event, _):
         )
     ):
         kms_key_arn = parameter_store.fetch_parameter(
-            f"/cross_region/kms_arn/{region}"
+            f"cross_region/kms_arn/{region}"
         )
         kms_key_arns.append(kms_key_arn)
         s3_bucket = parameter_store.fetch_parameter(
-            f"/cross_region/s3_regional_bucket/{region}"
+            f"cross_region/s3_regional_bucket/{region}"
         )
         s3_buckets.append(s3_bucket)
 

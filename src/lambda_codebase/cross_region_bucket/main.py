@@ -136,7 +136,7 @@ def determine_region(event: Mapping[str, Any]):
         return event["ResourceProperties"]["Region"]
     try:
         get_parameter = SSM_CLIENT.get_parameter(
-            Name="deployment_account_region",
+            Name="/adf/deployment_account_region",
         )
         return get_parameter["Parameter"]["Value"]
     except SSM_CLIENT.exceptions.ParameterNotFound:
@@ -148,7 +148,9 @@ def determine_region(event: Mapping[str, Any]):
 
 def ensure_bucket(region: str, bucket_name_prefix: str) -> Tuple[BucketName, Created]:
     try:
-        get_parameter = SSM_CLIENT.get_parameter(Name="shared_modules_bucket")
+        get_parameter = SSM_CLIENT.get_parameter(
+            Name="/adf/shared_modules_bucket",
+        )
         return get_parameter["Parameter"]["Value"], False
     except SSM_CLIENT.exceptions.ParameterNotFound:
         pass  # Carry on with creating the bucket

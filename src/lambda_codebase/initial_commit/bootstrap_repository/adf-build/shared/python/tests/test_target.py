@@ -52,7 +52,7 @@ def test_fetch_accounts_for_target_ou_path():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -76,7 +76,7 @@ def test_fetch_accounts_for_target_account_id():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -99,7 +99,7 @@ def test_fetch_accounts_for_target_ou_id():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -122,7 +122,7 @@ def test_fetch_accounts_for_approval():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -145,7 +145,7 @@ def test_fetch_account_error():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -167,7 +167,7 @@ def test_fetch_account_error_invalid_account_id():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -189,7 +189,7 @@ def test_target_structure_respects_wave():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -287,7 +287,7 @@ def test_target_structure_respects_multi_region():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -334,7 +334,7 @@ def test_target_structure_respects_multi_action_single_region():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -378,7 +378,7 @@ def test_target_structure_respects_multi_action_multi_region():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -422,7 +422,7 @@ def test_target_structure_respects_change_set_approval_single_region():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
@@ -467,7 +467,7 @@ def test_target_wave_structure_respects_exclude_config():
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
         expected_calls = [
             call(
-                '/adf/deployment-maps/allow-empty-target',
+                'deployment_maps/allow_empty_target',
                 'False',
             ),
         ]
