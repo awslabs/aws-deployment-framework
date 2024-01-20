@@ -69,7 +69,7 @@ to another is described in the
 [Propagating Code Changes Between ADF Installations section](#propagating-code-changes-between-adf-installations).
 3. The "int" AWS Organization is used for final integration testing and
 verification. The "int" AWS Organization is exclusively reserved for the landing
- zone development team. End-users do not have access to the "int" AWS Organization.
+zone development team. End-users do not have access to the "int" AWS Organization.
 4. Once all tests passed successfully, the code is moved from the "int" AWS
 Organization to the "prod" AWS Organization.
 5. Assuming that the propagation and the deployment in the "prod"
@@ -150,7 +150,7 @@ ADF config file with environment-specific values. d
 
 Once a dedicated ADF config file per tenant is setup, it needs to be customized
 for each AWS Organizations context. It is recommended to make use of the following
- ADF configuration options in a multi-organization context:
+ADF configuration options in a multi-organization context:
 
 ```yaml
   scm:
@@ -227,8 +227,8 @@ a multi-organization ADF setup:
       Account IDs for deployment map targets, unless the deployment is destined
       for a single AWS Organization only.
     - Instead, target AWS Accounts via `Account Names`, `Account Tags` or `OU Paths`.
-    This will allow ADF to dynamically generate the respective AWS Account IDs
-    for the target list when updating the pipelines.
+      This will allow ADF to dynamically generate the respective AWS Account IDs
+      for the target list when updating the pipelines.
 2. Consider AWS service limits for AWS CodePipeline
     - Review the AWS CodePipeline action limitations. The current limits are d
       ([AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html))
@@ -239,25 +239,25 @@ a multi-organization ADF setup:
       max. This may require you to manually balance the targets across multiple
       deployment pipelines.
     - ADF distributes targets across AWS CodePipeline stages within a deployment
-    pipeline, spreading the accounts across multiple stages to workaround the
-    AWS CodePipeline actions-per-stage limitation. Deployments may need to be
-    manually distributed across multiple deployment pipelines if they target
-    hundreds of accounts in an AWS Organization.
+      pipeline, spreading the accounts across multiple stages to workaround the
+      AWS CodePipeline actions-per-stage limitation. Deployments may need to be
+      manually distributed across multiple deployment pipelines if they target
+      hundreds of accounts in an AWS Organization.
     - In a large enterprise setup, the number of targets in a "prod"
-    AWS Organization for an AWS CodePipeline stage may be much larger than its
-    preceding stages in the "dev" and "int" AWS Organizations.
+      AWS Organization for an AWS CodePipeline stage may be much larger than its
+      preceding stages in the "dev" and "int" AWS Organizations.
 3. Allow for empty deployment map targets
     - With the adfconfig setting `allow-empty-target` ([ADF Admin Guide](admin-guide.md)),
-    ADF can be instructed to ignore any target that is not resolvable or empty
-    (because no AWS Accounts exists in it). It is suggested to set this setting
-    to `True`. Even though the OU structure and general setup across the different
-    AWS Organization stages is usually identical, the number of created
-    AWS Accounts might not be. When this setting is set to `True`, temporary
-    empty OUs are just ignored and do not lead to an error.
+      ADF can be instructed to ignore any target that is not resolvable or empty
+      (because no AWS Accounts exists in it). It is suggested to set this setting
+      to `True`. Even though the OU structure and general setup across the different
+      AWS Organization stages is usually identical, the number of created
+      AWS Accounts might not be. When this setting is set to `True`, temporary
+      empty OUs are just ignored and do not lead to an error.
 4. The source branch for the application code may be different per AWS Organization
     - The above described custom `adfconfig` configuration allows a different
-    default branch to be specified in the path `config.scm.default-scm-branch`
-    per AWS Organization.
+      default branch to be specified in the path `config.scm.default-scm-branch`
+      per AWS Organization.
 
 ### 4. Make AWS Organization Stage Context Available in AWS CodePipeline Build jobs
 
