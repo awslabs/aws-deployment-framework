@@ -107,7 +107,7 @@ Once a dedicated  ADF config file per tenant is setup, it needs to be customized
   org:
     stage: prod # This setting will create the SSM parameter "/adf/org/stage" in the ADF deployment AWS Account. This parameter then can be referenced as an environement variable in application buildspec files to establish the AWS organization context.
   deployment-maps:
-    allow-empty: "True" # It is recommened to set this setting to "True". When this setting is set to `True`, temporary empty OUs are just ignored and do not lead to an error.
+    allow-empty: "True" # It is recommended to set this setting to "True". When this setting is set to "True", temporary empty OUs are just ignored and do not lead to an error.
 ```
 
 The following sample ADF config file `adfconfig.o-a123456789.yml` shows a complete example for a "prod" AWS organization.
