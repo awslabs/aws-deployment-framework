@@ -196,6 +196,8 @@ a specific CDK application
     - `config-dev.yaml`
     - `config-int.yaml`
     - `config-prod.yaml`
+- Copy a specific `params` folder to use for the given organization context, before `generate_params.py` is invoked:
+  `cp -r ./org_specific/${ADF_ORG_STAGE}/params ./params`
 
 ### 5. Customize the Base IAM Roles Per AWS Organization
 ADF Supports Bootstrapping Baseline CloudFormation Stacks to all AWS Accounts
