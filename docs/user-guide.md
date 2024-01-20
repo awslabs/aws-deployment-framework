@@ -717,12 +717,14 @@ CloudFormation templates when deploying via AWS CodePipeline.
 
 The CloudFormation Parameter generation feature is fully compatible with 
 the [Multi-Organization ADF Setup](./multi-organization-guide.md) approach. 
-Let's assume that we have a three AWS Org setup with a dev, int and prod 
-AWS Organization. This implies that the SSM param `/adf/org/stage` will have 
-one of the following three values: `[dev, int, prod]`; depending on the AWS 
-Organization you are in. Let's further assume that your application in scope 
-requires AWS Organization specific parameters.In that case, the `params` should 
-have the following content: 
+
+For example, in a setup with three AWS Organizations; with a separate
+`dev`, an `int`, and a `prod` AWS Organization. This implies that the
+SSM parameter `/adf/org/stage` will have one of the following three
+values: `dev`, `int`, or `prod`; depending on the AWS organization 
+you are in. Let's further assume that your application in scope 
+requires AWS Organization specific parameters. In that case,
+the `params` folder should  have the following content: 
 
 ```txt
 params
