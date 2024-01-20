@@ -193,7 +193,7 @@ a specific CDK application
 - Appending the Stage name to AWS resource names having a requirement to be 
   both deterministic as well as globally unique 
 (whilst being deployed into multiple organizations).
-- Selection a config file from a config folder with the following files:
+- Selecting a config file from a config folder with the following files:
     - `config-dev.yaml`
     - `config-int.yaml`
     - `config-prod.yaml`
