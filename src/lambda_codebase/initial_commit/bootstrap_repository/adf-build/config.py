@@ -101,7 +101,7 @@ class Config:
                 self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
         else:
             LOGGER.info("Using default org config")
-            with open(self.config_path, encoding="utf-8") as config: 
+            with open(self.config_path, encoding="utf-8") as config:
                 self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
         self._parse_config()
 
