@@ -713,7 +713,8 @@ the root of the repository.
 *Note:* Currently only Strings type values are supported as parameters to
 CloudFormation templates when deploying via AWS CodePipeline.
 
-**CloudFormation Parameters in a Multi-Organization ADF Setup** 
+#### CloudFormation Parameters in a Multi-Organization ADF Setup
+
 The CloudFormation Parameter generation feature is fully compatible with 
 the [Multi-Organization ADF Setup](./multi-organization-guide.md) approach. 
 Let's assume that we have a three AWS Org setup with a dev, int and prod 
