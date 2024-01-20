@@ -70,7 +70,7 @@ CODECOMMIT_SOURCE_PROPS = {
 }
 CODECOMMIT_SOURCE = {
     "provider": 'codecommit',
-    "properties": CODECOMMIT_SOURCE_PROPS
+    Optional("properties"): CODECOMMIT_SOURCE_PROPS,
 }
 
 # GitHub Source
@@ -284,13 +284,23 @@ PROVIDER_DEPLOY_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
 }
 PROVIDER_SCHEMA = {
-    'source': And(
-        {
-            'provider': Or('codecommit', 'github', 's3', 'codestar'),
-            'properties': dict,
-        },
-        # pylint: disable=W0108
-        lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
+    'source': Or(
+        And(
+            {
+                'provider': Or('github', 's3', 'codestar'),
+                'properties': dict,
+            },
+            # pylint: disable=W0108
+            lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
+        ),
+        And(
+            {
+                'provider': Or('codecommit'),
+                Optional('properties'): dict,
+            },
+            # pylint: disable=W0108
+            lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
+        ),
     ),
     Optional('build'): And(
         {

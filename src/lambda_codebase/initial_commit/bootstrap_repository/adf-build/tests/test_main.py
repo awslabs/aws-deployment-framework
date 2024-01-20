@@ -133,7 +133,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            12 if param_store == deploy_param_store else 2
+            13 if param_store == deploy_param_store else 2
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -225,7 +225,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            14 if param_store == deploy_param_store else 2
+            15 if param_store == deploy_param_store else 2
         )
         param_store.put_parameter.assert_has_calls(
             [
