@@ -734,9 +734,9 @@ params
 └───global.yml
 ```
 
-When the application gets deployed, ADF will choose the right parameter file 
-based on the value of the SSM prameter "/adf/org/stage".
-
+Where it will prefer the AWS Organization specific configuration
+`global_${org_stage}` over the `global` parameters in case they both
+match the same parameter or tag.
 
 ### Serverless Transforms
 
