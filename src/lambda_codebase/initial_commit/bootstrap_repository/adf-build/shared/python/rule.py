@@ -7,11 +7,13 @@ properties associated with a pipeline.
 """
 
 import os
+
+# ADF imports
 from cloudformation import CloudFormation
+from logger import configure_logger
+from partition import get_partition
 from s3 import S3
 from sts import STS
-from partition import get_partition
-from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

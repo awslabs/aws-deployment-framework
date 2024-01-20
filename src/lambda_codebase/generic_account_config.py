@@ -14,10 +14,11 @@ created account.
 
 import os
 
+# ADF imports
 from logger import configure_logger
-from sts import STS
-from stepfunctions import StepFunctions
 from partition import get_partition
+from stepfunctions import StepFunctions
+from sts import STS
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv('AWS_REGION')

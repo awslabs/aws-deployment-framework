@@ -38,9 +38,7 @@ Parameters:
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild
     Type: String
-    # BUILD_GENERAL1_LARGE - For threading with large amounts of pipelines
-    # this is the most effective default:
-    Default: "BUILD_GENERAL1_LARGE"
+    Default: "BUILD_GENERAL1_SMALL"
     AllowedValues:
       - "BUILD_GENERAL1_SMALL"  # 3 GB memory, 2 vCPU
       - "BUILD_GENERAL1_MEDIUM"  # 7 GB memory, 4 vCPU
@@ -74,26 +72,22 @@ Conditions:
 
 Globals:
   Function:
+    Architectures:
+      - arm64
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.12
 
 Resources:
-  LambdaLayerVersion:
+  ADFSharedPythonLambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
-      ContentUri: "../../adf-build/shared/"
+      ContentUri: "../../adf-build/shared/python"
       CompatibleRuntimes:
-        - python3.10
+        - python3.12
       Description: "Shared Lambda Layer between master and deployment account"
-      LayerName: shared_layer
-
-  LambdaLayerVersionPermission:
-    Type: "AWS::Lambda::LayerVersionPermission"
-    Properties:
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref LambdaLayerVersion
-      OrganizationId: !Ref OrganizationId
-      Principal: "*"
+      LayerName: adf_shared_layer
+    Metadata:
+      BuildMethod: python3.12
 
   KMSKey:
     Type: AWS::KMS::Key
@@ -188,7 +182,7 @@ Resources:
     Properties:
       Location: pipeline_management.yml
       Parameters:
-        LambdaLayer: !Ref LambdaLayerVersion
+        LambdaLayer: !Ref ADFSharedPythonLambdaLayerVersion
         ADFVersion: !Ref ADFVersion
         OrganizationId: !Ref OrganizationId
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
@@ -690,8 +684,8 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.11
-                nodejs: 18
+                python: 3.12
+                nodejs: 20
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
@@ -1017,7 +1011,7 @@ Resources:
     Type: "AWS::Serverless::Function"
     Properties:
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - Send Slack Notification"
       FunctionName: SendSlackNotification
       Handler: slack.lambda_handler
@@ -1027,12 +1021,14 @@ Resources:
           ADF_PIPELINE_PREFIX: !Ref PipelinePrefix
           ADF_LOG_LEVEL: !Ref ADFLogLevel
       Timeout: 10
+    Metadata:
+      BuildMethod: python3.12
 
   EnableCrossAccountAccess:
     Type: "AWS::Serverless::Function"
     Properties:
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - EnableCrossAccountAccess"
       MemorySize: 1024
       Environment:
@@ -1045,12 +1041,14 @@ Resources:
       Handler: enable_cross_account_access.lambda_handler
       Role: !GetAtt EnableCrossAccountAccessLambdaRole.Arn
       Timeout: 900
+    Metadata:
+      BuildMethod: python3.12
 
   CheckPipelineStatus:
     Type: "AWS::Serverless::Function"
     Properties:
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Description: "ADF Lambda Function - CheckPipelineStatus"
       Environment:
         Variables:
@@ -1061,6 +1059,8 @@ Resources:
       Handler: update_pipelines.lambda_handler
       Role: !GetAtt CheckPipelineStatusLambdaRole.Arn
       Timeout: 120
+    Metadata:
+      BuildMethod: python3.12
 
   SendSlackNotificationLambdaRole:
     Type: "AWS::IAM::Role"
@@ -1177,7 +1177,7 @@ Resources:
             Action:
               - "lambda:GetLayerVersion"
             Resource:
-              - !Ref LambdaLayerVersion
+              - !Ref ADFSharedPythonLambdaLayerVersion
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"
@@ -1386,6 +1386,8 @@ Resources:
                 - codecommit:GetRepository
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: ADFPipelinesDetermineDefaultBranchName
+    Metadata:
+      BuildMethod: python3.12
 
   InitialCommit:
     Type: Custom::InitialCommit
@@ -1418,6 +1420,8 @@ Resources:
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
       Timeout: 300
+    Metadata:
+      BuildMethod: python3.12
 
   KmsKeyArnParameter:
     Type: "AWS::SSM::Parameter"

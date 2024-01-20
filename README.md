@@ -27,13 +27,15 @@ template as its baseline.
 
 ## Quick Start
 
-Launch ADF via the
-[Serverless Application Repository](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework)
-within the AWS Console.
-
 - Refer to the [Installation Guide](docs/installation-guide.md) for
   Installation steps.
-- Refer to the [User Guide](docs/user-guide.md) for using ADF once it is setup.
+- Refer to the [Admin Guide](docs/admin-guide.md) on guidance how-to manage and
+  administrate ADF.
+- Refer to the [User Guide](docs/user-guide.md) for using ADF to generate
+  and manage pipelines.
+- Refer to the [Technical Guide](docs/technical-guide.md) if you want to learn
+  more about the inner workings of ADF. For example in case you want to
+  contribute or build on top of ADF.
 - Refer to the [Samples Guide](docs/samples-guide.md) for a detailed walk
   through of the provided samples.
 - Refer to the [Multi-Organization ADF Setup](docs/multi-organization-guide.md)

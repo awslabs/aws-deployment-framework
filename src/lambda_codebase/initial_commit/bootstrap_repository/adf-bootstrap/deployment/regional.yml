@@ -23,6 +23,10 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
