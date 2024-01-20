@@ -646,8 +646,6 @@ each account under that OU.
 deployment map as a target. If only the account number is in the deployment map
 the corresponding OU parameter file will not be referenced.
 
-
-
 ```txt
 global.yml
 └───deployment_org_stage.yml (e.g. global_dev.yml)
