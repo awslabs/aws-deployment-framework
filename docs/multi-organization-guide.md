@@ -167,7 +167,6 @@ The following considerations should be observed when creating deployment maps fo
   stage may be much larger than its preceding stages in the "dev" and "int" AWS Organizations.
 3. Allow for empty deployment map targets
     - With the adfconfig setting `allow-empty-target` ([ADF Admin Guide](admin-guide.md)), ADF can be instructed to ignore any target that is not resolvable or empty (because no AWS Accounts exists in it). It is suggested to set this setting to `True`. Even though the OU structure and general setup across the different AWS Organization stages is usually identical, the number of created AWS Accounts might not be. When this setting is set to `True`, temporary empty OUs are just ignored and do not lead to an error.
-
  4. The source branch for the application code may be different per AWS Organization
     - The above described custom `adfconfig` configuration allows a different default branch to be specified in the path `config.scm.default-scm-branch` per AWS Organization.
 
