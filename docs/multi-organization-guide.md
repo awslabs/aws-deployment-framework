@@ -6,7 +6,6 @@ This document describes how ADF can be run and managed in a multi AWS organizati
 - [Definition of a Multi-Organization ADF Setup](#definition-of-a-multi-organization-adf-setup)
 - [Common Use Case for a Multi-Organization ADF Setup - A Multi-Stage Landing Zone](#common-use-case-for-a-multi-organization-adf-setup---a-multi-stage-landing-zone)
 - [Propagating Code Changes Between ADF Installations](#propagating-code-changes-between-adf-installations)
-- [Customizing ADF Config Per AWS Organization](#customizing-adfconfig.yml-per-aws-organization)
 - [Best Practices for Multi-Organization ADF setups](#best-practices-for-multi-organization-adf-setups)
   - [1. Create a dedicated adfconfig.yml Per AWS Organization](#1-create-a-dedicated-adfconfigyml-per-aws-organization)
   - [2. Customize the ADF Config File Per AWS Organization](#2-customize-the-adf-config-file-per-aws-organization)
