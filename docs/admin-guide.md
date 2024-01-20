@@ -242,6 +242,15 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     More information about setting up ADF with multiple AWS Organizations can
     be found in the [Multi-Organization Guide](multi-organization-guide.md)
 
+  - **default-scm-codecommit-account-id** allows you to configure the default
+    account id that should be used with all source-code management platforms
+    that ADF supports.
+    If not set here, the deployment account id is taken as default value.
+    The CodeCommit account-id can be still be overwritten with an explicit
+    account id in the individual deployment map.
+    The CodeCommit provider guide provides more details:
+    [providers-guide.md.yml: CodeCommit](./providers-guide.md#codecommit).
+
 ## Accounts
 
 ### Management account
