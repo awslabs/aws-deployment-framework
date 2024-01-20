@@ -93,7 +93,7 @@ precedence over the default `adfconfig.yml` settings file for that organization.
 For each AWS organization used with the ADF Framework setup an additional adfconfig
 file can be defined. 
 
-The following screenshot shows the ADF root directory of a multi-organisation ADF setup with three stages ("dev", "int", "prod").
+The following screenshot shows the ADF root directory of a multi-organization ADF setup with three stages ("dev", "int", "prod").
 Each AWS Organization has its own ADF config file with environment-specific values.
 ![adf-multi-org-root-directory-screenshot](images/aws-multi-org-adf-config-multi-organization.png)
 
