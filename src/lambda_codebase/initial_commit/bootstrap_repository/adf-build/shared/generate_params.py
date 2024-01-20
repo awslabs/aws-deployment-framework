@@ -302,13 +302,12 @@ class Parameters:
                     current_params
                 )
                 # Compare account_region final to global_stage
-                adf_org_stage = ADF_ORG_STAGE # Fetch from Environ for Start
                 current_params = self._merge_params(
                     Parameters._parse(
                         params_root_path=self.cwd,
-                        params_filename=f"global_{adf_org_stage}",
+                        params_filename=f"global_{ADF_ORG_STAGE}",
                     ),
-                    current_params
+                    current_params,
                 )
                 # Compare account_region final to global
                 current_params = self._merge_params(
