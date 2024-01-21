@@ -358,6 +358,8 @@ Resources:
               - "ecr:CompleteLayerUpload"
               - "ecr:BatchCheckLayerAvailability"
               - "ecr:PutImage"
+              - "ecr:BatchGetImage"
+              - "ecr:GetDownloadUrlForLayer"
             Resource:
               - "*"
           - Effect: Allow
