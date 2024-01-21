@@ -10,7 +10,7 @@ import os
 import sys
 import time
 from math import floor
-from datetime import datetime
+from datetime import datetime, timezone
 from thread import PropagatingThread
 
 import boto3
@@ -45,7 +45,7 @@ CODEBUILD_START_TIME_UNIXTS = floor(
             "CODEBUILD_START_TIME",
             # Fall back to 10 minutes ago + convert Python timestamp from
             # seconds to milliseconds:
-            floor(datetime.now().timestamp() - (10 * 60)) * 1000,
+            floor(datetime.now(timezone.utc).timestamp() - (10 * 60)) * 1000,
         )
     ) / 1000.0  # Convert milliseconds to seconds
 )
@@ -56,6 +56,7 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = False
 ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
 
@@ -147,9 +148,25 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     )
     deployment_account_parameter_store.put_parameter(
         'default_scm_branch',
-        config.config.get('scm', {}).get(
-            'default-scm-branch',
-            ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        (
+            config.config
+            .get('scm', {})
+            .get('default-scm-branch', ADF_DEFAULT_SCM_FALLBACK_BRANCH)
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        '/adf/scm/default-scm-codecommit-account-id',
+        (
+            config.config
+            .get('scm', {})
+            .get('default-scm-codecommit-account-id', deployment_account_id)
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        '/adf/deployment-maps/allow-empty-target',
+        config.config.get('deployment-maps', {}).get(
+            'allow-empty-target',
+            str(ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET),
         )
     )
     deployment_account_parameter_store.put_parameter(
@@ -323,7 +340,7 @@ def await_sfn_executions(sfn_client):
         ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
         filter_lambda=lambda item: (
             (
-                item.get('startDate', datetime.now()).timestamp()
+                item.get('startDate', datetime.now(timezone.utc)).timestamp()
                 >= CODEBUILD_START_TIME_UNIXTS
             )
             and item.get('status') in ['FAILED', 'TIMED_OUT', 'ABORTED']

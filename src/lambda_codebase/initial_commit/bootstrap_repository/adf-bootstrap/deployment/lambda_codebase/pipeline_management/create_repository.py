@@ -67,6 +67,7 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("repository", {})
     )
+
     if (
         code_account_id
         and str(code_account_id).isdigit()

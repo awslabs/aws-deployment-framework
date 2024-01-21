@@ -11,10 +11,12 @@ from cache import Cache
 from rule import Rule
 from logger import configure_logger
 from cloudwatch import ADFMetrics
-
+from errors import ParameterNotFoundError
+from parameter_store import ParameterStore
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
 
@@ -58,6 +60,40 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("account_id")
     )
+
+    # Resolve codecommit source_account_id in case it is not set
+    if source_provider == "codecommit" and not source_account_id:
+        # Evaluate as follows:
+        # If not set, we have to set it with
+        #   - default_scm_codecommit_account_id (if exists)
+        #   - or ADF_DEPLOYMENT_ACCOUNT_ID
+        # If set, we are done anyways
+        LOGGER.debug(
+            "source_account_id not found in source_props - ADF will set "
+            "it from SSM param default_scm_codecommit_account_id.",
+        )
+        deployment_account_id = DEPLOYMENT_ACCOUNT_ID
+        try:
+            parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+            default_scm_codecommit_account_id = parameter_store.fetch_parameter(
+                "/adf/scm/default-scm-codecommit-account-id",
+            )
+        except ParameterNotFoundError:
+            default_scm_codecommit_account_id = deployment_account_id
+            LOGGER.debug(
+                "default_scm_codecommit_account_id not found in SSM - "
+                "Fall back to deployment_account_id.",
+            )
+        source_account_id = default_scm_codecommit_account_id
+
+        # Create the properties object if it does not exist
+        if pipeline["default_providers"]["source"].get("properties") is None:
+            pipeline["default_providers"]["source"]["properties"] = {}
+
+        pipeline["default_providers"]["source"]["properties"]["account_id"] = (
+            source_account_id
+        )
+
     if (
         source_provider == "codecommit"
         and source_account_id

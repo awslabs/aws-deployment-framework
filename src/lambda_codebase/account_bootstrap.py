@@ -9,20 +9,22 @@ Stack on the target account.
 """
 
 import os
-import boto3
 
+import boto3
 from botocore.exceptions import ClientError
-from logger import configure_logger
+
+# ADF imports
 from errors import (
     AccountCreationNotFinishedError,
     GenericAccountConfigureError,
     ParameterNotFoundError,
 )
-from parameter_store import ParameterStore
 from cloudformation import CloudFormation
+from logger import configure_logger
+from parameter_store import ParameterStore
+from partition import get_partition
 from s3 import S3
 from sts import STS
-from partition import get_partition
 
 # Globals taken from the lambda environment variables
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]

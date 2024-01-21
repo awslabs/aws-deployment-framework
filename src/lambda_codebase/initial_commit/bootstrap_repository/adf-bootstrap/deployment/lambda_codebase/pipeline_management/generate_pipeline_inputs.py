@@ -72,6 +72,9 @@ def fetch_required_ssm_params(pipeline_input, regions):
             output["default_scm_branch"] = parameter_store.fetch_parameter(
                 "default_scm_branch",
             )
+            output["default_scm_codecommit_account_id"] = parameter_store.fetch_parameter(
+                "/adf/scm/default-scm-codecommit-account-id",
+            )
             codestar_connection_path = (
                 pipeline_input
                 .get("default_providers", {})
@@ -84,6 +87,20 @@ def fetch_required_ssm_params(pipeline_input, regions):
                     parameter_store.fetch_parameter(codestar_connection_path)
                 )
     return output
+
+
+def report_final_pipeline_targets(pipeline_object):
+    number_of_targets = 0
+    LOGGER.info(
+        "Targets found: %s",
+        pipeline_object.template_dictionary["targets"],
+    )
+    for target in pipeline_object.template_dictionary["targets"]:
+        for target_accounts in target:
+            number_of_targets = number_of_targets + len(target_accounts)
+    LOGGER.info("Number of targets found: %d", number_of_targets)
+    if number_of_targets == 0:
+        LOGGER.info("Attempting to create an empty pipeline as there were no targets found")
 
 
 def generate_pipeline_inputs(
@@ -144,6 +161,8 @@ def generate_pipeline_inputs(
             ),
         )
 
+    report_final_pipeline_targets(pipeline_object)
+
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
@@ -156,8 +175,13 @@ def generate_pipeline_inputs(
         data["pipeline_input"]["default_providers"]["source"]["properties"][
             "codestar_connection_arn"
         ] = data["ssm_params"]["codestar_connection_arn"]
-    data["pipeline_input"]["default_scm_branch"] = data["ssm_params"].get(
-        "default_scm_branch",
+    data["pipeline_input"]["default_scm_branch"] = (
+        data["ssm_params"]
+        .get("default_scm_branch")
+    )
+    data["pipeline_input"]["default_scm_codecommit_account_id"] = (
+        data["ssm_params"]
+        .get("default_scm_codecommit_account_id")
     )
     store_regional_parameter_config(
         pipeline_object,

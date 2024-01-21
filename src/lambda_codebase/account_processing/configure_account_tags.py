@@ -9,6 +9,8 @@ in the config file.
 """
 import boto3
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
 
 patch_all()

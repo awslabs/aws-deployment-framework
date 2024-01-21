@@ -9,13 +9,15 @@ is moved to the root of the Organization.
 import ast
 import os
 from thread import PropagatingThread
+
 import boto3
 
-from sts import STS
+# ADF imports
+from cloudformation import CloudFormation
+from logger import configure_logger
 from parameter_store import ParameterStore
 from partition import get_partition
-from logger import configure_logger
-from cloudformation import CloudFormation
+from sts import STS
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.environ.get('AWS_REGION')

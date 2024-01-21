@@ -4,10 +4,12 @@
 """
 Moves an account to the specified OU.
 """
-from organizations import Organizations
 import boto3
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
+from organizations import Organizations
 
 
 patch_all()
