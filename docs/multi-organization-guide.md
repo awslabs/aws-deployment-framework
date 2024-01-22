@@ -138,7 +138,7 @@ Adding a configuration file with the name pattern `adfconfig.{organization id}.y
 in the root of the`aws-deployment-framework-bootstrap` repository will take
 precedence over the default `adfconfig.yml` settings file for that organization.
 
-For each AWS organization used with the ADF Framework setup an additional adfconfig
+For each AWS organization used in the ADF setup an additional adfconfig
 file can be defined.
 
 The following screenshot shows the ADF root directory of a multi-organization ADF
