@@ -176,7 +176,7 @@ The following sample ADF config file `adfconfig.o-a123456789.yml` shows a
 complete example for a "prod" AWS organization.
 
 ```yaml
-# The following configuration is only loaded for int Organization:  o-a123456789
+# The following configuration is only loaded for prod Organization:  o-a123456789
 roles:
   cross-account-access: AWSControlTowerExecution
   # ^ The role by ADF to assume cross account access
@@ -230,8 +230,9 @@ a multi-organization ADF setup:
       This will allow ADF to dynamically generate the respective AWS Account IDs
       for the target list when updating the pipelines.
 2. Consider AWS service limits for AWS CodePipeline
-    - Review the AWS CodePipeline action limitations. The current limits are d
-      ([AWS CodePipeline Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html))
+    - Review the AWS CodePipeline action limitations. [AWS CodePipeline
+      Limits](https://docs.aws.amazon.com/codepipeline/latest/userguide/limits.html))
+      are:
       - 1000 AWS CodePipeline per AWS Account per region
       - 500 Actions per AWS CodePipeline
       - 50 Actions per AWS CodePipeline Stage
