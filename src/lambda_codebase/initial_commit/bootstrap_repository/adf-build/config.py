@@ -97,7 +97,7 @@ class Config:
         org_config_path = self.config_path.replace(".yml", f".{self.organization_id}.yml")
         if os.path.exists(org_config_path):
             with open(org_config_path, encoding="utf-8") as org_config_file:
-                LOGGER.info("Using custom org config")
+                LOGGER.info("Using organization specific ADF config: %s", org_config_path)
                 self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
         else:
             LOGGER.info("Using default org config")
