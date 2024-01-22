@@ -100,7 +100,9 @@ do
     if [[ -z "$TARGET_ACCOUNTS" ]] && [[ -z "$TARGET_OUS" ]] && [[ -z "$TARGET_TAGS" ]]
     then
         echo "Apply to all accounts"
-        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts.json" | sed 's/"//g' )
+        ACCOUNTS=$(jq -r '.[].AccountId' "${CURRENT}/accounts.json")
+        echo $ACCOUNTS
+        for ACCOUNT_ID in $ACCOUNTS
         do
             tfrun
         done
@@ -109,7 +111,8 @@ do
     if ! [[ -z "$TARGET_ACCOUNTS" ]]
     then
         # apply only on a subset of accounts (TARGET_ACCOUNTS)
-        echo "List of target account: $TARGET_ACCOUNTS"
+        echo "List of target account - Region $TF_VAR_TARGET_REGION"
+        echo $TARGET_ACCOUNTS
         for ACCOUNT_ID in $(echo "$TARGET_ACCOUNTS" | sed "s/,/ /g")
         do
             tfrun
@@ -118,8 +121,11 @@ do
 
     if ! [[ -z "$TARGET_OUS" ]]
     then
-        echo "List target OUs: $TARGET_OUS"
-        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_ous.json" | sed 's/"//g' )
+        ACCOUNTS=$(jq -r '.[].AccountId' "${CURRENT}/accounts_from_ous.json")
+        echo "List target OUs - Region $TF_VAR_TARGET_REGION"
+        echo $TARGET_OUS
+        echo Accounts matching OUs: $ACCOUNTS
+        for ACCOUNT_ID in $ACCOUNTS
         do
             tfrun
         done
@@ -127,8 +133,11 @@ do
 
     if ! [[ -z "$TARGET_TAGS" ]]
     then
-        echo "List target TAGS: $TARGET_TAGS"
-        for ACCOUNT_ID in $(jq '.[].AccountId' "${CURRENT}/accounts_from_tags.json" | sed 's/"//g' )
+        ACCOUNTS=$(jq -r '.[].AccountId' "${CURRENT}/accounts_from_tags.json")
+        echo "List target TAGS - Region $TF_VAR_TARGET_REGION"
+        echo $TARGET_TAGS
+        echo Accounts matching tags: $ACCOUNTS
+        for ACCOUNT_ID in $ACCOUNTS
         do
             tfrun
         done
