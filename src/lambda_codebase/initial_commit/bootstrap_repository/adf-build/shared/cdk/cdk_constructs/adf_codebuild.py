@@ -375,15 +375,30 @@ class CodeBuild(Construct):
                 .get('image')
             )
         if isinstance(specific_image, dict):
-            repo_arn = _ecr.Repository.from_repository_arn(
+            repository_name = specific_image.get('repository_name', '')
+            repository_arn = specific_image.get('repository_arn', '')
+            if not repository_arn and not repository_name:
+                raise ValueError("The repository arn or name needs to be specified")
+
+            if repository_arn and repository_name:
+                raise AssertionError("Specify the arn or the name of the repository, not both.")
+
+            if repository_name:
+                repository_arn = (
+                    f"arn:aws:ecr:{ADF_DEPLOYMENT_REGION}:"
+                    f"{ADF_DEPLOYMENT_ACCOUNT_ID}:{repository_name}"
+                )
+
+            ecr_repo = _ecr.Repository.from_repository_arn(
                 scope,
                 f'custom_repo_{codebuild_id}',
-                specific_image.get('repository_arn', ''),
+                repository_arn,
             )
             return _codebuild.LinuxBuildImage.from_ecr_repository(
-                repo_arn,
+                ecr_repo,
                 specific_image.get('tag', 'latest'),
             )
+
         return CodeBuild.get_image_by_name(specific_image)
 
     @staticmethod
