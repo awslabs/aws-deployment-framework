@@ -148,7 +148,7 @@ ADF config file with environment-specific values.
 
 ## 2. Customize the ADF Config File Per AWS Organization
 
-Once a dedicated ADF config file per tenant is setup, it needs to be customized
+Once a dedicated ADF config file per environment is setup, it needs to be customized
 for each AWS Organizations context. It is recommended to make use of the following
 ADF configuration options in a multi-organization context:
 
