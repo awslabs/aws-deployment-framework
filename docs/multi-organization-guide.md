@@ -143,7 +143,7 @@ file can be defined.
 
 The following screenshot shows the ADF root directory of a multi-organization ADF
 setup with three stages ("dev", "int", "prod"). Each AWS Organization has its own
-ADF config file with environment-specific values. d
+ADF config file with environment-specific values.
 ![adf-multi-org-root-directory-screenshot](images/aws-multi-org-adf-config-multi-organization.png)
 
 ## 2. Customize the ADF Config File Per AWS Organization
