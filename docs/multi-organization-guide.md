@@ -265,7 +265,7 @@ ADF applications often contain environment / AWS Organization stage specific
 configuration files. In order to allow AWS CodeBuild to select the proper
 configuration context for an application, the environment / AWS Organization stage
 context needs to be made available. A simple pattern to solve this problem is the
-introduction of the SSM parameter `adf/org/stage` in the buildspec file of the
+introduction of the SSM parameter `/adf/org/stage` in the buildspec file of the
 application. This SSM parameter will be auto-created by ADF. The following snippet
 shows the header of such a `codebuild.yaml` file.
 
