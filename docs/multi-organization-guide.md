@@ -273,7 +273,7 @@ shows the header of such a `codebuild.yaml` file.
 env:
   parameter-store:
     ADF_ORG_STAGE: "/adf/org/stage"
-[...]
+# [...]
 ```
 
 This environment variable can then be used to drive decision/deployment logic
