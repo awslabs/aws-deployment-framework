@@ -325,11 +325,11 @@ Mappings:
   # Usage:!FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]
   OrgStageBasedPropertyMap:
     dev:
-      FinOpsAccountId: 1234567891012 # Dev Org
+      FinOpsAccountId: 111111111111 # Dev Org
     int:
-      FinOpsAccountId: 1234567891013 # Int Org
+      FinOpsAccountId: 222222222222 # Int Org
     prod:
-      FinOpsAccountId: 1234567891014 # Prod Org
+      FinOpsAccountId: 333333333333 # Prod Org
 ```
 
 In the above usage example you can see how the CloudFormation function FindInMap
