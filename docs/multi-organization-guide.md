@@ -322,7 +322,7 @@ Parameters:
 # At the time this Stack is deployed, the FinOps Account ID SSM Parameter doesn't
 # exist, so we derive it from mapping it to the org stage
 Mappings:
-  # Usage:!FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]
+  # Usage: !FindInMap [OrgStageBasedPropertyMap, !Ref OrgStage, FinOpsAccountId]
   OrgStageBasedPropertyMap:
     dev:
       FinOpsAccountId: 111111111111 # Dev Org
