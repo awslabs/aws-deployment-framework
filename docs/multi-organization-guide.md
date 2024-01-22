@@ -246,7 +246,7 @@ a multi-organization ADF setup:
     - In a large enterprise setup, the number of targets in a "prod"
       AWS Organization for an AWS CodePipeline stage may be much larger than its
       preceding stages in the "dev" and "int" AWS Organizations.
-3. Allow for empty deployment map targets
+3. Allow empty deployment map targets
     - With the adfconfig setting `allow-empty-target` ([ADF Admin Guide](admin-guide.md)),
       ADF can be instructed to ignore any target that is not resolvable or empty
       (because no AWS Accounts exists in it). It is suggested to set this setting
