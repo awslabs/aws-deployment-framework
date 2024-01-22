@@ -21,7 +21,8 @@ Parameters:
 # Conditions / Principals ARN / Resource ARN per Organization applying
 # least-privilege principles whilst retaining a Single Stack Definition for all
 # environments.
-# usage !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
+# Example usage:
+# !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
 # Mappings:
 #   OrgStageMap:
 #     Dev:

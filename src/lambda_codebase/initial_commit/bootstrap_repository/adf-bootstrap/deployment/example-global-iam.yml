@@ -16,7 +16,8 @@ Description: ADF CloudFormation Template (Global) for IAM in the Deployment Acco
 # Conditions / Principals ARN / Resource ARN per Organization applying Least
 # Privilege Principals whilst retaining a Single Stack Definition for all
 # environments.
-# Usage: !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
+# Example usage:
+# !FindInMap[OrgStageMap: !Ref OrgStage, ExampleCustomProperty]
 # Mappings:
 #   OrgStageMap:
 #     Dev:

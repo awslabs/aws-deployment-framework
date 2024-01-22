@@ -100,7 +100,7 @@ class Config:
                 LOGGER.info("Using organization specific ADF config: %s", org_config_path)
                 self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
         else:
-            LOGGER.info("Using default org config")
+            LOGGER.info("Using default ADF config: %s", self.config_path)
             with open(self.config_path, encoding="utf-8") as config:
                 self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
         self._parse_config()
