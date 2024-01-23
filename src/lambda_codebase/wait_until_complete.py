@@ -41,7 +41,8 @@ def update_deployment_account_output_parameters(
     regional_parameter_store.put_parameter(
         "organization_id", os.environ['ORGANIZATION_ID']
     )
-    # Regions needs to store its kms arn and s3 bucket in master and regional
+    # Regions needs to store its KMS ARN and S3 bucket.
+    # It is also stored in the main deployment region.
     for key, value in cloudformation.get_stack_regional_outputs().items():
         LOGGER.info('Updating %s on deployment account in %s', key, region)
         deployment_account_parameter_store.put_parameter(
@@ -65,7 +66,7 @@ def lambda_handler(event, _):
 
     role = sts.assume_cross_account_role(
         f'arn:{partition}:iam::{account_id}:role/{cross_account_access_role}',
-        'master'
+        'management'
     )
 
     s3 = S3(REGION_DEFAULT, S3_BUCKET)

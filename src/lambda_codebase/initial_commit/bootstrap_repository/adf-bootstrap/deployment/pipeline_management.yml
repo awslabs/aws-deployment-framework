@@ -658,7 +658,7 @@ Resources:
             Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
-          - Name: MASTER_ACCOUNT_ID
+          - Name: MANAGEMENT_ACCOUNT_ID
             Value: !Ref RootAccountId
           - Name: S3_BUCKET_NAME
             Value: !Ref PipelineBucket

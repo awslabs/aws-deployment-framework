@@ -134,8 +134,8 @@ class Event:
                 'organization_id': organization_information.get(
                     "organization_id"
                 ),
-                'master_account_id': organization_information.get(
-                    "organization_master_account_id"
+                'management_account_id': organization_information.get(
+                    "organization_management_account_id"
                 ),
                 'deployment_account_id': self.deployment_account_id,
                 'notification_endpoint': self.main_notification_endpoint,

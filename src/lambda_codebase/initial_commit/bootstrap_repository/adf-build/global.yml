@@ -75,7 +75,7 @@ Resources:
     # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-master-account-bootstrap-policy"
+      PolicyName: "adf-management-account-bootstrap-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:

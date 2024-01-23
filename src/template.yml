@@ -320,7 +320,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -379,7 +379,7 @@ Resources:
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -423,7 +423,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -471,7 +471,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -491,7 +491,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -539,7 +539,7 @@ Resources:
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -574,7 +574,7 @@ Resources:
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -608,7 +608,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -652,7 +652,7 @@ Resources:
         - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -976,7 +976,7 @@ Resources:
         - arm64
       CompatibleRuntimes:
         - python3.12
-      Description: "Shared Lambda Layer between master and deployment account"
+      Description: "Shared Lambda Layer between management and deployment account"
       LayerName: adf_shared_layer
     Metadata:
       BuildMethod: python3.12
@@ -1073,7 +1073,7 @@ Resources:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -1094,7 +1094,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -1115,7 +1115,7 @@ Resources:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
           DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
@@ -1136,7 +1136,7 @@ Resources:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: RoleStackDeploymentFunction
@@ -1155,7 +1155,7 @@ Resources:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: MovedToRootActionFunction
@@ -1175,7 +1175,7 @@ Resources:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: UpdateResourcePoliciesFunction
@@ -1378,7 +1378,7 @@ Resources:
             Value: !Ref BootstrapTemplatesBucket
           - Name: ACCOUNT_BUCKET
             Value: !Ref ADFAccountBucket
-          - Name: MASTER_ACCOUNT_ID
+          - Name: MANAGEMENT_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: DEPLOYMENT_ACCOUNT_BUCKET
             Value: !GetAtt SharedModulesBucketName.Value

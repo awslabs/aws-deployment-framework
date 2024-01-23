@@ -148,7 +148,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
             call('adf_log_level', 'CRITICAL'),
             call('deployment_account_bucket', 'some_deployment_account_bucket'),
             call('deployment_account_id', deployment_account_id),
-            call('default_scm_branch', 'master'),
+            call('default_scm_branch', 'main'),
             call('org/stage', 'none'),
             call('cross_account_access_role', 'some_role'),
             call('notification_type', 'email'),
