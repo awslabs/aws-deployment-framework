@@ -129,27 +129,46 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             deployment_account_role
         )
         deployment_account_parameter_store.put_parameter(
-            'organization_id', os.environ["ORGANIZATION_ID"]
+            'adf_version',
+            ADF_VERSION,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'adf_log_level',
+            ADF_LOG_LEVEL,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'cross_account_access_role',
+            config.cross_account_access_role,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'deployment_account_bucket',
+            DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'deployment_account_id',
+            deployment_account_id,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'management_account_id',
+            ACCOUNT_ID,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'organization_id',
+            os.environ["ORGANIZATION_ID"],
         )
         _store_extension_parameters(deployment_account_parameter_store, config)
 
+    # In main deployment region only:
     deployment_account_parameter_store = ParameterStore(
         config.deployment_account_region,
         deployment_account_role
     )
-    deployment_account_parameter_store.put_parameter(
-        'adf_version', ADF_VERSION
-    )
-    deployment_account_parameter_store.put_parameter(
-        'adf_log_level', ADF_LOG_LEVEL
-    )
-    deployment_account_parameter_store.put_parameter(
-        'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
-    )
-    deployment_account_parameter_store.put_parameter(
-        'deployment_account_id',
-        deployment_account_id,
-    )
+    auto_create_repositories = config.config.get(
+        'scm', {}).get('auto-create-repositories')
+    if auto_create_repositories is not None:
+        deployment_account_parameter_store.put_parameter(
+            'auto_create_repositories', str(auto_create_repositories)
+        )
     deployment_account_parameter_store.put_parameter(
         'default_scm_branch',
         (
@@ -180,12 +199,6 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             ADF_DEFAULT_ORG_STAGE,
         )
     )
-    auto_create_repositories = config.config.get(
-        'scm', {}).get('auto-create-repositories')
-    if auto_create_repositories is not None:
-        deployment_account_parameter_store.put_parameter(
-            'auto_create_repositories', str(auto_create_repositories)
-        )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
         config.notification_endpoint = (
@@ -193,7 +206,6 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             f"{deployment_account_id}:function:SendSlackNotification"
         )
     for item in (
-            'cross_account_access_role',
             'notification_type',
             'notification_endpoint',
             'notification_channel'
@@ -207,7 +219,6 @@ def prepare_deployment_account(sts, deployment_account_id, config):
                 ),
                 str(getattr(config, item))
             )
-    _store_extension_parameters(deployment_account_parameter_store, config)
 
     return deployment_account_role
 
@@ -227,11 +238,12 @@ def _store_extension_parameters(parameter_store, config):
 # pylint: disable=too-many-locals
 def worker_thread(
     account_id,
+    deployment_account_id,
     sts,
     config,
     s3,
     cache,
-    updated_kms_bucket_dict
+    updated_kms_bucket_dict,
 ):
     """
     The Worker thread function that is created for each account
@@ -266,6 +278,10 @@ def worker_thread(
             # Ensuring the kms_arn and bucket_name on the target account is
             # up-to-date
             parameter_store = ParameterStore(region, role)
+            parameter_store.put_parameter(
+                'deployment_account_id',
+                deployment_account_id,
+            )
             parameter_store.put_parameter(
                 'kms_arn',
                 updated_kms_bucket_dict[region]['kms'],
@@ -520,6 +536,7 @@ def main():  # pylint: disable=R0915
         for account_id in non_deployment_account_ids:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
+                deployment_account_id,
                 sts,
                 config,
                 s3,
