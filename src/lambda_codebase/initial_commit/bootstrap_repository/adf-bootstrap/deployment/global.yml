@@ -14,9 +14,9 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: /adf/adf_log_level
 
-  MasterAccountId:
+  ManagementAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: /adf/master_account_id
+    Default: /adf/management_account_id
 
   SharedModulesBucket:
     Type: "AWS::SSM::Parameter::Value<String>"
@@ -84,7 +84,7 @@ Resources:
       ContentUri: "../../adf-build/shared/python"
       CompatibleRuntimes:
         - python3.12
-      Description: "Shared Lambda Layer between master and deployment account"
+      Description: "Shared Lambda Layer between management and deployment account"
       LayerName: adf_shared_layer
     Metadata:
       BuildMethod: python3.12
@@ -187,7 +187,7 @@ Resources:
         OrganizationId: !Ref OrganizationId
         CrossAccountAccessRole: !Ref CrossAccountAccessRole
         PipelineBucket: !Ref PipelineBucket
-        RootAccountId: !Ref MasterAccountId
+        RootAccountId: !Ref ManagementAccountId
         CodeBuildImage: !Ref Image
         CodeBuildComputeType: !Ref ComputeType
         SharedModulesBucket: !Ref SharedModulesBucket
@@ -342,7 +342,7 @@ Resources:
               - "sts:AssumeRole"
             Resource:
               - !GetAtt CloudFormationDeploymentRole.Arn
-              - !Sub arn:${AWS::Partition}:iam::${MasterAccountId}:role/${CrossAccountAccessRole}
+              - !Sub arn:${AWS::Partition}:iam::${ManagementAccountId}:role/${CrossAccountAccessRole}
           - Effect: Allow
             Action:
               - "logs:CreateLogGroup"

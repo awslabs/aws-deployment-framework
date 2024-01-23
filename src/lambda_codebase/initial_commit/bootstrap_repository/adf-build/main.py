@@ -33,7 +33,7 @@ from organization_policy import OrganizationPolicy
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
-ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
@@ -55,7 +55,7 @@ ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN = os.environ.get(
 ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
-ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
 ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = False
 ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
@@ -120,7 +120,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_role = sts.assume_cross_account_role(
         f'arn:{PARTITION}:iam::{deployment_account_id}:role/'
         f'{config.cross_account_access_role}',
-        'master'
+        'management'
     )
     for region in sorted(list(
             set([config.deployment_account_region] + config.target_regions))):

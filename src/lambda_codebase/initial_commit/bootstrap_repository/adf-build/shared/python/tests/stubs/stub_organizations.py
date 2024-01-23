@@ -11,7 +11,7 @@ describe_organization = {
         'Arn': 'string',
         'FeatureSet': 'ALL',
         'MasterAccountArn': 'string',
-        'MasterAccountId': 'some_master_account_id',
+        'MasterAccountId': 'some_management_account_id',
         'MasterAccountEmail': 'string',
         'AvailablePolicyTypes': [
             {

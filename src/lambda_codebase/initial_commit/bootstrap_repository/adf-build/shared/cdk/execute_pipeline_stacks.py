@@ -23,7 +23,7 @@ from cloudformation import CloudFormation
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]

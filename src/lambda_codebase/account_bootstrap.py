@@ -85,17 +85,17 @@ def configure_generic_account(sts, event, region, role):
     parameter_store_target_account.put_parameter('/adf/org/stage', org_stage)
 
 
-def configure_master_account_parameters(event):
+def configure_management_account_parameters(event):
     """
     Update the management account parameter store in us-east-1 with the
     deployment_account_id then updates the main deployment region
     with that same value
     """
-    parameter_store_master_account_region = ParameterStore(
+    parameter_store_management_account_region = ParameterStore(
         os.environ["AWS_REGION"],
         boto3,
     )
-    parameter_store_master_account_region.put_parameter(
+    parameter_store_management_account_region.put_parameter(
         'deployment_account_id',
         event['account_id'],
     )
@@ -160,7 +160,7 @@ def _lambda_handler(event, context):
     )
 
     if event['is_deployment_account']:
-        configure_master_account_parameters(event)
+        configure_management_account_parameters(event)
         configure_deployment_account_parameters(event, role)
 
     s3 = S3(
