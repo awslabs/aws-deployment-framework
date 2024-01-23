@@ -66,11 +66,15 @@ Provider type: `codecommit`.
 
 #### Properties
 
-- *account_id* - *(String)* **(required)**
+- *account_id* - *(String)* **(optional)**
   - The AWS Account ID where the Source Repository is located. If the repository
     does not exist it will be created via AWS CloudFormation on the source
     account along with the associated cross account CloudWatch event action to
     trigger the pipeline.
+  - Additionally, the default account id for CodeCommit, can be set in
+    [adfconfig.yml: config/scm/default-scm-codecommit-account-id](./admin-guide.md#adfconfig).
+  - If not set here in the provider and if not set in adfconfig.yml,
+    the deployment account id will be used as default value.
 - *repository* - *(String)* defaults to name of the pipeline.
   - The AWS CodeCommit repository name.
 - *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
@@ -250,16 +254,9 @@ Provider type: `codebuild`.
 
 #### Properties
 
-- *image* *(String)* - default: `STANDARD_7_0`.
+- *image* *(String|Object)* - default: `STANDARD_7_0`.
   - The Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
-  - Image can also take an object that contains a property key of
-    `repository_arn` which is the repository ARN of an ECR repository on the
-    deployment account within the main deployment region. This allows your
-    pipeline to consume a custom image if required.
-  - Along with `repository_arn`, we also support a `tag` key which can be used
-    to define which image should be used (defaults to `latest`). An example of
-    this setup is provided [here](user-guide.md#custom-build-images).
   - Image can also take an object that contains a reference to a public docker
     hub image with a prefix of `docker-hub://`, such as
     `docker-hub://bitnami/mongodb`. This allows your pipeline to consume a
@@ -267,6 +264,30 @@ Provider type: `codebuild`.
     we also support using a tag which can be provided after the docker hub image
     name such as `docker-hub://bitnami/mongodb:3.6.23` in order to define which
     image should be used (defaults to `latest`).
+  - For images hosted in Amazon ECR, you can define the repository and image to
+    use by specifying an image object.
+    This allows your pipeline to consume a custom image if required.
+    For example, to configure a specific repository ARN, configure it as:
+
+    ```yaml
+    image:
+      repository_arn: 'arn:${partition}:ecr:${region}:${source_account_id}:repository/your-repo-name'
+      tag: 'latest' # Optional, defaults to latest
+    ```
+
+    Alternatively, you can set the `repository_name` if the ECR is hosted in
+    the deployment account in the main deployment region.
+
+    ```yaml
+    image:
+      repository_name: 'your-repo-name'
+      tag: 'latest' # Optional, defaults to latest
+    ```
+
+    Along with `repository_arn` or `repository_name`, we also support a `tag`
+    key. This can be used to define which image should be used
+    (defaults to `latest`). An example of this setup is provided
+    [here](user-guide.md#custom-build-images).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   - The Compute type to use for the build, types can be found
     [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).

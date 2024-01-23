@@ -23,6 +23,7 @@ class CodeCommit(Construct):
         default_providers = map_params.get("default_providers", {})
         source_props = default_providers.get("source", {}).get("properties", {})
         account_id = source_props.get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)
+
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
             name=f"Source-{account_id}",
             actions=[
