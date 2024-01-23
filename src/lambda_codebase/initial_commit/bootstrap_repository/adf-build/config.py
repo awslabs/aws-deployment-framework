@@ -149,10 +149,18 @@ class Config:
         in Parameter Store on the management account
         in deployment account main region.
         """
+        deployment_account_id = self.parameters_client.fetch_parameter(
+            'deployment_account_id',
+        )
+
         self.client_deployment_region = ParameterStore(
             self.deployment_account_region, boto3
         )
         self.client_deployment_region.put_parameter("adf_version", ADF_VERSION)
+        self.client_deployment_region.put_parameter(
+            "deployment_account_id",
+            deployment_account_id,
+        )
         self.client_deployment_region.put_parameter(
             "cross_account_access_role",
             self.cross_account_access_role,

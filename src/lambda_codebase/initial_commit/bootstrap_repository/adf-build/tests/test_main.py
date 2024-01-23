@@ -133,10 +133,19 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            13 if param_store == deploy_param_store else 2
+            13 if param_store == deploy_param_store else 8
         )
         param_store.put_parameter.assert_has_calls(
             [
+                call('adf_version', '1.0.0'),
+                call('adf_log_level', 'CRITICAL'),
+                call('cross_account_access_role', 'some_role'),
+                call(
+                    'deployment_account_bucket',
+                    'some_deployment_account_bucket',
+                ),
+                call('deployment_account_id', deployment_account_id),
+                call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),
                 call('extensions/terraform/enabled', 'False'),
             ],
@@ -144,17 +153,12 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
-            call('adf_version', '1.0.0'),
-            call('adf_log_level', 'CRITICAL'),
-            call('deployment_account_bucket', 'some_deployment_account_bucket'),
-            call('deployment_account_id', deployment_account_id),
             call('default_scm_branch', 'main'),
+            call('deployment_maps/allow_empty_target', 'False'),
             call('org/stage', 'none'),
-            call('cross_account_access_role', 'some_role'),
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
             call('extensions/terraform/enabled', 'False'),
-            call('deployment_maps/allow_empty_target', 'False'),
         ],
         any_order=True,
     )
@@ -226,10 +230,19 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            15 if param_store == deploy_param_store else 2
+            15 if param_store == deploy_param_store else 8
         )
         param_store.put_parameter.assert_has_calls(
             [
+                call('adf_version', '1.0.0'),
+                call('adf_log_level', 'CRITICAL'),
+                call('cross_account_access_role', 'some_role'),
+                call(
+                    'deployment_account_bucket',
+                    'some_deployment_account_bucket',
+                ),
+                call('deployment_account_id', deployment_account_id),
+                call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),
                 call('extensions/terraform/enabled', 'True'),
             ],
@@ -237,14 +250,10 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
-            call('adf_version', '1.0.0'),
-            call('adf_log_level', 'CRITICAL'),
-            call('deployment_account_bucket', 'some_deployment_account_bucket'),
-            call('deployment_account_id', deployment_account_id),
-            call('default_scm_branch', 'main'),
-            call('org/stage', 'test-stage'),
             call('auto_create_repositories', 'disabled'),
-            call('cross_account_access_role', 'some_role'),
+            call('default_scm_branch', 'main'),
+            call('deployment_maps/allow_empty_target', 'False'),
+            call('org/stage', 'test-stage'),
             call('notification_type', 'slack'),
             call(
                 'notification_endpoint',
@@ -252,8 +261,6 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
                 f"{deployment_account_id}:function:SendSlackNotification",
             ),
             call('notification_endpoint/main', 'slack-channel'),
-            call('extensions/terraform/enabled', 'True'),
-            call('deployment_maps/allow_empty_target', 'False'),
         ],
-        any_order=True,
+        any_order=False,
     )
