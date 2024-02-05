@@ -38,3 +38,5 @@ template as its baseline.
   contribute or build on top of ADF.
 - Refer to the [Samples Guide](docs/samples-guide.md) for a detailed walk
   through of the provided samples.
+- Refer to the [Multi-Organization ADF Setup](docs/multi-organization-guide.md)
+   to use ADF in an enterprise-grade setup.

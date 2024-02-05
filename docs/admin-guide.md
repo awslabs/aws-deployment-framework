@@ -100,6 +100,8 @@ config:
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
     default-scm-branch: main          # Optional
+  org:
+    stage: dev # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
@@ -232,10 +234,13 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     and prod AWS Organization with its own ADF instance per AWS organization.
     This approach allows for well-tested and stable prod AWS Organization
     deployments.  If set, a matching SSM parameter `/adf/org/stage` gets
-    created that you can reference in your buildspec files to allow for
+    created in the deployment and all target accounts.
+    You can reference it within your buildspec files to allow for
     org-specific deployments; without hardcoding the AWS Organization stage in
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
+    More information about setting up ADF with multiple AWS Organizations can
+    be found in the [Multi-Organization Guide](multi-organization-guide.md)
 
   - **default-scm-codecommit-account-id** allows you to configure the default
     account id that should be used with all source-code management platforms

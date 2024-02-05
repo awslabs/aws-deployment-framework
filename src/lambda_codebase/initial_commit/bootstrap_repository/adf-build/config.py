@@ -90,11 +90,20 @@ class Config:
 
     def _load_config_file(self):
         """
-        Loads the adfconfig.yml file and executes _parse_config
+        Checks for an Org Specific adfconfig.yml (adfconfig.{ORG_ID}.yml)
+        and uses that if it exists. Otherwise it uses the default adfconfig.yml
+        and executes _parse_config
         """
-        with open(self.config_path, encoding="utf-8") as config:
-            self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
-            self._parse_config()
+        org_config_path = self.config_path.replace(".yml", f".{self.organization_id}.yml")
+        if os.path.exists(org_config_path):
+            with open(org_config_path, encoding="utf-8") as org_config_file:
+                LOGGER.info("Using organization specific ADF config: %s", org_config_path)
+                self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
+        else:
+            LOGGER.info("Using default ADF config: %s", self.config_path)
+            with open(self.config_path, encoding="utf-8") as config:
+                self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
+        self._parse_config()
 
     def _parse_config(self):
         """
