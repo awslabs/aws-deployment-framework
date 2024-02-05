@@ -661,7 +661,8 @@ automatically in the background, to follow its progress:
    that started the bootstrap process for the deployment account. You can view
    the progress of this in the management account in the AWS Step Functions
    console for the step function `AccountBootstrappingStateMachine-` in the
-   `us-east-1` region.
+   `us-east-1` region for global partition deployments; For Govcloud and China
+   deployments go to us-gov-west-1 or cn-north-1 respectively.
 
 3. Once the Step Function has completed, switch roles over to the newly
    bootstrapped deployment account in the region you defined as your main

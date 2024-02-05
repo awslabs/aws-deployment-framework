@@ -41,6 +41,9 @@ def get_partition(region_name: str) -> str:
     if region_name.startswith('us-gov'):
         return 'aws-us-gov'
 
+    elif region_name.startswith("cn-"):
+        return "aws-cn"
+
     return 'aws'
 
 

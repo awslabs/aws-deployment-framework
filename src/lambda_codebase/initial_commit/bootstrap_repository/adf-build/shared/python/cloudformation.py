@@ -20,9 +20,9 @@ from paginator import paginator
 LOGGER = configure_logger(__name__)
 STACK_TERMINATION_PROTECTION = os.environ.get('TERMINATION_PROTECTION', False)
 CFN_CONFIG = Config(
-    retries={
-        "max_attempts": 10,
-    },
+    retries=dict(
+        max_attempts=10
+    )
 )
 # A stack name can contain only alphanumeric characters (case sensitive)
 # and hyphens.
@@ -118,7 +118,6 @@ class WaitException(Exception):
 
 
 class CloudFormation(StackProperties):
-    # pylint: disable=too-many-arguments
     def __init__(
             self,
             region,
@@ -132,6 +131,8 @@ class CloudFormation(StackProperties):
             parameters=None,
             account_id=None,  # Used for logging visibility
             role_arn=None,
+            template_file_prefix=None, # define a custom template file
+            local_template_path=None, # support local tempplate path
     ):
         self.client = role.client(
             'cloudformation',
@@ -151,7 +152,12 @@ class CloudFormation(StackProperties):
             s3=s3,
             s3_key_path=s3_key_path
         )
-
+        self.template_url_from_template_file_prefix = self.s3.fetch_s3_url(
+            self._create_template_path(self.s3_key_path, template_file_prefix)
+        ) \
+            if template_file_prefix else None
+        self.template_url = template_url or self.template_url_from_template_file_prefix
+        self.local_template_path = local_template_path
     def validate_template(self):
         try:
             return self.client.validate_template(TemplateURL=self.template_url)
@@ -166,6 +172,20 @@ class CloudFormation(StackProperties):
             raise InvalidTemplateError(
                 f"{self.template_url}: {error}",
             ) from None
+
+    def _handle_template_path(
+        self,
+        template_path
+    ):
+        try:
+            # Read the CloudFormation template from a file
+            with open(template_path, 'r') as template_file:
+                template_body = template_file.read()
+
+            return template_body
+        except Exception as error:
+            LOGGER.error(f"Process _handle_template_path function error:\n {error}.")
+            return None
 
     def _wait_if_in_progress(self):
         status = self.get_stack_status()
@@ -316,16 +336,26 @@ class CloudFormation(StackProperties):
             self.stack_name,
         )
         try:
-            self.template_url = (
-                self.template_url
-                if self.template_url is not None
-                else self.get_template_url()
-            )
-            if self.template_url:
-                self.validate_template()
+            cfn_template_map = None
+            if self.local_template_path:
+                cfn_template_map = {
+                    "TemplateBody": self._handle_template_path(self.local_template_path)
+                }
+            else:
+                self.template_url = (
+                    self.template_url
+                    if self.template_url is not None
+                    else self.get_template_url()
+                )
+                if self.template_url:
+                    self.validate_template()
+                    cfn_template_map = {
+                        "TemplateURL": self.template_url
+                    }
+
+            if cfn_template_map:
                 change_set_params = {
                     "StackName": self.stack_name,
-                    "TemplateURL": self.template_url,
                     "Parameters": (
                         self.parameters
                         if self.parameters is not None
@@ -342,6 +372,7 @@ class CloudFormation(StackProperties):
                     "ChangeSetName": self.stack_name,
                     "ChangeSetType": self._get_change_set_type()
                 }
+                change_set_params.update(cfn_template_map)
                 if self.role_arn:
                     change_set_params["RoleARN"] = self.role_arn
                 self._clean_up_when_required()
@@ -516,7 +547,7 @@ class CloudFormation(StackProperties):
             )
             return [item.get('OutputValue') for item in response.get('Stacks')
                     [0].get('Outputs') if item.get('OutputKey') == value][0]
-        except BaseException:  # pylint: disable=broad-exception-caught
+        except BaseException:
             LOGGER.warning(
                 "%s in %s - Attempted to get stack output from %s "
                 "but it failed.",

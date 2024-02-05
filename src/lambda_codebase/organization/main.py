@@ -71,14 +71,16 @@ class PhysicalResource:
 def create_(_event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     approved_regions = [
         'us-east-1',
-        'us-gov-west-1'
+        'us-gov-west-1',
+        'cn-north-1'
     ]
     region = os.getenv('AWS_REGION')
 
     if region not in approved_regions:
         raise ValueError(
             "Deployment of ADF is only available via the us-east-1 "
-            "and us-gov-west-1 regions."
+            "us-gov-west-1 "
+            "and cn-north-1 regions."
         )
     organization_id, created = ensure_organization()
     organization_root_id = get_organization_root_id()
