@@ -373,9 +373,6 @@ Resources:
                   - cloudformation:DeleteStack
                 Resource:
                   - "*"
-                Condition:
-                  StringEquals:
-                    'aws:ResourceTag/createdBy': "ADF"
               - Effect: Allow
                 Action:
                   - "ssm:DeleteParameter"
