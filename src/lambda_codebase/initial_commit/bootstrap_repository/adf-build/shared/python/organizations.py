@@ -495,6 +495,19 @@ class Organizations:  # pylint: disable=R0904
                 )
 
         return parent_ou_id
+    
+
+    def create_ou(self, parent_ou_id, name):
+        try: 
+            ou = self.client.create_organizational_unit(
+                ParentId=parent_ou_id,
+                Name=name
+                )
+        except ClientError as error:
+            LOGGER.error(f'Failed to create OU called {name}, with parent {parent_ou_id}')
+            raise error
+        return ou
+
 
     def move_account(self, account_id, ou_path):
         self.root_id = self.get_ou_root_id()
