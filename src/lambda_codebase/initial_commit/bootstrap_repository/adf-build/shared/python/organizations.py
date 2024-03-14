@@ -479,20 +479,19 @@ class Organizations:  # pylint: disable=R0904
             parent_ou_id = self.root_id
 
         # Parse ou_path and find the ID
-        ou_hierarchy = ou_path.strip("/").split("/")
-        hierarchy_index = 0
+        ou_path_as_list = ou_path.strip('/').split('/')
 
-        while hierarchy_index < len(ou_hierarchy):
+        for ou in ou_path_as_list:
             org_units = self.list_organizational_units_for_parent(parent_ou_id)
-            for ou in org_units:
-                if ou["Name"] == ou_hierarchy[hierarchy_index]:
-                    parent_ou_id = ou["Id"]
-                    hierarchy_index += 1
+
+            for org_unit in org_units:
+                if org_unit["Name"] == ou:
+                    parent_ou_id = org_unit["Id"]
                     break
             else:
-                raise ValueError(
-                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}.",
-                )
+                LOGGER.info(f'No OU found with name {ou} and parent {parent_ou_id}, will create.')
+                new_ou = self.create_ou(parent_ou_id, ou) 
+                parent_ou_id = new_ou['OrganizationalUnit']['Id']
 
         return parent_ou_id
     
