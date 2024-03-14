@@ -1256,6 +1256,7 @@ Resources:
               - "logs:PutLogEvents"
               - "organizations:AttachPolicy"
               - "organizations:CreatePolicy"
+              - "organizations:CreateOrganizationalUnit"
               - "organizations:DeletePolicy"
               - "organizations:DescribeAccount"
               - "organizations:DescribeOrganization"
