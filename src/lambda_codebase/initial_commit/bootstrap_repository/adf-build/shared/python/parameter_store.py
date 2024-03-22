@@ -91,7 +91,7 @@ class ParameterStore:
 
     @staticmethod
     def _build_param_name(name, adf_only=True):
-        param_prefix = PARAMETER_PREFIX if adf_only else '/'
+        param_prefix = PARAMETER_PREFIX if adf_only else ''
         prefix_seperator = '' if name.startswith('/') else '/'
         return f"{param_prefix}{prefix_seperator}{name}"
 
@@ -100,10 +100,7 @@ class ParameterStore:
         """
         param_name = ParameterStore._build_param_name(name, adf_only)
         try:
-            LOGGER.debug(
-                'Fetching Parameter %s',
-                param_name,
-            )
+            LOGGER.debug('Fetching Parameter %s', param_name)
             response = self.client.get_parameter(
                 Name=param_name,
                 WithDecryption=with_decryption

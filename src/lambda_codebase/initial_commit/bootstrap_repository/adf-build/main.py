@@ -167,10 +167,10 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         'scm', {}).get('auto-create-repositories')
     if auto_create_repositories is not None:
         deployment_account_parameter_store.put_parameter(
-            'auto_create_repositories', str(auto_create_repositories)
+            'scm/auto_create_repositories', str(auto_create_repositories)
         )
     deployment_account_parameter_store.put_parameter(
-        'default_scm_branch',
+        'scm/default_scm_branch',
         (
             config.config
             .get('scm', {})
@@ -178,7 +178,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     )
     deployment_account_parameter_store.put_parameter(
-        'scm/default-scm-codecommit-account-id',
+        'scm/default_scm_codecommit_account_id',
         (
             config.config
             .get('scm', {})
