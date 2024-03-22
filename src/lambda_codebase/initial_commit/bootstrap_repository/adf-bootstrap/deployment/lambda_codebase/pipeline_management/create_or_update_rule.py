@@ -76,7 +76,7 @@ def lambda_handler(event, _):
         try:
             parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
             default_scm_codecommit_account_id = parameter_store.fetch_parameter(
-                "scm/default-scm-codecommit-account-id",
+                "scm/default_scm_codecommit_account_id",
             )
         except ParameterNotFoundError:
             default_scm_codecommit_account_id = deployment_account_id

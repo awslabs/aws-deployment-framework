@@ -196,7 +196,7 @@ Resources:
                 Action:
                   - "ssm:GetParameter"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/auto_create_repositories"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/scm/auto_create_repositories"
 
   GeneratePipelineInputsLambdaRole:
     Type: "AWS::IAM::Role"
