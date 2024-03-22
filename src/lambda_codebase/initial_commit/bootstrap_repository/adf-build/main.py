@@ -178,7 +178,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/scm/default-scm-codecommit-account-id',
+        'scm/default-scm-codecommit-account-id',
         (
             config.config
             .get('scm', {})
@@ -293,7 +293,7 @@ def worker_thread(
 
             # Ensuring the stage parameter on the target account is up-to-date
             parameter_store.put_parameter(
-                '/adf/org/stage',
+                'org/stage',
                 config.config.get('org', {}).get(
                     'stage',
                     ADF_DEFAULT_ORG_STAGE,
