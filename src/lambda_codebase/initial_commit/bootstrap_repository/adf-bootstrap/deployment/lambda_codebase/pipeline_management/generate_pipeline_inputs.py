@@ -73,7 +73,7 @@ def fetch_required_ssm_params(pipeline_input, regions):
                 "default_scm_branch",
             )
             output["default_scm_codecommit_account_id"] = parameter_store.fetch_parameter(
-                "/adf/scm/default-scm-codecommit-account-id",
+                "scm/default-scm-codecommit-account-id",
             )
             codestar_connection_path = (
                 pipeline_input

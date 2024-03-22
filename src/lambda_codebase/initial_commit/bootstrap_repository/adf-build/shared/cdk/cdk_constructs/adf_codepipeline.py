@@ -76,7 +76,7 @@ class Action:
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
         )
         self.default_scm_codecommit_account_id = self.map_params.get(
-            "/adf/scm/default_scm_codecommit_account_id",
+            "scm/default_scm_codecommit_account_id",
             ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.configuration = self._generate_configuration()
@@ -759,7 +759,7 @@ class Pipeline(Construct):
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
         )
         self.default_scm_codecommit_account_id = map_params.get(
-            "/adf/scm/default_scm_codecommit_account_id",
+            "scm/default_scm_codecommit_account_id",
             ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.cfn = _codepipeline.CfnPipeline(

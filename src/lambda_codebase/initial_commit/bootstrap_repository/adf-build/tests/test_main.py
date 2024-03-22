@@ -133,7 +133,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            13 if param_store == deploy_param_store else 8
+            14 if param_store == deploy_param_store else 8
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -154,6 +154,10 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     deploy_param_store.put_parameter.assert_has_calls(
         [
             call('default_scm_branch', 'main'),
+            call(
+                'scm/default-scm-codecommit-account-id',
+                deployment_account_id,
+            ),
             call('deployment_maps/allow_empty_target', 'False'),
             call('org/stage', 'none'),
             call('notification_type', 'email'),
@@ -230,7 +234,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            15 if param_store == deploy_param_store else 8
+            16 if param_store == deploy_param_store else 8
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -252,6 +256,10 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         [
             call('auto_create_repositories', 'disabled'),
             call('default_scm_branch', 'main'),
+            call(
+                'scm/default-scm-codecommit-account-id',
+                deployment_account_id,
+            ),
             call('deployment_maps/allow_empty_target', 'False'),
             call('org/stage', 'test-stage'),
             call('notification_type', 'slack'),
