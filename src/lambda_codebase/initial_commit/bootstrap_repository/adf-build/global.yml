@@ -122,7 +122,7 @@ Resources:
               - ssm:GetParameters
               - ssm:GetParameter
             Resource:
-              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/*"
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: Allow
             Action:
               - iam:CreateRole

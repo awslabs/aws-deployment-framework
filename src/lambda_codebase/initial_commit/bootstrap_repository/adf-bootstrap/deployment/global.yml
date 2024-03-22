@@ -1292,6 +1292,7 @@ Resources:
                 }
               },
               "ItemsPath": "$.account_ids",
+              "MaxConcurrency": 1,
               "Parameters": {
                 "deployment_account_region.$": "$.deployment_account_region",
                 "deployment_account_id.$": "$.deployment_account_id",
