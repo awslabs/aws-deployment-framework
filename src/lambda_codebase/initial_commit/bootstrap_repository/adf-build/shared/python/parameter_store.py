@@ -90,17 +90,23 @@ class ParameterStore:
                 f'Parameter Path {PARAMETER_PREFIX}/{path} Not Found',
             ) from error
 
-    def fetch_parameter(self, name, with_decryption=False):
+    def fetch_parameter(self, name, with_decryption=False, adf_only=True):
         """Gets a Parameter from Parameter Store (Returns the Value)
         """
         try:
-            LOGGER.debug('Fetching Parameter %s/%s', PARAMETER_PREFIX, name)
+            param_prefix = PARAMETER_PREFIX if adf_only else '/'
+            prefix_seperator = '' if name.startswith('/') else '/'
+            param_name = f"{param_prefix}{prefix_seperator}{name}"
+            LOGGER.debug(
+                'Fetching Parameter %s',
+                param_name,
+            )
             response = self.client.get_parameter(
-                Name=f"{PARAMETER_PREFIX}/{name}",
+                Name=param_name,
                 WithDecryption=with_decryption
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
-                f'Parameter {PARAMETER_PREFIX}/{name} Not Found',
+                f'Parameter {param_name} Not Found',
             ) from error

@@ -57,7 +57,7 @@ class ResolverParamStore(BaseResolver):
             return self.cache.get(cache_key)
         client = ParameterStore(region, boto3)
         try:
-            param_value = client.fetch_parameter(param_path)
+            param_value = client.fetch_parameter(param_path, adf_only=False)
             if param_value:
                 self.cache.add(f'{region}/{param_path}', param_value)
                 return param_value
