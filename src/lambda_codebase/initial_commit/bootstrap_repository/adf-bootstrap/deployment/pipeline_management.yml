@@ -228,10 +228,9 @@ Resources:
                   - "ssm:GetParameters"
                   - "ssm:GetParametersByPath"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
               - Effect: Allow
                 Action:
-                  - "ssm:DeleteParameter"
                   - "ssm:PutParameter"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment/*"
