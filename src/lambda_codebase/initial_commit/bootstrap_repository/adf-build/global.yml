@@ -48,6 +48,7 @@ Resources:
               - organizations:ListOrganizationalUnitsForParent
               - organizations:ListRoots
               - organizations:ListChildren
+              - organizations:ListTagsForResource
               - tag:GetResources
             Resource: "*"
       Roles:
