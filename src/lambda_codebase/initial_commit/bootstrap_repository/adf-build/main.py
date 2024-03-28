@@ -310,6 +310,7 @@ def worker_thread(
                 account_id=account_id
             )
             try:
+                cloudformation.delete_deprecated_base_stacks()
                 cloudformation.create_stack()
                 if region == config.deployment_account_region:
                     cloudformation.create_iam_stack()
@@ -498,6 +499,7 @@ def main():  # pylint: disable=R0915
                 s3_key_path="adf-bootstrap/" + account_path,
                 account_id=deployment_account_id
             )
+            cloudformation.delete_deprecated_base_stacks()
             cloudformation.create_stack()
             update_deployment_account_output_parameters(
                 deployment_account_region=config.deployment_account_region,
@@ -520,6 +522,7 @@ def main():  # pylint: disable=R0915
             s3_key_path='adf-build',
             account_id=ACCOUNT_ID
         )
+        cloudformation.delete_deprecated_base_stacks()
         cloudformation.create_stack()
         threads = []
         account_ids = [
