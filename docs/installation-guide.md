@@ -73,7 +73,10 @@ Please note that building on *Windows* is not supported, please use the
     This should return 4.3 or later.
 - [python 3](https://www.python.org/downloads/)
   - To test if it is available, run `python --version`.
-    This should return 3.11 or later.
+    This should return 3.9 or later.
+- [jq](https://github.com/jqlang/jq)
+  - To test if it is available, run `jq --version`.
+    This version should be 1.6 or later.
 - [sed](https://www.gnu.org/software/sed/)
   - To test if it is available, run `sed --version`.
     This should return 4.3 or later.
