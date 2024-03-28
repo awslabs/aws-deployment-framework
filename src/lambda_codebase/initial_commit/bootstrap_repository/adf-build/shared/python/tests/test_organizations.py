@@ -327,7 +327,7 @@ def test_get_organization_info(cls):
     )
     assert cls.get_organization_info() == {
         "organization_id": "some_org_id",
-        "organization_master_account_id": "some_master_account_id",
+        "organization_management_account_id": "some_management_account_id",
         "feature_set": "ALL",
     }
 

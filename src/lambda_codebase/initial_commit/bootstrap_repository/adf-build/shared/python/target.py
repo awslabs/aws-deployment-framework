@@ -151,7 +151,7 @@ class Target:
         # Set adf_deployment_maps_allow_empty_target as bool
         parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
         adf_deployment_maps_allow_empty_target_bool = parameter_store.fetch_parameter(
-            "/adf/deployment-maps/allow-empty-target"
+            "deployment_maps/allow_empty_target"
         ).lower().capitalize() == "True"
         self.adf_deployment_maps_allow_empty_target = adf_deployment_maps_allow_empty_target_bool
 

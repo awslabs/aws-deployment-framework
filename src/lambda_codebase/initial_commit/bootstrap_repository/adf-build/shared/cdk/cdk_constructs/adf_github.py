@@ -53,7 +53,7 @@ class GitHub(Construct):
                 .get('properties', {})
                 .get('branch')
             )
-            or 'master'
+            or 'main'
         )
         _codepipeline.CfnWebhook(
             scope,

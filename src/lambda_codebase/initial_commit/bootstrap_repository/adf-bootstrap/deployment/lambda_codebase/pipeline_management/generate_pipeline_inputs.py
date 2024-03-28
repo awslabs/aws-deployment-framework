@@ -33,7 +33,7 @@ def store_regional_parameter_config(
     These are only used to track pipelines.
     """
     parameter_store.put_parameter(
-        f"/deployment/{deployment_map_source}/{pipeline.name}/regions",
+        f"deployment/{deployment_map_source}/{pipeline.name}/regions",
         str(pipeline.get_all_regions()),
     )
 
@@ -59,10 +59,10 @@ def fetch_required_ssm_params(pipeline_input, regions):
         parameter_store = ParameterStore(region, boto3)
         output[region] = {
             "s3": parameter_store.fetch_parameter(
-                f"/cross_region/s3_regional_bucket/{region}",
+                f"cross_region/s3_regional_bucket/{region}",
             ),
             "kms": parameter_store.fetch_parameter(
-                f"/cross_region/kms_arn/{region}",
+                f"cross_region/kms_arn/{region}",
             ),
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
@@ -70,10 +70,10 @@ def fetch_required_ssm_params(pipeline_input, regions):
                 "deployment_account_bucket"
             )
             output["default_scm_branch"] = parameter_store.fetch_parameter(
-                "default_scm_branch",
+                "scm/default_scm_branch",
             )
             output["default_scm_codecommit_account_id"] = parameter_store.fetch_parameter(
-                "/adf/scm/default-scm-codecommit-account-id",
+                "scm/default_scm_codecommit_account_id",
             )
             codestar_connection_path = (
                 pipeline_input

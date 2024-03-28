@@ -24,7 +24,7 @@ REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 sts = boto3.client('sts')
 ssm = boto3.client('ssm')
-response = ssm.get_parameter(Name='cross_account_access_role')
+response = ssm.get_parameter(Name='/adf/cross_account_access_role')
 CROSS_ACCOUNT_ACCESS_ROLE = response['Parameter']['Value']
 
 

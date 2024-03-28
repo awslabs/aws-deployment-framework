@@ -5,10 +5,15 @@
 
 import pytest
 from mock import patch, call
+
 from main import (
     ensure_account,
-    handle_concurrent_modification,
-    wait_on_account_creation,
+    _handle_concurrent_modification,
+    _find_deployment_account_via_orgs_api,
+    _wait_on_account_creation,
+    DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    DEPLOYMENT_OU_PATH,
+    SSM_PARAMETER_ADF_DESCRIPTION,
     MAX_RETRIES,
 )
 
@@ -27,11 +32,12 @@ class OtherException(Exception):
 
 @patch("main.ORGANIZATION_CLIENT")
 @patch("main.SSM_CLIENT")
-@patch("main.wait_on_account_creation")
-@patch("main.handle_concurrent_modification")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
 @patch("main.LOGGER")
 def test_deployment_account_given(
-    logger, concur_mod_fn, wait_on_fn, ssm_client, org_client
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
 ):
     account_id = "123456789012"
     account_name = "test-deployment-account"
@@ -42,29 +48,147 @@ def test_deployment_account_given(
         ConcurrentModificationException
     )
 
+    ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = ""
+
     returned_account_id, created = ensure_account(
         account_id,
         account_name,
         account_email,
         cross_account_access_role_name,
+        is_update=False,
     )
 
     assert returned_account_id == account_id
     assert not created
-    logger.info.assert_not_called()
+    logger.info.assert_called_once_with(
+        'Using existing deployment account as specified %s.',
+        account_id,
+    )
     concur_mod_fn.assert_not_called()
     wait_on_fn.assert_not_called()
-    ssm_client.get_parameter.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_not_called()
+    find_orgs_api.assert_not_called()
     org_client.create_account.assert_not_called()
 
 
 @patch("main.ORGANIZATION_CLIENT")
 @patch("main.SSM_CLIENT")
-@patch("main.wait_on_account_creation")
-@patch("main.handle_concurrent_modification")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
+@patch("main.LOGGER")
+def test_deployment_account_given_on_update_no_params(
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
+):
+    account_id = "123456789012"
+    account_name = "test-deployment-account"
+    account_email = "test@amazon.com"
+    cross_account_access_role_name = "some-role"
+    ssm_client.exceptions.ParameterNotFound = ParameterNotFound
+    org_client.exceptions.ConcurrentModificationException = (
+        ConcurrentModificationException
+    )
+
+    ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = account_id
+
+    returned_account_id, created = ensure_account(
+        account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+        is_update=True,
+    )
+
+    assert returned_account_id == account_id
+    assert not created
+    logger.info.assert_has_calls([
+        call(
+            'Using existing deployment account as specified %s.',
+            account_id,
+        ),
+        call(
+            'The %s param was not found, creating it as we are updating ADF',
+            DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        ),
+    ])
+    concur_mod_fn.assert_not_called()
+    wait_on_fn.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        Value=account_id,
+        Description=SSM_PARAMETER_ADF_DESCRIPTION,
+        Type="String",
+        Overwrite=True,
+    )
+    find_orgs_api.assert_not_called()
+    org_client.create_account.assert_not_called()
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
+@patch("main.LOGGER")
+def test_deployment_account_given_on_update_with_params(
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
+):
+    account_id = "123456789012"
+    account_name = "test-deployment-account"
+    account_email = "test@amazon.com"
+    cross_account_access_role_name = "some-role"
+    ssm_client.exceptions.ParameterNotFound = ParameterNotFound
+    org_client.exceptions.ConcurrentModificationException = (
+        ConcurrentModificationException
+    )
+
+    ssm_client.get_parameter.return_value = {
+        "Parameter": {
+            "Value": account_id,
+        }
+    }
+    find_orgs_api.return_value = account_id
+
+    returned_account_id, created = ensure_account(
+        account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+        is_update=True,
+    )
+
+    assert returned_account_id == account_id
+    assert not created
+    logger.info.assert_called_once_with(
+        'Using existing deployment account as specified %s.',
+        account_id,
+    )
+    concur_mod_fn.assert_not_called()
+    wait_on_fn.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_not_called()
+    find_orgs_api.assert_not_called()
+    org_client.create_account.assert_not_called()
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
 @patch("main.LOGGER")
 def test_deployment_account_found_with_ssm(
-    logger, concur_mod_fn, wait_on_fn, ssm_client, org_client
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
 ):
     account_id = "123456789012"
     given_account_id = ""
@@ -81,33 +205,146 @@ def test_deployment_account_found_with_ssm(
             "Value": account_id,
         }
     }
+    find_orgs_api.return_value = account_id
 
     returned_account_id, created = ensure_account(
         given_account_id,
         account_name,
         account_email,
         cross_account_access_role_name,
+        is_update=True,
     )
 
     assert returned_account_id != given_account_id
     assert returned_account_id == account_id
     assert not created
-    logger.info.assert_not_called()
+    logger.info.assert_called_once_with(
+        'Using deployment account as specified with param %s : %s.',
+        DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        account_id,
+    )
     concur_mod_fn.assert_not_called()
     wait_on_fn.assert_not_called()
     ssm_client.get_parameter.assert_called_once_with(
-        Name="deployment_account_id",
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
     )
+    ssm_client.put_parameter.assert_not_called()
+    find_orgs_api.assert_not_called()
     org_client.create_account.assert_not_called()
 
 
 @patch("main.ORGANIZATION_CLIENT")
 @patch("main.SSM_CLIENT")
-@patch("main.wait_on_account_creation")
-@patch("main.handle_concurrent_modification")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
+@patch("main.LOGGER")
+def test_deployment_account_not_found_via_orgs_api_on_update(
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
+):
+    account_id = "123456789012"
+    given_account_id = ""
+    account_name = "test-deployment-account"
+    account_email = "test@amazon.com"
+    cross_account_access_role_name = "some-role"
+    ssm_client.exceptions.ParameterNotFound = ParameterNotFound
+    org_client.exceptions.ConcurrentModificationException = (
+        ConcurrentModificationException
+    )
+
+    ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = account_id
+
+    returned_account_id, created = ensure_account(
+        given_account_id,
+        account_name,
+        account_email,
+        cross_account_access_role_name,
+        is_update=True,
+    )
+
+    assert returned_account_id != given_account_id
+    assert returned_account_id == account_id
+    assert not created
+    logger.info.assert_called_once_with(
+        "Using deployment account %s as found in AWS Organization %s.",
+        account_id,
+        DEPLOYMENT_OU_PATH,
+    )
+    concur_mod_fn.assert_not_called()
+    wait_on_fn.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        Value=account_id,
+        Description=SSM_PARAMETER_ADF_DESCRIPTION,
+        Type="String",
+        Overwrite=True,
+    )
+    find_orgs_api.assert_called_once_with()
+    org_client.create_account.assert_not_called()
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
+@patch("main.LOGGER")
+def test_deployment_account_found_via_orgs_api_on_update(
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
+):
+    given_account_id = ""
+    account_name = "test-deployment-account"
+    account_email = "test@amazon.com"
+    cross_account_access_role_name = "some-role"
+    ssm_client.exceptions.ParameterNotFound = ParameterNotFound
+    org_client.exceptions.ConcurrentModificationException = (
+        ConcurrentModificationException
+    )
+
+    ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = ""
+
+    with pytest.raises(RuntimeError) as exc_info:
+        ensure_account(
+            given_account_id,
+            account_name,
+            account_email,
+            cross_account_access_role_name,
+            is_update=True,
+        )
+
+    error_msg = (
+        "When updating ADF should not be required to create a deployment "
+        "account. If your previous installation failed and you try to fix "
+        "it via an update, please delete the ADF stack first and run it "
+        "as a fresh installation."
+    )
+    assert str(exc_info.value) == error_msg
+
+    logger.info.assert_not_called()
+    logger.error.assert_called_once_with(error_msg)
+    concur_mod_fn.assert_not_called()
+    wait_on_fn.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_not_called()
+    find_orgs_api.assert_called_once_with()
+    org_client.create_account.assert_not_called()
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
 @patch("main.LOGGER")
 def test_deployment_account_create_success(
-    logger, concur_mod_fn, wait_on_fn, ssm_client, org_client
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
 ):
     request_id = "random-request-id"
     account_id = "123456789012"
@@ -121,18 +358,20 @@ def test_deployment_account_create_success(
     )
 
     ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = ""
     org_client.create_account.return_value = {
         "CreateAccountStatus": {
             "Id": request_id,
         }
     }
-    wait_on_fn.return_value = (account_id, True)
+    wait_on_fn.return_value = account_id
 
     returned_account_id, created = ensure_account(
         given_account_id,
         account_name,
         account_email,
         cross_account_access_role_name,
+        is_update=False,
     )
 
     assert returned_account_id != given_account_id
@@ -147,8 +386,9 @@ def test_deployment_account_create_success(
     concur_mod_fn.assert_not_called()
     wait_on_fn.assert_called_once_with(request_id)
     ssm_client.get_parameter.assert_called_once_with(
-        Name="deployment_account_id",
+        Name="/adf/deployment_account_id",
     )
+    find_orgs_api.assert_not_called()
     org_client.create_account.assert_called_once_with(
         Email=account_email,
         AccountName=account_name,
@@ -159,13 +399,13 @@ def test_deployment_account_create_success(
 
 @patch("main.ORGANIZATION_CLIENT")
 @patch("main.SSM_CLIENT")
-@patch("main.wait_on_account_creation")
-@patch("main.handle_concurrent_modification")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
 @patch("main.LOGGER")
 def test_deployment_account_create_failed_concur(
-    logger, concur_mod_fn, wait_on_fn, ssm_client, org_client
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
 ):
-    request_id = "random-request-id"
     account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
@@ -177,6 +417,7 @@ def test_deployment_account_create_failed_concur(
     )
 
     ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = ""
     org_client.create_account.side_effect = ConcurrentModificationException(
         "Test",
     )
@@ -187,6 +428,7 @@ def test_deployment_account_create_failed_concur(
         account_name,
         account_email,
         cross_account_access_role_name,
+        is_update=False,
     )
 
     assert returned_account_id != given_account_id
@@ -199,7 +441,6 @@ def test_deployment_account_create_failed_concur(
     )
     concur_mod_fn.assert_called_once_with(
         org_client.create_account.side_effect,
-        given_account_id,
         account_name,
         account_email,
         cross_account_access_role_name,
@@ -207,8 +448,9 @@ def test_deployment_account_create_failed_concur(
     )
     wait_on_fn.assert_not_called()
     ssm_client.get_parameter.assert_called_once_with(
-        Name="deployment_account_id",
+        Name="/adf/deployment_account_id",
     )
+    find_orgs_api.assert_not_called()
     org_client.create_account.assert_called_once_with(
         Email=account_email,
         AccountName=account_name,
@@ -219,14 +461,13 @@ def test_deployment_account_create_failed_concur(
 
 @patch("main.ORGANIZATION_CLIENT")
 @patch("main.SSM_CLIENT")
-@patch("main.wait_on_account_creation")
-@patch("main.handle_concurrent_modification")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
 @patch("main.LOGGER")
 def test_deployment_account_create_failed_other(
-    logger, concur_mod_fn, wait_on_fn, ssm_client, org_client
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
 ):
-    request_id = "random-request-id"
-    account_id = "123456789012"
     given_account_id = ""
     account_name = "test-deployment-account"
     account_email = "test@amazon.com"
@@ -238,6 +479,7 @@ def test_deployment_account_create_failed_other(
     )
 
     ssm_client.get_parameter.side_effect = ParameterNotFound("Test")
+    find_orgs_api.return_value = ""
     org_client.create_account.side_effect = OtherException(correct_error_message)
 
     with pytest.raises(OtherException) as excinfo:
@@ -246,6 +488,7 @@ def test_deployment_account_create_failed_other(
             account_name,
             account_email,
             cross_account_access_role_name,
+            is_update=False,
         )
 
     error_message = str(excinfo.value)
@@ -259,8 +502,9 @@ def test_deployment_account_create_failed_other(
     concur_mod_fn.assert_not_called()
     wait_on_fn.assert_not_called()
     ssm_client.get_parameter.assert_called_once_with(
-        Name="deployment_account_id",
+        Name="/adf/deployment_account_id",
     )
+    find_orgs_api.assert_not_called()
     org_client.create_account.assert_called_once_with(
         Email=account_email,
         AccountName=account_name,
@@ -280,7 +524,7 @@ def test_deployment_account_wait_exception(logger, time_mock, org_client):
     )
 
     with pytest.raises(OtherException) as excinfo:
-        wait_on_account_creation(
+        _wait_on_account_creation(
             request_id,
         )
 
@@ -291,6 +535,130 @@ def test_deployment_account_wait_exception(logger, time_mock, org_client):
     time_mock.sleep.assert_not_called()
     org_client.describe_create_account_status.assert_called_once_with(
         CreateAccountRequestId=request_id,
+    )
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main.TAGGING_CLIENT")
+@patch("main.Organizations")
+@patch("main.LOGGER")
+def test_deployment_account_find_via_orgs_api_one_found(
+    logger, org_cls, tag_client, ssm_client, org_client
+):
+    account_id = "123456789012"
+    org_instance = org_cls.return_value
+    org_instance.get_accounts_in_path.return_value = [
+        {
+            "Id": "111111111111",
+            "Status": "SUSPENDED",
+        },
+        {
+            "Id": account_id,
+            "Status": "ACTIVE",
+        },
+        {
+            "Id": "111111111111",
+            "Status": "PENDING_CLOSURE",
+        },
+    ]
+
+    returned_account_id = _find_deployment_account_via_orgs_api()
+
+    assert returned_account_id == account_id
+
+    logger.debug.assert_not_called()
+    org_cls.assert_called_once_with(
+        org_client=org_client,
+        tagging_client=tag_client,
+    )
+    org_instance.get_accounts_in_path.assert_called_once_with(
+        DEPLOYMENT_OU_PATH,
+    )
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main.TAGGING_CLIENT")
+@patch("main.Organizations")
+@patch("main.LOGGER")
+def test_deployment_account_find_via_orgs_api_none_found(
+    logger, org_cls, tag_client, ssm_client, org_client
+):
+    org_instance = org_cls.return_value
+    org_instance.get_accounts_in_path.return_value = [
+        {
+            "Id": "111111111111",
+            "Status": "SUSPENDED",
+        },
+        {
+            "Id": "111111111111",
+            "Status": "PENDING_CLOSURE",
+        },
+    ]
+
+    returned_account_id = _find_deployment_account_via_orgs_api()
+
+    assert returned_account_id == ""
+
+    logger.debug.assert_called_once_with(
+        "No active AWS Accounts found in the %s OU path.",
+        DEPLOYMENT_OU_PATH,
+    )
+    org_cls.assert_called_once_with(
+        org_client=org_client,
+        tagging_client=tag_client,
+    )
+    org_instance.get_accounts_in_path.assert_called_once_with(
+        DEPLOYMENT_OU_PATH,
+    )
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main.TAGGING_CLIENT")
+@patch("main.Organizations")
+@patch("main.LOGGER")
+def test_deployment_account_find_via_orgs_api_multiple_found(
+    logger, org_cls, tag_client, ssm_client, org_client
+):
+    org_instance = org_cls.return_value
+    org_instance.get_accounts_in_path.return_value = [
+        {
+            "Id": "111111111111",
+            "Status": "ACTIVE",
+        },
+        {
+            "Id": "222222222222",
+            "Status": "ACTIVE",
+        },
+    ]
+
+    with pytest.raises(RuntimeError) as exc_info:
+        _find_deployment_account_via_orgs_api()
+
+    correct_error_message = (
+        "Failed to determine Deployment account to setup, as "
+        f"2 AWS Accounts were found "
+        f"in the {DEPLOYMENT_OU_PATH} organization unit (OU). "
+        "Please ensure there is only one account in the "
+        f"{DEPLOYMENT_OU_PATH} OU path. "
+        "Move all AWS accounts you don't want to be bootstrapped as "
+        f"the ADF deployment account out of the {DEPLOYMENT_OU_PATH} "
+        "OU. In case there are no accounts in the "
+        f"{DEPLOYMENT_OU_PATH} OU, ADF will automatically create a "
+        "new AWS account for you, or move the deployment account as "
+        "specified at install time of ADF to the respective OU."
+    )
+    assert str(exc_info.value) == correct_error_message
+
+    logger.debug.assert_not_called()
+    org_cls.assert_called_once_with(
+        org_client=org_client,
+        tagging_client=tag_client,
+    )
+    org_instance.get_accounts_in_path.assert_called_once_with(
+        DEPLOYMENT_OU_PATH,
     )
 
 
@@ -306,10 +674,10 @@ def test_deployment_account_wait_on_failed(logger, time_mock, org_client):
             "FailureReason": failure_reason,
         }
     }
-    correct_error_message = "Failed to create account because %s" % failure_reason
+    correct_error_message = f"Failed to create account because {failure_reason}"
 
     with pytest.raises(Exception) as excinfo:
-        wait_on_account_creation(
+        _wait_on_account_creation(
             request_id,
         )
 
@@ -343,12 +711,11 @@ def test_deployment_account_wait_in_progress_success(logger, time_mock, org_clie
         },
     ]
 
-    returned_account_id, created = wait_on_account_creation(
+    returned_account_id = _wait_on_account_creation(
         request_id,
     )
 
     assert returned_account_id == account_id
-    assert created
 
     logger.info.assert_has_calls(
         [
@@ -390,9 +757,8 @@ def test_deployment_account_handle_concurrent_last_try(
 
     ensure_fn.return_value = (account_id, True)
 
-    returned_account_id, created = handle_concurrent_modification(
+    returned_account_id, created = _handle_concurrent_modification(
         err,
-        given_account_id,
         account_name,
         account_email,
         cross_account_access_role_name,
@@ -440,9 +806,8 @@ def test_deployment_account_handle_concurrent_too_many_tries(
     ensure_fn.return_value = (account_id, True)
 
     with pytest.raises(ConcurrentModificationException) as excinfo:
-        handle_concurrent_modification(
+        _handle_concurrent_modification(
             err,
-            given_account_id,
             account_name,
             account_email,
             cross_account_access_role_name,

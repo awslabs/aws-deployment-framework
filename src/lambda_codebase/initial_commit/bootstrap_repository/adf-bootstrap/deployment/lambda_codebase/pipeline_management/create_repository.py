@@ -45,7 +45,7 @@ def lambda_handler(event, _):
 
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     auto_create_repositories = parameter_store.fetch_parameter(
-        "auto_create_repositories"
+        "scm/auto_create_repositories"
     )
     LOGGER.debug("Auto create repositories is: %s", auto_create_repositories)
     if auto_create_repositories != "enabled":

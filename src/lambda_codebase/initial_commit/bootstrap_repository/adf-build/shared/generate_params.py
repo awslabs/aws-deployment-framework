@@ -461,7 +461,7 @@ def main() -> None:
     """
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     definition_bucket_name = parameter_store.fetch_parameter(
-        "/adf/pipeline_definition_bucket",
+        "pipeline_definition_bucket",
     )
     definition_s3 = S3(DEPLOYMENT_ACCOUNT_REGION, definition_bucket_name)
     parameters = Parameters(

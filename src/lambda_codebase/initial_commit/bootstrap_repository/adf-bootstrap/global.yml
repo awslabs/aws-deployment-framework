@@ -10,17 +10,17 @@ Parameters:
   KMSArn:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: ARN of the KMS CMK created in the Deployment account
-    Default: kms_arn
+    Default: /adf/kms_arn
 
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
-    Default: deployment_account_id
+    Default: /adf/deployment_account_id
 
   DeploymentAccountBucketName:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Bucket Name
-    Default: bucket_name
+    Default: /adf/bucket_name
 
 Resources:
   CodeCommitRole:
@@ -335,9 +335,9 @@ Resources:
               - "ssm:GetParameters"
               - "ssm:GetParameter"
             Resource:
-              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/bucket_name"
-              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
-              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kms_arn"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/bucket_name"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_id"
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/kms_arn"
           - Effect: Allow
             Sid: "IAM"
             Action:
