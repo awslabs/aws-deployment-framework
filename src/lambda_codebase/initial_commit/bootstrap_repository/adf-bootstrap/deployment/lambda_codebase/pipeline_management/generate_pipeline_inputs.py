@@ -78,16 +78,16 @@ def fetch_required_ssm_params(pipeline_input, regions):
             output["default_scm_codecommit_account_id"] = parameter_store.fetch_parameter(
                 "scm/default_scm_codecommit_account_id",
             )
-            codestar_connection_path = (
+            codeconnections_param_path = (
                 pipeline_input
                 .get("default_providers", {})
                 .get("source")
                 .get("properties", {})
-                .get("codestar_connection_path")
+                .get("codeconnections_param_path")
             )
-            if codestar_connection_path:
-                output["codestar_connection_arn"] = (
-                    parameter_store.fetch_parameter(codestar_connection_path)
+            if codeconnections_param_path:
+                output["codeconnections_arn"] = (
+                    parameter_store.fetch_parameter(codeconnections_param_path)
                 )
     return output
 
@@ -174,10 +174,10 @@ def generate_pipeline_inputs(
         data["pipeline_input"],
         data["pipeline_input"]["regions"],
     )
-    if "codestar_connection_arn" in data["ssm_params"]:
+    if "codeconnections_arn" in data["ssm_params"]:
         data["pipeline_input"]["default_providers"]["source"]["properties"][
-            "codestar_connection_arn"
-        ] = data["ssm_params"]["codestar_connection_arn"]
+            "codeconnections_arn"
+        ] = data["ssm_params"]["codeconnections_arn"]
     data["pipeline_input"]["default_scm_branch"] = (
         data["ssm_params"]
         .get("default_scm_branch")

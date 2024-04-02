@@ -53,37 +53,39 @@ Resources:
         - adf-cloudformation-deployment-role
 
 ##
-# Begin of CodeStar Connection permissions
+# Begin of CodeConnections permissions
 ##
-#  CodeStarConnectionPolicy:
+#  CodeConnectionsPolicy:
 #    # This policy defines an example how to grant CodePipeline and CodeBuild
-#    # access to retrieve code using the CodeStar Connection provider to
-#    # Bitbucket, GitHub, or GitHub Enterprise
-#    # NOTE: Make sure you specify the correct CodeStar connections that exist
+#    # access to retrieve code using the CodeConnections provider to
+#    # Bitbucket, GitHub, GitHub Enterprise, or GitLab.
+#    # NOTE: Make sure you specify the correct CodeConnections that exist
 #    # and are active in the deployment account.
 #    # You can check these by navigating to the following URL in your
 #    # deployment region. For example, for eu-west-1:
 #    # https://eu-west-1.console.aws.amazon.com/codesuite/settings/connections
 #    Type: AWS::IAM::Policy
 #    Properties:
-#      PolicyName: "adf-code-connection-access-policy"
+#      PolicyName: "adf-codeconnections-access-policy"
 #      PolicyDocument:
 #        Version: "2012-10-17"
 #        Statement:
-#          - Effect: Allow
+#          - Sid: AllowAWSCodeConnections
+#            Effect: Allow
 #            Action:
-#              - "codestar-connections:UseConnection"
+#              - "codeconnections:UseConnection"
 #            Resource:
-#              - !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/put-your-connection-id-here"
+#              - !Sub "arn:aws:codeconnections:${AWS::Region}:${AWS::AccountId}:connection/put-your-connection-id-here"
 #            Condition:
 #              # See https://docs.aws.amazon.com/dtconsole/latest/userguide/security-iam.html#permissions-reference-connections-use
-#              StringEquals:
-#                "codestar-connections:ProviderPermissionsRequired":
+#              StringEqualsIfExists:
+#                "codeconnections:ProviderPermissionsRequired":
 #                  - read_only
 #                  # - read_write
-#              ForAllValues:StringEquals:
-#                "codestar-connections:ProviderAction":
+#              ForAllValues:StringEqualsIfExists:
+#                "codeconnections:ProviderAction":
 #                  # - CreatePullRequestDiffComment
+#                  - GenerateReferenceLink
 #                  - GetBranch
 #                  - GetPullRequest
 #                  - GetUploadArchiveToS3Status
@@ -97,13 +99,50 @@ Resources:
 #                  - ListPullRequestCommits
 #                  - ListRepositories
 #                  - StartUploadArchiveToS3
-#              # StringLike:
-#              #   "codestar-connections:FullRepositoryId":
+#              # Optional condition to harden it further:
+#              # StringLikeIfExists:
+#              #   "codeconnections:FullRepositoryId":
 #              #     - "your-owner/prefix-repos-allowed-*"
+#
+#          # Only uncomment the following lines if you need to access source
+#          # repositories via an AWS CodeStar Connection:
+#          # - Sid: AllowAWSCodeStarConnection
+#          #   Effect: Allow
+#          #   Action:
+#          #     - "codestar-connections:UseConnection"
+#          #   Resource:
+#          #     - !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/put-your-connection-id-here"
+#          #   Condition:
+#          #     # See https://docs.aws.amazon.com/dtconsole/latest/userguide/security-iam.html#permissions-reference-connections-use
+#          #     StringEqualsIfExists:
+#          #       "codestar-connections:ProviderPermissionsRequired":
+#          #         - read_only
+#          #         # - read_write
+#          #     ForAllValues:StringEqualsIfExists:
+#          #       "codestar-connections:ProviderAction":
+#          #         # - CreatePullRequestDiffComment
+#          #         - GenerateReferenceLink
+#          #         - GetBranch
+#          #         - GetPullRequest
+#          #         - GetUploadArchiveToS3Status
+#          #         - GitPull
+#          #         # - GitPush
+#          #         - ListBranchCommits
+#          #         - ListBranches
+#          #         - ListCommitFiles
+#          #         - ListOwners
+#          #         - ListPullRequestComments
+#          #         - ListPullRequestCommits
+#          #         - ListRepositories
+#          #         - StartUploadArchiveToS3
+#          #     # Optional condition to harden it further:
+#          #     # StringLikeIfExists:
+#          #     #   "codestar-connections:FullRepositoryId":
+#          #     #     - "your-owner/prefix-repos-allowed-*"
 #      Roles:
-#        # CodePipeline needs access if CodeStar Connections are used as the
-#        # pipeline source provider to access Bitbucket, GitHub, or
-#        # GitHub Enterprise repositories.
+#        # CodePipeline needs access if CodeConnections are used as the
+#        # pipeline source provider to access Bitbucket, GitHub,
+#        # GitHub Enterprise or GitLab repositories.
 #        - adf-codepipeline-role
 #
 #        # The CodeBuild role only needs access when the source provider

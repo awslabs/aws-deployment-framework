@@ -322,15 +322,6 @@ Resources:
             Resource:
               - "*"
           - Effect: Allow
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationId
-            Action:
-              - "secretsmanager:Get*"
-            Resource:
-              # Only allow CodeBuild access to secrets that start with /adf/*
-              - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/*"
-          - Effect: Allow
             Action:
               - "ssm:GetParameter"
               - "ssm:GetParameters"
@@ -912,14 +903,14 @@ Resources:
                   - ec2.amazonaws.com
                   - ecs-tasks.amazonaws.com
           - Effect: Allow
-            Sid: "AllowCodeStarConnections"
+            Sid: "AllowCodeConnections"
             Action:
-              - "codestar-connections:GetConnection"
-              - "codestar-connections:GetHost"
-              - "codestar-connections:ListConnections"
-              - "codestar-connections:ListHosts"
-              - "codestar-connections:PassConnection"
-              - "codestar-connections:UseConnection"
+              - "codeconnections:GetConnection"
+              - "codeconnections:GetHost"
+              - "codeconnections:ListConnections"
+              - "codeconnections:ListHosts"
+              - "codeconnections:PassConnection"
+              - "codeconnections:UseConnection"
             Resource: "*"
       Roles:
         - !Ref CodePipelineRole
