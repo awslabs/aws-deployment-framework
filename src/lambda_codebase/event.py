@@ -82,12 +82,10 @@ class Event:
             1 if self.destination_ou_name == DEPLOYMENT_ACCOUNT_OU_NAME
             else 0
         )
-        try:
-            self.deployment_account_id = (
-                self.parameter_store.fetch_parameter('deployment_account_id')
-            )
-        except ParameterNotFoundError:
-            self.deployment_account_id = self.account_id
+        self.deployment_account_id = self._read_parameter(
+            'deployment_account_id',
+            self.account_id,
+        )
 
     def set_destination_ou_name(self):
         """
@@ -103,6 +101,12 @@ class Event:
             self.destination_ou_name = "ROOT"
         finally:
             self._determine_if_deployment_account()
+
+    def _read_parameter(self, name, default_value_when_missing):
+        try:
+            return self.parameter_store.fetch_parameter(name)
+        except ParameterNotFoundError:
+            return default_value_when_missing
 
     def create_output_object(self, account_path):
         """
@@ -136,6 +140,12 @@ class Event:
                 'cross_account_access_role': self.cross_account_access_role,
                 'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
                 'adf_version': ADF_VERSION,
-                'adf_log_level': ADF_LOG_LEVEL
-            }
+                'adf_log_level': ADF_LOG_LEVEL,
+                'extensions/terraform/enabled': (
+                    self._read_parameter(
+                        'extensions/terraform/enabled',
+                        'False',
+                    )
+                ),
+            },
         }
