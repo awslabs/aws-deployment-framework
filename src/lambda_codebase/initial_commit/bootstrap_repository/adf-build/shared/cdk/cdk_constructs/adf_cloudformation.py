@@ -45,7 +45,7 @@ class CloudFormation(core.Construct):
                         name=f"{target['name']}-{region}",
                         provider="Manual",
                         category="Approval",
-                        region=region,
+                        region=ADF_DEPLOYMENT_REGION,
                         target=target,
                         run_order=2,
                         map_params=map_params,
