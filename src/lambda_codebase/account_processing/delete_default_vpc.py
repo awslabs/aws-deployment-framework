@@ -39,10 +39,10 @@ def find_default_vpc(ec2_client):
         for vpc in vpc_response["Vpcs"]:
             if vpc.get("IsDefault", False):
                 return vpc["VpcId"]
-    except ClientError as e:
-        # Log the error if needed
-        print("An error occurred:", e)
-        # Raise the exception to trigger the retry logic
+    except ClientError as error:
+        LOGGER.error(
+            "An error occurred:", error,
+        )
         raise
     # If no default VPC found, return None
     return None
