@@ -9,11 +9,12 @@ Parameters:
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
-    Default: deployment_account_id
+    Default: /adf/deployment_account_id
+
   CrossAccountAccessRole:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: The role used to allow cross account access
-    Default: cross_account_access_role
+    Default: /adf/cross_account_access_role
 
 Resources:
   OrganizationsReadOnlyRole:
@@ -74,7 +75,7 @@ Resources:
     # Only required if you intend to bootstrap the management account.
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-master-account-bootstrap-policy"
+      PolicyName: "adf-management-account-bootstrap-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -99,14 +100,29 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:ValidateTemplate
+              - ec2:DeleteInternetGateway
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteRouteTable
+              - ec2:DeleteSubnet
+              - ec2:DeleteVpc
+              - ec2:DescribeInternetGateways
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeRegions
+              - ec2:DescribeRouteTables
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
               - iam:CreateAccountAlias
               - iam:DeleteAccountAlias
               - iam:ListAccountAliases
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
               - ssm:PutParameter
               - ssm:GetParameters
               - ssm:GetParameter
             Resource:
-              - "*"
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: Allow
             Action:
               - iam:CreateRole

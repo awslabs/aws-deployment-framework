@@ -33,7 +33,7 @@ from organization_policy import OrganizationPolicy
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
-ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
@@ -55,7 +55,7 @@ ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN = os.environ.get(
 ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
     "ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN"
 )
-ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
 ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = False
 ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
@@ -100,11 +100,11 @@ def update_deployment_account_output_parameters(
     )
     for key, value in outputs.items():
         deployment_account_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
         parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
 
@@ -120,7 +120,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     deployment_account_role = sts.assume_cross_account_role(
         f'arn:{PARTITION}:iam::{deployment_account_id}:role/'
         f'{config.cross_account_access_role}',
-        'master'
+        'management'
     )
     for region in sorted(list(
             set([config.deployment_account_region] + config.target_regions))):
@@ -129,25 +129,48 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             deployment_account_role
         )
         deployment_account_parameter_store.put_parameter(
-            'organization_id', os.environ["ORGANIZATION_ID"]
+            'adf_version',
+            ADF_VERSION,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'adf_log_level',
+            ADF_LOG_LEVEL,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'cross_account_access_role',
+            config.cross_account_access_role,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'deployment_account_bucket',
+            DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'deployment_account_id',
+            deployment_account_id,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'management_account_id',
+            ACCOUNT_ID,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'organization_id',
+            os.environ["ORGANIZATION_ID"],
         )
         _store_extension_parameters(deployment_account_parameter_store, config)
 
+    # In main deployment region only:
     deployment_account_parameter_store = ParameterStore(
         config.deployment_account_region,
         deployment_account_role
     )
+    auto_create_repositories = config.config.get(
+        'scm', {}).get('auto-create-repositories')
+    if auto_create_repositories is not None:
+        deployment_account_parameter_store.put_parameter(
+            'scm/auto_create_repositories', str(auto_create_repositories)
+        )
     deployment_account_parameter_store.put_parameter(
-        'adf_version', ADF_VERSION
-    )
-    deployment_account_parameter_store.put_parameter(
-        'adf_log_level', ADF_LOG_LEVEL
-    )
-    deployment_account_parameter_store.put_parameter(
-        'deployment_account_bucket', DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME
-    )
-    deployment_account_parameter_store.put_parameter(
-        'default_scm_branch',
+        'scm/default_scm_branch',
         (
             config.config
             .get('scm', {})
@@ -155,7 +178,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/scm/default-scm-codecommit-account-id',
+        'scm/default_scm_codecommit_account_id',
         (
             config.config
             .get('scm', {})
@@ -163,25 +186,19 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/deployment-maps/allow-empty-target',
+        'deployment_maps/allow_empty_target',
         config.config.get('deployment-maps', {}).get(
             'allow-empty-target',
             str(ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET),
         )
     )
     deployment_account_parameter_store.put_parameter(
-        '/adf/org/stage',
+        'org/stage',
         config.config.get('org', {}).get(
             'stage',
             ADF_DEFAULT_ORG_STAGE,
         )
     )
-    auto_create_repositories = config.config.get(
-        'scm', {}).get('auto-create-repositories')
-    if auto_create_repositories is not None:
-        deployment_account_parameter_store.put_parameter(
-            'auto_create_repositories', str(auto_create_repositories)
-        )
     if '@' not in config.notification_endpoint:
         config.notification_channel = config.notification_endpoint
         config.notification_endpoint = (
@@ -189,7 +206,6 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             f"{deployment_account_id}:function:SendSlackNotification"
         )
     for item in (
-            'cross_account_access_role',
             'notification_type',
             'notification_endpoint',
             'notification_channel'
@@ -197,13 +213,12 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         if getattr(config, item) is not None:
             deployment_account_parameter_store.put_parameter(
                 (
-                    '/notification_endpoint/main'
+                    'notification_endpoint/main'
                     if item == 'notification_channel'
                     else item
                 ),
                 str(getattr(config, item))
             )
-    _store_extension_parameters(deployment_account_parameter_store, config)
 
     return deployment_account_role
 
@@ -215,7 +230,7 @@ def _store_extension_parameters(parameter_store, config):
     for extension, attributes in config.extensions.items():
         for attribute in attributes:
             parameter_store.put_parameter(
-                f"/adf/extensions/{extension}/{attribute}",
+                f"extensions/{extension}/{attribute}",
                 str(attributes[attribute]),
             )
 
@@ -223,11 +238,12 @@ def _store_extension_parameters(parameter_store, config):
 # pylint: disable=too-many-locals
 def worker_thread(
     account_id,
+    deployment_account_id,
     sts,
     config,
     s3,
     cache,
-    updated_kms_bucket_dict
+    updated_kms_bucket_dict,
 ):
     """
     The Worker thread function that is created for each account
@@ -263,6 +279,10 @@ def worker_thread(
             # up-to-date
             parameter_store = ParameterStore(region, role)
             parameter_store.put_parameter(
+                'deployment_account_id',
+                deployment_account_id,
+            )
+            parameter_store.put_parameter(
                 'kms_arn',
                 updated_kms_bucket_dict[region]['kms'],
             )
@@ -273,7 +293,7 @@ def worker_thread(
 
             # Ensuring the stage parameter on the target account is up-to-date
             parameter_store.put_parameter(
-                '/adf/org/stage',
+                'org/stage',
                 config.config.get('org', {}).get(
                     'stage',
                     ADF_DEFAULT_ORG_STAGE,
@@ -338,7 +358,8 @@ def await_sfn_executions(sfn_client):
             "Account Management State Machine encountered a failed, "
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
-            "https://%s.console.aws.amazon.com/states/home?region=%s#/statemachines/view/%s",
+            "https://%s.console.aws.amazon.com/states/home"
+            "?region=%s#/statemachines/view/%s",
             REGION_DEFAULT,
             REGION_DEFAULT,
             ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
@@ -515,6 +536,7 @@ def main():  # pylint: disable=R0915
         for account_id in non_deployment_account_ids:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
+                deployment_account_id,
                 sts,
                 config,
                 s3,

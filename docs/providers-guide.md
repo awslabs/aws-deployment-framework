@@ -647,3 +647,11 @@ Provider type: `s3`.
 - *role* - *(String)* default:
   `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
   - The role you would like to use for this action.
+- *kms_encryption_key_arn* - *(String)*
+  - The ARN of the AWS KMS encryption key for the host bucket. The
+    `kms_encryption_key_arn` parameter encrypts uploaded artifacts with the
+    provided AWS KMS key. For a KMS key, you can use the key ID, the key ARN,
+    or the alias ARN.
+- *cache_control* - *(String)*
+  - The `cache_control` parameter controls caching behavior for
+    requests/responses for objects in the bucket.

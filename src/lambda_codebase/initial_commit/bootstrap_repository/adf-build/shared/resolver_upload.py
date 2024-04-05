@@ -68,7 +68,7 @@ class ResolverUpload(BaseResolver):
             lookup_str,
         )
         bucket_name = self.parameter_store.fetch_parameter(
-            f'/cross_region/s3_regional_bucket/{region}'
+            f'cross_region/s3_regional_bucket/{region}'
         )
         s3_client = S3(region, bucket_name)
         resolved_location = s3_client.put_object(

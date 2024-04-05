@@ -510,7 +510,7 @@ def get_files_to_commit(directory_path: Path) -> List[FileToCommit]:
 def create_adf_config_file(props: CustomResourceProperties) -> FileToCommit:
     template = HERE / "adfconfig.yml.j2"
     adf_config = (
-        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined)
+        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined , autoescape=True)
         .render(vars(props))
         .encode()
     )

@@ -24,7 +24,7 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
-ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
 ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 
@@ -76,7 +76,7 @@ class Action:
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
         )
         self.default_scm_codecommit_account_id = self.map_params.get(
-            "/adf/scm/default_scm_codecommit_account_id",
+            "scm/default_scm_codecommit_account_id",
             ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.configuration = self._generate_configuration()
@@ -186,6 +186,28 @@ class Action:
                         .get('deploy', {})
                         .get('properties', {})
                         .get('object_key')
+                    ))
+                ),
+                "KMSEncryptionKeyARN": (
+                    self.target
+                    .get('properties', {})
+                    .get('kms_encryption_key_arn', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('kms_encryption_key_arn')
+                    ))
+                ),
+                "CacheControl": (
+                    self.target
+                    .get('properties', {})
+                    .get('cache_control', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('cache_control')
                     ))
                 ),
             }
@@ -737,7 +759,7 @@ class Pipeline(Construct):
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
         )
         self.default_scm_codecommit_account_id = map_params.get(
-            "/adf/scm/default_scm_codecommit_account_id",
+            "scm/default_scm_codecommit_account_id",
             ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.cfn = _codepipeline.CfnPipeline(

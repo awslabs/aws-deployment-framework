@@ -5,7 +5,8 @@ Parameters:
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
-    Default: deployment_account_id
+    Default: /adf/deployment_account_id
+
 Resources:
   EventRole:
     Type: AWS::IAM::Role
@@ -27,6 +28,7 @@ Resources:
               - Effect: Allow
                 Action: events:PutEvents
                 Resource: '*'
+
   EventRule:
     Type: AWS::Events::Rule
     Properties:
