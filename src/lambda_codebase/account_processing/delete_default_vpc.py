@@ -30,8 +30,10 @@ def assume_role(account_id):
 
 @tenacity.retry(
     retry=tenacity.retry_if_exception_type(ClientError),
-    stop=tenacity.stop_after_attempt(20),
-    wait=tenacity.wait_random_exponential(),
+    # Fail after 180 Sec of retrying
+    stop=tenacity.stop_after_delay(180),
+    # Wait 2^x * 1 second between each retry starting with 4s, max 10s intervals
+    wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
 )
 def find_default_vpc(ec2_client):
     try:
