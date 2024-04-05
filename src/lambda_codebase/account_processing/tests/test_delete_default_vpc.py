@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 
 class TestFindDefaultVPC(unittest.TestCase):
 
+    @patch("tenacity.nap.time.sleep", MagicMock())
     @patch('delete_default_vpc.patch_all')
     # pylint: disable=unused-argument
     def test_find_default_vpc(self, mock_patch_all):
