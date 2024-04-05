@@ -1,12 +1,10 @@
-import events = require('@aws-cdk/aws-events');
-import targets = require('@aws-cdk/aws-events-targets');
-import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/core');
+import { App, Stack, Duration } from 'aws-cdk-lib';
+import { aws_lambda as lambda, aws_events as events, aws_events_targets as targets } from 'aws-cdk-lib';
 
 import fs = require('fs');
 
-export class LambdaCronStack extends cdk.Stack {
-  constructor(app: cdk.App, id: string) {
+export class LambdaCronStack extends Stack {
+  constructor(app: App, id: string) {
     super(app, id);
 
     const lambdaFn = new lambda.Function(this, 'Singleton', {
@@ -14,8 +12,8 @@ export class LambdaCronStack extends cdk.Stack {
         fs.readFileSync('handler.py', { encoding: 'utf-8' }),
       ),
       handler: 'index.main',
-      timeout: cdk.Duration.seconds(300),
-      runtime: lambda.Runtime.PYTHON_3_8
+      timeout: Duration.seconds(300),
+      runtime: lambda.Runtime.PYTHON_3_12
     });
     // Run every day at 6PM UTC
     // See https://docs.aws.amazon.com/lambda/latest/dg/tutorial-scheduled-events-schedule-expressions.html
@@ -26,6 +24,6 @@ export class LambdaCronStack extends cdk.Stack {
   }
 }
 
-const app = new cdk.App();
+const app = new App();
 new LambdaCronStack(app, 'LambdaCronExample');
 app.synth();
