@@ -5,7 +5,9 @@
 Deletes the default VPC in a particular region
 """
 import os
+import retrying
 from aws_xray_sdk.core import patch_all
+from botocore.exceptions import ClientError
 
 # ADF imports
 from logger import configure_logger
@@ -26,11 +28,23 @@ def assume_role(account_id):
     )
 
 
+@retrying.retry(
+    stop_max_attempt_number=5,
+    wait_exponential_multiplier=10000, # 10 seconds
+    wait_exponential_max=60000 # Maximum backoff time of 60 seconds
+)
 def find_default_vpc(ec2_client):
-    vpc_response = ec2_client.describe_vpcs()
-    for vpc in vpc_response["Vpcs"]:
-        if vpc["IsDefault"] is True:
-            return vpc["VpcId"]
+    try:
+        vpc_response = ec2_client.describe_vpcs()
+        for vpc in vpc_response["Vpcs"]:
+            if vpc.get("IsDefault", False):
+                return vpc["VpcId"]
+    except ClientError as e:
+        # Log the error if needed
+        print("An error occurred:", e)
+        # Raise the exception to trigger the retry logic
+        raise
+    # If no default VPC found, return None
     return None
 
 
