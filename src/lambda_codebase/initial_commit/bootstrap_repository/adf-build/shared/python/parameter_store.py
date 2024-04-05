@@ -91,9 +91,13 @@ class ParameterStore:
 
     @staticmethod
     def _build_param_name(name, adf_only=True):
-        param_prefix = PARAMETER_PREFIX if adf_only else ''
-        prefix_seperator = '' if name.startswith('/') else '/'
-        return f"{param_prefix}{prefix_seperator}{name}"
+        slash_name = name if name.startswith('/') else f"/{name}"
+        add_prefix = (
+            adf_only
+            and not slash_name.startswith(PARAMETER_PREFIX)
+        )
+        param_prefix = PARAMETER_PREFIX if add_prefix else ''
+        return f"{param_prefix}{slash_name}"
 
     def fetch_parameter(self, name, with_decryption=False, adf_only=True):
         """Gets a Parameter from Parameter Store (Returns the Value)
