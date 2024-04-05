@@ -1307,7 +1307,6 @@ Resources:
               - "s3:GetObject"
               - "s3:ListBucket"
               - "s3:PutObject"
-              - "s3:ListObjects"
             Resource:
               - !GetAtt "BootstrapTemplatesBucket.Arn"
               - !Sub "${BootstrapTemplatesBucket.Arn}/*"
@@ -1332,6 +1331,8 @@ Resources:
               - "iam:DeleteRolePolicy"
               - "iam:GetRole"
               - "iam:PutRolePolicy"
+              - "iam:TagRole"
+              - "iam:UntagRole"
               - "iam:UpdateAssumeRolePolicy"
             Resource:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
