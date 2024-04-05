@@ -521,7 +521,7 @@ def create_adf_config_file(
 ) -> FileToCommit:
     template = HERE / input_file_name
     adf_config = (
-        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined)
+        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined, autoescape=True)
         .render(vars(props))
         .encode()
     )
