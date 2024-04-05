@@ -21,7 +21,7 @@ from cloudformation import CloudFormation
 from s3 import S3
 
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
-MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 
 

@@ -141,7 +141,7 @@ class OrganizationPolicy:
             _policies = OrganizationPolicy._find_all(policy)
             try:
                 current_stored_policy = ast.literal_eval(
-                    parameter_store.fetch_parameter(policy)
+                    parameter_store.fetch_parameter(policy.replace('-', '_'))
                 )
                 for stored_policy in current_stored_policy:
                     path = (
@@ -236,4 +236,9 @@ class OrganizationPolicy:
                         _type,
                     )
                     organizations.attach_policy(policy_id, organization_mapping[path])
-            parameter_store.put_parameter(policy, str(_policies))
+            parameter_store.put_parameter(
+                # Make the key consistently use underscores instead of dashes.
+                # So tagging-policy gets changed into tagging_policy.
+                policy.replace('-', '_'),
+                str(_policies),
+            )
