@@ -28,6 +28,7 @@ CFN_CONFIG = Config(
 # and hyphens.
 CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 ADF_GLOBAL_IAM_STACK_NAME = 'adf-global-base-iam'
+ADF_GLOBAL_BOOTSTRAP_STACK_NAME = 'adf-global-base-bootstrap'
 ADF_GLOBAL_ADF_BUILD_STACK_NAME = 'adf-global-base-adf-build'
 
 
@@ -146,6 +147,7 @@ class StackProperties:
         valid_stack_names = [self._get_stack_name()]
         if self.region == self.deployment_account_region:
             valid_stack_names.append(ADF_GLOBAL_IAM_STACK_NAME)
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_STACK_NAME)
             valid_stack_names.append(ADF_GLOBAL_ADF_BUILD_STACK_NAME)
 
         return valid_stack_names

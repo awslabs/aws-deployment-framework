@@ -94,7 +94,7 @@ class ParameterStore:
         slash_name = name if name.startswith('/') else f"/{name}"
         add_prefix = (
             adf_only
-            and not slash_name.startswith(PARAMETER_PREFIX)
+            and not slash_name.startswith(f"{PARAMETER_PREFIX}/")
         )
         param_prefix = PARAMETER_PREFIX if add_prefix else ''
         return f"{param_prefix}{slash_name}"

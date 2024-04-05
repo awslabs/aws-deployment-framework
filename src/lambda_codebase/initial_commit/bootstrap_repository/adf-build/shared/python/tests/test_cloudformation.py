@@ -353,6 +353,66 @@ def test_delete_deprecated_base_stacks_some_deletions(paginator_mock, logger, gl
 
 @patch('cloudformation.LOGGER')
 @patch("cloudformation.paginator")
+def test_delete_deprecated_base_stacks_mgmt_account_adf_build(paginator_mock, logger):
+    global_cls = CloudFormation(
+        region='us-east-1',
+        deployment_account_region='us-east-1',
+        role=boto3,
+        wait=False,
+        stack_name=None,
+        template_url='https://some/path/global.yml',
+        s3=None,
+        s3_key_path='adf-build',
+        account_id=123
+    )
+    global_cls.client = Mock()
+    paginator_mock.return_value = stub_cloudformation.list_stacks.get('StackSummaries')
+    global_cls.client.describe_stacks.return_value = {
+        "Stacks": [
+            {
+                'StackName': 'adf-global-base-iam',
+                'StackStatus': 'CREATE_COMPLETE',
+            },
+        ],
+    }
+    global_cls.delete_deprecated_base_stacks()
+    global_cls.client.delete_stack.assert_has_calls([
+        call(StackName='adf-global-base-iam'),
+        call(StackName='adf-regional-base-bootstrap'),
+        # ^ We are deploying in a global region, not regional
+        call(StackName='adf-global-base-deployment'),
+        # ^ We are not in the deployment OU with this CloudFormation instance
+        call(StackName='adf-global-base-deployment-SomeOtherStack'),
+        call(StackName='adf-global-base-dev'),
+        call(StackName='adf-global-base-test'),
+        call(StackName='adf-global-base-acceptance'),
+        call(StackName='adf-global-base-prod'),
+    ])
+    assert global_cls.client.delete_stack.call_count == 8
+    logger.warning.assert_has_calls([
+        call('Removing stack: %s', 'adf-global-base-iam'),
+        # ^ As we delete a bootstrap stack we need to recreate the IAM stack,
+        # hence deleting it.
+        call('Removing stack: %s', 'adf-regional-base-bootstrap'),
+        # ^ We are deploying in a global region, not regional
+        call('Removing stack: %s', 'adf-global-base-deployment'),
+        # ^ We are not in the deployment OU with this CloudFormation instance
+        call('Removing stack: %s', 'adf-global-base-deployment-SomeOtherStack'),
+        call('Removing stack: %s', 'adf-global-base-dev'),
+        call('Removing stack: %s', 'adf-global-base-test'),
+        call('Removing stack: %s', 'adf-global-base-acceptance'),
+        call('Removing stack: %s', 'adf-global-base-prod'),
+        call(
+            'Please remove stack %s manually, state %s implies that it '
+            'cannot be deleted automatically',
+            'adf-global-base-some-ou',
+            'CREATE_IN_PROGRESS',
+        ),
+    ])
+
+
+@patch('cloudformation.LOGGER')
+@patch("cloudformation.paginator")
 def test_delete_deprecated_base_stacks_no_iam(paginator_mock, logger, global_cls):
     global_cls.client = Mock()
     paginator_mock.return_value = list(filter(

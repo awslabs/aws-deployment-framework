@@ -26,6 +26,7 @@ def cls():
     [
         ('/adf/test', '/adf/test'),
         ('adf/test', '/adf/test'),
+        ('/adf_version', '/adf_version'),
         ('/test', '/test'),
         ('test', '/test'),
         ('/other/test', '/other/test'),
@@ -44,6 +45,7 @@ def test_build_param_name_not_adf_only(input_name, output_path):
     [
         ('/adf/test', '/adf/test'),
         ('adf/test', '/adf/test'),
+        ('/adf_version', '/adf/adf_version'),
         ('/test', '/adf/test'),
         ('test', '/adf/test'),
         ('/other/test', '/adf/other/test'),
