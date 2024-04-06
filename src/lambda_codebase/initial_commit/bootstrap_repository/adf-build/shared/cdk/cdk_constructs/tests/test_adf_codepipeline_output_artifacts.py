@@ -4,6 +4,7 @@
 # pylint: skip-file
 
 from mock import patch
+from copy import deepcopy
 from cdk_constructs.adf_codepipeline import Action
 from aws_cdk import ( aws_codepipeline )
 from adf_codepipeline_test_constants import BASE_MAP_PARAMS
@@ -19,7 +20,7 @@ def test_get_output_artifacts_no_base_output(base_output_name_mock, action_decl_
         category='Build',
         provider='CodeBuild',
     )
-    assert 'output_artifacts' not in action.config
+    assert not 'output_artifacts' in action.config
 
 
 @patch('cdk_constructs.adf_codepipeline._codepipeline.CfnPipeline.ActionDeclarationProperty')

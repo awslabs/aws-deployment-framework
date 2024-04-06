@@ -4,6 +4,7 @@
 # pylint: skip-file
 
 import pytest
+import os
 
 from mock import patch
 from aws_cdk import App

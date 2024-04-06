@@ -6,6 +6,7 @@ from typing import Any, Mapping, TypedDict, Tuple, Union
 from dataclasses import dataclass
 import boto3
 from cfn_custom_resource import (  # pylint: disable=unused-import
+    lambda_handler,
     create,
     update,
     delete,

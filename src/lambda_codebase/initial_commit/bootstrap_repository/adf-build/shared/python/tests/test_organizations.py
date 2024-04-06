@@ -4,6 +4,7 @@
 # pylint: skip-file
 
 from datetime import datetime, timezone
+import os
 import boto3
 
 from pytest import fixture

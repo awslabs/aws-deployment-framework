@@ -181,7 +181,7 @@ class Target:
         for response in responses:
             is_active_not_excluded = (
                 Target._account_is_active(response)
-                and response.get('Id') not in self.target_structure.exclude
+                and not response.get('Id') in self.target_structure.exclude
             )
             if is_active_not_excluded:
                 accounts_found += 1

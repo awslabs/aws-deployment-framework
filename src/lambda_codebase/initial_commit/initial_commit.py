@@ -14,6 +14,7 @@ import re
 import boto3
 import jinja2
 from cfn_custom_resource import (  # pylint: disable=unused-import
+    lambda_handler,
     create,
     update,
     delete,

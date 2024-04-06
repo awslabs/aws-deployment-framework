@@ -14,6 +14,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 from cfn_custom_resource import (  # pylint: disable=unused-import
+    lambda_handler,
     create,
     update,
     delete,

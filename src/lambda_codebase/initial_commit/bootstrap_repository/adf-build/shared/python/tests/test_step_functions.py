@@ -3,6 +3,7 @@
 
 # pylint: skip-file
 
+import os
 import boto3
 from pytest import fixture, raises
 from stubs import stub_step_functions
