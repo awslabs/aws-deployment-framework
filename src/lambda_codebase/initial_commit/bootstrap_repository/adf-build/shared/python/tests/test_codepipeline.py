@@ -9,7 +9,6 @@ from pytest import fixture
 from stubs import stub_codepipeline
 from mock import Mock
 
-from paginator import paginator
 from codepipeline import CodePipeline
 
 

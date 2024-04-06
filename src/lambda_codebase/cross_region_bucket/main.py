@@ -17,7 +17,6 @@ import string  # pylint: disable=deprecated-module
 # ^ https://www.logilab.org/ticket/2481
 import boto3
 from cfn_custom_resource import ( # pylint: disable=unused-import
-    lambda_handler,
     create,
     update,
     delete,

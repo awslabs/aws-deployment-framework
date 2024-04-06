@@ -3,12 +3,9 @@
 
 # pylint: skip-file
 
-import os
-import boto3
 from errors import InvalidDeploymentMapError
 from pytest import fixture, raises
 from mock import Mock, patch,call
-from .stubs import stub_target
 from ..target import Target, TargetStructure
 from parameter_store import ParameterStore
 

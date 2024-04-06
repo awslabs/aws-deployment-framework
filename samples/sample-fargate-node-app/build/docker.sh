@@ -11,4 +11,5 @@ docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
 docker push $REPOSITORY_URI:latest
 docker push $REPOSITORY_URI:$IMAGE_TAG
 
-tmp=$(mktemp); jq --arg REPOSITORY_URI "$REPOSITORY_URI" --arg IMAGE_TAG "$IMAGE_TAG"  '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' params/global.json > "$tmp" && mv "$tmp" params/global.json
+tmp=$(mktemp)
+jq --arg REPOSITORY_URI "$REPOSITORY_URI" --arg IMAGE_TAG "$IMAGE_TAG" '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' params/global.json >"$tmp" && mv "$tmp" params/global.json

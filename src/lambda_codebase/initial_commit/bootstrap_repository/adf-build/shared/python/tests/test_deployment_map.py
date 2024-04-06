@@ -4,10 +4,8 @@
 # pylint: skip-file
 
 import os
-import boto3
 
-from errors import InvalidDeploymentMapError
-from pytest import fixture, raises
+from pytest import fixture
 from mock import Mock
 from ..pipeline import Pipeline
 from ..deployment_map import DeploymentMap

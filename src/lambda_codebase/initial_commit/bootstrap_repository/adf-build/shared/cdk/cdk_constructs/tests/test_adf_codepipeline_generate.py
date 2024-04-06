@@ -38,5 +38,5 @@ def test_generates_without_input_and_output_artifacts(input_mock, output_mock, a
         category='Build',
         provider='CodeBuild',
     )
-    assert not 'input_artifacts' in action.config
-    assert not 'output_artifacts' in action.config
+    assert 'input_artifacts' not in action.config
+    assert 'output_artifacts' not in action.config
