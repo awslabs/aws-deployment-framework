@@ -47,7 +47,7 @@ DEPLOYMENT_ROLE_POLICIES = {
         "adf-codepipeline-role-policy-kms",
     ],
     "adf-cloudformation-deployment-role": [
-        "adf-cloudformation-deployment-role-policy",
+        "adf-cloudformation-deployment-role-policy-kms",
     ],
     "adf-cloudformation-role": [
         "adf-cloudformation-role-policy",

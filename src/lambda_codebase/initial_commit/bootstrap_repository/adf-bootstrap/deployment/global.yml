@@ -558,7 +558,7 @@ Resources:
   CloudFormationDeploymentPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "adf-cloudformation-deployment-role-policy"
+      PolicyName: "adf-cloudformation-deployment-role-policy-kms"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
