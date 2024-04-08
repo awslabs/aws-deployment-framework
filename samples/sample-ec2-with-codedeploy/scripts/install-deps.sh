@@ -33,11 +33,13 @@ sudo useradd springboot
 sudo chsh -s /sbin/nologin springboot
 
 # forward port 80 to 8080
-echo "<VirtualHost *:80>
+echo "
+<VirtualHost *:80>
   ProxyRequests Off
   ProxyPass / http://localhost:8080/
   ProxyPassReverse / http://localhost:8080/
-</VirtualHost>" >> sudo /etc/httpd/conf/httpd.conf
+</VirtualHost>
+" | sudo tee -a /etc/httpd/conf/httpd.conf > /dev/null
 
 # start the httpd service now and stop it until userdata
 sudo service httpd start

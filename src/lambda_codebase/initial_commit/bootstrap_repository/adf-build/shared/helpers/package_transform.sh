@@ -14,16 +14,15 @@ set -e
 SKIP_BUILD=0
 
 # Walk through the options passed to this script
-for i in "$@"
-do
+for i in "$@"; do
   case $i in
-    --no-build)
-      SKIP_BUILD=1
-      ;;
-    *)
-      echo "Unknown option: $i"
-      exit 1
-      ;;
+  --no-build)
+    SKIP_BUILD=1
+    ;;
+  *)
+    echo "Unknown option: $i"
+    exit 1
+    ;;
   esac
 done
 
@@ -37,16 +36,15 @@ fi
 
 # Get list of regions supported by this application
 echo "Determine which regions need to be prepared"
-app_regions=`aws ssm get-parameters --names /adf/deployment/$ADF_DEPLOYMENT_MAP_SOURCE/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value'`
+app_regions=$(aws ssm get-parameters --names /adf/deployment/$ADF_DEPLOYMENT_MAP_SOURCE/$ADF_PROJECT_NAME/regions --with-decryption --output=text --query='Parameters[0].Value')
 # Convert json list to bash list (space delimited regions)
-regions="`echo $app_regions | sed  -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g"`"
+regions="$(echo $app_regions | sed -e 's/\[\([^]]*\)\]/\1/g' | sed 's/,/ /g' | sed "s/'//g")"
 
-for region in $regions
-do
+for region in $regions; do
   if [ $CONTAINS_TRANSFORM ]; then
     echo "Packaging templates for region $region"
     ssm_bucket_name="/adf/cross_region/s3_regional_bucket/$region"
-    bucket=`aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value'`
+    bucket=$(aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value')
     sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
   else
     # If package is not needed, just copy the file for each region
