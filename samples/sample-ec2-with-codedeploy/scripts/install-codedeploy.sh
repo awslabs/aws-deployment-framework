@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 set -xe
 
 ## Code Deploy Agent Bootstrap Script ##

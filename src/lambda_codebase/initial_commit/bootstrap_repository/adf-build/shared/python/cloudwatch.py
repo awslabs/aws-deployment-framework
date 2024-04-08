@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Standardized class for pushing CloudWatch metric data to a service within the ADF Namespace
 """

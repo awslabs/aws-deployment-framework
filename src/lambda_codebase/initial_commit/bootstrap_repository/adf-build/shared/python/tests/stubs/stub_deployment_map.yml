@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 pipelines:
   - name: sample-iam  # The name of your pipeline (by default, this will match the name of your repository)
     default_providers:

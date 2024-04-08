@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 if [ -z "$AWS_PARTITION" ]; then
   AWS_PARTITION="aws"
 fi
