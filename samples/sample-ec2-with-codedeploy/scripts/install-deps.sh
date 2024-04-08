@@ -36,7 +36,7 @@ echo "
   ProxyPass / http://localhost:8080/
   ProxyPassReverse / http://localhost:8080/
 </VirtualHost>
-" | sudo tee -a /etc/httpd/conf/httpd.conf >/dev/null
+" | sudo tee -a /etc/httpd/conf/httpd.conf > /dev/null
 
 # start the httpd service now and stop it until userdata
 sudo service httpd start
