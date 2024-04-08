@@ -1,2 +1,2 @@
-aws-xray-sdk==2.12.1
+aws-xray-sdk==2.13.0
 pyyaml~=6.0.1
