@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-#
+
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 # This script will package all source code and send it to an S3 bucket in each region
 # where the lambda needs to be deployed to.
 #

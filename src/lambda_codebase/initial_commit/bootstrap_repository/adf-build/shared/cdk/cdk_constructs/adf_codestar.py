@@ -1,7 +1,7 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
-"""Construct related to CodeStarConnection Codepipeline Input
+"""Construct related to CodeStarConnection CodePipeline Input
 """
 
 import os

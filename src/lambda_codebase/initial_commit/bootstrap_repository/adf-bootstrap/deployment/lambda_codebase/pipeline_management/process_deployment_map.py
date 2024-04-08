@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Pipeline Management Lambda Function
 Triggered by new Deployment Maps in S3 Bucket.

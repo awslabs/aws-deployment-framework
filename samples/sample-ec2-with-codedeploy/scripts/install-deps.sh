@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 # install apache httpd
 sudo yum install httpd -y
 

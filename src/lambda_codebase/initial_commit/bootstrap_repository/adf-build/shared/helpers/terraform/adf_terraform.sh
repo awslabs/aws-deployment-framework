@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 PATH=$PATH:$(pwd)
 export PATH
 CURRENT=$(pwd)
