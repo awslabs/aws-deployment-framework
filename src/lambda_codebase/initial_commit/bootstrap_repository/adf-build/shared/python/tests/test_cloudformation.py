@@ -353,7 +353,7 @@ def test_delete_deprecated_base_stacks_some_deletions(paginator_mock, logger, gl
 
 @patch('cloudformation.LOGGER')
 @patch("cloudformation.paginator")
-def test_delete_deprecated_base_stacks_mgmt_account_adf_build(paginator_mock, logger):
+def test_delete_deprecated_base_stacks_management_account_adf_build(paginator_mock, logger):
     global_cls = CloudFormation(
         region='us-east-1',
         deployment_account_region='us-east-1',

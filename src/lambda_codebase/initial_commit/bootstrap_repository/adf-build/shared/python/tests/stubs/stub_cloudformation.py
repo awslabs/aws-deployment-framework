@@ -51,7 +51,7 @@ list_stacks = {
             # This is current, but should only exist in the global deployment
             # account.
             'StackName': (
-                'adf-global-base-deployment-PipelineManagementApplication-156BTR33REBR'
+                'adf-global-base-deployment-PipelineManagementApplication-156BTR33REGR'
             ),
             'StackStatus': 'CREATE_COMPLETE',
             'ParentId': 'Unique-Stack-Id',
