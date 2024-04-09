@@ -72,7 +72,7 @@ class IAMCfnDeployRolePolicy:
             'calling grant_s3_buckets_access for bucket_names %s',
             bucket_names,
         )
-        if len(bucket_names) == 0:
+        if not bucket_names:
             return
 
         statement = self._get_statement('S3')
@@ -112,7 +112,7 @@ class IAMCfnDeployRolePolicy:
             'calling grant_usage_on_kms_keys for key arns %s',
             kms_key_arns,
         )
-        if len(kms_key_arns) == 0:
+        if not kms_key_arns:
             return
 
         statement = self._get_statement('KMS')

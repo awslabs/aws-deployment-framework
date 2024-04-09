@@ -29,6 +29,9 @@ PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv(
 ADF_VERSION = os.getenv("ADF_VERSION")
 ADF_VERSION_METADATA_KEY = "adf_version"
 
+S3_RESOURCE = boto3.resource("s3")
+SFN_CLIENT = boto3.client("stepfunctions")
+
 
 class DeploymentMapFileData(TypedDict):
     """
@@ -211,16 +214,14 @@ def lambda_handler(event, context):
         dict: The input event is returned.
     """
     output = event.copy()
-    s3_resource = boto3.resource("s3")
-    sfn_client = boto3.client("stepfunctions")
     s3_details = get_details_from_event(event)
-    deployment_map = get_file_from_s3(s3_details, s3_resource)
+    deployment_map = get_file_from_s3(s3_details, S3_RESOURCE)
     if deployment_map.get("content"):
         deployment_map["content"]["definition_bucket"] = s3_details.get(
             "object_key",
         )
         start_executions(
-            sfn_client,
+            SFN_CLIENT,
             s3_details.get("object_key"),
             deployment_map["content"],
             codepipeline_execution_id=deployment_map.get("execution_id"),

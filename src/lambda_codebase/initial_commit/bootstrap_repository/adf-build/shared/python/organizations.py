@@ -200,7 +200,7 @@ class Organizations:  # pylint: disable=R0904
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
         response = list(paginator(self.client.list_policies, Filter=policy_type))
         filtered_policies = [policy for policy in response if policy["Name"] == name]
-        if len(filtered_policies) > 0:
+        if filtered_policies:
             return filtered_policies[0]["Id"]
         return []
 
@@ -217,7 +217,7 @@ class Organizations:  # pylint: disable=R0904
             for policy in response["Policies"]
             if f"ADF Managed {policy_type}" in policy["Description"]
         ]
-        if len(adf_managed_policies) > 0:
+        if adf_managed_policies:
             return adf_managed_policies[0]["Id"]
         return []
 

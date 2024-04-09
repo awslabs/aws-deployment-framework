@@ -148,7 +148,7 @@ def lambda_handler(event, _):
     )
 
     output = {}
-    if len(out_of_date_pipelines) > 0:
+    if out_of_date_pipelines:
         output["pipelines_to_be_deleted"] = out_of_date_pipelines
 
     data_md5 = hashlib.md5(
