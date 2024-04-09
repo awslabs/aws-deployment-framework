@@ -51,12 +51,11 @@ pipelines:
       # If we omit build and deploy type we get a default of CodeBuild as the build provider.
       # and CloudFormation as the deploy provider.
       source:
-        provider: github
+        provider: codeconnections
         properties:
           repository: example-vpc-adf  # Optional, above name property will be used if this is not specified
-          owner: bundyfx
-          oauth_token_path: /adf/github_token  # The path in AWS Secrets Manager that holds the GitHub Oauth token, ADF only has access to /adf/ prefix in Secrets Manager
-          json_field: token  # The field (key) name of the json object stored in AWS Secrets Manager that holds the Oauth token
+          owner: awslabs
+          codeconnections_param_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeConnections ARN
       deploy:
         provider: cloudformation
         properties:
@@ -70,11 +69,11 @@ pipelines:
   - name: sample-ecs-app
     default_providers:
       source:
-        provider: codestar
+        provider: codeconnections
         properties:
           repository: my-ecs-app  # Optional, the name of the pipeline will be used if this is not specified
           owner: github-enterprise-team-org
-          codestar_connection_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeStar Connection ARN
+          codeconnections_param_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeConnections ARN
     params:
       notification_endpoint: team@example.com
     targets:
