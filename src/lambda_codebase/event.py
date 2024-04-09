@@ -27,9 +27,7 @@ class Event:
     def __init__(self, event, parameter_store, organizations, account_id):
         self.parameter_store = parameter_store
         self.config = ast.literal_eval(
-            parameter_store.fetch_parameter(
-                'config'
-            )
+            parameter_store.fetch_parameter('config'),
         )
         self.account_id = account_id
         self.organizations = organizations
@@ -86,12 +84,10 @@ class Event:
             1 if self.destination_ou_name == DEPLOYMENT_ACCOUNT_OU_NAME
             else 0
         )
-        try:
-            self.deployment_account_id = (
-                self.parameter_store.fetch_parameter('deployment_account_id')
-            )
-        except ParameterNotFoundError:
-            self.deployment_account_id = self.account_id
+        self.deployment_account_id = self._read_parameter(
+            'deployment_account_id',
+            self.account_id,
+        )
 
     def set_destination_ou_name(self):
         """
@@ -108,6 +104,12 @@ class Event:
         finally:
             self._determine_if_deployment_account()
 
+    def _read_parameter(self, name, default_value_when_missing):
+        try:
+            return self.parameter_store.fetch_parameter(name)
+        except ParameterNotFoundError:
+            return default_value_when_missing
+
     def create_output_object(self, account_path):
         """
         Creates the output object to be passed to the next step
@@ -119,27 +121,34 @@ class Event:
             'account_id': self.account_id,
             'cross_account_access_role': self.cross_account_access_role,
             'deployment_account_id': self.deployment_account_id,
-            'regions': self.regions,
-            'deployment_account_region': self.deployment_account_region,
-            'moved_to_root': self.moved_to_root,
-            'moved_to_protected': self.moved_to_protected,
-            'is_deployment_account': self.is_deployment_account,
-            'ou_name': self.destination_ou_name,
-            'full_path': "ROOT" if self.moved_to_root else account_path,
-            'destination_ou_id': self.destination_ou_id,
-            'source_ou_id': self.source_ou_id,
             'deployment_account_parameters': {
-                'organization_id': organization_information.get(
-                    "organization_id"
-                ),
-                'master_account_id': organization_information.get(
-                    "organization_master_account_id"
+                'adf_log_level': ADF_LOG_LEVEL,
+                'adf_version': ADF_VERSION,
+                'cross_account_access_role': self.cross_account_access_role,
+                'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
+                'deployment_account_id': self.deployment_account_id,
+                'management_account_id': organization_information.get(
+                    "organization_management_account_id"
                 ),
                 'notification_endpoint': self.main_notification_endpoint,
                 'notification_type': self.notification_type,
-                'cross_account_access_role': self.cross_account_access_role,
-                'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
-                'adf_version': ADF_VERSION,
-                'adf_log_level': ADF_LOG_LEVEL
+                'organization_id': organization_information.get(
+                    "organization_id"
+                ),
+                'extensions/terraform/enabled': (
+                    self._read_parameter(
+                        'extensions/terraform/enabled',
+                        'False',
+                    )
+                ),
             },
+            'deployment_account_region': self.deployment_account_region,
+            'destination_ou_id': self.destination_ou_id,
+            'full_path': "ROOT" if self.moved_to_root else account_path,
+            'is_deployment_account': self.is_deployment_account,
+            'moved_to_protected': self.moved_to_protected,
+            'moved_to_root': self.moved_to_root,
+            'ou_name': self.destination_ou_name,
+            'regions': self.regions,
+            'source_ou_id': self.source_ou_id,
         }

@@ -8,7 +8,7 @@ Parameters:
   DeploymentAccountId:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: Deployment Account ID
-    Default: deployment_account_id
+    Default: /adf/deployment_account_id
 
 # OrgStage can be set in the respective adfconfig file using the
 # path config.org.stage
@@ -51,12 +51,7 @@ Resources:
               # These below actions are examples, change these to your requirements..
               - "apigateway:*"
               - "cloudformation:*"  # You will need CloudFormation actions in order to work with CloudFormation
-              - "ecr:*"
-              - "ecs:*"
-              - "ec2:*"
-              - "iam:*"
               - "logs:*"
-              - "s3:*"
               - "codedeploy:*"
               - "autoscaling:*"
               - "cloudwatch:*"

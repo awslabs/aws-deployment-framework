@@ -2,8 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.0
+MAKEFILE_VERSION := 2.1
 UPDATE_VERSION := make/latest
+
+# This Makefile requires Python version 3.9 or later
+REQUIRED_PYTHON_MAJOR_VERSION := 3
+REQUIRED_PYTHON_MINOR_VERSION := 9
+PYTHON_EXECUTABLE := "python$(REQUIRED_PYTHON_MAJOR_VERSION)"
 
 # Repository versions
 SRC_VERSION := $(shell git describe --tags --match 'v[0-9]*')
@@ -50,7 +55,7 @@ all: build
 
 .venv/is_ready:
 	( \
-		test -d .venv || python3 -m venv .venv; \
+		test -d .venv || $(PYTHON_EXECUTABLE) -m venv .venv; \
 		touch .venv/is_ready; \
 	)
 
@@ -175,6 +180,48 @@ docs:
 	@echo "* $(CLR_BLUE)$(SRC_TAGGED_URL_BASE)/docs/user-guide.md$(CLR_END)"
 	@echo ""
 
+verify_tooling: .venv
+	@( \
+		. .venv/bin/activate; \
+		$(PYTHON_EXECUTABLE) --version &> /dev/null && \
+		( \
+			$(PYTHON_EXECUTABLE) -c "import sys; sys.version_info < ($(REQUIRED_PYTHON_MAJOR_VERSION),$(REQUIRED_PYTHON_MINOR_VERSION)) and sys.exit(1)" || \
+			( \
+				$(PYTHON_EXECUTABLE) --version && \
+				echo '$(CLR_RED)Python version is too old!$(CLR_END)' && \
+				echo '$(CLR_RED)Python v$(REQUIRED_PYTHON_MAJOR_VERSION).$(REQUIRED_PYTHON_MINOR_VERSION) or later is required.$(CLR_END)' && \
+				exit 1 \
+			) \
+		) || ( \
+			echo '$(CLR_RED)Python is not installed!$(CLR_END)' && \
+			exit 1 \
+		); \
+	)
+	@( \
+		docker --version &> /dev/null || ( \
+			echo '$(CLR_RED)Docker is not installed!$(CLR_END)' && \
+			exit 1 \
+		); \
+	)
+	@( \
+		git --version &> /dev/null || ( \
+			echo '$(CLR_RED)Git is not installed!$(CLR_END)' && \
+			exit 1 \
+		); \
+	)
+	@( \
+		sed --version &> /dev/null || ( \
+			echo '$(CLR_RED)Sed is not installed!$(CLR_END)' && \
+			exit 1 \
+		); \
+	)
+	@( \
+		jq --version &> /dev/null || ( \
+			echo '$(CLR_RED)Jq is not installed!$(CLR_END)' && \
+			exit 1 \
+		); \
+	)
+
 pre_build: build_deps docker version_number git_ignore
 
 pre_deps_build: deps docker version_number git_ignore
@@ -194,7 +241,7 @@ post_build:
 	@echo "$(CLR_GREEN)To deploy ADF, please run:$(CLR_END) make deploy"
 	@echo ""
 
-build: pre_build sam_build post_build
+build: verify_tooling pre_build sam_build post_build
 
 deps_build: pre_deps_build sam_build post_build
 

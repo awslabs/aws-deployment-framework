@@ -33,6 +33,9 @@ REWRITE_PATHS: Dict[str, str] = {
     "bootstrap_repository/adf-bootstrap/example-global-iam.yml": (
         "adf-bootstrap/global-iam.yml"
     ),
+    "bootstrap_repository/adf-bootstrap/deployment/example-global-iam.yml": (
+        "adf-bootstrap/deployment/global-iam.yml"
+    ),
     "adf.yml.j2": "adf-accounts/adf.yml",
     "adfconfig.yml.j2": "adfconfig.yml",
 }
@@ -555,7 +558,7 @@ def create_adf_config_file(
 ) -> FileToCommit:
     template = HERE / input_file_name
     adf_config = (
-        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined)
+        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined, autoescape=True)
         .render(vars(props))
         .encode()
     )

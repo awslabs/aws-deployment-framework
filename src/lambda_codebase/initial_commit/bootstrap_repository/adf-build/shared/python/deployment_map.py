@@ -62,7 +62,7 @@ class DeploymentMap:
         )
         if pipeline.notification_endpoint:
             self.parameter_store.put_parameter(
-                f"/notification_endpoint/{pipeline.name}",
+                f"notification_endpoint/{pipeline.name}",
                 str(pipeline.notification_endpoint)
             )
 

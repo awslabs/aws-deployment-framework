@@ -7,7 +7,7 @@ Description: ADF CloudFormation Template (Regional) for Deployment Account
 Parameters:
   OrganizationId:
     Type: "AWS::SSM::Parameter::Value<String>"
-    Default: organization_id
+    Default: /adf/organization_id
 
   ADFTerraformExtension:
     Type: "AWS::SSM::Parameter::Value<String>"

@@ -23,7 +23,7 @@ from parameter_store import ParameterStore
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-MASTER_ACCOUNT_ID = os.environ["MASTER_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 SHARED_MODULES_BUCKET = os.environ["SHARED_MODULES_BUCKET"]
@@ -37,7 +37,7 @@ def clean(parameter_store, deployment_map):
     Deployment Pipelines that are no longer in the Deployment Map
     """
     current_pipeline_parameters = parameter_store.fetch_parameters_by_path(
-        "/deployment/"
+        "deployment/"
     )
 
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)

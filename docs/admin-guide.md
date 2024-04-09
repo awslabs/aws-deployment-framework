@@ -709,7 +709,7 @@ You can read more about creating a Token
 Once the token has been created you can store that in AWS Secrets Manager on
 the Deployment Account. The Webhook Secret is a value you define and store in
 AWS Secrets Manager with a path of `/adf/my_teams_token`. By Default, ADF only
-has read access access to Secrets with a path that starts with `/adf/`.
+has read access to Secrets with a path that starts with `/adf/`.
 
 Once the values are stored, you can create the Repository in GitHub as per
 normal. Once its created you do not need to do anything else on GitHub's side

@@ -7,7 +7,7 @@ echo "Terraform stage: $TF_STAGE"
 
 tfinit(){
     # retrieve regional S3 bucket name from parameter store
-    S3_BUCKET_REGION_NAME=$(aws ssm get-parameter --name "/cross_region/s3_regional_bucket/$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
+    S3_BUCKET_REGION_NAME=$(aws ssm get-parameter --name "/adf/cross_region/s3_regional_bucket/$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
     mkdir -p "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
     cd "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}" || exit
     cp -R "${CURRENT}"/tf/. "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"

@@ -195,10 +195,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - "ssm:GetParameter"
-                  - "ssm:GetParameters"
-                  - "ssm:GetParametersByPath"
                 Resource:
-                  - "*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/scm/auto_create_repositories"
 
   GeneratePipelineInputsLambdaRole:
     Type: "AWS::IAM::Role"
@@ -226,13 +224,16 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:iam::${RootAccountId}:role/${CrossAccountAccessRole}-readonly"
               - Effect: Allow
                 Action:
-                  - "ssm:DeleteParameter"
                   - "ssm:GetParameter"
                   - "ssm:GetParameters"
                   - "ssm:GetParametersByPath"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
+              - Effect: Allow
+                Action:
                   - "ssm:PutParameter"
                 Resource:
-                  - "*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment/*"
 
   StoreDefinitionLambdaRole:
     Type: "AWS::IAM::Role"
@@ -285,10 +286,9 @@ Resources:
                   - !Sub "${ADFPipelineBucket.Arn}"
               - Effect: Allow
                 Action:
-                  - "ssm:DeleteParameter"
                   - "ssm:GetParametersByPath"
                 Resource:
-                  - "*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment/*"
 
   StateMachineExecutionRole:
     Type: "AWS::IAM::Role"
@@ -380,7 +380,7 @@ Resources:
                 Action:
                   - "ssm:DeleteParameter"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment/*"
 
   PipelineManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
@@ -615,7 +615,7 @@ Resources:
                   "DeletePipelineParams": {
                     "Type": "Task",
                     "Parameters": {
-                      "Name.$": "States.Format('/deployment/S3/{}/regions', $.pipeline_name)"
+                      "Name.$": "States.Format('/adf/deployment/S3/{}/regions', $.pipeline_name)"
                     },
                     "Catch": [
                       {
@@ -657,7 +657,7 @@ Resources:
             Value: "./adf-build/:./adf-build/python/"
           - Name: ACCOUNT_ID
             Value: !Ref AWS::AccountId
-          - Name: MASTER_ACCOUNT_ID
+          - Name: MANAGEMENT_ACCOUNT_ID
             Value: !Ref RootAccountId
           - Name: S3_BUCKET_NAME
             Value: !Ref PipelineBucket
