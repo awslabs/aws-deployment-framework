@@ -490,14 +490,13 @@ class Organizations:  # pylint: disable=R0904
                     break
             else:
                 LOGGER.info(f'No OU found with name {ou} and parent {parent_ou_id}, will create.')
-                new_ou = self.create_ou(parent_ou_id, ou) 
+                new_ou = self.create_ou(parent_ou_id, ou)
                 parent_ou_id = new_ou['OrganizationalUnit']['Id']
 
         return parent_ou_id
-    
 
     def create_ou(self, parent_ou_id, name):
-        try: 
+        try:
             ou = self.client.create_organizational_unit(
                 ParentId=parent_ou_id,
                 Name=name
