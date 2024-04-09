@@ -502,7 +502,7 @@ class Organizations:  # pylint: disable=R0904
                 Name=name
                 )
         except:
-            LOGGER.error(f'Failed to create OU called {name}, with parent {parent_ou_id}')
+            LOGGER.excpetion(f'Failed to create OU called {name}, with parent {parent_ou_id}')
             raise OrganizationsException()
         return ou
 
