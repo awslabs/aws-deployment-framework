@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodePipeline Action Input
@@ -11,7 +11,6 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_events as _eventbridge,
     aws_events_targets as _eventbridge_targets,
-    SecretValue,
     Fn,
 )
 from constructs import Construct
@@ -223,17 +222,17 @@ class Action:
                 default_source_props
                 .get('repository', self.map_params['name'])
             )
-            if not default_source_props.get('codestar_connection_arn'):
+            if not default_source_props.get('codeconnections_arn'):
                 raise ValueError(
-                    "The CodeStar Connection Arn could not be resolved for "
+                    "The CodeConnections Arn could not be resolved for "
                     f"the {self.map_params['name']} pipeline. Please check "
-                    "whether the codestar_connection_path is setup correctly "
+                    "whether the codeconnections_param_path is setup correctly "
                     "and validate that the Parameter it points to is properly "
                     "configured in SSM Parameter Store."
                 )
             props = {
                 "ConnectionArn": default_source_props.get(
-                    'codestar_connection_arn',
+                    'codeconnections_arn',
                 ),
                 "FullRepositoryId": f"{owner}/{repo}",
                 "BranchName": default_source_props.get(
@@ -247,44 +246,6 @@ class Action:
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props
-        if self.provider == "GitHub":
-            return {
-                "Owner": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source')
-                    .get('properties', {})
-                    .get('owner', '')
-                ),
-                "Repo": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source', {})
-                    .get('properties', {})
-                    .get('repository', self.map_params['name'])
-                ),
-                "Branch": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source', {})
-                    .get('properties', {})
-                    .get('branch', self.default_scm_branch)
-                ),
-                # pylint: disable=no-value-for-parameter
-                "OAuthToken": SecretValue.secrets_manager(
-                    (
-                        self.map_params['default_providers']['source']
-                        .get('properties', {})
-                        .get('oauth_token_path')
-                    ),
-                    json_field=(
-                        self.map_params['default_providers']['source']
-                        .get('properties', {})
-                        .get('json_field')
-                    ),
-                ),
-                "PollForSourceChanges": False
-            }
         if self.provider == "Lambda":
             return {
                 "FunctionName": (
@@ -539,8 +500,6 @@ class Action:
             .get('account_id', '')
         )
 
-        if self.provider == "GitHub":
-            return None
         if self.provider == "CodeStarSourceConnection":
             return None
         if self.provider == "CodeBuild":

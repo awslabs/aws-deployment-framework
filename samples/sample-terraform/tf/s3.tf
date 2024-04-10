@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_s3_bucket" "s3" {
   bucket = "my-tf-test-bucket-${var.TARGET_REGION}-${var.TARGET_ACCOUNT_ID}"
   acl    = "private"

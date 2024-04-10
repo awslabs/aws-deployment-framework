@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: ADF CloudFormation Stack for processing deployment maps.
@@ -686,7 +689,7 @@ Resources:
                 python: 3.12
                 nodejs: 20
               commands:
-                - npm install aws-cdk@2.119.0 -g -y --quiet --no-progress
+                - npm install aws-cdk@2.136.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --quiet
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
                 - chmod 755 adf-build/cdk/execute_pipeline_stacks.py  adf-build/cdk/generate_pipeline_stacks.py
@@ -879,7 +882,16 @@ Resources:
                 Resource:
                   - "*"
               - Effect: Allow
-                Sid: "AllowCodeStarConnection"
+                Sid: "AllowCodeConnections"
+                Action:
+                  - "codeconnections:PassConnection"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codeconnections:${AWS::Region}:${AWS::AccountId}:connection/*
+                Condition:
+                  StringEquals:
+                    'codeconnections:PassedToService': 'codepipeline.amazonaws.com'
+              - Effect: Allow
+                Sid: "AllowCodeStarConnections"
                 Action:
                   - "codestar-connections:PassConnection"
                 Resource:
@@ -927,11 +939,6 @@ Resources:
                   - "iam:TagPolicy"
                   - "iam:TagRole"
                 Resource: "*"
-              - Effect: Allow
-                Action:
-                  - "secretsmanager:GetSecretValue"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/adf/github_token-*"
 
   DeploymentMapProcessingFunction:
     Type: 'AWS::Serverless::Function'

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -73,34 +73,20 @@ CODECOMMIT_SOURCE = {
     Optional("properties"): CODECOMMIT_SOURCE_PROPS,
 }
 
-# GitHub Source
-GITHUB_SOURCE_PROPS = {
+# CodeConnections Source
+CODECONNECTIONS_SOURCE_PROPS = {
     Optional("repository"): str,
     Optional("branch"): str,
     "owner": str,
-    "oauth_token_path": str,
-    "json_field": str,
-    Optional("trigger_on_changes"): bool,
-}
-GITHUB_SOURCE = {
-    "provider": 'github',
-    "properties": GITHUB_SOURCE_PROPS
-}
-
-# CodeStar Source
-CODESTAR_SOURCE_PROPS = {
-    Optional("repository"): str,
-    Optional("branch"): str,
-    "owner": str,
-    "codestar_connection_path": str,
+    "codeconnections_param_path": str,
     Optional("output_artifact_format", default=None): (
         SOURCE_OUTPUT_ARTIFACT_FORMAT
     ),
 }
 
-CODESTAR_SOURCE = {
-    "provider": 'codestar',
-    "properties": CODESTAR_SOURCE_PROPS
+CODECONNECTIONS_SOURCE = {
+    "provider": 'codeconnections',
+    "properties": CODECONNECTIONS_SOURCE_PROPS
 }
 
 # S3 Source
@@ -268,9 +254,8 @@ DEFAULT_APPROVAL = {
 # Core Schema
 PROVIDER_SOURCE_SCHEMAS = {
     'codecommit': Schema(CODECOMMIT_SOURCE),
-    'github': Schema(GITHUB_SOURCE),
     's3': Schema(S3_SOURCE),
-    'codestar': Schema(CODESTAR_SOURCE),
+    'codeconnections': Schema(CODECONNECTIONS_SOURCE),
 }
 PROVIDER_BUILD_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
@@ -288,7 +273,7 @@ PROVIDER_SCHEMA = {
     'source': Or(
         And(
             {
-                'provider': Or('github', 's3', 'codestar'),
+                'provider': Or('s3', 'codeconnections'),
                 'properties': dict,
             },
             # pylint: disable=W0108

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """CloudFormation module used throughout the ADF
@@ -8,7 +8,7 @@ import random
 import re
 import os
 
-from botocore.exceptions import WaiterError, ClientError
+from botocore.exceptions import WaiterError, ClientError, ValidationError
 from botocore.config import Config
 import tenacity
 
@@ -27,6 +27,9 @@ CFN_CONFIG = Config(
 # A stack name can contain only alphanumeric characters (case sensitive)
 # and hyphens.
 CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
+ADF_GLOBAL_IAM_STACK_NAME = 'adf-global-base-iam'
+ADF_GLOBAL_BOOTSTRAP_STACK_NAME = 'adf-global-base-bootstrap'
+ADF_GLOBAL_ADF_BUILD_STACK_NAME = 'adf-global-base-adf-build'
 
 
 class StackProperties:
@@ -62,6 +65,30 @@ class StackProperties:
         'DELETE_IN_PROGRESS': 'stack_delete_complete',
         'REVIEW_IN_PROGRESS': 'change_set_create_complete',
     }
+    all_except_deleted_states = [
+        'CREATE_IN_PROGRESS',
+        'CREATE_FAILED',
+        'CREATE_COMPLETE',
+        'ROLLBACK_IN_PROGRESS',
+        'ROLLBACK_FAILED',
+        'ROLLBACK_COMPLETE',
+        'DELETE_IN_PROGRESS',
+        'DELETE_FAILED',
+        'UPDATE_IN_PROGRESS',
+        'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+        'UPDATE_COMPLETE',
+        'UPDATE_FAILED',
+        'UPDATE_ROLLBACK_IN_PROGRESS',
+        'UPDATE_ROLLBACK_FAILED',
+        'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+        'UPDATE_ROLLBACK_COMPLETE',
+        'REVIEW_IN_PROGRESS',
+        'IMPORT_IN_PROGRESS',
+        'IMPORT_COMPLETE',
+        'IMPORT_ROLLBACK_IN_PROGRESS',
+        'IMPORT_ROLLBACK_FAILED',
+        'IMPORT_ROLLBACK_COMPLETE',
+    ]
 
     def __init__(
             self,
@@ -109,8 +136,21 @@ class StackProperties:
             return []
 
     def _get_stack_name(self):
-        raw_stack_name = f'adf-{self._get_geo_prefix()}-base-{self.ou_name}'
+        stack_suffix = (
+            self.ou_name if self.ou_name in ['deployment', 'adf-build']
+            else 'bootstrap'
+        )
+        raw_stack_name = f'adf-{self._get_geo_prefix()}-base-{stack_suffix}'
         return CFN_UNACCEPTED_CHARS.sub("-", raw_stack_name)
+
+    def _get_valid_stack_names(self):
+        valid_stack_names = [self._get_stack_name()]
+        if self.region == self.deployment_account_region:
+            valid_stack_names.append(ADF_GLOBAL_IAM_STACK_NAME)
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_STACK_NAME)
+            valid_stack_names.append(ADF_GLOBAL_ADF_BUILD_STACK_NAME)
+
+        return valid_stack_names
 
 
 class WaitException(Exception):
@@ -196,7 +236,7 @@ class CloudFormation(StackProperties):
                     'MaxAttempts': 45
                 }
             )
-        except ClientError as client_error:
+        except (WaiterError, ClientError) as client_error:
             LOGGER.error(
                 "%s in %s - Failed to wait for stack %s error %s",
                 self.account_id,
@@ -226,14 +266,18 @@ class CloudFormation(StackProperties):
                     'MaxAttempts': 20
                 }
             )
-        except ClientError as client_error:
-            LOGGER.error(
-                "%s in %s - Failed to wait for change set of %s error %s",
-                self.account_id,
-                self.region,
-                self.stack_name,
-                client_error,
-            )
+        except (WaiterError, ClientError) as error:
+            if not CloudFormation._change_set_failed_due_to_empty(
+                error.last_response["Status"],
+                error.last_response["StatusReason"],
+            ):
+                LOGGER.error(
+                    "%s in %s - Failed to wait for change set of %s error %s",
+                    self.account_id,
+                    self.region,
+                    self.stack_name,
+                    error,
+                )
             raise
 
     def _get_waiter_type(self):
@@ -450,7 +494,7 @@ class CloudFormation(StackProperties):
             self.template_url = self.s3.fetch_s3_url(
                 self._create_template_path(self.s3_key_path, 'global-iam')
             )
-            self.stack_name = 'adf-global-base-iam'
+            self.stack_name = ADF_GLOBAL_IAM_STACK_NAME
             self._wait_if_in_progress()
             waiter = self._get_waiter_type()
             create_change_set = self._create_change_set()
@@ -496,17 +540,153 @@ class CloudFormation(StackProperties):
         }
 
     def delete_all_base_stacks(self, wait_override=False):
-        for stack in paginator(self.client.list_stacks):
-            if bool(
-                    re.search(
-                        'adf-(global|regional)-base',
-                        stack.get('StackName'))):
-                if stack.get(
-                        'StackStatus') in StackProperties.clean_stack_status:
-                    LOGGER.warning(
-                        'Removing Stack: %s',
-                        stack.get('StackName'))
-                    self.delete_stack(stack.get('StackName'), wait_override)
+        self._delete_base_stacks(
+            wait_override=wait_override,
+        )
+
+    def delete_deprecated_base_stacks(self):
+        self._delete_base_stacks(
+            wait_override=True,
+            deprecated_only=True,
+        )
+
+    def _delete_base_stacks(
+        self,
+        wait_override=False,
+        deprecated_only=False,
+    ):
+        deleted_any = False
+        bootstrap_stack_found = False
+        for stack in paginator(
+            self.client.list_stacks,
+            StackStatusFilter=StackProperties.all_except_deleted_states,
+        ):
+            matches_search = bool(
+                re.search(
+                    'adf-(global|regional)-base',
+                    stack.get('StackName'),
+                )
+            )
+            if not matches_search:
+                continue
+            if len(stack.get('ParentId', '')) > 0:
+                # Skip nested stacks
+                continue
+
+            if deleted_any and stack.get('StackName') == ADF_GLOBAL_IAM_STACK_NAME:
+                # We deleted the IAM stack already
+                continue
+
+            should_be_deleted = (
+                not deprecated_only
+                or stack.get('StackName') not in self._get_valid_stack_names()
+            )
+            if not should_be_deleted:
+                if stack.get('StackName') != ADF_GLOBAL_IAM_STACK_NAME:
+                    bootstrap_stack_found = True
+                continue
+
+            if stack.get('StackStatus') == 'DELETE_COMPLETE':
+                # Nothing to do here
+                continue
+
+            LOGGER.debug(
+                'Base stack should be deleted: %s',
+                stack.get('StackName'),
+            )
+
+            should_delete_iam_stack = (
+                not deleted_any
+                and self.region == self.deployment_account_region
+                and stack.get('StackName') != ADF_GLOBAL_IAM_STACK_NAME
+            )
+            if should_delete_iam_stack:
+                # Remove the IAM stack before deleting an ADF global stack
+                # If we are deleting a bootstrap stack, we need to assume this
+                # might hosts the roles that get policies attached by the
+                # global-iam stack. Since the policies need to be deleted
+                # before one can delete the role, we need to delete the global
+                # IAM stack first.
+                self._delete_iam_stack_if_exists()
+
+            self._delete_stack_or_instruct_user(
+                stack_name=stack.get('StackName'),
+                stack_status=stack.get('StackStatus'),
+                wait_override=wait_override,
+            )
+            deleted_any = True
+
+        if deprecated_only and not bootstrap_stack_found and not deleted_any:
+            # If we did not find any bootstrap stack but we did run into the
+            # global IAM stack, then we should delete the global IAM stack.
+            # As the policies that the CloudFormation stack manages would
+            # need to be recreated and applied to new IAM Roles as created
+            # by a upcoming bootstrap stack.
+            self._delete_iam_stack_if_exists()
+
+    def _get_stack_status(self, name):
+        try:
+            LOGGER.debug(
+                "%s in %s - Retrieve stack status of: %s",
+                self.account_id,
+                self.region,
+                name,
+            )
+            response = self.client.describe_stacks(
+                StackName=name,
+            )
+            if response and len(response.get('Stacks', [])) > 0:
+                return response['Stacks'][0]['StackStatus']
+            return None
+        except (ClientError, ValidationError) as error:
+            if error.response['Error']['Code'] == 'ValidationError':
+                LOGGER.debug(
+                    "%s in %s - Stack does not exist: %s",
+                    self.account_id,
+                    self.region,
+                    name,
+                )
+                # If the stack does not exist, a ValidationError is raised.
+                return None  # None implies missing
+            LOGGER.error(
+                "%s in %s - Retrieve stack status of: %s failed (%s): %s",
+                self.account_id,
+                self.region,
+                name,
+                error.response['Error']['Code'],
+                error.response['Error']['Message'],
+            )
+            raise
+
+    def _delete_iam_stack_if_exists(self):
+        iam_stack_status = self._get_stack_status(ADF_GLOBAL_IAM_STACK_NAME)
+        if iam_stack_status:
+            self._delete_stack_or_instruct_user(
+                stack_name=ADF_GLOBAL_IAM_STACK_NAME,
+                stack_status=iam_stack_status,
+                wait_override=True,
+            )
+
+    def _delete_stack_or_instruct_user(
+        self,
+        stack_name,
+        stack_status,
+        wait_override,
+    ):
+        clean_stack_status = (
+            stack_status in StackProperties.clean_stack_status
+        )
+        if clean_stack_status:
+            LOGGER.warning('Removing stack: %s', stack_name)
+            self.delete_stack(stack_name, wait_override)
+            return
+
+        LOGGER.warning(
+            'Please remove stack %s manually, state %s implies that it '
+            'cannot be deleted automatically',
+            stack_name,
+            stack_status,
+        )
 
     def get_stack_output(self, value):
         try:

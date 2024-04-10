@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates.
+// SPDX-License-Identifier: Apache-2.0
+
 import events = require('@aws-cdk/aws-events');
 import targets = require('@aws-cdk/aws-events-targets');
 import lambda = require('@aws-cdk/aws-lambda');

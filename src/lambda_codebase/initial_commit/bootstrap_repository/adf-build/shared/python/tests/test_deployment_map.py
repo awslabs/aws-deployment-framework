@@ -1,13 +1,11 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
 
 import os
-import boto3
 
-from errors import InvalidDeploymentMapError
-from pytest import fixture, raises
+from pytest import fixture
 from mock import Mock
 from ..pipeline import Pipeline
 from ..deployment_map import DeploymentMap
@@ -82,7 +80,7 @@ def test_update_deployment_parameters_waves(cls):
         "default_providers": {
             "source": {
                 "name": "codecommit",
-                "properties" : {
+                "properties": {
                     "account_id": 111111111111,
                 }
             }
