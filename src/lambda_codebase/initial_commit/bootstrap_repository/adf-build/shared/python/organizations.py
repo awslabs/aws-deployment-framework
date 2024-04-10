@@ -489,7 +489,9 @@ class Organizations:  # pylint: disable=R0904
                     parent_ou_id = org_unit["Id"]
                     break
             else:
-                LOGGER.info(f'No OU found with name {ou} and parent {parent_ou_id}, will create.')
+                LOGGER.info(
+                    'No OU found with name {%s} and parent {%s}, will create.', ou, parent_ou_id
+                    )
                 new_ou = self.create_ou(parent_ou_id, ou)
                 parent_ou_id = new_ou['OrganizationalUnit']['Id']
 
@@ -501,9 +503,11 @@ class Organizations:  # pylint: disable=R0904
                 ParentId=parent_ou_id,
                 Name=name
                 )
-        except:
-            LOGGER.excpetion(f'Failed to create OU called {name}, with parent {parent_ou_id}')
-            raise OrganizationsException()
+        except Exception as exc:
+            LOGGER.exception(
+                'Failed to create OU called {%s}, with parent {%s}', name, parent_ou_id
+                )
+            raise OrganizationsException() from exc
         return ou
 
 
