@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 The Determine Default Branch Handler that is called when ADF is installed
 or updated to determine the default branch for the repository.

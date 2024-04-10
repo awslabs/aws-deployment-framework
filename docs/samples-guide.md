@@ -27,7 +27,7 @@ In this guide, we will deploy a foundational VPC with associated resources along
 with a ECR Repository to hold our shared container images. Once the VPC is in
 place, we can deploy a ECS Cluster that will run our sample NodeJS application.
 
-ADF supports multiple source types *(Github, CodeCommit, S3, CodeStar)* for
+ADF supports multiple source types *(CodeCommit, S3, and CodeConnections)* for
 pipelines, in this example we will use AWS CodeCommit as the source for our
 pipelines.
 

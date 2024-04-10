@@ -89,18 +89,28 @@ pipelines:
   - name: vpc
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           # Optional, name property will be used if repository is not specified
           repository: my-github-vpc
           # Who owns this Github Repository
-          owner: bundyfx
-          # The path in AWS Secrets Manager that holds the GitHub Oauth token,
-          # ADF only has access to /adf/ prefix in Secrets Manager
-          oauth_token_path: /adf/github_token
-          # The field (key) name of the json object stored in AWS Secrets
-          # Manager that holds the Oauth token
-          json_field: token
+          owner: awslabs
+          # The path in Amazon Systems Manager Parameter Store that holds the
+          # Connections Arn.
+          # Please note, by default ADF only has access to read /adf/
+          # parameters. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          #
+          # Example content of the parameter, plain ARN as a simple string:
+          # arn:aws:codeconnections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          #
+          # Or in the case of a CodeStar Connection:
+          # arn:aws:codestar-connections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          codeconnections_param_path: /adf/my_github_connection_arn_param
     params:
       notification_endpoint: joes_team@example.com
     targets:
@@ -384,12 +394,11 @@ pipelines:
   - name: my-web-app-pipeline
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           repository: my-web-app
           owner: cool_coder
-          oauth_token_path: /adf/github_token
-          json_field: token
+          codeconnections_param_path: /adf/my_github_connection_arn_param
     targets:
       - path: /banking/testing
         name: web-app-testing
