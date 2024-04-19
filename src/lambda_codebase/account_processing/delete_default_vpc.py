@@ -5,7 +5,10 @@
 Deletes the default VPC in a particular region
 """
 import os
+
 from aws_xray_sdk.core import patch_all
+from botocore.exceptions import ClientError
+import tenacity
 
 # ADF imports
 from logger import configure_logger
@@ -25,12 +28,25 @@ def assume_role(account_id):
         "adf_delete_default_vpc",
     )
 
-
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type(ClientError),
+    # Fail after 180 Sec of retrying
+    stop=tenacity.stop_after_delay(180),
+    # Wait 2^x * 1 second between each retry starting with 4s, max 10s intervals
+    wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
+)
 def find_default_vpc(ec2_client):
-    vpc_response = ec2_client.describe_vpcs()
-    for vpc in vpc_response["Vpcs"]:
-        if vpc["IsDefault"] is True:
-            return vpc["VpcId"]
+    try:
+        vpc_response = ec2_client.describe_vpcs()
+        for vpc in vpc_response["Vpcs"]:
+            if vpc.get("IsDefault", False):
+                return vpc["VpcId"]
+    except ClientError as error:
+        LOGGER.debug(
+            "An error occurred while describing VPCs: %s", error
+        )
+        raise
+    # If no default VPC found, return None
     return None
 
 
