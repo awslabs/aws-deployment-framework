@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates.
+// SPDX-License-Identifier: Apache-2.0
+
 import { App, Stack, Duration } from 'aws-cdk-lib';
 import { aws_lambda as lambda, aws_events as events, aws_events_targets as targets } from 'aws-cdk-lib';
 
