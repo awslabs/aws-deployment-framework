@@ -1,5 +1,6 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
+
 """Partition.
 
 A partition is a group of AWS Regions. This module provides a helper function

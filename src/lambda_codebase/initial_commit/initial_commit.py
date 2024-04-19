@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 The Initial Commit main that is called when ADF is installed to commit the
 initial bootstrap repository content.

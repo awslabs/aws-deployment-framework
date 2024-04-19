@@ -2,11 +2,11 @@
     "emphasis-style": {
         "style": "consistent"
     },
-    "no-duplicate-header": {
-        "allow_different_nesting": true
+    "no-duplicate-heading": {
+        "siblings_only": true
     },
     "heading-style": {
-        "style": "consistent"
+        "style": "atx"
     },
     "ul-style": {
         "style": "dash"
@@ -28,7 +28,9 @@
     "ol-prefix": {
         "style": "one_or_ordered"
     },
-    "no-inline-html": true,
+    "no-inline-html": {
+        "allowed_elements": []
+    },
     "no-emphasis-as-heading": {
         "punctuation": ".,;:!。，；:"
     },

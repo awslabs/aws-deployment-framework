@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 retrieve_organization_accounts.py
 

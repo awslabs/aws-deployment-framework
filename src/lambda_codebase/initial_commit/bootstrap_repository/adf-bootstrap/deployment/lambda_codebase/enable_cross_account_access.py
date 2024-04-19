@@ -1,6 +1,5 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
-
 
 """
 Enables the connection between the deployment account
@@ -47,7 +46,7 @@ DEPLOYMENT_ROLE_POLICIES = {
         "adf-codepipeline-role-policy-kms",
     ],
     "adf-cloudformation-deployment-role": [
-        "adf-cloudformation-deployment-role-policy",
+        "adf-cloudformation-deployment-role-policy-kms",
     ],
     "adf-cloudformation-role": [
         "adf-cloudformation-role-policy",

@@ -1,7 +1,7 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
-"""Construct related to CodeStarConnection Codepipeline Input
+"""Construct related to CodeConnections CodePipeline Input
 """
 
 import os
@@ -18,11 +18,11 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_DEFAULT_BUILD_TIMEOUT = 20
 
 
-class CodeStar(Construct):
+class CodeConnections(Construct):
     def __init__(self, scope: Construct, id: str, map_params: dict, **kwargs): #pylint: disable=W0622
         super().__init__(scope, id, **kwargs)
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
-            name="Source-CodeStar",
+            name="Source-CodeConnections",
             actions=[
                 Action(
                     name="source",

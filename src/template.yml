@@ -1,5 +1,5 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
@@ -1250,6 +1250,7 @@ Resources:
         Statement:
           - Effect: "Allow"
             Action:
+              - "cloudformation:ListStacks"
               - "logs:CreateLogGroup"
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
@@ -1294,17 +1295,12 @@ Resources:
               - !Ref AccountBootstrappingStateMachine
           - Effect: "Allow"
             Action:
-              - "cloudformation:CreateStack"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:DeleteStack"
-              - "cloudformation:UpdateStack"
               - "cloudformation:CancelUpdateStack"
               - "cloudformation:ContinueUpdateRollback"
-              - "cloudformation:CreateChangeSet"
               - "cloudformation:DeleteChangeSet"
               - "cloudformation:DescribeStacks"
-              - "cloudformation:CreateUploadBucket"
-              - "cloudformation:ExecuteChangeSet"
               - "cloudformation:SetStackPolicy"
               - "cloudformation:SignalResource"
               - "cloudformation:UpdateTerminationProtection"
@@ -1312,6 +1308,20 @@ Resources:
               - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-global-base-*/*"
               - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-regional-base-*/*"
               - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
+          - Effect: "Allow"
+            Action:
+              - "cloudformation:CreateStack"
+              - "cloudformation:UpdateStack"
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:CreateUploadBucket"
+              - "cloudformation:ExecuteChangeSet"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:*:stack/adf-global-base-bootstrap/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:*:stack/adf-global-base-iam/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:${DeploymentAccount.AccountId}:stack/adf-global-base-deployment/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-regional-base-bootstrap/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:${DeploymentAccount.AccountId}:stack/adf-regional-base-deployment/*"
           - Effect: "Allow"
             Action:
               - "s3:DeleteObject"
@@ -1349,6 +1359,19 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
+          - Effect: "Allow"
+            Action:
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:UntagRole"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access-role"
 
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
