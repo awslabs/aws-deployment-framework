@@ -1,5 +1,5 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
@@ -86,11 +86,12 @@ Resources:
               - cloudformation:CreateChangeSet
               - cloudformation:CreateStack
               - cloudformation:CreateUploadBucket
-              - cloudformation:DeleteStack
               - cloudformation:DeleteChangeSet
-              - cloudformation:DescribeStacks
+              - cloudformation:DeleteStack
               - cloudformation:DescribeChangeSet
+              - cloudformation:DescribeStacks
               - cloudformation:ExecuteChangeSet
+              - cloudformation:ListStacks
               - cloudformation:SetStackPolicy
               - cloudformation:SignalResource
               - cloudformation:UpdateStack
@@ -125,15 +126,16 @@ Resources:
               - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: Allow
             Action:
-              - iam:CreateRole
               - iam:CreatePolicy
-              - iam:UpdateAssumeRolePolicy
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:DeleteRolePolicy
               - iam:GetRole
               - iam:GetRolePolicy
-              - iam:DeleteRole
-              - iam:TagRole
               - iam:PutRolePolicy
-              - iam:DeleteRolePolicy
+              - iam:TagRole
+              - iam:UntagRole
+              - iam:UpdateAssumeRolePolicy
             Resource:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
@@ -141,7 +143,14 @@ Resources:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access-role"
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+          - Effect: "Allow"
+            Action:
+              - iam:DeleteRole
+              - iam:DeleteRolePolicy
+              - iam:UntagRole
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRole}-readonly"
       Roles:
         - !Ref OrganizationsRole

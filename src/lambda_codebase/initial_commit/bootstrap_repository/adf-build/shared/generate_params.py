@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -118,7 +118,7 @@ LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
 EMPTY_PARAMS_DICT: ParametersAndTags = {'Parameters': {}, 'Tags': {}}
-ADF_ORG_STAGE = os.getenv("ADF_ORG_STAGE", "dev")
+ADF_ORG_STAGE = os.getenv("ADF_ORG_STAGE")
 
 
 class Parameters:
@@ -302,13 +302,14 @@ class Parameters:
                     current_params
                 )
                 # Compare account_region final to global_stage
-                current_params = self._merge_params(
-                    Parameters._parse(
-                        params_root_path=self.cwd,
-                        params_filename=f"global_{ADF_ORG_STAGE}",
-                    ),
-                    current_params,
-                )
+                if ADF_ORG_STAGE:
+                    current_params = self._merge_params(
+                        Parameters._parse(
+                            params_root_path=self.cwd,
+                            params_filename=f"global_{ADF_ORG_STAGE}",
+                        ),
+                        current_params,
+                    )
                 # Compare account_region final to global
                 current_params = self._merge_params(
                     Parameters._parse(

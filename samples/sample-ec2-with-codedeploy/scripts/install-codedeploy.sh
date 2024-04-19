@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 set -xe
 
 ## Code Deploy Agent Bootstrap Script ##
 
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2> /dev/console) 2>&1
 AUTOUPDATE=false
 
-function installdep(){
+function installdep() {
   if [ ${PLAT} = "ubuntu" ]; then
     apt-get -y update
     # Satisfying even Ubuntu older versions.
@@ -18,7 +21,7 @@ function installdep(){
   fi
 }
 
-function platformize(){
+function platformize() {
   # Linux OS detection
   if hash lsb_release; then
     echo "Ubuntu server OS detected"
@@ -32,8 +35,7 @@ function platformize(){
   fi
 }
 
-
-function execute(){
+function execute() {
   if [ ${PLAT} = "ubuntu" ]; then
     cd /tmp/
     wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
@@ -41,12 +43,12 @@ function execute(){
 
     if ./install auto; then
       echo "Installation completed"
-        if ! ${AUTOUPDATE}; then
-          echo "Disabling Auto Update"
-          sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
-          chattr +i /etc/cron.d/codedeploy-agent-update
-          rm -f /tmp/install
-        fi
+      if ! ${AUTOUPDATE}; then
+        echo "Disabling Auto Update"
+        sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
+        chattr +i /etc/cron.d/codedeploy-agent-update
+        rm -f /tmp/install
+      fi
       exit 0
     else
       echo "Installation script failed, please investigate"
@@ -61,12 +63,12 @@ function execute(){
 
     if ./install auto; then
       echo "Installation completed"
-        if ! ${AUTOUPDATE}; then
-            echo "Disabling auto update"
-            sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
-            chattr +i /etc/cron.d/codedeploy-agent-update
-            rm -f /tmp/install
-        fi
+      if ! ${AUTOUPDATE}; then
+        echo "Disabling auto update"
+        sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
+        chattr +i /etc/cron.d/codedeploy-agent-update
+        rm -f /tmp/install
+      fi
       exit 0
     else
       echo "Installation script failed, please investigate"

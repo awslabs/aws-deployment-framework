@@ -1,8 +1,5 @@
 # Providers Guide
 
-<!-- markdownlint-disable MD024 -->
-<!-- ^ Allow repeated headers to be used in this file -->
-
 Provider types and their properties can be defined as default config for a
 pipeline. But also at the stage level of a pipeline to structure the source,
 build, test, approval, deploy or invoke actions.
@@ -20,39 +17,37 @@ Providers and Actions.
   - [Source](#source)
     - [CodeCommit](#codecommit)
       - [Properties](#properties)
-    - [GitHub](#github)
-      - [Properties](#properties-1)
     - [S3](#s3)
+      - [Properties](#properties-1)
+    - [CodeConnections](#codeconnections)
       - [Properties](#properties-2)
-    - [CodeStar](#codestar)
-      - [Properties](#properties-3)
   - [Build](#build)
     - [CodeBuild](#codebuild)
-      - [Properties](#properties-4)
+      - [Properties](#properties-3)
     - [Jenkins](#jenkins)
-      - [Properties](#properties-5)
+      - [Properties](#properties-4)
   - [Deploy](#deploy)
     - [Approval](#approval)
-      - [Properties](#properties-6)
+      - [Properties](#properties-5)
     - [CodeBuild](#codebuild-1)
-      - [Properties](#properties-7)
+      - [Properties](#properties-6)
     - [CodeDeploy](#codedeploy)
-      - [Properties](#properties-8)
+      - [Properties](#properties-7)
     - [CloudFormation](#cloudformation)
-      - [Properties](#properties-9)
+      - [Properties](#properties-8)
     - [Lambda](#lambda)
-      - [Properties](#properties-10)
+      - [Properties](#properties-9)
     - [Service Catalog](#service-catalog)
-      - [Properties](#properties-11)
+      - [Properties](#properties-10)
     - [S3](#s3-1)
-      - [Properties](#properties-12)
+      - [Properties](#properties-11)
 
 ## Source
 
 ```yaml
 default_providers:
   source:
-    provider: codecommit|github|s3|codestar
+    provider: codecommit|s3|codeconnections
     properties:
       # All provider specific properties go here.
 ```
@@ -113,44 +108,6 @@ Provider type: `codecommit`.
   - NB: The `CODEBUILD_CLONE_REF` value can only be used by CodeBuild downstream
     actions.
 
-### GitHub
-
-Use GitHub as a source to trigger your pipeline.
-The repository can also be hosted in another account.
-
-Provider type: `github`.
-
-#### Properties
-
-- *repository* - *(String)* defaults to name of the pipeline.
-  - The GitHub repository name. For example, for the ADF repository it would be
-    `aws-deployment-framework`.
-- *branch* - *(String)* default to configured [adfconfig.yml:
-  config/scm/default-scm-branch](./admin-guide.md#adfconfig).
-  - The Branch on the GitHub repository to use to trigger this specific
-    pipeline.
-- *owner* - *(String)* **(required)**
-  - The name of the GitHub user or organization who owns the GitHub repository.
-    For example, for the ADF repository that would be: `awslabs`.
-- *oauth_token_path* - *(String)* **(required)**
-  - The OAuth token path in AWS Secrets Manager on the Deployment Account that
-    holds the GitHub OAuth token used to create the web hook as part of the
-    pipeline. Read the CodePipeline documentation for more [information on
-    configuring GitHub
-    OAuth](https://docs.aws.amazon.com/codepipeline/latest/userguide/action-reference-GitHub.html#action-reference-GitHub-auth).
-- *json_field* - *(String)* **(required)**
-  - The name of the JSON key in the object that is stored in AWS Secrets Manager
-    that holds the OAuth Token.
-- *trigger_on_changes* - *(Boolean)* default: `True`.
-  - Whether CodePipeline should release a change and trigger the pipeline. When
-    set to False, you either need to trigger the pipeline manually, through a
-    schedule, or through the completion of another pipeline.
-  - This **disables the triggering** of changes when **set to False**.
-  - It will not deploy the web hook that GitHub would otherwise use to trigger
-    the pipeline on changes.
-  - **By default**, it will trigger deploy the web hook and trigger on changes
-    using web hook call executed by GitHub.
-
 ### S3
 
 S3 can be used as the source for a pipeline too. **Please note:** you can use
@@ -180,43 +137,52 @@ Provider type: `s3`.
     CodePipeline. Monitoring the S3 object so it can trigger a release when an
     update took place.
 
-### CodeStar
+### CodeConnections
 
-Use CodeStar as a source to trigger your pipeline. The source action retrieves
+Use CodeConnections as a source to trigger your pipeline. The source action retrieves
 code changes when a pipeline is manually executed or when a webhook event is
-sent from the source provider. CodeStar Connections currently supports the
+sent from the source provider. AWS CodeConnections supports various external
+source providers:
 following third-party repositories:
 
-- Bitbucket
-- GitHub and GitHub Enterprise Cloud
+- Bitbucket Cloud
+- GitHub
+- GitHub Enterprise Cloud
 - GitHub Enterprise Server
+- GitLab.com
+- GitLab self-managed
 
-The AWS CodeStar connection needs to already exist and be in the "Available"
-Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored
+You can find an updated list of the
+[external source providers AWS CodeConnections supports
+here](https://docs.aws.amazon.com/dtconsole/latest/userguide/welcome-connections.html#welcome-connections-supported-providers)
+
+The AWS CodeConnections needs to exist and be in the "Available" Status.
+To use the AWS CodeConnections with ADF, its ARN needs to be stored
 in AWS Systems Manager Parameter Store in the deployment account's main region
 (see details below). Read the CodePipeline documentation for more
-[information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
+[information on how-to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
 
-Provider type: `codestar`.
+Provider type: `codeconnections`.
 
 #### Properties
 
 - *repository* - *(String)* defaults to name of the pipeline.
-  - The CodeStar repository name. For example, for the ADF repository it would
+  - The repository name. For example, for the ADF repository it would
     be `aws-deployment-framework`.
 - *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
-  - The Branch on the third-party repository to use to trigger this specific
-    pipeline.
+  - The Branch on the repository to use to trigger this specific pipeline.
 - *owner* - *(String)* **(required)**
   - The name of the third-party user or organization who owns the third-party
     repository. For example, for the ADF repository that would be: `awslabs`.
-- *codestar_connection_path* - *(String)* **(required)**
-  - The CodeStar Connection ARN token path in AWS Systems Manager Parameter
-    Store in the deployment account in the main region that holds the CodeStar
-    Connection ARN that will be used to download the source code and create the
-    web hook as part of the pipeline. Read the CodeStar Connections
+- *codeconnections_param_path* - *(String)* **(required)**
+  - The CodeConnections ARN path in AWS Systems Manager (SSM) Parameter Store
+    in the deployment account in the main region that holds the CodeConnections
+    resource ARN that will be used to download the source code and create the
+    web hook as part of the pipeline. Read the CodeConnections
     documentation for more
     [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
+  - If you are relying on an existing CodeStar connection, the SSM Parameter
+    should contain the AWS CodeStar Connection ARN instead.
 - *output_artifact_format* - *(String)* default: `CODE_ZIP`
   - The output artifact format. Values can be either `CODEBUILD_CLONE_REF` or
     `CODE_ZIP`. If unspecified, the default is `CODE_ZIP`.
@@ -255,6 +221,9 @@ Provider type: `codebuild`.
 #### Properties
 
 - *image* *(String|Object)* - default: `STANDARD_7_0`.
+  - It is recommended to specify the container image your pipeline requires.
+    Relying on the default value might impact the pipeline in future updates
+    of ADF if the default were to change.
   - The Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
   - Image can also take an object that contains a reference to a public docker

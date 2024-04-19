@@ -5,7 +5,7 @@
     - [Source Code](#source-code)
       - [adf-build/shared/cdk/cdk_stacks/custom_pipeline.py](#adf-buildsharedcdkcdk_stackscustom_pipelinepy)
       - [adf-build/shared/cdk/cdk_stacks/main.py](#adf-buildsharedcdkcdk_stacksmainpy)
-      - [adf-build/shared/schema_validation.py](#adf-buildsharedschema_validationpy)
+      - [adf-build/shared/python/schema_validation.py](#adf-buildsharedschema_validationpy)
   - [Using a custom pipeline type](#using-a-custom-pipeline-type)
 
 In order to enhance the flexibility of ADF, it is possible to define custom

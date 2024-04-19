@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 set -e
 
 echo "Doing some ETL tasks... This could also be done with a custom CodeBuild Image..."
