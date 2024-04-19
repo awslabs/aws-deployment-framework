@@ -1,11 +1,12 @@
 # Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
-from crhelper import CfnResource
-import logging
-import boto3
 from os import environ
+import logging
 import hashlib
+
+from crhelper import CfnResource
+import boto3
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ helper = CfnResource(
     boto_level='CRITICAL'
 )
 
-region_name = environ['region_name']
+REGION_NAME = environ['region_name']
 
 
 def generate_dummy_resource_id(event):
@@ -27,7 +28,10 @@ def generate_dummy_resource_id(event):
 
 def create_ec2_client(region_name, **kwargs):
     if 'profile' in kwargs:
-        logger.info("Creating Boto3 EC2 Client using profile: {}".format(kwargs['profile']))
+        logger.info(
+            "Creating Boto3 EC2 Client using profile: %s",
+            kwargs['profile'],
+        )
         session = boto3.Session(profile_name=kwargs['profile'])
         client = session.client('ec2', region_name=region_name)
     else:
@@ -38,110 +42,130 @@ def create_ec2_client(region_name, **kwargs):
 
 def delete_subnets(client, vpc_id):
     logger.info("Getting subnets for VPC")
-    subnet = client.describe_subnets(
+    subnet_paginator = client.get_paginator('describe_subnets')
+    subnet_pages = subnet_paginator.paginate(
         Filters=[
             {
                 'Name': 'vpc-id',
                 'Values': [
-                    vpc_id
-                ]
-            }
-        ]
+                    vpc_id,
+                ],
+            },
+        ],
     )
-    logger.info(f"{len(subnet['Subnets'])} Subnets found")
-    for s in subnet['Subnets']:
-        logger.info(f"Deleting subnet with ID: {s['SubnetId']}")
-        client.delete_subnet(
-            SubnetId=s['SubnetId']
-        )
+    for subnet in subnet_pages:
+        logger.info("%d Subnets found", len(subnet['Subnets']))
+        for s in subnet['Subnets']:
+            logger.info("Deleting subnet with ID: %s", s['SubnetId'])
+            client.delete_subnet(
+                SubnetId=s['SubnetId'],
+            )
 
 
 def delete_internet_gateway(client, vpc_id):
-    logger.info(f"Getting Internet Gateways attached to {vpc_id}")
-    igw = client.describe_internet_gateways(
+    logger.info("Getting Internet Gateways attached to %s", vpc_id)
+    igw_paginator = client.get_paginator('describe_internet_gateways')
+    igw_pages = igw_paginator.paginate(
         Filters=[
             {
                 'Name': 'attachment.vpc-id',
                 'Values': [
                     vpc_id,
-                ]
+                ],
             },
-        ]
+        ],
     )
-    logger.info(f"{len(igw['InternetGateways'])} Gateways found")
-    for gw in igw['InternetGateways']:
-        logger.info(f"Detaching internet gateway: {gw['InternetGatewayId']} from VPC")
-        client.detach_internet_gateway(
-            InternetGatewayId=gw['InternetGatewayId'],
-            VpcId=vpc_id
-        )
-        logger.info(f"Deleting internet gateway: {gw['InternetGatewayId']}")
-        client.delete_internet_gateway(
-            InternetGatewayId=gw['InternetGatewayId']
-        )
+    for page in igw_pages:
+        logger.info("%d Gateways found", len(page['InternetGateways']))
+        for gw in page['InternetGateways']:
+            logger.info(
+                "Detaching internet gateway: %s from VPC",
+                gw['InternetGatewayId'],
+            )
+            client.detach_internet_gateway(
+                InternetGatewayId=gw['InternetGatewayId'],
+                VpcId=vpc_id,
+            )
+            logger.info(
+                "Deleting internet gateway: %s",
+                gw['InternetGatewayId'],
+            )
+            client.delete_internet_gateway(
+                InternetGatewayId=gw['InternetGatewayId'],
+            )
 
 
 def delete_route_tables(client, vpc_id):
-    logger.info(f"Getting Route Tables attached to {vpc_id}")
-    route_tables = client.describe_route_tables(
+    logger.info("Getting Route Tables attached to %s", vpc_id)
+    route_table_paginator = client.get_paginator('describe_route_tables')
+    route_table_pages = route_table_paginator.paginate(
         Filters=[
             {
                 'Name': 'vpc-id',
                 'Values': [
-                    vpc_id
-                ]
+                    vpc_id,
+                ],
             },
-        ]
+        ],
     )
-    logger.info(f"{len(route_tables['RouteTables'])} Route Tables found")
-    for route_table in route_tables['RouteTables']:
-        for route in route_table['Routes']:
-            if route['GatewayId'] != 'local':
-                client.delete_route(
-                    DestinationCidrBlock=route['DestinationCidrBlock'],
-                    RouteTableId=route_table['RouteTableId']
-                )
+    for route_tables in route_table_pages:
+        logger.info("%d Route Tables found", len(route_tables['RouteTables']))
+        for route_table in route_tables['RouteTables']:
+            for route in route_table['Routes']:
+                if route['GatewayId'] != 'local':
+                    client.delete_route(
+                        DestinationCidrBlock=route['DestinationCidrBlock'],
+                        RouteTableId=route_table['RouteTableId'],
+                    )
 
 
 def delete_security_groups(client, vpc_id):
-    logger.info(f"Getting Security Groups attached to {vpc_id}")
-    groups = client.describe_security_groups(
+    logger.info("Getting Security Groups attached to %s", vpc_id)
+    security_group_paginator = client.get_paginator('describe_security_groups')
+    security_group_pages = security_group_paginator.paginate(
         Filters=[
             {
                 'Name': 'vpc-id',
                 'Values': [
-                    vpc_id
-                ]
+                    vpc_id,
+                ],
             },
-        ])
-    logger.info(f"{len(groups['SecurityGroups'])} Security Groups found")
-    for group in groups['SecurityGroups']:
-        if group['GroupName'] != "default":
-            logger.info(f"Deleting non default group: {group['GroupName']}")
-            client.delete_security_group(
-                GroupId=group['GroupId'],
-                GroupName=group['GroupName']
-            )
+        ],
+    )
+    for groups in security_group_pages:
+        logger.info("%d Security Groups found", len(groups['SecurityGroups']))
+        for group in groups['SecurityGroups']:
+            if group['GroupName'] != "default":
+                logger.info(
+                    "Deleting non-default group: %s",
+                    group['GroupName'],
+                )
+                client.delete_security_group(
+                    GroupId=group['GroupId'],
+                    GroupName=group['GroupName'],
+                )
 
 
 def remove_default_vpc(client):
-    vpcs = client.describe_vpcs()
-    for vpc in vpcs['Vpcs']:
-        if vpc['IsDefault']:
-            logger.info(f"Default VPC found. VPC ID: {vpc['VpcId']}")
+    vpc_paginator = client.get_paginator('describe_vpcs')
+    vpc_pages = vpc_paginator.paginate()
+    for vpcs in vpc_pages:
+        for vpc in vpcs['Vpcs']:
+            if vpc['IsDefault']:
+                logger.info("Default VPC found. VPC ID: %s", vpc['VpcId'])
 
-            delete_subnets(client, vpc['VpcId'])
+                delete_subnets(client, vpc['VpcId'])
 
-            delete_internet_gateway(client, vpc['VpcId'])
+                delete_internet_gateway(client, vpc['VpcId'])
 
-            delete_route_tables(client, vpc['VpcId'])
+                delete_route_tables(client, vpc['VpcId'])
 
-            delete_security_groups(client, vpc['VpcId'])
+                delete_security_groups(client, vpc['VpcId'])
 
-            logger.info(f"Deleting VPC: {vpc['VpcId']}")
-            client.delete_vpc(
-                VpcId=vpc['VpcId']
-            )
+                logger.info("Deleting VPC: %s", vpc['VpcId'])
+                client.delete_vpc(
+                    VpcId=vpc['VpcId'],
+                )
 
 
 def get_regions(client):
@@ -153,12 +177,14 @@ def get_regions(client):
 def create(event, context):
     logger.info("Stack creation therefore default VPCs are to be removed")
 
-    client = create_ec2_client(region_name)
+    client = create_ec2_client(REGION_NAME)
     regions = get_regions(client)
     for region in regions['Regions']:
-        logger.info(f"Creating ec2 client in {region['RegionName']} region")
+        logger.info("Creating ec2 client in %s region", region['RegionName'])
         logger.info(
-            "Calling 'remove_default_vpc' function to remove default VPC and associated resources within the region")
+            "Calling 'remove_default_vpc' function to remove default VPC and "
+            "associated resources within the region",
+        )
         ec2_client = create_ec2_client(region_name=region['RegionName'])
         remove_default_vpc(ec2_client)
         logger.info('~' * 72)
@@ -166,37 +192,41 @@ def create(event, context):
     # Items stored in helper.Data will be saved
     # as outputs in your resource in CloudFormation
     helper.Data.update({})
-    return generate_dummy_resource_id(event)  # This is the Physical resource of your ID
+    # This is the Physical resource of your ID:
+    return generate_dummy_resource_id(event)
 
 
 @helper.update
 def update(event, context):
     logger.info("Stack update therefore no real changes required on resources")
-    return generate_dummy_resource_id(event)  # This is the Physical resource of your ID
+    # This is the Physical resource of your ID:
+    return generate_dummy_resource_id(event)
 
 
 @helper.delete
 def delete(event, context):
     logger.info("Stack deletion therefore default VPCs are to be recreated")
 
-    client = create_ec2_client(region_name)
+    client = create_ec2_client(REGION_NAME)
     regions = get_regions(client)
     for region in regions['Regions']:
-        logger.info(f"Creating ec2 client in {region['RegionName']} region")
+        logger.info("Creating ec2 client in %s region", region['RegionName'])
         ec2_client = create_ec2_client(region_name=region['RegionName'])
-        vpcs = ec2_client.describe_vpcs()
-        if len(vpcs['Vpcs']) == 0:
+        vpc_paginator = ec2_client.get_paginator('describe_vpcs')
+        vpc_pages = vpc_paginator.paginate()
+        default_vpc_found = False
+        for vpcs in vpc_pages:
+            for vpc in vpcs['Vpcs']:
+                if vpc['IsDefault']:
+                    default_vpc_found = True
+        if not default_vpc_found:
             logger.info("Creating default VPC in region")
             ec2_client.create_default_vpc()
-        else:
-            for vpc in vpcs['Vpcs']:
-                if not vpc['IsDefault']:
-                    logger.info("Creating default VPC in region")
-                    ec2_client.create_default_vpc()
 
         logger.info('~' * 72)
 
-    return generate_dummy_resource_id(event)  # This is the Physical resource of your ID
+    # This is the Physical resource of your ID
+    return generate_dummy_resource_id(event)
 
 
 def lambda_handler(event, context):

@@ -569,7 +569,7 @@ class CloudFormation(StackProperties):
             )
             if not matches_search:
                 continue
-            if len(stack.get('ParentId', '')) > 0:
+            if stack.get('ParentId', ''):
                 # Skip nested stacks
                 continue
 
@@ -635,7 +635,7 @@ class CloudFormation(StackProperties):
             response = self.client.describe_stacks(
                 StackName=name,
             )
-            if response and len(response.get('Stacks', [])) > 0:
+            if response and response.get('Stacks', []):
                 return response['Stacks'][0]['StackStatus']
             return None
         except (ClientError, ValidationError) as error:
