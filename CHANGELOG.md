@@ -69,33 +69,33 @@ The parameters that are managed by ADF that got their path changed are:
 For the __management account__, in the __AWS Organizations region__
 (`us-east-1`, or `us-gov-west-1`):
 
-| Old Parameter Path           | New Parameter Path                  |
-|------------------------------|-------------------------------------|
-| `/adf_log_level`             | `/adf/adf_log_level`                |
-| `/adf_version`               | `/adf/adf_version`                  |
-| `/bucket_name`               | `/adf/bucket_name`                  |
-| `/confit`                    | `/adf/config`                       |
-| `/cross_account_access_role` | `/adf/cross_account_access_role`    |
-| `/deployment_account_id`     | `/adf/deployment_account_id`        |
-| `/deployment_account_region` | `/adf/deployment_account_region`    |
-| `/kms_arn`                   | `/adf/kms_arn`                      |
-| `/notification_channel`      | `/adf/notification_channel`         |
-| `/organization_id`           | `/adf/organization_id`              |
-| `/protected`                 | `/adf/protected`                    |
-| `/scp`                       | `/adf/scp`                          |
-| `/shared_modules_bucket`     | `/adf/shared_modules_bucket`        |
-| `/tagging-policy`            | `/adf/tagging_policy`               |
-| `/target_regions`            | `/adf/target_regions`               |
+| Old Parameter Path           | New Parameter Path               |
+|------------------------------|----------------------------------|
+| `/adf_log_level`             | `/adf/adf_log_level`             |
+| `/adf_version`               | `/adf/adf_version`               |
+| `/bucket_name`               | `/adf/bucket_name`               |
+| `/confit`                    | `/adf/config`                    |
+| `/cross_account_access_role` | `/adf/cross_account_access_role` |
+| `/deployment_account_id`     | `/adf/deployment_account_id`     |
+| `/deployment_account_region` | `/adf/deployment_account_region` |
+| `/kms_arn`                   | `/adf/kms_arn`                   |
+| `/notification_channel`      | `/adf/notification_channel`      |
+| `/organization_id`           | `/adf/organization_id`           |
+| `/protected`                 | `/adf/protected`                 |
+| `/scp`                       | `/adf/scp`                       |
+| `/shared_modules_bucket`     | `/adf/shared_modules_bucket`     |
+| `/tagging-policy`            | `/adf/tagging_policy`            |
+| `/target_regions`            | `/adf/target_regions`            |
 
 For the __management account__, in __other ADF regions__:
 
-| Old Parameter Path           | New Parameter Path                  |
-|------------------------------|-------------------------------------|
-| `/adf_version`               | `/adf/adf_version`                  |
-| `/bucket_name`               | `/adf/bucket_name`                  |
-| `/cross_account_access_role` | `/adf/cross_account_access_role`    |
-| `/deployment_account_id`     | `/adf/deployment_account_id`        |
-| `/kms_arn`                   | `/adf/kms_arn`                      |
+| Old Parameter Path           | New Parameter Path               |
+|------------------------------|----------------------------------|
+| `/adf_version`               | `/adf/adf_version`               |
+| `/bucket_name`               | `/adf/bucket_name`               |
+| `/cross_account_access_role` | `/adf/cross_account_access_role` |
+| `/deployment_account_id`     | `/adf/deployment_account_id`     |
+| `/kms_arn`                   | `/adf/kms_arn`                   |
 
 For the __deployment account__, in __the deployment region__:
 
@@ -114,24 +114,24 @@ For the __deployment account__, in __the deployment region__:
 
 For the __deployment account__, in __other ADF regions__:
 
-| Old Parameter Path           | New Parameter Path                  |
-|------------------------------|-------------------------------------|
-| `/adf_log_level`             | `/adf/adf_log_level`                |
-| `/adf_version`               | `/adf/adf_version`                  |
-| `/cross_account_access_role` | `/adf/cross_account_access_role`    |
-| `/deployment_account_bucket` | `/adf/deployment_account_bucket`    |
-| `/master_account_id`         | `/adf/management_account_id`        |
-| `/notification_endpoint`     | `/adf/notification_endpoint`        |
-| `/notification_type`         | `/adf/notification_type`            |
-| `/organization_id`           | `/adf/organization_id`              |
+| Old Parameter Path           | New Parameter Path               |
+|------------------------------|----------------------------------|
+| `/adf_log_level`             | `/adf/adf_log_level`             |
+| `/adf_version`               | `/adf/adf_version`               |
+| `/cross_account_access_role` | `/adf/cross_account_access_role` |
+| `/deployment_account_bucket` | `/adf/deployment_account_bucket` |
+| `/master_account_id`         | `/adf/management_account_id`     |
+| `/notification_endpoint`     | `/adf/notification_endpoint`     |
+| `/notification_type`         | `/adf/notification_type`         |
+| `/organization_id`           | `/adf/organization_id`           |
 
 For a __target account__, in __each ADF region__:
 
-| Old Parameter Path           | New Parameter Path                  |
-|------------------------------|-------------------------------------|
-| `/bucket_name`               | `/adf/bucket_name`                  |
-| `/deployment_account_id`     | `/adf/deployment_account_id`        |
-| `/kms_arn`                   | `/adf/kms_arn`                      |
+| Old Parameter Path       | New Parameter Path           |
+|--------------------------|------------------------------|
+| `/bucket_name`           | `/adf/bucket_name`           |
+| `/deployment_account_id` | `/adf/deployment_account_id` |
+| `/kms_arn`               | `/adf/kms_arn`               |
 
 #### AWS CodeStar Connections OAuth Token support dropped
 
