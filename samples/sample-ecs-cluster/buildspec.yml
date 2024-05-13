@@ -13,4 +13,7 @@ phases:
       - python adf-build/generate_params.py
 
 artifacts:
-  files: '**/*'
+  files:
+    - 'template.yml'
+    - 'params/*.json'
+    - 'params/*.yml'

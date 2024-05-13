@@ -16,7 +16,9 @@ app.get('/', (req, res) => {
 })
 
 app.get('/version', (req, res) => {
-  res.json({ version: '0.0.1' })
+  res.json({
+    version: '0.0.1'
+  })
 })
 
 app.listen(3000, () => {

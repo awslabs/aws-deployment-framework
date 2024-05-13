@@ -1,6 +1,10 @@
 # Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
+Parameters:
+  DeploymentAssetS3BucketName: "resolve:/adf/cross_region/s3_regional_bucket/eu-west-1"
+  DeploymentAssetKMSKeyArn: "resolve:/adf/cross_region/kms_arn/eu-west-1"
+
 Tags:
-  TagKey: my_tag
-  MyKey: new_value
+  TagKey: "my_tag"
+  MyKey: "new_value"

@@ -16,12 +16,7 @@ phases:
   build:
     commands:
       - npm install aws-cdk -g
-      - npm install
-      - npm run build
-      - cdk synth > template.yml
+      - cdk bootstrap --show-template > template.yml
 
 artifacts:
-  files:
-    - 'template.yml'
-    - 'params/*.json'
-    - 'params/*.yml'
+  files: '**/*'

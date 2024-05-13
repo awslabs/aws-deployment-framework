@@ -17,4 +17,7 @@ phases:
       - bash build/generate_parameters.sh
 
 artifacts:
-  files: '**/*'
+  files:
+    - 'template.yml'
+    - 'params/*.json'
+    - 'params/*.yml'

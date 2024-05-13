@@ -10,7 +10,7 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "ejs": "^3.1.7",
-    "express": "^4.16.3"
+    "ejs": "^3.1.10",
+    "express": "^4.19.2"
   }
 }
