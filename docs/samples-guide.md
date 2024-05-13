@@ -307,8 +307,8 @@ URL on the *ECS Cluster* AWS CloudFormation stack within the target accounts.
 
 ![cfn-output](./images/cfn-output.png)
 
-Accessing the *ExternalUrl* output in your web browser, you should be greeted
-with the application running inside AWS Fargate.
+Accessing the *LoadBalancerExternalUrl* output in your web browser, you should
+be greeted with the application running inside AWS Fargate.
 
 For more samples, please see the other pipeline/resource definitions in the
 `samples` folder, or check out the numerous CloudFormation resource available

@@ -1,5 +1,6 @@
 # Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
 
-Parameters:
-  Environment: "testing"
+Tags:
+  TagKey: "my_tag"
+  MyKey: "new_value"

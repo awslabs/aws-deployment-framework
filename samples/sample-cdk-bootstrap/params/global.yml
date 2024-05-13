@@ -1,0 +1,62 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Parameters of the CDK Bootstrap stack:
+#  TrustedAccounts:
+#     Description: List of AWS accounts that are trusted to publish assets and deploy stacks to this environment
+#     Default: ""
+#     Type: CommaDelimitedList
+#   TrustedAccountsForLookup:
+#     Description: List of AWS accounts that are trusted to look up values in this environment
+#     Default: ""
+#     Type: CommaDelimitedList
+#   CloudFormationExecutionPolicies:
+#     Description: List of the ManagedPolicy ARN(s) to attach to the CloudFormation deployment role
+#     Default: ""
+#     Type: CommaDelimitedList
+#   FileAssetsBucketName:
+#     Description: The name of the S3 bucket used for file assets
+#     Default: ""
+#     Type: String
+#   FileAssetsBucketKmsKeyId:
+#     Description: Empty to create a new key (default), 'AWS_MANAGED_KEY' to use a managed S3 key, or the ID/ARN of an existing key.
+#     Default: ""
+#     Type: String
+#   ContainerAssetsRepositoryName:
+#     Description: A user-provided custom name to use for the container assets ECR repository
+#     Default: ""
+#     Type: String
+#   Qualifier:
+#     Description: An identifier to distinguish multiple bootstrap stacks in the same environment
+#     Default: hnb659fds
+#     Type: String
+#     AllowedPattern: "[A-Za-z0-9_-]{1,10}"
+#     ConstraintDescription: Qualifier must be an alphanumeric identifier of at most 10 characters
+#   PublicAccessBlockConfiguration:
+#     Description: Whether or not to enable S3 Staging Bucket Public Access Block Configuration
+#     Default: "true"
+#     Type: String
+#     AllowedValues:
+#       - "true"
+#       - "false"
+#   InputPermissionsBoundary:
+#     Description: Whether or not to use either the CDK supplied or custom permissions boundary
+#     Default: ""
+#     Type: String
+#   UseExamplePermissionsBoundary:
+#     Default: "false"
+#     AllowedValues:
+#       - "true"
+#       - "false"
+#     Type: String
+#   BootstrapVariant:
+#     Type: String
+#     Default: "AWS CDK: Default Resources"
+
+Parameters:
+  TrustedAccounts: 'resolve:/adf/deployment_account_id'
+  TrustedAccountsForLookup: 'resolve:/adf/deployment_account_id'
+
+Tags:
+  Repository: sample-codebuild-vpc-repo
+  App: Sample CodeBuild VPC application

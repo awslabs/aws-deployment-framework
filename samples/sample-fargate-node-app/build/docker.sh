@@ -5,14 +5,21 @@
 
 set -e
 
-$(aws ecr get-login --region $AWS_REGION --no-include-email)
-REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ADF_PROJECT_NAME
+aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ADF_PROJECT_NAME}"
 IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
-docker build -t $REPOSITORY_URI:latest .
-docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
-docker push $REPOSITORY_URI:latest
-docker push $REPOSITORY_URI:$IMAGE_TAG
+docker build -t "${REPOSITORY_URI}:latest" .
+docker tag "${REPOSITORY_URI}:latest" "${REPOSITORY_URI}:${IMAGE_TAG}"
+docker push "${REPOSITORY_URI}:latest"
+docker push "${REPOSITORY_URI}:${IMAGE_TAG}"
 
 tmp=$(mktemp)
-jq --arg REPOSITORY_URI "$REPOSITORY_URI" --arg IMAGE_TAG "$IMAGE_TAG" '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' params/global.json > "$tmp" && mv "$tmp" params/global.json
+jq \
+  --arg REPOSITORY_URI "$REPOSITORY_URI" \
+  --arg IMAGE_TAG "$IMAGE_TAG" \
+  '.Parameters.Image = $REPOSITORY_URI+":"+$IMAGE_TAG' \
+  "params/global_${AWS_REGION}.json" \
+  > "$tmp"
+
+mv "$tmp" "params/global_${AWS_REGION}.json"

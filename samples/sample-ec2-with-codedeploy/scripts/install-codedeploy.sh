@@ -7,10 +7,11 @@ set -xe
 
 ## Code Deploy Agent Bootstrap Script ##
 
-exec > >(tee /var/log/user-data.log | logger -t user-data -s 2> /dev/console) 2>&1
+exec > >(sudo tee /var/log/user-data.log | logger -t user-data -s 2> /dev/console) 2>&1
 AUTOUPDATE=false
 
 function installdep() {
+  echo "Installing dependencies..."
   if [ ${PLAT} = "ubuntu" ]; then
     apt-get -y update
     # Satisfying even Ubuntu older versions.
@@ -19,6 +20,7 @@ function installdep() {
     yum -y update
     yum install -y aws-cli ruby jq
   fi
+  echo "Done installing dependencies."
 }
 
 function platformize() {
@@ -36,39 +38,15 @@ function platformize() {
 }
 
 function execute() {
-  if [ ${PLAT} = "ubuntu" ]; then
+  if [[ "${PLAT}" = "ubuntu" ]] || [[ "${PLAT}" = "amz" ]]; then
+    echo "Downloading CodeDeploy Agent..."
     cd /tmp/
     wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
     chmod +x ./install
 
+    echo "Installing CodeDeploy Agent..."
     if ./install auto; then
       echo "Installation completed"
-      if ! ${AUTOUPDATE}; then
-        echo "Disabling Auto Update"
-        sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
-        chattr +i /etc/cron.d/codedeploy-agent-update
-        rm -f /tmp/install
-      fi
-      exit 0
-    else
-      echo "Installation script failed, please investigate"
-      rm -f /tmp/install
-      exit 1
-    fi
-
-  elif [ ${PLAT} = "amz" ]; then
-    cd /tmp/
-    wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
-    chmod +x ./install
-
-    if ./install auto; then
-      echo "Installation completed"
-      if ! ${AUTOUPDATE}; then
-        echo "Disabling auto update"
-        sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
-        chattr +i /etc/cron.d/codedeploy-agent-update
-        rm -f /tmp/install
-      fi
       exit 0
     else
       echo "Installation script failed, please investigate"
@@ -83,5 +61,6 @@ function execute() {
 
 platformize
 installdep
-REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r ".region")
+export TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+export REGION=$(curl -H "X-aws-ec2-metadata-token: ${TOKEN}" -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r ".region")
 execute

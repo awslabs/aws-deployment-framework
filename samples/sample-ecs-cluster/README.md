@@ -1,5 +1,10 @@
 # Sample ECS Cluster to showcase ADF Pipelines
 
+## Prerequisites
+
+Please make sure you deploy the `sample-vpc` example before you deploy
+this sample. The VPC should be deployed to the same target accounts and region.
+
 ## Deployment Map example
 
 ```yaml

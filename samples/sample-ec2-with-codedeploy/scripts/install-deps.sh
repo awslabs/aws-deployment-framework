@@ -1,7 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: Apache-2.0
+
+set -xe
 
 # install apache httpd
 sudo yum install httpd -y
@@ -10,15 +12,12 @@ sudo yum install httpd -y
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 
-# install java 8
-sudo yum install java-1.8.0 -y
-# remove java 1.7
-sudo yum remove java-1.7.0-openjdk -y
+# install Java
+sudo yum install -y java-17-amazon-corretto-headless
 
-# install maven
-sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
-sudo sed -i s/\$releasever/7/g /etc/yum.repos.d/epel-apache-maven.repo
-sudo yum install -y apache-maven
+# install Maven
+yum -y update
+sudo yum install -y maven
 
 # sdk version
 java -version
@@ -30,7 +29,7 @@ sdk install springboot
 # create a springboot user to run the app as a service
 sudo useradd springboot
 # springboot login shell disabled
-sudo chsh -s /sbin/nologin springboot
+sudo usermod --shell /sbin/nologin springboot
 
 # forward port 80 to 8080
 echo "
@@ -42,8 +41,8 @@ echo "
 " | sudo tee -a /etc/httpd/conf/httpd.conf > /dev/null
 
 # start the httpd service now and stop it until userdata
-sudo service httpd start
-sudo service httpd stop
+sudo systemctl start httpd
+sudo systemctl stop httpd
 
 # ensure httpd stays on
-sudo chkconfig httpd on
+sudo systemctl enable httpd

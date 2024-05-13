@@ -21,7 +21,6 @@ samconfig.toml
 samconfig.yml
 samconfig.yaml
 pipeline.json
-template-sam.yml
 deploy.sh
 Makefile.new
 
@@ -52,6 +51,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+node_modules
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

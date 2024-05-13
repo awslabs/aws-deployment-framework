@@ -23,7 +23,7 @@ Upon stack deletion the default VPCs will be recreated.
           # ^ Required for templates that contain transforms (eg SAM Templates)
 
   params:
-    - restart_execution_on_update: true
+    restart_execution_on_update: true
   targets:
     - path: /test
       name: test-deployments
