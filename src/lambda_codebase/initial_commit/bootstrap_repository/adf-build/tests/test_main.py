@@ -158,7 +158,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
                 'scm/default_scm_codecommit_account_id',
                 deployment_account_id,
             ),
-            call('deployment_maps/allow_empty_target', 'False'),
+            call('deployment_maps/allow_empty_target', 'disabled'),
             call('org/stage', 'none'),
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
@@ -203,7 +203,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         'stage': 'test-stage',
     }
     cls.config['deployment-maps'] = {
-        'allow-empty-target': 'False',
+        'allow-empty-target': 'disabled',
     }
     prepare_deployment_account(
         sts=sts,
@@ -260,7 +260,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
                 'scm/default_scm_codecommit_account_id',
                 deployment_account_id,
             ),
-            call('deployment_maps/allow_empty_target', 'False'),
+            call('deployment_maps/allow_empty_target', 'disabled'),
             call('org/stage', 'test-stage'),
             call('notification_type', 'slack'),
             call(

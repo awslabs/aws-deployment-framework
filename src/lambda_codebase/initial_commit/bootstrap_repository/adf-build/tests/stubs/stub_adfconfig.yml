@@ -22,4 +22,4 @@ config:
   scp:
     keep-default-scp: enabled
   deployment-maps:
-    allow-empty-target: "False"
+    allow-empty-target: disabled

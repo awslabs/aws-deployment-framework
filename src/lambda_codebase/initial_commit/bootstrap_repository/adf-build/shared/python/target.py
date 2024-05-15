@@ -150,10 +150,11 @@ class Target:
         self.organizations = organizations
         # Set adf_deployment_maps_allow_empty_target as bool
         parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
-        adf_deployment_maps_allow_empty_target_bool = parameter_store.fetch_parameter(
-            "deployment_maps/allow_empty_target"
-        ).lower().capitalize() == "True"
-        self.adf_deployment_maps_allow_empty_target = adf_deployment_maps_allow_empty_target_bool
+        self.adf_deployment_maps_allow_empty_target = (
+            parameter_store.fetch_parameter(
+                "deployment_maps/allow_empty_target"
+            ).lower() == "enabled"
+        )
 
 
     @staticmethod
@@ -192,7 +193,7 @@ class Target:
                 )
 
         if accounts_found == 0:
-            if self.adf_deployment_maps_allow_empty_target is False:
+            if not self.adf_deployment_maps_allow_empty_target:
                 raise NoAccountsFoundError(f"No accounts found in {self.path}.")
             LOGGER.info(
                 "Create_response_object: 0 AWS accounts found for path %s. "
@@ -209,7 +210,7 @@ class Target:
         except ClientError as client_err:
             if (
                 client_err.response["Error"]["Code"] == "AccountNotFoundException" and
-                self.adf_deployment_maps_allow_empty_target is True
+                self.adf_deployment_maps_allow_empty_target
             ):
                 LOGGER.info("IGNORE - Account was not found in AWS Org for id %s", self.path)
                 responses_list = []
@@ -244,7 +245,7 @@ class Target:
             no_target_found = (
                 client_err.response["Error"]["Code"] == "ParentNotFoundException"
             )
-            if no_target_found and self.adf_deployment_maps_allow_empty_target is True:
+            if no_target_found and self.adf_deployment_maps_allow_empty_target:
                 LOGGER.info(
                     "Note: Target OU was not found in the AWS Org for id %s",
                     self.path,
@@ -266,7 +267,7 @@ class Target:
             no_target_found = (
                 client_err.response["Error"]["Code"] == "ParentNotFoundException"
             )
-            if no_target_found and self.adf_deployment_maps_allow_empty_target is True:
+            if no_target_found and self.adf_deployment_maps_allow_empty_target:
                 LOGGER.info(
                     "Note: Target OU was not found in AWS Org for path %s",
                     self.path,
@@ -320,7 +321,7 @@ class Target:
             )
             return
 
-        if self.adf_deployment_maps_allow_empty_target is True:
+        if self.adf_deployment_maps_allow_empty_target:
             return
 
         if self.path is None:

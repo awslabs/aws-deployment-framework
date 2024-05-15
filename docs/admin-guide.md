@@ -206,7 +206,7 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     repository it can be found at
     `${bootstrap_repository}/adf-build/shared/repo_templates/codecommit.yml`.
 
-  - **default-scm-branch** allows you to configure the default branch that
+  - `default-scm-branch` allows you to configure the default branch that
     should be used with all source-code management platforms that ADF supports.
     For any new installation of the AWS Deployment Framework, this will default
     to `main`, as this is the default branch used by CodeCommit.
@@ -217,11 +217,13 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     `main`. As new repositories will most likely use this branch name as their
     default branch.
 - `deployment-maps` tracks all source code management configuration.
-  - **allow-empty-target** allows you to configure deployment maps with empty
-    targets.
+  - `allow-empty-target`, when set to `enabled` this allows you to configure
+    deployment maps with empty targets.
+
     If all targets get evaluated to empty, the ADF pipeline is still created
     based on the remaining providers (e.g. source and build). It just does not
     have a deploy stage.
+
     This is useful when you need to:
     - target an OU that does not have any AWS Accounts (initially or
       temporarily).
@@ -242,7 +244,7 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     More information about setting up ADF with multiple AWS Organizations can
     be found in the [Multi-Organization Guide](multi-organization-guide.md)
 
-  - **default-scm-codecommit-account-id** allows you to configure the default
+  - `default-scm-codecommit-account-id` allows you to configure the default
     account id that should be used with all source-code management platforms
     that ADF supports.
     If not set here, the deployment account id is taken as default value.
