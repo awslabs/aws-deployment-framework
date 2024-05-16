@@ -201,6 +201,7 @@ def _store_extension_parameters(parameter_store, config):
 
 def worker_thread(
     account_id,
+    deployment_account_id,
     sts,
     config,
     s3,
@@ -247,6 +248,10 @@ def worker_thread(
             parameter_store.put_parameter(
                 'bucket_name',
                 updated_kms_bucket_dict[region]['s3_regional_bucket'],
+            )
+            parameter_store.put_parameter(
+                'deployment_account_id',
+                deployment_account_id,
             )
             cloudformation = CloudFormation(
                 region=region,
@@ -483,6 +488,7 @@ def main():  # pylint: disable=R0915
         for account_id in non_deployment_account_ids:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,
+                deployment_account_id,
                 sts,
                 config,
                 s3,
