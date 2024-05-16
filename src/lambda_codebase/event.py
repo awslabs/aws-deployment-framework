@@ -128,7 +128,7 @@ class Event:
             'full_path': "ROOT" if self.moved_to_root else account_path,
             'destination_ou_id': self.destination_ou_id,
             'source_ou_id': self.source_ou_id,
-            'deployment_account_parameters' : {
+            'deployment_account_parameters': {
                 'organization_id': organization_information.get(
                     "organization_id"
                 ),
@@ -142,9 +142,9 @@ class Event:
                 'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
                 'adf_version': ADF_VERSION,
                 'adf_log_level': ADF_LOG_LEVEL,
-                'extensions/terraform/enabled': (
+                '/adf/extensions/terraform/enabled': (
                     self._read_parameter(
-                        'extensions/terraform/enabled',
+                        '/adf/extensions/terraform/enabled',
                         'False',
                     )
                 ),
