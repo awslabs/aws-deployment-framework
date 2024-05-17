@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.1
+MAKEFILE_VERSION := 2.2
 UPDATE_VERSION := make/latest
 
 # This Makefile requires Python version 3.9 or later
 REQUIRED_PYTHON_MAJOR_VERSION := 3
 REQUIRED_PYTHON_MINOR_VERSION := 9
-PYTHON_EXECUTABLE := "python$(REQUIRED_PYTHON_MAJOR_VERSION)"
+PYTHON_EXECUTABLE := python$(REQUIRED_PYTHON_MAJOR_VERSION)
 
 # Repository versions
 SRC_VERSION := $(shell git describe --tags --match 'v[0-9]*')
@@ -18,9 +18,13 @@ SRC_VERSION_TAG_ONLY := $(shell git describe --tags --abbrev=0 --match 'v[0-9]*'
 SRC_URL_BASE := https://github.com/awslabs/aws-deployment-framework
 RAW_URL_BASE := https://raw.githubusercontent.com/awslabs/aws-deployment-framework
 
-UPDATE_URL := "$(RAW_URL_BASE)/$(UPDATE_VERSION)/Makefile"
-SRC_TAGGED_URL_BASE := "$(SRC_URL_BASE)/tree/$(SRC_VERSION_TAG_ONLY)"
-MAKE_TAGGED_URL_BASE := "$(SRC_URL_BASE)/tree/make/$(MAKEFILE_VERSION)"
+UPDATE_URL := $(RAW_URL_BASE)/$(UPDATE_VERSION)/Makefile
+SRC_TAGGED_URL_BASE := $(SRC_URL_BASE)/tree/$(SRC_VERSION_TAG_ONLY)
+MAKE_TAGGED_URL_BASE := $(SRC_URL_BASE)/tree/make/$(MAKEFILE_VERSION)
+SRC_TAGGED_INSTALLATION_DOCS_URL := $(SRC_TAGGED_URL_BASE)/docs/installation-guide.md
+MAKE_TAGGED_INSTALLATION_DOCS_URL := $(MAKE_TAGGED_URL_BASE)/docs/installation-guide.md
+ISSUES_URL := $(SRC_URL_BASE)/issues
+RELEASE_NOTES_URL := $(SRC_URL_BASE)/releases/tag/$(SRC_VERSION_TAG_ONLY)
 
 # Command line colors
 CLR_RED := $(shell printf "\033[0;31m")
@@ -47,7 +51,8 @@ all: build
 # Which actions do not create an actual file like make expects:
 .PHONY: all clean update_makefile
 .PHONY: report_makefile_version report_versions version_report
-.PHONY: build_debs deps src_deps docker version_number git_ignore docs tox
+.PHONY: build_debs deps src_deps tox docker version_number git_ignore docs
+.PHONY: verify_rooling verify_version
 .PHONY: pre_build pre_deps_build sam_build post_build build deps_build
 .PHONY: pre_deploy_msg pre_deploy sam_deploy post_deploy deploy
 
@@ -171,8 +176,8 @@ docs:
 	@echo ""
 	@( \
 		echo "$(SRC_VERSION_TAG_ONLY)" | grep -E 'v[0-3]\.' &> /dev/null && \
-		echo "* $(CLR_BLUE)$(MAKE_TAGGED_URL_BASE)/docs/installation-guide.md$(CLR_END)" || \
-		echo "* $(CLR_BLUE)$(SRC_TAGGED_URL_BASE)/docs/installation-guide.md$(CLR_END)"; \
+		echo "* $(CLR_BLUE)$(MAKE_TAGGED_INSTALLATION_DOCS_URL)$(CLR_END)" || \
+		echo "* $(CLR_BLUE)$(SRC_TAGGED_INSTALLATION_DOCS_URL)$(CLR_END)"; \
 	)
 	@echo ""
 	@echo "* $(CLR_BLUE)$(SRC_TAGGED_URL_BASE)/docs/admin-guide.md$(CLR_END)"
@@ -222,7 +227,74 @@ verify_tooling: .venv
 		); \
 	)
 
-pre_build: build_deps docker version_number git_ignore
+verify_version: .venv
+	@# If the version is empty and we are not in a CI build
+	@( \
+		if [ "Z${SRC_VERSION}" = "Z" ] && [ "Z$${CI_BUILD}" = "Z" ]; then \
+			echo '' && \
+			echo '$(CLR_RED)Error: Unable to determine the ADF version!$(CLR_END)' && \
+			if [ -e .git ]; then \
+				echo '$(CLR_RED)The current directory is not a git clone of ADF.$(CLR_END)' && \
+				echo '' && \
+				echo '$(CLR_RED)Please read the installation guide to resolve this error:$(CLR_END)' && \
+				echo '* $(CLR_BLUE)$(MAKE_TAGGED_INSTALLATION_DOCS_URL)$(CLR_END)' && \
+				exit 1; \
+			fi && \
+			echo '$(CLR_RED)Most likely, the git tags have not been fetched yet.$(CLR_END)' && \
+			echo '' && \
+			echo '$(CLR_RED)Please fetch the git tags from the cloned repository to continue.$(CLR_END)' && \
+			echo '$(CLR_RED)You can do this by running:$(CLR_END) git fetch --tags origin' && \
+			echo '' && \
+			exit 1; \
+		fi \
+	)
+	@# If the src/template.yml version is newer than the git tagged version and
+	@# we are not in a CI build
+	@( \
+		. .venv/bin/activate; \
+		BASE_ADF_VERSION=$$(cat $(SRC_DIR)/template.yml | yq '.Metadata."AWS::ServerlessRepo::Application".SemanticVersion' -r); \
+		[ "Z$${CI_BUILD}" != "Z" ] || \
+		$(PYTHON_EXECUTABLE) -c "import sys; from packaging import version; version.parse(\"$$BASE_ADF_VERSION\") > version.parse(\"$(SRC_VERSION_TAG_ONLY)\") and sys.exit(1)" || \
+		( \
+			echo '' && \
+			echo '$(CLR_RED)Error: ADF Main template version is newer than the requested git tag version!$(CLR_END)' && \
+			echo '$(CLR_RED)Most likely, the git tags have not been fetched recently yet.$(CLR_END)' && \
+			echo '' && \
+			echo '$(CLR_RED)Please fetch the git tags from the cloned repository to continue.$(CLR_END)' && \
+			echo '$(CLR_RED)You can do this by running:$(CLR_END) git fetch --tags origin' && \
+			echo '' && \
+			echo "$(CLR_RED)ADF Main template version (src/template.yml):$(CLR_END) v$$BASE_ADF_VERSION" && \
+			echo '$(CLR_RED)Resolved ADF version using git tags:$(CLR_END) $(SRC_VERSION_TAG_ONLY)' && \
+			echo '' && \
+			exit 1 \
+		) \
+	)
+	@# If the version number is not a release-tagged version and we are not in a CI build
+	@( \
+		if [ "Z$(SRC_VERSION)" != "Z$(SRC_VERSION_TAG_ONLY)" ] && [ "Z$${CI_BUILD}" = "Z" ]; then \
+			echo '' && \
+			echo '$(CLR_RED)Caution: You are about to build the AWS Deployment Framework (ADF)$(CLR_END)' && \
+			echo '$(CLR_RED)with commits that have not undergone the standard release testing process.$(CLR_END)' && \
+			echo '' && \
+			echo '$(CLR_RED)These untested commits may potentially cause issues or disruptions to your$(CLR_END)' && \
+			echo '$(CLR_RED)existing ADF installation and deployment pipelines.$(CLR_END)' && \
+			echo '$(CLR_RED)Please proceed with extreme caution and ensure you have appropriate backups$(CLR_END)' && \
+			echo '$(CLR_RED)and contingency plans in place. It is highly recommended to thoroughly review$(CLR_END)' && \
+			echo '$(CLR_RED)and test these commits in a non-production environment before you proceed.$(CLR_END)' && \
+			echo '' && \
+			echo 'ADF version base tag: $(CLR_RED)$(SRC_VERSION_TAG_ONLY)$(CLR_END)' && \
+			echo 'ADF version of current commit: $(CLR_RED)$(SRC_VERSION)$(CLR_END)' && \
+			echo '' && \
+			echo 'Are you sure you want to continue? [y/N] ' && \
+			read answer && \
+			if [ "$${answer:-'N'}" != "Y" ] && [ "$${answer:-'N'}" != "y" ]; then \
+				echo 'Aborting...' && \
+				exit 1; \
+			fi \
+		fi \
+	)
+
+pre_build: build_deps docker version_number verify_version git_ignore
 
 pre_deps_build: deps docker version_number git_ignore
 
@@ -250,13 +322,31 @@ pre_deploy_msg:
 	@echo ""
 	@echo "$(CLR_GREEN)Thank you for deploying ADF, we are about to proceed$(CLR_END)"
 	@echo ""
+	@echo "$(CLR_RED)Caution:$(CLR_END) You are about to deploy ADF $(SRC_VERSION)."
+	@echo "Proceeding with the deployment will directly impact an existing ADF"
+	@echo "installation and ADF pipelines in this AWS Organization."
+	@echo "It is highly recommended to thoroughly review and test this version"
+	@echo "of ADF in a non-production environment before you proceed."
+	@echo ""
+	@echo "It is important to check the release notes prior to installing or updating."
+	@( \
+		if [ "Z$(SRC_VERSION)" != "Z$(SRC_VERSION_TAG_ONLY)" ]; then \
+			echo "Please read the local CHANGELOG.md file in the root of the repository."; \
+		else \
+			echo "Release notes of $(SRC_VERSION_TAG_ONLY) can be found at: $(CLR_BLUE)$(RELEASE_NOTES_URL)$(CLR_END)"; \
+		fi \
+	)
+	@echo ""
+	@echo "Please also check whether there are known issues at: $(CLR_BLUE)$(ISSUES_URL)$(CLR_END)"
+	@echo "If you run into an issue, you can report these via GitHub issues."
+	@echo ""
 	@echo "$(CLR_YELLOW)In the next step, a few questions need to be answered.$(CLR_END)"
 	@echo "$(CLR_YELLOW)Please use the following guide to answer these:$(CLR_END)"
 	@echo ""
 	@( \
 		echo "$(SRC_VERSION_TAG_ONLY)" | grep -E 'v[0-3]\.' &> /dev/null && \
-		echo "$(CLR_BLUE)$(MAKE_TAGGED_URL_BASE)/docs/installation-guide.md$(CLR_END)" || \
-		echo "$(CLR_BLUE)$(SRC_TAGGED_URL_BASE)/docs/installation-guide.md$(CLR_END)"; \
+		echo "$(CLR_BLUE)$(MAKE_TAGGED_INSTALLATION_DOCS_URL)$(CLR_END)" || \
+		echo "$(CLR_BLUE)$(SRC_TAGGED_INSTALLATION_DOCS_URL)$(CLR_END)"; \
 	)
 	@echo ""
 	@echo ""
