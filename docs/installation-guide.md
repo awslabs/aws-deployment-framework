@@ -191,7 +191,7 @@ You can checkout a specific version by running:
 git checkout ${version_tag_goes_here}
 
 # For example:
-git checkout v3.2.0
+git checkout v3.2.1
 ```
 
 ### 3.3. Update Makefile
