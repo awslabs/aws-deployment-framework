@@ -2,6 +2,9 @@ name: ADF CI
 
 on: [push, pull_request]
 
+env:
+  CI_BUILD: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,7 +14,10 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 150
+          fetch-tags: true
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
