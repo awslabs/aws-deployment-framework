@@ -53,7 +53,7 @@ def test_fetch_accounts_for_target_ou_path():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -77,7 +77,7 @@ def test_fetch_accounts_for_target_account_id():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -100,7 +100,7 @@ def test_fetch_accounts_for_target_ou_id():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -123,7 +123,7 @@ def test_fetch_accounts_for_approval():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -146,7 +146,7 @@ def test_fetch_account_error():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -168,7 +168,7 @@ def test_fetch_account_error_invalid_account_id():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         cls = Target(
@@ -190,7 +190,7 @@ def test_target_structure_respects_wave():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {"path": "/some/random/ou", "wave": {"size": 2}}
@@ -288,7 +288,7 @@ def test_target_structure_respects_multi_region():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {"path": "/some/random/ou", "wave": {"size": 20}}
@@ -335,7 +335,7 @@ def test_target_structure_respects_multi_action_single_region():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {"path": "/some/random/ou"}
@@ -379,7 +379,7 @@ def test_target_structure_respects_multi_action_multi_region():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {"path": "/some/random/ou"}
@@ -423,7 +423,7 @@ def test_target_structure_respects_change_set_approval_single_region():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {"path": "/some/random/ou"}
@@ -468,7 +468,7 @@ def test_target_wave_structure_respects_exclude_config():
         expected_calls = [
             call(
                 'deployment_maps/allow_empty_target',
-                'False',
+                'disabled',
             ),
         ]
         test_target_config = {

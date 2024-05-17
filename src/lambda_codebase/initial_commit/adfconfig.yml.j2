@@ -12,6 +12,7 @@ regions:
     {%- for Region in TargetRegions %}
     - {{ Region }}
     {%- endfor %}
+
 config:
   main-notification-endpoint:
     - type: {{ NotificationEndpointType }}  # slack or email
@@ -33,8 +34,11 @@ config:
     # Optional:
     # default-scm-codecommit-account-id: "123456789012"
   deployment-maps:
-    allow-empty-target: "False"
-    # ^ Needs to be "True" or "False". Defaults to "False" when not set.
-  #org:
-    # Optional: Use this variable to define the AWS Organization in case of staged multi-organization ADF deployments
-    #stage: dev
+    allow-empty-target: disabled
+    # ^ Needs to be set to "enabled" to activate. Defaults to "disabled" when
+    # not set.
+# Optional config for multi-organization deployments of ADF:
+#   org:
+#    # Optional: Use this variable to define the AWS Organization in case of
+#    # staged multi-organization ADF deployments
+#    stage: dev
