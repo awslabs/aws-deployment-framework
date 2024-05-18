@@ -46,7 +46,7 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -113,7 +113,7 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {

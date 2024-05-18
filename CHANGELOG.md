@@ -35,14 +35,21 @@ these customizations to CDK v2 as well.
 
 #### CodeBuild default image
 
-As written in the [CodeBuild provider
+As was written in the [CodeBuild provider
 docs](./docs/providers-guide.md#properties-3), it is a best-practice to define
 the exact CodeBuild container image you would like to use for each pipeline.
 
 However, in case you rely on the default, in prior ADF releases it would
 default to `UBUNTU_14_04_PYTHON_3_7_1`. This container image is no longer
-supported. With ADF v4.0, the new default is `STANDARD_7_0`.
-Also referred to as: `aws/codebuild/standard:7.0`.
+supported. With ADF v4.0, using the CodeBuild provider requires defining the
+specific CodeBuild container image to use. This way, it will not fallback to
+a default that might be secure today but deprecated in the future.
+
+For each pipeline definition in the deployment maps, the CodeBuild image will
+need to be defined. Alternatively, upgrade ADF and check which pipelines failed
+to deploy after. Most likely all pipelines already define the CodeBuild image
+to use, as the previous default image is [not supported by
+AWS CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html#deprecated-images).
 
 #### ADF Parameters in AWS Systems Manager Parameter Store
 
