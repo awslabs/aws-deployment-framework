@@ -38,7 +38,13 @@ def test_update_deployment_parameters(cls):
                     "properties": {
                         "account_id": 111111111111,
                     },
-                }
+                },
+                "build": {
+                    "name": "codebuild",
+                    "properties": {
+                        "image": "STANDARD_7_0",
+                    },
+                },
             },
         }
     )
@@ -83,7 +89,13 @@ def test_update_deployment_parameters_waves(cls):
                 "properties": {
                     "account_id": 111111111111,
                 }
-            }
+            },
+            "build": {
+                "name": "codebuild",
+                "properties": {
+                    "image": "STANDARD_7_0",
+                },
+            },
         }
     })
     pipeline.template_dictionary = {

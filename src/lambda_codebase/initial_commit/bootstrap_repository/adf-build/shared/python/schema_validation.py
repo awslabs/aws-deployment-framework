@@ -103,15 +103,17 @@ S3_SOURCE = {
 
 # CodeBuild
 CODEBUILD_IMAGE_PROPS = {
-    Optional("repository_arn"): str,  # arn:aws:ecr:region:111111111111:repository/test
-    Optional("repository_name"): str, # hello-world
-    Optional("tag"): str,   # defaults to latest
+    # repository_arn: arn:aws:ecr:region:111111111111:repository/test
+    Optional("repository_arn"): str,
+    # repository_name: hello-world
+    Optional("repository_name"): str,
+    # tag defaults to latest
+    Optional("tag"): str,
 }
-CODEBUILD_PROPS = {
+CODEBUILD_BASE_PROPS = {
     Optional("vpc_id"): str,
     Optional("subnet_ids"): [str],
     Optional("security_group_ids"): [str],
-    Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
     Optional("size"): Or('small', 'medium', 'large'),
     Optional("spec_filename"): str,
     Optional("environment_variables"): {
@@ -122,14 +124,31 @@ CODEBUILD_PROPS = {
     Optional("privileged"): bool,
     Optional("spec_inline"): object,
 }
+CODEBUILD_PROPS = {
+    **CODEBUILD_BASE_PROPS,
+    "image": Or(str, CODEBUILD_IMAGE_PROPS),
+}
+CODEBUILD_STAGE_PROPS = {
+    **CODEBUILD_BASE_PROPS,
+    Optional("image"): Or(str, CODEBUILD_IMAGE_PROPS),
+}
+DEFAULT_CODEBUILD_DISABLED = {
+    Optional("provider"): 'codebuild',
+    "enabled": False,
+    Optional("properties"): CODEBUILD_PROPS
+}
 DEFAULT_CODEBUILD_BUILD = {
     Optional("provider"): 'codebuild',
     Optional("enabled"): bool,
-    Optional("properties"): CODEBUILD_PROPS
+    "properties": CODEBUILD_PROPS
 }
-STAGE_CODEBUILD_BUILD = {
+DEFAULT_CODEBUILD_DEPLOY = {
     Optional("provider"): 'codebuild',
-    Optional("properties"): CODEBUILD_PROPS
+    "properties": CODEBUILD_PROPS
+}
+STAGE_CODEBUILD_DEPLOY = {
+    Optional("provider"): 'codebuild',
+    Optional("properties"): CODEBUILD_STAGE_PROPS
 }
 
 # Jenkins
@@ -261,13 +280,14 @@ PROVIDER_BUILD_SCHEMAS = {
     'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
     'jenkins': Schema(JENKINS_BUILD),
 }
+PROVIDER_BUILD_DISABLED_SCHEMA = Schema(DEFAULT_CODEBUILD_DISABLED)
 PROVIDER_DEPLOY_SCHEMAS = {
     'cloudformation': Schema(DEFAULT_CLOUDFORMATION_DEPLOY),
     's3': Schema(DEFAULT_S3_DEPLOY),
     'codedeploy': Schema(DEFAULT_CODEDEPLOY_DEPLOY),
     'lambda': Schema(DEFAULT_LAMBDA_INVOKE),
     'service_catalog': Schema(DEFAULT_SERVICECATALOG_DEPLOY),
-    'codebuild': Schema(DEFAULT_CODEBUILD_BUILD),
+    'codebuild': Schema(DEFAULT_CODEBUILD_DEPLOY),
 }
 PROVIDER_SCHEMA = {
     'source': Or(
@@ -288,16 +308,34 @@ PROVIDER_SCHEMA = {
             lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
         ),
     ),
-    Optional('build'): And(
-        {
-            Optional('provider'): Or('codebuild', 'jenkins'),
-            Optional('enabled'): bool,
-            Optional('properties'): dict,
-        },
-        # pylint: disable=W0108
-        lambda x: PROVIDER_BUILD_SCHEMAS[
-            x.get('provider', 'codebuild')
-        ].validate(x),
+    'build': Or(
+        And(
+            {
+                Optional("provider"): 'codebuild',
+                Optional('enabled'): bool,
+                Optional('properties'): dict,
+            },
+            # pylint: disable=W0108
+            lambda x: PROVIDER_BUILD_DISABLED_SCHEMA.validate(x)
+        ),
+        And(
+            {
+                Optional("provider"): 'codebuild',
+                Optional('enabled'): bool,
+                'properties': dict,
+            },
+            # pylint: disable=W0108
+            lambda x: PROVIDER_BUILD_SCHEMAS['codebuild'].validate(x),
+        ),
+        And(
+            {
+                'provider': Or('jenkins'),
+                Optional('enabled'): bool,
+                Optional('properties'): dict,
+            },
+            # pylint: disable=W0108
+            lambda x: PROVIDER_BUILD_SCHEMAS[x['provider']].validate(x),
+        ),
     ),
     Optional('deploy'): And(
         {
@@ -349,7 +387,7 @@ TARGET_SCHEMA = {
         'jenkins',
     ),
     Optional("properties"): Or(
-        CODEBUILD_PROPS,
+        CODEBUILD_STAGE_PROPS,
         JENKINS_PROPS,
         CLOUDFORMATION_PROPS,
         CODEDEPLOY_PROPS,

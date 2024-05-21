@@ -9,11 +9,8 @@ from aws_cdk import (
     aws_codebuild as _codebuild,
     Stack,
 )
-from cdk_constructs.adf_codebuild import CodeBuild, DEFAULT_CODEBUILD_IMAGE
+from cdk_constructs.adf_codebuild import CodeBuild
 
-SIMPLE_TARGET = {
-    'properties': {},
-}
 SPECIFIC_CODEBUILD_IMAGE_STR = 'STANDARD_7_0'
 SPECIFIC_CODEBUILD_IMAGE_ALT_STR = 'STANDARD_6_0'
 SPECIFIC_CODEBUILD_IMAGE_ALT2_STR = 'STANDARD_5_0'
@@ -21,11 +18,8 @@ SPECIFIC_CODEBUILD_IMAGE_ECR = {
     'repository_arn': 'arn:aws:ecr:region:111111111111:repository/test',
     'tag': 'specific',
 }
-CODEBUILD_SPECIFIC_MAP_PARAMS_STR = {
-    'provider': 'codebuild',
-    'properties': {
-        'image': SPECIFIC_CODEBUILD_IMAGE_STR,
-    }
+SIMPLE_TARGET = {
+    'properties': {},
 }
 CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR = {
     'provider': 'codebuild',
@@ -48,8 +42,16 @@ CODEBUILD_SPECIFIC_MAP_PARAMS_ECR = {
 
 CODEBUILD_BASE_MAP_PARAMS = {
     'default_providers': {
-        'build': {},
-        'deploy': {},
+        'build': {
+            'properties': {
+                'image': SPECIFIC_CODEBUILD_IMAGE_STR,
+            },
+        },
+        'deploy': {
+            'properties': {
+                'image': SPECIFIC_CODEBUILD_IMAGE_STR,
+            },
+        },
     },
 }
 
@@ -85,7 +87,7 @@ def test_determine_build_image_build_defaults(ecr_repo, build_image):
 
     assert result == getattr(
         _codebuild.LinuxBuildImage,
-        DEFAULT_CODEBUILD_IMAGE,
+        SPECIFIC_CODEBUILD_IMAGE_STR,
     )
     ecr_repo.from_repository_arn.assert_not_called()
     build_image.from_ecr_repository.assert_not_called()
@@ -109,11 +111,11 @@ def test_determine_build_image_build_str(ecr_repo, build_image):
     target = None
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['build'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_STR
+        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
     # Set deploy one to alternative, so we can test
     # that it is not using this in build steps
     map_params['default_providers']['deploy'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
+        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT2_STR
 
     result = CodeBuild.determine_build_image(
         codebuild_id='some_id',
@@ -124,7 +126,7 @@ def test_determine_build_image_build_str(ecr_repo, build_image):
 
     assert result == getattr(
         _codebuild.LinuxBuildImage,
-        SPECIFIC_CODEBUILD_IMAGE_STR,
+        SPECIFIC_CODEBUILD_IMAGE_ALT_STR,
     )
     ecr_repo.from_repository_arn.assert_not_called()
     build_image.from_ecr_repository.assert_not_called()
@@ -266,7 +268,7 @@ def test_determine_build_image_deploy_defaults(ecr_repo, build_image):
 
     assert result == getattr(
         _codebuild.LinuxBuildImage,
-        DEFAULT_CODEBUILD_IMAGE,
+        SPECIFIC_CODEBUILD_IMAGE_STR,
     )
     ecr_repo.from_repository_arn.assert_not_called()
     build_image.from_ecr_repository.assert_not_called()
@@ -288,12 +290,12 @@ def test_determine_build_image_deploy_target_str(ecr_repo, build_image):
         not the default deploy specific config.
     """
     scope = Stack()
-    target = CODEBUILD_SPECIFIC_MAP_PARAMS_STR
+    target = CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     # Set build one to alternative, so we can test
     # that it is not using this in deploy steps
     map_params['default_providers']['build'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
+        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT2_STR
 
     result = CodeBuild.determine_build_image(
         codebuild_id='some_id',
@@ -304,7 +306,7 @@ def test_determine_build_image_deploy_target_str(ecr_repo, build_image):
 
     assert result == getattr(
         _codebuild.LinuxBuildImage,
-        SPECIFIC_CODEBUILD_IMAGE_STR,
+        SPECIFIC_CODEBUILD_IMAGE_ALT_STR,
     )
     ecr_repo.from_repository_arn.assert_not_called()
     build_image.from_ecr_repository.assert_not_called()
@@ -328,11 +330,11 @@ def test_determine_build_image_deploy_str(ecr_repo, build_image):
     target = SIMPLE_TARGET
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
     map_params['default_providers']['deploy'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_STR
+        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
     # Set build one to alternative, so we can test
     # that it is not using this in deploy steps
     map_params['default_providers']['build'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
+        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT2_STR
 
     result = CodeBuild.determine_build_image(
         codebuild_id='some_id',
@@ -343,7 +345,7 @@ def test_determine_build_image_deploy_str(ecr_repo, build_image):
 
     assert result == getattr(
         _codebuild.LinuxBuildImage,
-        SPECIFIC_CODEBUILD_IMAGE_STR,
+        SPECIFIC_CODEBUILD_IMAGE_ALT_STR,
     )
     ecr_repo.from_repository_arn.assert_not_called()
     build_image.from_ecr_repository.assert_not_called()
@@ -366,12 +368,6 @@ def test_determine_build_image_deploy_target_str_too(ecr_repo, build_image):
     scope = Stack()
     target = CODEBUILD_SPECIFIC_MAP_PARAMS_ALT2_STR
     map_params = deepcopy(CODEBUILD_BASE_MAP_PARAMS)
-    map_params['default_providers']['deploy'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_STR
-    # Set build one to alternative, so we can test
-    # that it is not using this in deploy steps
-    map_params['default_providers']['build'] = \
-        CODEBUILD_SPECIFIC_MAP_PARAMS_ALT_STR
 
     result = CodeBuild.determine_build_image(
         codebuild_id='some_id',

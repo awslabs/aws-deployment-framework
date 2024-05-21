@@ -60,7 +60,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_s3_and_build_is_co
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -117,7 +117,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_and_bui
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -179,7 +179,7 @@ def test_pipeline_creation_outputs_as_expected_when_source_is_codecommit_with_co
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -252,7 +252,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -313,7 +313,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -381,7 +381,7 @@ def test_pipeline_creation_outputs_with_invalid_trigger_type():
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {
@@ -434,7 +434,7 @@ def test_pipeline_creation_outputs_as_expected_when_notification_endpoint_is_cha
     }
     stack_input["pipeline_input"]["default_providers"]["build"] = {
         "provider": "codebuild",
-        "properties": {"account_id": "123456789012"},
+        "properties": {"image": "STANDARD_7_0"},
     }
 
     stack_input["ssm_params"][region_name] = {

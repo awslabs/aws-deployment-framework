@@ -10,6 +10,8 @@ pipelines:
           account_id: 111111111111
       build:
         provider: codebuild
+        properties:
+          image: STANDARD_7_0
       deploy:
         provider: cloudformation
     params:
@@ -38,6 +40,7 @@ pipelines:
       build:
         provider: codebuild
         properties:
+          image: STANDARD_7_0
           role: packer
           size: medium  # Resource allocation for the build stage -> small | medium | large
     params:
@@ -56,6 +59,10 @@ pipelines:
           repository: example-vpc-adf  # Optional, above name property will be used if this is not specified
           owner: awslabs
           codeconnections_param_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeConnections ARN
+      build:
+        provider: codebuild
+        properties:
+          image: STANDARD_7_0
       deploy:
         provider: cloudformation
         properties:
@@ -74,6 +81,10 @@ pipelines:
           repository: my-ecs-app  # Optional, the name of the pipeline will be used if this is not specified
           owner: github-enterprise-team-org
           codeconnections_param_path: /path/to/parameter  # The path in AWS Systems Manager Parameter Store that holds the AWS CodeConnections ARN
+      build:
+        properties:
+          image:
+            repository_arn: 'arn:aws:ecr:region:012345678910:repository-namespace/repository-name'
     params:
       notification_endpoint: team@example.com
     targets:
@@ -85,8 +96,14 @@ pipelines:
         provider: codecommit
         properties:
           account_id: 333333333333  # A different account id as this pipeline is owned by a different team
+      build:
+        properties:
+          image: STANDARD_7_0
       deploy:
         provider: codebuild
+        properties:
+          image:
+            repository_name: 'some-repo-name'
     targets:  # Targets looks for the deploy defaults above to determine parameters
       - properties:
           spec_filename: custom-spec-one.yml
@@ -103,6 +120,8 @@ pipelines:
         provider: codecommit
         properties:
           account_id: 333333333333  # A different account id as this pipeline is owned by a different team
+      build:
+        provider: jenkins
     targets:
       - 222222222222
 
@@ -134,6 +153,9 @@ pipelines:
         provider: codecommit
         properties:
           account_id: 111111111111
+      build:
+        properties:
+          image: docker-hub://some-image
     targets:
       - target: 222222222222
         properties:

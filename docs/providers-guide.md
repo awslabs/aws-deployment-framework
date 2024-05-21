@@ -220,11 +220,9 @@ Provider type: `codebuild`.
 
 #### Properties
 
-- *image* *(String|Object)* - default: `STANDARD_7_0`.
-  - It is recommended to specify the container image your pipeline requires.
-    Relying on the default value might impact the pipeline in future updates
-    of ADF if the default were to change.
-  - The Image that the AWS CodeBuild will use. Images can be found
+- *image* *(String|Object)*.
+  - It is required to specify the container image your pipeline requires.
+  - Specify the Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
   - Image can also take an object that contains a reference to a public docker
     hub image with a prefix of `docker-hub://`, such as
