@@ -119,7 +119,7 @@ class Events(Construct):
                 _event = _events.Rule(
                     self,
                     f'completion_{pipeline}',
-                    description="Triggers {pipeline} on completion of {params['pipeline']}",
+                    description=f"Triggers {pipeline} on completion of {params['pipeline']}",
                     enabled=True,
                     event_pattern=_events.EventPattern(
                         detail={
