@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.2
+MAKEFILE_VERSION := 2.3
 UPDATE_VERSION := make/latest
 
 # This Makefile requires Python version 3.9 or later
@@ -268,6 +268,26 @@ verify_version: .venv
 			echo '' && \
 			exit 1 \
 		) \
+	)
+	@# If there are uncommitted changes or new files, this implies that ADF
+	@# might be modified, hence we should track that in the version number
+	@( \
+		git diff-index --quiet HEAD -- src || ( \
+			echo '' && \
+			echo '$(CLR_RED)Error: There are uncommitted changes!$(CLR_END)' && \
+			echo '$(CLR_RED)Please commit these changes first to continue.$(CLR_END)' && \
+			echo '' && \
+			exit 1 \
+		); \
+	)
+	@( \
+		test -z "$$(git ls-files --others --exclude-standard -- src)" || ( \
+			echo '' && \
+			echo '$(CLR_RED)Error: New files were added to ADF its source code!$(CLR_END)' && \
+			echo '$(CLR_RED)Please commit these changes first to continue.$(CLR_END)' && \
+			echo '' && \
+			exit 1 \
+		); \
 	)
 	@# If the version number is not a release-tagged version and we are not in a CI build
 	@( \
