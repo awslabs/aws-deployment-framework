@@ -60,17 +60,16 @@ class OrganizationPolicy:
         :return: Returns True if the region is GovCloud, False otherwise.
         """
         return region.startswith("us-gov")
-    
+
     @staticmethod
     def return_policy_name(policy_type, target_path, policy_filename):
         _type = 'scp' if policy_type == "SERVICE_CONTROL_POLICY" else 'tagging-policy'
         if policy_filename != f'{_type}.json':
             #filter the policy name to remove the .json extension
             policy_filename = policy_filename.split('.')[0]
-            return 'adf-{0}-{1}-{2}'.format(_type, target_path, policy_filename)
-        else:
-            # Added for backwards-compatibility with previous versions of ADF
-            return 'adf-{0}-{1}'.format(_type, target_path)
+            return f'adf-{_type}-{target_path}-{policy_filename}'
+        # Added for backwards-compatibility with previous versions of ADF
+        return f'adf-{_type}-{target_path}'
 
     @staticmethod
     def set_scp_attachment(access_identifier, organization_mapping, path, organizations):
@@ -173,14 +172,16 @@ class OrganizationPolicy:
                         config.get("scp"), organization_mapping, path, organizations
                     )
                     if stored_policy not in policy_paths:
-                        path, policy_filename = OrganizationPolicy._trim_policy_file_name(stored_policy)
+                        path, policy_filename = OrganizationPolicy._trim_policy_file_name(
+                            stored_policy
+                        )
                         OrganizationPolicy.clean_and_remove_policy_attachment(
                             organization_mapping,
                             path,
                             policy_filename,
                             organizations,
                             policy_type
-                         )
+                        )
             except ParameterNotFoundError:
                 LOGGER.debug(
                     "Parameter %s was not found in Parameter Store, continuing.",
@@ -189,7 +190,11 @@ class OrganizationPolicy:
 
             for policy_path in policy_paths:
                 path, policy_filename = OrganizationPolicy._trim_policy_file_name(policy_path)
-                policy_name = OrganizationPolicy.return_policy_name(policy_type, path, policy_filename)
+                policy_name = OrganizationPolicy.return_policy_name(
+                    policy_type, 
+                    path, 
+                    policy_filename
+                )
                 policy_id = organizations.describe_policy_id_for_target(
                     organization_mapping[path],
                     policy_name,

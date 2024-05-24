@@ -180,7 +180,7 @@ class Organizations:  # pylint: disable=R0904
         policy_name,
         policy_type="SERVICE_CONTROL_POLICY",
     ):
-    
+
         response = self.client.create_policy(
             Content=content,
             Description=f"ADF Managed {policy_type}",
@@ -212,7 +212,10 @@ class Organizations:  # pylint: disable=R0904
             TargetId=target_id, Filter=policy_type
         )
         try:
-            return [p for p in response['Policies'] if 'ADF Managed {0}'.format(policy_type) in p['Description'] and p['Name'] == policy_name][0]['Id']
+            return [
+                p for p in response['Policies'] 
+                if f'ADF Managed {policy_type}' in p['Description'] and p['Name'] == policy_name
+            ][0]['Id']
         except IndexError:
             return []
 
