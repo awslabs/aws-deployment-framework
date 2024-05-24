@@ -213,7 +213,7 @@ class Organizations:  # pylint: disable=R0904
         )
         try:
             return [
-                p for p in response['Policies'] 
+                p for p in response['Policies']
                 if f'ADF Managed {policy_type}' in p['Description'] and p['Name'] == policy_name
             ][0]['Id']
         except IndexError:

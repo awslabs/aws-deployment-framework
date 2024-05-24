@@ -191,8 +191,8 @@ class OrganizationPolicy:
             for policy_path in policy_paths:
                 path, policy_filename = OrganizationPolicy._trim_policy_file_name(policy_path)
                 policy_name = OrganizationPolicy.return_policy_name(
-                    policy_type, 
-                    path, 
+                    policy_type,
+                    path,
                     policy_filename
                 )
                 policy_id = organizations.describe_policy_id_for_target(
