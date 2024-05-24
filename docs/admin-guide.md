@@ -337,8 +337,8 @@ that is moved into a specific Organizational Unit in AWS Organizations.
 Bootstrapping of AWS accounts is a convenient way to apply a baseline to an
 account or sub-set of accounts based on the structure of your AWS Organization.
 
-When deploying ADF, a CodeCommit
-repository titled `aws-deployment-framework-bootstrap` will also be created.
+When deploying ADF, a CodeCommit repository titled
+`aws-deployment-framework-bootstrap` will be created.
 This repository acts as an entry point for bootstrapping templates. The
 definition of which templates are applied to which Organization Unit are defined
 in the `adf-bootstrap` folder structure of the
@@ -346,15 +346,31 @@ in the `adf-bootstrap` folder structure of the
 
 Inside the `adf-bootstrap` folder of the `aws-deployment-framework-bootstrap`
 repository, create a folder structure and associated CloudFormation templates
-`global.yml` or `regional.yml` and optional parameters `global-params.json` or
-`regional-params.json` that match your desired specificity when bootstrapping
-your AWS Accounts.
+`global-iam.yml` or `regional.yml` and optional parameters
+`global-iam-params.json` or `regional-params.json` that match your desired
+specificity when bootstrapping your AWS Accounts.
+
+**Please be aware:** that you should not create a copy of the `global.yml` file
+that lives in the `adf-bootstrap` folder. ADF will automatically navigate up
+through the directory structure to find the `global.yml`. If you were to create
+a `global.yml` copy, it will not get updated by ADF automatically.
+
+Additionally, it is important to note that you should not make changes to the
+`global.yml` file. Changes in this file will be overwritten when a new version
+of ADF is installed. If you made changes, you would need to carefully apply
+them again with every update. Instead, it is suggested to use the
+`global-iam.yml` as described above.
 
 Commit and push this repository to the CodeCommit repository titled
 `aws-deployment-framework-bootstrap` on the management account.
 
 - `global.yml` in the base of the `adf-bootstrap` folder is required as it
-  functions as the base configuration for ADF.
+  functions as the base configuration for ADF. Do not create copies of this
+  file. The only two locations where the `global.yml` is allowed to exist are
+  `adf-bootstrap/global.yml` and `adf-bootstrap/deployment/global.yml`.
+  If you must deploy infrastructure in the global region only, please use the
+  `global-iam.yml` file name instead. This file will not get any automated
+  updates by ADF either, so changes persist after updates of ADF.
 - `regional.yml` is optional, deploying specific resources in each ADF-enabled
   region.
 
