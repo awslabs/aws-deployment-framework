@@ -61,6 +61,80 @@ def test_deployment_account_given(
 
     assert returned_account_id == account_id
     assert not created
+    logger.info.assert_has_calls([
+        call(
+            'Using existing deployment account as specified %s.',
+            account_id,
+        ),
+        call(
+            'The %s parameter was not found, creating it',
+            DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        ),
+    ])
+    concur_mod_fn.assert_not_called()
+    wait_on_fn.assert_not_called()
+    ssm_client.get_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+    )
+    ssm_client.put_parameter.assert_called_once_with(
+        Name=DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
+        Value=account_id,
+        Description=SSM_PARAMETER_ADF_DESCRIPTION,
+        Type="String",
+        Overwrite=True,
+    )
+    find_orgs_api.assert_not_called()
+    org_client.create_account.assert_not_called()
+
+
+@patch("main.ORGANIZATION_CLIENT")
+@patch("main.SSM_CLIENT")
+@patch("main._find_deployment_account_via_orgs_api")
+@patch("main._wait_on_account_creation")
+@patch("main._handle_concurrent_modification")
+@patch("main.LOGGER")
+def test_deployment_account_given_mismatch_ssm_param(
+    logger, concur_mod_fn, wait_on_fn, find_orgs_api, ssm_client, org_client
+):
+    account_id = "123456789012"
+    ssm_account_id = "111111111111"
+    account_name = "test-deployment-account"
+    account_email = "test@amazon.com"
+    cross_account_access_role_name = "some-role"
+    ssm_client.exceptions.ParameterNotFound = ParameterNotFound
+    org_client.exceptions.ConcurrentModificationException = (
+        ConcurrentModificationException
+    )
+
+    ssm_client.get_parameter.return_value = {
+        "Parameter": {
+            "Value": ssm_account_id,
+        }
+    }
+    find_orgs_api.return_value = ""
+
+    with pytest.raises(RuntimeError) as excinfo:
+        ensure_account(
+            account_id,
+            account_name,
+            account_email,
+            cross_account_access_role_name,
+            is_update=False,
+        )
+
+    error_message = str(excinfo.value)
+    correct_error_message = (
+        "Failed to configure the deployment account. "
+        f"The {DEPLOYMENT_ACCOUNT_ID_PARAM_PATH} parameter has "
+        f"account id {ssm_account_id} configured, while "
+        f"the current operation requests using {account_id} "
+        "instead. These need to match, if you are sure you want to "
+        f"use {account_id}, please update or delete the "
+        f"{DEPLOYMENT_ACCOUNT_ID_PARAM_PATH} parameter in AWS Systems "
+        "Manager Parameter Store and try again."
+    )
+    assert error_message.find(correct_error_message) >= 0
+
     logger.info.assert_called_once_with(
         'Using existing deployment account as specified %s.',
         account_id,
@@ -112,7 +186,7 @@ def test_deployment_account_given_on_update_no_params(
             account_id,
         ),
         call(
-            'The %s param was not found, creating it as we are updating ADF',
+            'The %s parameter was not found, creating it',
             DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
         ),
     ])

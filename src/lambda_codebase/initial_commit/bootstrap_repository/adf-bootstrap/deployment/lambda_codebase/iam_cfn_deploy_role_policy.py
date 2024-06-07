@@ -47,7 +47,7 @@ class IAMCfnDeployRolePolicy:
 
     def _get_statement(self, statement_id):
         s3_statements = list(filter(
-            lambda stmt: stmt['Sid'] == statement_id,
+            lambda stmt: stmt.get('Sid') == statement_id,
             self.policy_document.get('Statement', {})
         ))
         if len(s3_statements) == 1:

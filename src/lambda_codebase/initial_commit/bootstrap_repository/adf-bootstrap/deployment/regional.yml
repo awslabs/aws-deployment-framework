@@ -23,7 +23,6 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      AccessControl: BucketOwnerFullControl
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -46,14 +45,67 @@ Resources:
       PolicyDocument:
         Statement:
           - Action:
-              - s3:Get*
-              - s3:List*
-              - s3:PutObject*
-              - s3:PutReplicationConfiguration
+              - s3:GetObject
             Effect: Allow
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: "*"
+          - Action:
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role
+          - Sid: "DenyUnencryptedObjects"
+            Action:
+              - "s3:PutObject"
+            Effect: Deny
+            Condition:
+              StringNotEquals:
+                "s3:x-amz-server-side-encryption": "aws:kms"
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: "*"
+          - Sid: "DenyDifferentKMSKey"
+            Action:
+              - "s3:PutObject"
+            Effect: Deny
+            Condition:
+              ArnNotEqualsIfExists:
+                "s3:x-amz-server-side-encryption-aws-kms-key-id": !GetAtt DeploymentFrameworkRegionalKMSKey.Arn
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: "*"
+          - Sid: "DenyInsecureConnections"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
+            Principal:
+              AWS: "*"
+          - Sid: "DenyInsecureTLS"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              NumericLessThan:
+                "s3:TlsVersion": "1.2"
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentFrameworkRegionalS3Bucket}/*
@@ -101,9 +153,6 @@ Resources:
             Action:
               - kms:Decrypt
               - kms:DescribeKey
-              - kms:Encrypt
-              - kms:GenerateDataKey*
-              - kms:ReEncrypt*
             Resource: "*"
             Condition:
               StringEquals:
@@ -126,13 +175,13 @@ Resources:
 
 Outputs:
   DeploymentFrameworkRegionalS3Bucket:
-    Description: The S3 Bucket used for cross region codepipeline deployments
+    Description: The S3 Bucket used for cross-region CodePipeline deployments
     Value: !Ref DeploymentFrameworkRegionalS3Bucket
     Export:
       Name: !Sub "S3Bucket-${AWS::Region}"
 
   DeploymentFrameworkRegionalKMSKey:
-    Description: The KMSKey used for cross region codepipeline deployments
+    Description: The KMS Key used for cross-region CodePipeline deployments
     Value: !GetAtt DeploymentFrameworkRegionalKMSKey.Arn
     Export:
       Name: !Sub "KMSArn-${AWS::Region}"

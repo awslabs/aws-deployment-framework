@@ -5,7 +5,297 @@ specification](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+---
+
+## v4.0.0
+
+This is a security-focused release of the AWS Deployment Framework (ADF) that
+aims to restrict the default access required and provided by ADF via the
+least-privilege principle.
+
+__Key security enhancements include:__
+
+- Applying IAM best practices by restricting excessive permissions granted to
+  IAM roles and policies used by ADF.
+- Leveraging new IAM features to further limit access privileges granted by
+  default, reducing the potential attack surface.
+- Where privileged access is required for specific ADF use cases, the scope and
+  duration of elevated privileges have been minimized to limit the associated
+  risks.
+
+By implementing these security improvements, ADF now follows the principle of
+least privilege, reducing the risk of unauthorized access or
+privilege-escalation attacks.
+
+Please make sure to go through the list of changes breaking changes carefully.
+
+As with every release, it is strongly recommended to thoroughly review and test
+this version of ADF in a non-production environment first.
+
 ### Breaking changes
+
+#### Security: Confused Deputy Problem
+
+Addressed the [Confused Deputy
+problem](https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html)
+in IAM roles created by ADF to use by the AWS Services. Where supported, the
+roles are restricted to specific resources via an `aws:SourceArn` condition.
+If you were using the ADF roles for other resources or use cases not covered
+by ADF, you might need to patch the Assume Role policies accordingly.
+
+#### Security: Cross-Account Access Role and the new Jump Role
+
+ADF relies on the privileged Cross-Account Access Role to bootstrap accounts.
+In the past, ADF used this role for every update and deployment of the
+bootstrap stacks, as well as account management features.
+
+With the release of v4.0, a jump role is introduced to lock-down the usage of
+the privileged cross-account access role. Part of the bootstrap stack, the
+`adf-bootstrap-update-deployment-role` is created. This role grants access to
+perform restricted updates that are frequently performed via the
+`aws-deployment-framework-bootstrap` pipeline. By default, the jump role is
+granted access to assume into this update deployment role.
+
+A dedicated jump role manager is responsible to grant the jump role access to
+the cross-account access role for AWS accounts where ADF requires access and
+the `adf-bootstrap-update-deployment-role` is not available yet.
+For example, accounts that are newly created only have the cross-account access
+role to assume into. Same holds for ADF managed accounts that are not updated
+to the new v4.0 bootstrap stack yet.
+
+During the installation/update of ADF, a new parameter enables you to grant
+the jump role temporary access to the cross-account access role as an
+privileged escalation path.
+This parameter is called `GrantOrgWidePrivilegedBootstrapAccessUntil`.
+By setting this to a date/time in the future you will grant access to the
+cross-account access role until that date/time. This would be required if you
+modify ADF itself or the bootstrap stack templates. Changing permissions like
+the `adf-cloudformation-deployment-role` is possible without relying on the
+cross-account access role. For most changes deployed via the bootstrap pipeline
+it does not require elevated privileged access to update.
+
+With the above changes, the `aws-deployment-framework-bootstrap` CodeBuild
+project no longer has unrestricted access to the privileged cross-account role.
+Starting from version 4.0, access to assume the privileged cross-account access
+role is restricted and must be obtained through the Jump Role as described
+above.
+
+#### Security: Restricted account management access
+
+Account Management is able to access non-protected organization units.
+Prior to ADF v4.0, the account management process used the privileged
+cross-account assess role to operate. Hence it could move an account or update
+the properties of an account that is located in a protected organization unit
+too. With the release of v4.0, it is only able to move or manage accounts if
+they are accessible via the Jump Role. The Jump Role is restricted to
+non-protected organization units only.
+
+This enhances the security of ADF, as defining a organization unit as protected
+will block access to that via the Jump Role accordingly.
+
+#### Security: Restricted bootstrapping of management account
+
+The `adf-global-base-adf-build` stack in the management account was initially
+deployed to facilitate bootstrap access to the management account.
+It accomplished this by creating a cross-account access role with limited
+permissions in the management account ahead of the bootstrapping process.
+
+ADF created this role as it is not provisioned by AWS Organizations or
+AWS Control Tower in the management account itself. However, ADF required some
+level of access to deploy the necessary bootstrap stacks when needed.
+
+It is important to note that deploying this role and bootstrapping the
+management account introduces a potential risk. A pipeline created via a
+deployment map could target the management account and create resources within
+it, which may have unintended consequences.
+
+To mitigate the potential risk, it is recommended to implement strict
+least-privilege policies and apply permission boundaries to protect
+the management account.
+Additionally, thoroughly reviewing all deployment map changes is crucial to
+ensure no unintended access is granted to the management account.
+
+With the release of ADF v4.0, the `adf-global-base-adf-build` stack is removed
+and its resources are moved to the main ADF CloudFormation template.
+These resources will only get deployed if the new
+`AllowBootstrappingOfManagementAccount` parameter is set to `Yes`. By default
+it will not allow bootstrapping of the management account.
+
+#### Security: Restricted bootstrapping of deployment account
+
+Considering the sensitive workloads that run in the deployment account, it is
+important to limit the permissions granted for pipelines to deploy to the
+deployment account itself. You should consider the deployment account a
+production account.
+
+It is recommended to apply the least-privilege principle and only allow
+pipelines to deploy resources that are required in the deployment account.
+
+Follow these steps after the changes introduced by the ADF v4.0 release are
+applied in the main branch of the `aws-deployment-framework-bootstrap`
+repository.
+
+Please take this moment to review the following:
+
+- Navigate to the `adf-boostrap/deployment` folder in that repository.
+- Check if it contains a `global-iam.yml` file:
+
+  - If it does __not__ contain a `global-iam.yml` file yet, please ensure you
+    copy the `example-global-iam.yml` file in that directory.
+  - If it does, please compare it against the `example-global-iam.yml` file
+    in that directory.
+
+- Apply the least-privilege principle on the permissions you grant in the
+  deployment account.
+
+#### Security: Shared Modules Bucket
+
+ADF uses the Shared Modules Bucket as hosted in the management account in the
+main deployment region to share artifacts from the
+`aws-deployment-framework-bootstrap` repository.
+
+The breaking change enforces all objects to be owned by the bucket owner from
+v4.0 onward.
+
+#### Security: ADF Role policy restrictions
+
+With the v4.0 release, all ADF roles and policies were reviewed, applying
+the latest best-practices and granting access to ADF resources only where
+required. This review also includes the roles that were used by the pipelines
+generated by ADF.
+
+Please be aware of the changes made to the following roles:
+
+##### adf-codecommit-role
+
+The `adf-codecommit-role` no longer grants read/write access to all buckets.
+It only grants access to the buckets created and managed by ADF where it
+needed to. Please grant access accordingly if you use custom S3 buckets or need
+to copy from an S3 bucket in an ADF-generated pipeline.
+
+##### adf-codebuild-role
+
+The `adf-codebuild-role` can only be used by CodeBuild projects in the main
+deployment region. ADF did not allow running CodeBuild projects in other
+regions before. But in case you manually configured the role in a project
+in a different region it will fail to launch.
+
+The `adf-codebuild-role` is no longer allowed to assume any IAM Role in the
+target accounts if those roles would grant access in the Assume Role
+Policy Document.
+
+The `adf-codebuild-role` is restricted to assume only the
+`adf-readonly-automation-role` roles in the target accounts.
+And, in the case that the Terraform ADF Extension is enabled, it is allowed to
+assume the `adf-terraform-role` too.
+
+It is therefore not allowed to assume the `adf-cloudformation-deployment-role`
+any longer. If you were deploying with `cdk deploy` into target accounts from an
+ADF pipeline you will need to specifically grant the `adf-codebuild-role`
+access to assume the `adf-cloudformation-deployment-role`. However, we strongly
+recommend you synthesize the templates instead and let AWS CloudFormation do
+the deployment for you.
+
+For Terraform support, CodeBuild was granted access to the `adf-tflocktable`
+table in release v3.2.0. This access is restricted to only grant read/write
+access to that table if the Terraform extension is enabled.
+Please bear in mind that if you enable Terraform access the first time, you
+will need to use the `GrantOrgWidePrivilegedBootstrapAccessUntil` parameter
+if ADF v4.0 bootstrapped to accounts before. As this operation requires
+privileged access.
+
+The `adf-codebuild-role` is allowed to assume into the
+`adf-terraform-role` if the Terraform extension is enabled.
+As written in the docs, the `adf-terraform-role` is configured
+in the `global-iam.yml` file. This role is commented out by default.
+When you define this role, it is important to make sure to grant it
+[least-privilege access](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege)
+only.
+
+##### adf-cloudformation-role
+
+The `adf-cloudformation-role` is no longer assumable by CloudFormation.
+This role is used by CodePipeline to orchestrate various deployment actions
+across accounts. For example, CodeDeploy, S3, and obviously the CloudFormation
+actions.
+
+For CloudFormation, it would instruct the service to use the CloudFormation
+Deployment role for the actual deployment.
+The CloudFormation deployment role is the role that is assumed by the
+CloudFormation service. This change should not impact you, unless you
+use this role in relation with CloudFormation that is not managed by ADF.
+
+With v4.0, the `adf-cloudformation-role` is only allowed to pass the
+CloudFormation Deployment role to CloudFormation and no other roles to other
+services.
+
+If you were/want to make use of a custom CloudFormation deployment role for
+specific pipelines, you need to make sure that the `adf-cloudformation-role` is
+allowed to perform an `iam:PassRole` action with the given role.
+It is recommended to limit this to be passed to the CloudFormation service
+only. You can find an example of this in the
+`adf-bootstrap/deployment/global.yml` file where it allows the
+CloudFormation role to perform `iam:PassRole` with the
+`adf-cloudformation-deployment-role`. When required, please grant this access
+in the `adf-bootstrap/deployment/global-iam.yml` file in the
+`aws-deployment-framework-bootstrap` repository.
+
+Additionally, the `adf-cloudformation-role` is not allowed to access S3 buckets
+except the ADF buckets it needs to transfer pipeline assets to CloudFormation.
+
+##### adf-codepipeline-role
+
+The `adf-codepipeline-role` is no longer assumable by CloudFormation,
+CodeDeploy, and S3. The role itself was not passed to any of these services by
+ADF.
+
+If you relied on the permissions that were removed, feel free to extend the
+role permissions via the `global-iam.yml` stack.
+
+#### Security: Restricted access to ADF-managed S3 buckets only
+
+With v4.0, access is restricted to ADF-managed S3 buckets only.
+If a pipeline used the S3 source or deployment provider, it will require
+the required access to those buckets. Please add the required access to the
+`global-iam.yml` bootstrap stack in the OU where it is hosted.
+
+Grant read access to the `adf-codecommit-role` for S3 source buckets.
+Grant write access to the `adf-cloudformation-role` for S3 buckets an ADF
+pipeline deploys to.
+
+#### Security: Bootstrap stack no longer named after organization unit
+
+The global and regional bootstrap stacks are renamed to
+`adf-global-base-bootstrap` and `adf-regional-base-bootstrap` respectively.
+
+In prior releases of ADF, the name ended with the organization unit name.
+As a result, an account could not move from one organization unit to
+another without first removing the bootstrap stacks. Additionally, it made
+writing IAM policies and SCPs harder in a least-privilege way.
+
+When ADF v4.0 is installed, the legacy stacks will get removed by the
+`aws-deployment-framework-bootstrap` pipeline automatically. Shortly after
+removal, it will deploy the new bootstrap stacks.
+
+With v4.0, accounts can move from one organization unit to another,
+without requiring the removal of the ADF bootstrap stacks.
+
+#### Security: KMS Encryption required on Deployment Account Pipeline Buckets
+
+The deployment account pipeline buckets only accepts KMS Encrypted objects from
+v4.0 onward. Ensuring that all objects are encrypted with the same KMS Key.
+
+Before, some objects used KMS encryption while others did not. The bucket
+policy now requires all objects to be encrypted via the KMS key. All ADF
+components have been adjusted to upload with this key. If, however, you copy
+files from systems that are not managed by ADF, you will need to adjust these
+to encrypt the objects with the KMS key as well.
+
+#### Security: TLS Encryption required on all ADF-managed buckets
+
+S3 Buckets created by ADF will require TLS 1.2 or later. All actions that occur
+on these buckets with older TLS versions will be denied via the bucket policies
+that these buckets received.
 
 #### New installer
 
@@ -29,7 +319,7 @@ guide](https://github.com/awslabs/aws-deployment-framework/blob/master/docs/admi
 ADF v4.0 is built on the AWS Cloud Development Kit (CDK) v2. Which is an
 upgrade to CDK v1 that ADF relied on before.
 
-For most end-users, this change would not have an impact.
+For most end-users, this change would not have an immediate impact.
 If, however, you made customizations to ADF it might require you to upgrade
 these customizations to CDK v2 as well.
 
@@ -51,6 +341,39 @@ to deploy after. Most likely all pipelines already define the CodeBuild image
 to use, as the previous default image is [not supported by
 AWS CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html#deprecated-images).
 
+#### ADF Renaming of Roles
+
+ADF v4.0 changes most of the roles that it relies on. The reason for this
+change is to make it easier to secure ADF with Service Control Policies and
+IAM permission boundaries. Where applicable, the roles received a new prefix.
+This makes it easier to identify what part of ADF relies on those roles and
+whom should have access to assume the role or modify it.
+
+| Previous prefix  | Previous name                                                       | New prefix                 | New name                                                      |
+|------------------|---------------------------------------------------------------------|----------------------------|---------------------------------------------------------------|
+| /                | ${CrossAccountAccessRoleName}-readonly                              | /adf/organizations/        | adf-organizations-readonly                                    |
+| /                | adf-update-cross-account-access-role                                | /adf/bootstrap/            | adf-update-cross-account-access                               |
+| /adf-automation/ | adf-create-repository-role                                          | /adf/pipeline-management/  | adf-pipeline-management-create-repository                     |
+| /adf-automation/ | adf-pipeline-provisioner-generate-inputs                            | /adf/pipeline-management/  | adf-pipeline-management-generate-inputs                       |
+| /adf-automation/ | adf-pipeline-create-update-rule                                     | /adf/pipeline-management/  | adf-pipeline-management-create-update-rule                    |
+| /                | adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-* | /adf/cross-account-events/ | adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId} |
+|------------------|---------------------------------------------------------------------|----------------------------|---------------------------------------------------------------|
+
+#### ADF Renaming of Resources
+
+| Type         | Previous name                                 | New name                                               |
+|--------------|-----------------------------------------------|--------------------------------------------------------|
+| StateMachine | EnableCrossAccountAccess                      | adf-bootstrap-enable-cross-account                     |
+| StateMachine | ADFPipelineManagementStateMachine             | adf-pipeline-management                                |
+| StateMachine | PipelineDeletionStateMachine-*                | adf-pipeline-management-delete-outdated                |
+| Lambda       | DeploymentMapProcessorFunction                | adf-pipeline-management-deployment-map-processor       |
+| Lambda       | ADFPipelineCreateOrUpdateRuleFunction         | adf-pipeline-management-create-update-rule             |
+| Lambda       | ADFPipelineCreateRepositoryFunction           | adf-pipeline-management-create-repository              |
+| Lambda       | ADFPipelineGenerateInputsFunction             | adf-pipeline-management-generate-pipeline-inputs       |
+| Lambda       | ADFPipelineStoreDefinitionFunction            | adf-pipeline-management-store-pipeline-definition      |
+| Lambda       | ADFPipelineIdentifyOutOfDatePipelinesFunction | adf-pipeline-management-identify-out-of-date-pipelines |
+|--------------|-----------------------------------------------|--------------------------------------------------------|
+
 #### ADF Parameters in AWS Systems Manager Parameter Store
 
 Some of the parameters stored by ADF in AWS Systems Manager Parameter Store
@@ -59,6 +382,26 @@ and restrict access to the limited set of ADF specific parameters.
 
 With ADF v4.0, the parameters used by ADF are located under the `/adf/` prefix.
 For example, `/adf/deployment_account_id`.
+
+The `global-iam.yml` bootstrap stack templates get copied from their
+`example-global-iam.yml` counterparts. When this was copied in v3.2.0, the
+default path for the `deployment_account_id` parameter should be updated to
+`/adf/deployment_account_id`. Please apply this new default value to the
+CloudFormation templates accordingly. If you forget to do this, the stack
+deployment of the `adf-global-base-iam` stack might fail with a failure stating
+that it does not have permission to fetch the `deployment_account_id`
+parameter.
+
+The error you run into if the parameter path is not updated:
+
+> An error occurred (ValidationError) when calling the CreateChangeSet
+> operation: User:
+> arn:aws:sts::111111111111:assumed-role/${CrossAccountAccessRoleName}/base_update
+> is not authorized to perform: ssm:GetParameters on resource:
+> arn:aws:ssm:${deployment_region}:111111111111:parameter/deployment_account_id
+> because no identity-based policy allows the ssm:GetParameters action
+> (Service: AWSSimpleSystemsManagement; Status Code: 400;
+> Error Code: AccessDeniedException; Request ID: xxx).
 
 If an application or customization to ADF relies on one of these parameters
 they will need to be updated to include this prefix. Unless the application
@@ -113,7 +456,7 @@ For the __deployment account__, in __the deployment region__:
 | `/auto_create_repositories`  | `/adf/scm/auto_create_repositories` |
 | `/cross_account_access_role` | `/adf/cross_account_access_role`    |
 | `/default_scm_branch`        | `/adf/scm//default_scm_branch`      |
-| `/deployment_account_bucket` | `/adf/deployment_account_bucket`    |
+| `/deployment_account_bucket` | `/adf/shared_modules_bucket`        |
 | `/master_account_id`         | `/adf/management_account_id`        |
 | `/notification_endpoint`     | `/adf/notification_endpoint`        |
 | `/notification_type`         | `/adf/notification_type`            |
@@ -126,7 +469,7 @@ For the __deployment account__, in __other ADF regions__:
 | `/adf_log_level`             | `/adf/adf_log_level`             |
 | `/adf_version`               | `/adf/adf_version`               |
 | `/cross_account_access_role` | `/adf/cross_account_access_role` |
-| `/deployment_account_bucket` | `/adf/deployment_account_bucket` |
+| `/deployment_account_bucket` | `/adf/shared_modules_bucket`     |
 | `/master_account_id`         | `/adf/management_account_id`     |
 | `/notification_endpoint`     | `/adf/notification_endpoint`     |
 | `/notification_type`         | `/adf/notification_type`         |
@@ -187,6 +530,229 @@ source code connection, please proceed with the AWS CodeConnections
 configuration as defined in the
 [Admin Guide - Using AWS CodeConnections for Bitbucket, GitHub, or
 GitLab](./docs/admin-guide.md#using-aws-codeconnections-for-bitbucket-github-or-gitlab).
+
+### Features
+
+- Update CDK from v1 to v2 (#619), by @pergardebrink, resolves #503, #614, and
+  #617.
+- Account Management State Machine will now opt-in to target regions when
+  creating an account (#604) by @StewartW.
+- Add support for nested organization unit targets (#538) by @StewartW,
+  resolves #20.
+- Enable single ADF bootstrap and pipeline repositories to multi-AWS
+  Organization setup, resolves #410:
+
+  - Introduce the org-stage (#636) by @AndyEfaa.
+  - Add support to allow empty targets in deployment maps (#634) by
+    @AndyEfaa.
+  - Add support to define the "default-scm-codecommit-account-id" in
+    adfconfig.yml, no value in either falls back to deployment account id
+    (#633) by @AndyEfaa.
+  - Add multi AWS Organization support to adfconfig.yml (#668) by
+    @alexevansigg.
+  - Add multi AWS Organization support to generate_params.py (#672) by
+    @AndyEfaa.
+
+- Terraform: add support for distinct variable files per region per account in
+  Terraform pipelines (#662) by @igordust, resolves #661.
+- CodeBuild environment agnostic custom images references, allowing to specify
+  the repository name or ARN of the ECR repository to use (#623) by @abhi1094.
+- Add kms_encryption_key_arn and cache_control parameters to S3 deploy
+  provider (#669) by @alFReD-NSH.
+- Allow inter-ou move of accounts (#712) by @sbkok.
+
+### Fixes
+
+- Fix Terraform terrascan failure due to incorrect curl call (#607), by
+  @lasv-az.
+- Fix custom pipeline type configuration not loaded (#612), by @lydialim.
+- Fix Terraform module execution error (#600), by @stemons, resolves #599 and
+  #602.
+- Fix resource untagging permissions (#635) by @sbkok.
+- Fix GitHub Pipeline secret token usage (#645) by @sbkok.
+- Fix Terraform error masking by tee (#643) by @igordust, resolves #642.
+- Fix create repository bug when in rollback complete state (#648) by
+  @alexevansigg.
+- Fix cleanup of parameters upon pipeline retirement (#652) by @sbkok.
+- Fix wave calculation for non-default CloudFormation actions and multi-region
+  deployments (#624 and #651), by @alexevansigg.
+- Fix ChatBot channel ref + add notification management permissions (#650) by
+  @sbkok.
+- Improve docs and add CodeStar Connection policy (#649) by @sbkok.
+- Fix Terraform account variables were not copied correctly (#665) by
+  @donnyDonowitz, resolves #664.
+- Fix pipeline management state machine error handling (#683) by @sbkok.
+- Fix target schema for tags (#667) by @AndyEfaa.
+- Fix avoid overwriting truncated pipeline definitions with pipelines that
+  share the same start (#653) by @AndyEfaa.
+- Fix updating old global-iam stacks in the deployment account (#711) by
+  @sbkok.
+- Remove default org-stage reference to dev (#717) by @alexevansigg.
+- Fix racing condition on first-usage of ADF pipelines leading to an auth
+  error (#732) by @sbkok.
+- Fix support for custom S3 deployment roles (#732) by @sbkok, resolves #355.
+- Fix pipeline completion trigger description (#734) by @sbkok, resolves #654.
+
+### Improvements
+
+- Sanitizing account names before using them in SFn Invocation (#598) by
+  @StewartW, resolves #597.
+- Improve Terraform documentation sample (#605), by @lasv-az.
+- Fix CodeDeploy sample to work in gov-cloud (#609), by @sbkok.
+- Fix documentation error on CodeBuild custom image (#622), by @abhi1094.
+- Speedup bootstrap pipeline by removing unused SAM Build (#613), by
+  @AlexMackechnie.
+- Upgrade CDK (v2.88), SAM (v1.93), and others to latest compatible version
+  (#647) by @sbkok, resolves #644.
+- Update pip before installing dependencies (#606) by @lasv-az.
+- Fix: Adding hash to pipelines processing step function execution names to
+  prevent collisions (#641) by @avolip, resolves #640.
+- Modify trust relations for roles to ease redeployment of roles (#526) by
+  @AndreasAugustin, resolves #472.
+- Limit adf-state-machine-role to what is needed (#657) by @alFReD-NSH.
+- Upload SCP policies with spaces removed (#656) by @alFReD-NSH.
+- Move from ACL enforced bucket ownership to Ownership Controls + MegaLinter
+  prettier fix (#666) by @sbkok.
+- Upgrade CDK (v2.119), SAM (v1.107), Jinja2 (v3.1.3), and others to latest
+  compatible version (#676) by @sbkok.
+- Fix initial value type of allow-empty-targets (#678) by @sbkok.
+- Fix Shared ADF Lambda Layer builds and add move to ARM-64 Lambdas (#680) by
+  @sbkok.
+- Add /adf params prefix and other SSM Parameter improvements (#695) by @sbkok,
+  resolves #594 and #659.
+- Fix pipeline support for CodeBuild containers with Python < v3.10 (#705) by
+  @sbkok.
+- Update CDK v2.136, SAM CLI 1.114, and others (#715) by @sbkok.
+- AWS CodeStar Connections name change to CodeConnections (#714) by @sbkok,
+  resolves #616.
+- Adding retry logic for #655 and add tests for delete_default_vpc.py (#708) by
+  @javydekoning, resolves #655.
+- Fix allow-empty-targets to match config boolean style (#725) by @sbkok.
+- Require previously optional CodeBuild image property in build/deploy from v4
+  onward (#731) by @sbkok, resolves #626 and #601.
+- YAML files are interpreted via `YAML.safe_load` instead of `YAML.load` (#732)
+  by @sbkok.
+- Hardened all urlopen calls by checking the protocol (#732) by @sbkok.
+- Added check to ensure the CloudFormation deployment account id matches with
+  the `/adf/deployment_account_id` if that exists (#732) by @sbkok.
+- Add automatic creation of the `/adf/deployment_account_id` and
+  `/adf/management_account_id` if that does not exist (#732) by @sbkok.
+- Separate delete outdated state machine from pipeline creation state machines
+  (#732) by @sbkok.
+- Review and restrict access provided by ADF managed IAM roles and permissions
+  (#732) by @sbkok, resolves #608 and #390.
+- Add automatic clean-up of legacy bootstrap stacks, auto recreate if required
+  (#732) by @sbkok.
+
+#### Installation improvements
+
+With the addition of CDK v2 support. The dependencies that go with it,
+unfortunately increased the deployment size beyond the limit that is supported
+by the Serverless Application Repository. Hence the SAR installer is replaced
+by a new installation process.
+Please read the [Installation
+Guide](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/installation-guide.md)
+how to install ADF.
+In case you are upgrading, please follow [the admin guide on updating
+ADF](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/admin-guide.md#updating-between-versions)
+instead.
+
+- New installation process (#677) by @sbkok.
+- Auto generate unique branch names on new version deployments (#682) by
+  @sbkok.
+- Ensure tox fails at first pytest failure (#686) by @sbkok.
+- Install: Add checks to ensure installer dependencies are available (#702) by @sbkok.
+- Install: Add version checks and pre-deploy warnings (#726) by @sbkok.
+- Install: Add uncommitted changes check (#733) by @sbkok.
+
+#### Documentation, ADF GitHub, and code only improvements
+
+- Fixing broken Travis link and build badge (#625), by @javydekoning.
+- Temporarily disabled cfn-lint after for #619 (#630), by @javydekoning.
+- Upgrade MegaLinter to v7 and enable cfn-lint (#632), by @javydekoning.
+- Fix linter failures (#637) by @javydekoning.
+- Linter fixes (#646) by @javydekoning.
+- Add docs enhancement regarding ADF and AWS Control Tower (#638) by @AndyEfaa.
+- Fix include all tests in pytest.ini for bootstrap CodeBuild project (#621) by
+  @AndyEfaa.
+- Remove CodeCommitRole from initial base stack (#663) by @alFReD-NSH.
+- Fix bootstrap pipeline tests (#679) by @sbkok.
+- Add AccessControl property on S3 Buckets (#681) by @sbkok.
+- Version bump GitHub actions (#704) by @javydekoning, resolves #698.
+- Bump express from 4.17.3 to 4.19.2 in /samples/sample-fargate-node-app (#697)
+  by @dependabot.
+- Update copyright statements and license info (#713) by @sbkok.
+- Fix dead-link in docs (#707) by @javydekoning.
+- Add BASH_SHFMT linter + linter fixes (#709) by @javydekoning.
+- Fix sample expunge VPC, if-len, and process deployment maps (#716) by @sbkok.
+- Moving CDK example app to latest CDK version (#706) by @javydekoning,
+  resolves #618.
+- Fix Markdown Anchor Link Check (#722) by @sbkok.
+- Improve samples (#718) by @sbkok.
+- Explain special purpose of adf-bootstrap/global.yml in docs (#730) by @sbkok,
+  resolves #615.
+- Rename `deployment_account_bucket` to `shared_modules_bucket` (#732) by @sbkok.
+- Moved CodeCommit and EventBridge templates from lambda to the bootstrap
+  repository to ease maintenance (#732) by @sbkok.
+
+---
+
+## v3.2.1
+
+It is strongly recommended to upgrade to v4.0 or later as soon as possible.
+The security fixes introduced in v4.0 are not ported back to v3 due to the
+requirement of breaking changes.
+Continued use of v3 or earlier versions is strongly discouraged.
+
+The upcoming v4 release will introduce breaking changes. As always, it is
+recommended to thoroughly review and test the upgrade procedure in a
+non-production environment before upgrading in production.
+
+ADF v3.2.0 had a few issues that prevented clean installation in new
+environments, making it harder to test the upgrade process. This release,
+v3.2.1, resolves those installation issues and includes an updated installer
+for ADF to simplify the installation process.
+
+We hope this shortens the time required to prepare for the v4 upgrade.
+
+---
+
+### Fixes
+
+- Fix management account config alias through ADF account management (#596) by
+  @sbkok.
+- Fix CodeBuild stage naming bug (#628) by @pozeus, resolves #627.
+- Fix Jinja2 template rendering with autoescape enabled (#690) by @sujay0412.
+- Fix missing deployment_account_id and initial deployment global IAM bootstrap
+  (#686) by @sbkok, resolves #594 and #659.
+- Fix permissions to enable delete default VPC in management account (#699) by
+  @sbkok.
+- Fix tagging of Cross Account Access role in the management account (#700) by
+  @sbkok.
+- Fix CloudFormation cross-region changeset approval (#701) by @sbkok.
+- Fix clean bootstrap of the deployment account (#703) by @sbkok, resolves #696.
+- Bump Jinja2 from 3.1.3 to 3.1.4 (#720 and #721) by @dependabot.
+- Fix account management lambdas in v3.2 (#729) by @sbkok.
+- Fix management account missing required IAM Tag Role permission in v3.2
+  (#729) by @sbkok.
+
+---
+
+### Installation enhancements
+
+This release is the first release with the new installation process baked in.
+Please read the [Installation Guide](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/installation-guide.md)
+how to install ADF. In case you are upgrading, please follow [the admin guide
+on updating ADF](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/admin-guide.md#updating-between-versions)
+instead.
+
+Changes baked into this release to support the new installation process:
+
+- New installation process (#677) by @sbkok.
+- Ensure tox fails at first pytest failure (#686) by @sbkok.
+- Install: Add checks to ensure installer dependencies are available (#702) by @sbkok.
+- Install: Add version checks and pre-deploy warnings (#726) by @sbkok.
+- Install: Add uncommitted changes check (#733) by @sbkok.
 
 ---
 

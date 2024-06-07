@@ -26,6 +26,7 @@ DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ORGANIZATION_ID = os.environ["ORGANIZATION_ID"]
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+KMS_KEY_ARN = os.environ["S3_BUCKET_KMS_KEY_ARN"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
@@ -68,8 +69,9 @@ def main():
     LOGGER.info('ADF Version %s', ADF_VERSION)
     LOGGER.info("ADF Log Level is %s", ADF_LOG_LEVEL)
     s3 = S3(
-        DEPLOYMENT_ACCOUNT_REGION,
-        S3_BUCKET_NAME
+        region=DEPLOYMENT_ACCOUNT_REGION,
+        bucket=S3_BUCKET_NAME,
+        kms_key_arn=KMS_KEY_ARN,
     )
     threads = []
     template_paths = glob.glob("cdk.out/*.template.json")

@@ -72,7 +72,7 @@ class DeploymentMap:
         try:
             LOGGER.info('Loading deployment_map file %s', file_path)
             with open(file_path, mode='r', encoding='utf-8') as stream:
-                _input = yaml.load(stream, Loader=yaml.FullLoader)
+                _input = yaml.safe_load(stream)
                 return SchemaValidation(_input).validated
         except FileNotFoundError:
             LOGGER.warning('No default map file found at %s, continuing', file_path)

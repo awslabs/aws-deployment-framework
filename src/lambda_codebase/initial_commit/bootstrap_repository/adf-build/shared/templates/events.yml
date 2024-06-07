@@ -11,6 +11,8 @@ Resources:
   EventRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: /adf/cross-account-events/
+      RoleName: !Sub adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -19,7 +21,9 @@ Resources:
               Service:
                 - events.amazonaws.com
             Action: sts:AssumeRole
-      Path: /
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
       Policies:
         - PolicyName: !Sub events-to-${DeploymentAccountId}
           PolicyDocument:
@@ -27,7 +31,11 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: events:PutEvents
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default"
+                Condition:
+                  StringEquals:
+                    "events:detail-type": "CodeCommit Repository State Change"
 
   EventRule:
     Type: AWS::Events::Rule

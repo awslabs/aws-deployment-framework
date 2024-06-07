@@ -45,7 +45,9 @@ for region in $regions; do
     echo "Packaging templates for region $region"
     ssm_bucket_name="/adf/cross_region/s3_regional_bucket/$region"
     bucket=$(aws ssm get-parameters --names $ssm_bucket_name --with-decryption --output=text --query='Parameters[0].Value')
-    sam package --s3-bucket $bucket --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
+    ssm_kms_arn="/adf/cross_region/kms_arn/$region"
+    kms_arn=$(aws ssm get-parameters --names $ssm_kms_arn --with-decryption --output=text --query='Parameters[0].Value')
+    sam package --s3-bucket $bucket --kms-key-id $kms_arn --output-template-file $CODEBUILD_SRC_DIR/template_$region.yml --region $region
   else
     # If package is not needed, just copy the file for each region
     echo "Copying template for region $region"

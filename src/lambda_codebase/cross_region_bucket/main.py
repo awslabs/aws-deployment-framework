@@ -81,6 +81,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_ownership_controls(bucket_name, region)
     ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
@@ -97,6 +98,7 @@ def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_ownership_controls(bucket_name, region)
     ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
@@ -196,6 +198,20 @@ def ensure_bucket_encryption(bucket_name: str, region: str) -> None:
     )
 
 
+def ensure_bucket_ownership_controls(bucket_name: str, region: str) -> None:
+    s3_client = get_s3_client(region)
+    s3_client.put_bucket_ownership_controls(
+        Bucket=bucket_name,
+        OwnershipControls={
+            "Rules": [
+                {
+                    "ObjectOwnership": "BucketOwnerEnforced",
+                },
+            ],
+        },
+    )
+
+
 def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
     s3_client = get_s3_client(region)
     s3_client.put_public_access_block(
@@ -217,11 +233,18 @@ def ensure_bucket_policy(
     partition = get_partition(region)
 
     s3_client = get_s3_client(region)
+    bucket_arn = f"arn:{partition}:s3:::{bucket_name}"
     for action in policy["Statement"]:
-        action["Resource"] = [
-            f"arn:{partition}:s3:::{bucket_name}",
-            f"arn:{partition}:s3:::{bucket_name}/*",
-        ]
+        if action.get("Resource"):
+            action["Resource"] = list(map(
+                lambda res: res.replace('{bucket_arn}', bucket_arn),
+                action["Resource"],
+            ))
+        else:
+            action["Resource"] = [
+                bucket_arn,
+                f"{bucket_arn}/*",
+            ]
     s3_client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
 
 

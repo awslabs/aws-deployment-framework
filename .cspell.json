@@ -14,6 +14,7 @@
     ],
     "ignorePaths": [
         ".pylintrc",
+        "CHANGELOG.md",
         "requirements.txt",
         "requirements-dev.txt",
         "maven-wrapper.jar",

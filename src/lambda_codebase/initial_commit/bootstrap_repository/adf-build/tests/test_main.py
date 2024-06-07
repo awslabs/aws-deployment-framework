@@ -45,6 +45,7 @@ def sts():
         'Arn': 'string'
     }
     sts.assume_cross_account_role.return_value = role_mock
+    sts.assume_bootstrap_deployment_role.return_value = role_mock
     return sts
 
 
@@ -133,7 +134,7 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            14 if param_store == deploy_param_store else 8
+            15 if param_store == deploy_param_store else 9
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -141,9 +142,10 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
                 call('adf_log_level', 'CRITICAL'),
                 call('cross_account_access_role', 'some_role'),
                 call(
-                    'deployment_account_bucket',
-                    'some_deployment_account_bucket',
+                    'shared_modules_bucket',
+                    'some_shared_modules_bucket',
                 ),
+                call('bootstrap_templates_bucket', 'some_bucket'),
                 call('deployment_account_id', deployment_account_id),
                 call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),
@@ -234,7 +236,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            16 if param_store == deploy_param_store else 8
+            17 if param_store == deploy_param_store else 9
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -242,9 +244,10 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
                 call('adf_log_level', 'CRITICAL'),
                 call('cross_account_access_role', 'some_role'),
                 call(
-                    'deployment_account_bucket',
-                    'some_deployment_account_bucket',
+                    'shared_modules_bucket',
+                    'some_shared_modules_bucket',
                 ),
+                call('bootstrap_templates_bucket', 'some_bucket'),
                 call('deployment_account_id', deployment_account_id),
                 call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),

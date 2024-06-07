@@ -51,6 +51,11 @@ class Notifications(Construct):
                 _iam.ServicePrincipal("events.amazonaws.com"),
             ],
             resources=["*"],
+            conditions={
+                "StringEquals": {
+                    "aws:SourceAccount": ADF_DEPLOYMENT_ACCOUNT_ID,
+                },
+            },
         )
         _topic.add_to_resource_policy(_statement)
         _endpoint = map_params.get("params", {}).get("notification_endpoint", "")

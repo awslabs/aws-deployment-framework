@@ -70,12 +70,15 @@ class ResolverUpload(BaseResolver):
         bucket_name = self.parameter_store.fetch_parameter(
             f'cross_region/s3_regional_bucket/{region}'
         )
-        s3_client = S3(region, bucket_name)
+        kms_key_arn = self.parameter_store.fetch_parameter(
+            f'cross_region/kms_arn/{region}'
+        )
+        s3_client = S3(region, bucket_name, kms_key_arn=kms_key_arn)
         resolved_location = s3_client.put_object(
-            f"adf-upload/{object_key}/{random_filename}",
-            str(object_key),
-            style,
-            True  # pre-check
+            key=f"adf-upload/{object_key}/{random_filename}",
+            file_path=str(object_key),
+            style=style,
+            pre_check=True,
         )
         self.cache.add(lookup_str, resolved_location)
         return resolved_location

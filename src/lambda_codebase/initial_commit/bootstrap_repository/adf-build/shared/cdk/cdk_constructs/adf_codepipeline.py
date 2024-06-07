@@ -68,7 +68,6 @@ class Action:
             .get('properties', {})
             .get("account_id")
         )
-        self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
         self.default_scm_branch = self.map_params.get(
             "default_scm_branch",
@@ -81,26 +80,45 @@ class Action:
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
-    def _generate_role_arn(self):
-        if self.category not in ['Build', 'Deploy']:
-            return None
+    def _get_role_account_id(self):
+        if self.provider == ['CodeBuild', 'CodeStarSourceConnection']:
+            return ADF_DEPLOYMENT_ACCOUNT_ID
+
+        if self.category == 'Source':
+            return (
+                self.map_params["default_providers"]["source"]
+                .get('properties', {})
+                .get(
+                    'account_id',
+                    self.default_scm_codecommit_account_id,
+                )
+            )
+
+        if self.target and self.target.get('id'):
+            return self.target['id']
+
+        return None
+
+    def _generate_role_arn(self, default_role_name=None):
         default_provider = (
             self.map_params['default_providers'][self.category.lower()]
         )
-        specific_role = (
+        default_provider_role_name = (
+            default_provider
+            .get('properties', {})
+            .get('role', default_role_name)
+        )
+        specific_role_name = (
             self.target
             .get('properties', {})
-            .get('role', default_provider.get('properties', {}).get('role'))
-        )
-        if specific_role:
-            account_id = (
-                self.account_id
-                if self.provider == 'CodeBuild'
-                else self.target['id']
-            )
+            .get('role', default_provider_role_name)
+        ) if self.target else default_provider_role_name
+
+        account_id = self._get_role_account_id()
+        if specific_role_name and account_id:
             return (
                 f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:'
-                f'role/{specific_role}'
+                f'role/{specific_role_name}'
             )
         return None
 
@@ -328,9 +346,8 @@ class Action:
                     f"{input_artifact}::{path_prefix}params/{param_filename}"
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
-                "RoleArn": self.role_arn if self.role_arn else (
-                    f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                    f"role/adf-cloudformation-deployment-role"
+                "RoleArn": self._generate_role_arn(
+                    "adf-cloudformation-deployment-role",
                 )
             }
             contains_transform = (
@@ -494,62 +511,25 @@ class Action:
         raise ValueError(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
-        account_id = (
-            self.map_params['default_providers']['source']
-            .get('properties', {})
-            .get('account_id', '')
-        )
-
-        if self.provider == "CodeStarSourceConnection":
-            return None
-        if self.provider == "CodeBuild":
+        requires_no_access_role = [
+            "CodeBuild",
+            "CodeStarSourceConnection",
+            "Lambda",
+            "Manual",
+        ]
+        if self.provider in requires_no_access_role:
             return None
         if self.provider == "CodeCommit":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
-                "role/adf-codecommit-role"
-            )
+            return self._generate_role_arn('adf-codecommit-role')
         if self.provider == "S3" and self.category == "Source":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
-                "role/adf-codecommit-role"
-            )
+            return self._generate_role_arn('adf-codecommit-role')
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped,
             # ideally we rename adf-cloudformation-role to a
             # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "ServiceCatalog":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "CodeDeploy":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "Lambda":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return None
-        if self.provider == "CloudFormation":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "Manual":
-            return None
+            return self._generate_role_arn('adf-cloudformation-role')
+        if self.provider in ["ServiceCatalog", "CodeDeploy", "CloudFormation"]:
+            return self._generate_role_arn('adf-cloudformation-role')
         raise ValueError(f'Invalid Provider {self.provider}')
 
     def generate(self):

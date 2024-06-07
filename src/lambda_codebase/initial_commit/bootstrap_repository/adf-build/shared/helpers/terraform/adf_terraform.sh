@@ -12,6 +12,7 @@ echo "Terraform stage: $TF_STAGE"
 tfinit() {
   # retrieve regional S3 bucket name from parameter store
   S3_BUCKET_REGION_NAME=$(aws ssm get-parameter --name "/adf/cross_region/s3_regional_bucket/$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
+  KMS_KEY_ARN=$(aws ssm get-parameter --name "/adf/cross_region/kms_arn/$AWS_REGION" --region "$AWS_DEFAULT_REGION" | jq .Parameter.Value | sed s/\"//g)
   mkdir -p "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
   cd "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}" || exit
   cp -R "${CURRENT}"/tf/. "${CURRENT}/tmp/${TF_VAR_TARGET_ACCOUNT_ID}-${AWS_REGION}"
@@ -27,11 +28,13 @@ tfinit() {
   fi
   terraform init \
     -backend-config "bucket=$S3_BUCKET_REGION_NAME" \
+    -backend-config "kms_key_id=$KMS_KEY_ARN" \
     -backend-config "region=$AWS_REGION" \
     -backend-config "key=$ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate" \
     -backend-config "dynamodb_table=adf-tflocktable"
 
   echo "Bucket: $S3_BUCKET_REGION_NAME"
+  echo "KMS Key ARN: $KMS_KEY_ARN"
   echo "Region: $AWS_REGION"
   echo "Key:    $ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate"
   echo "DynamoDB table: adf-tflocktable"
@@ -44,7 +47,10 @@ tfplan() {
   terraform plan -out "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}" 2>&1 | tee -a "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"
   set +o pipefail
   # Save Terraform plan results to the S3 bucket
-  aws s3 cp "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" "s3://${S3_BUCKET_REGION_NAME}/${ADF_PROJECT_NAME}/tf-plan/${DATE}/${TF_VAR_TARGET_ACCOUNT_ID}/${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log"
+  aws s3 cp \
+    "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" \
+    "s3://${S3_BUCKET_REGION_NAME}/${ADF_PROJECT_NAME}/tf-plan/${DATE}/${TF_VAR_TARGET_ACCOUNT_ID}/${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" \
+    --sse-kms-key-id $KMS_KEY_ARN
   echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
 }
 tfapply() {

@@ -111,6 +111,25 @@ class ParameterStore:
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
+            LOGGER.debug('Parameter %s not found', param_name)
             raise ParameterNotFoundError(
                 f'Parameter {param_name} Not Found',
             ) from error
+
+    def fetch_parameter_accept_not_found(
+        self,
+        name,
+        with_decryption=False,
+        adf_only=True,
+        default_value=None,
+    ):
+        """
+        Performs the fetch_parameter action, while catching the
+        ParameterNotFoundError and returning the configured default_value
+        instead if this happens.
+        """
+        try:
+            return self.fetch_parameter(name, with_decryption, adf_only)
+        except ParameterNotFoundError:
+            LOGGER.debug('Using default instead: %s', default_value)
+            return default_value
