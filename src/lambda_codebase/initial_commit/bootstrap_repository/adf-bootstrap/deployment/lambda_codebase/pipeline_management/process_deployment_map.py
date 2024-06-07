@@ -187,7 +187,10 @@ def start_executions(
         if len(sfn_execution_name) > 80:
             truncated_pipeline_name = full_pipeline_name[:60]
             name_bytes_to_hash = bytes(full_pipeline_name, 'utf-8')
-            execution_unique_hash = hashlib.md5(name_bytes_to_hash).hexdigest()[:5]
+            execution_unique_hash = hashlib.md5(
+                name_bytes_to_hash,
+                usedforsecurity=False,
+            ).hexdigest()[:5]
             sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"[:80]
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,

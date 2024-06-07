@@ -51,7 +51,8 @@ Options:
     -r <role-name>, --role-name <role-name>
                 The name of the role to assume into to get read access
                 to list and describe the member accounts in the
-                organization [default: OrganizationAccountAccessRole-readonly].
+                organization [default:
+                adf/organizations/adf-organizations-readonly].
 
     -s <session-name>, --session-name <session-name>
                 The session name to use when assuming into the billing account

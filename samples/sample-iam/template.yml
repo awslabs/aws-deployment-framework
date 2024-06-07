@@ -97,6 +97,9 @@ Resources:
                 - "codedeploy.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Ref AWS::AccountId
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole"
       RoleName: "codedeploy-service-role"

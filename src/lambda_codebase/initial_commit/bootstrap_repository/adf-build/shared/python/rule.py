@@ -16,7 +16,6 @@ from s3 import S3
 from sts import STS
 
 LOGGER = configure_logger(__name__)
-TARGET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 SOURCE_ACCOUNT_REGION = os.environ["AWS_REGION"]
@@ -35,14 +34,17 @@ class Rule:
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         # Requirement adf-automation-role to exist on target
         self.role = sts.assume_cross_account_role(
-            f'arn:{self.partition}:iam::{source_account_id}:role/adf-automation-role',
+            (
+                f'arn:{self.partition}:iam::{source_account_id}:'
+                'role/adf-automation-role'
+            ),
             f'create_rule_{source_account_id}'
         )
 
     def create_update(self):
-        s3_object_path = s3.put_object(
-            "adf-build/templates/events.yml",
-            f"{TARGET_DIR}/templates/events.yml"
+        s3_object_path = s3.build_pathing_style(
+            style="path",
+            key="adf-build/templates/events.yml",
         )
         cloudformation = CloudFormation(
             region=SOURCE_ACCOUNT_REGION,

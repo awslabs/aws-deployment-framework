@@ -68,9 +68,7 @@ list_stacks = {
             'ParentId': 'Unique-Stack-Id',
         },
         {
-            # Should be filtered out when deleting deprecated base stacks
-            # This is current, but should only exist in the global management
-            # account.
+            # Should be deprecated when deleting deprecated base stacks
             'StackName': 'adf-global-base-adf-build',
             'StackStatus': 'CREATE_COMPLETE',
         },

@@ -35,7 +35,9 @@ AWS Control Tower prior to installing ADF.**
 
 ---------------------------------
 
-## 1. Enable CloudTrail
+## 1. Enable Services
+
+### 1.1. Enable CloudTrail
 
 Ensure you have setup [AWS CloudTrail](https://aws.amazon.com/cloudtrail/)
 *(Not the default trail)* in your Management Account that spans **all
@@ -48,6 +50,28 @@ Please use the [AWS CloudTrail
 instructions](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
 to configure the CloudTrail in the `us-east-1` region within the AWS
 Organizations Management AWS Account.
+
+### 1.2. Enable AWS Organizations API Access
+
+ADF will setup and configure [AWS
+Organizations](https://us-east-1.console.aws.amazon.com/organizations/v2/home?region=us-east-1)
+automatically.
+
+However, ADF requires, but does not configure AWS Account Management
+automatically.
+
+Without configuring AWS Account Management, the `adf-account-management` Step
+Functions state machine will fail to configure the AWS accounts such as the
+deployment account for you. The error message that it would return would state:
+
+> An error occurred (AccessDeniedException) when calling the ListRegions operation:
+> User: arn:[...assumed-sts-role-arn...]/adf-account-management-config-region
+> is not authorized to perform: account:ListRegions
+> (Your organization must first enable trusted access with AWS Account Management.)
+
+To enable this, go to AWS Organizations service console after it is configured
+and [enable AWS Account Management via this
+link](https://us-east-1.console.aws.amazon.com/organizations/v2/home/services/AWS%20Account%20Management).
 
 ## 2. Setup Your Build Environment
 
@@ -191,7 +215,7 @@ You can checkout a specific version by running:
 git checkout ${version_tag_goes_here}
 
 # For example:
-git checkout v3.2.0
+git checkout v4.0.0
 ```
 
 ### 3.3. Update Makefile
@@ -623,6 +647,9 @@ automatically in the background, to follow its progress:
    As the stack `serverlessrepo-aws-deployment-framework` completes you can now
    open AWS CodePipeline from within the management account in `us-east-1` and
    see that there is an initial pipeline execution that started.
+
+   Upon first installation, this pipeline might fail to fetch the source
+   code from the repository. Click the retry failed action button to try again.
 
    When ADF is deployed for the first-time, it will make the initial commit
    with the skeleton structure of the `aws-deployment-framework-bootstrap`

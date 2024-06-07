@@ -22,6 +22,7 @@ from sts import STS
 
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 LOGGER = configure_logger(__name__)
 
 
@@ -64,9 +65,12 @@ def lambda_handler(event, _):
     partition = get_partition(REGION_DEFAULT)
     cross_account_access_role = event.get('cross_account_access_role')
 
-    role = sts.assume_cross_account_role(
-        f'arn:{partition}:iam::{account_id}:role/{cross_account_access_role}',
-        'management'
+    role = sts.assume_bootstrap_deployment_role(
+        partition,
+        MANAGEMENT_ACCOUNT_ID,
+        account_id,
+        cross_account_access_role,
+        'management',
     )
 
     s3 = S3(REGION_DEFAULT, S3_BUCKET)

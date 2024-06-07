@@ -5,7 +5,7 @@ version: 0.2
 
 env:
   variables:
-    TF_VAR_TARGET_ACCOUNT_ROLE: adf-terraform-role  # The IAM Role Terraform will assume to deploy resources
+    TF_VAR_TARGET_ACCOUNT_ROLE: adf-pipeline-terraform  # The IAM Role Terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
     TF_CLI_ARGS: "-no-color"
     TF_STAGE: "apply"

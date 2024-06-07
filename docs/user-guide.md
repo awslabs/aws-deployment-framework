@@ -242,6 +242,96 @@ AWS CloudFormation.
 For detailed information on providers and their supported properties, see the
 [providers guide](./providers-guide.md).
 
+### Custom roles for pipelines
+
+Most providers allow you to define a role to use when actions need to be
+performed by the pipeline. For example, you could use a specific deployment
+role to create security infrastructure. Allowing you to configure the pipeline
+with least privilege, only granting access to the actions it requires to
+perform the task. While securing those resources from modifications by other
+pipelines that do not have access to this role.
+
+There are three types of roles, source, build and deploy.
+Please follow the guidelines below to define the role correctly.
+As always, it is important to grant these roles [least-privilege
+access](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege).
+
+For each of these roles, it is important to create the role ahead. So the
+pipeline can assume into it. For example, by defining these roles in the
+`global-iam.yml` file for the given organization units in the
+`aws-deployment-framework-bootstrap` repository. See the [admin guide for more
+details regarding this](./admin-guide.md#bootstrapping-accounts).
+
+**Please note:**
+In the sections below, when it references the `global.yml` file, it
+specifically means the one that you can find the definition in the
+`aws-deployment-framework-bootstrap` repository, in the
+`adf-bootstrap/global.yml` file. Do **NOT** edit the `global.yml` file itself.
+Instead create the role using the `global-iam.yml` counterpart. As any updates
+to the `global.yml` file get overwritten when ADF itself is updated.
+
+#### Source roles
+
+For source provider actions, like CodeCommit and S3, you can define a specific
+role to use. Please make sure the `AssumeRolePolicyDocument` of these roles
+includes a similar definition to the default `adf-codecommit-role` as created
+by ADF.
+
+You can find the definition of this role the `global.yml` file see [note
+above](#custom-roles-for-pipelines).
+These roles would need to be created in the account where the source performs
+its tasks.
+For example, if you use it to fetch the source from a CodeCommit repository,
+the role needs to be created in the same account as the repository itself.
+
+Additionally, the `adf-codepipeline-role` should be granted access to perform
+an `sts:AssumeRole` of the custom role you create. This change should be
+added to the `adf-bootstrap/deployment/global-iam.yml` file.
+
+#### Build roles
+
+For CodeBuild actions, you can define a specific role to use.
+Please make sure the `AssumeRolePolicyDocument` of these roles
+includes a similar definition to the default `adf-codebuild-role` as created
+by ADF in the deployment account. For the custom CodeBuild role, you will need
+to grant it the same permissions as the `adf-codebuild-role` to enable it.
+
+You can find the definition of this role in the
+`adf-bootstrap/deployment/global.yml` file.
+This custom role should be defined inside the
+`adf-bootstrap/deployment/global-iam.yml` file.
+
+#### Deployment roles
+
+For deployment provider actions, like CloudFormation and S3, you can define a
+specific role to use.
+
+For all deployment actions, except for CloudFormation, you should take a look
+at ADF's role of the `adf-cloudformation-role`. This role is responsible for
+performing cross-account operations and instructing the services to kick-off.
+
+For the CloudFormation action, a separate role is used for the deployment of
+CloudFormation Stack operations itself. That is the
+`adf-cloudformation-deployment-role`. The `adf-cloudformation-role` in the
+target account passes the `adf-cloudformation-deployment-role` to the
+CloudFormation service. If you create a custom role for CloudFormation
+deployments, you need to ensure that the `adf-cloudformation-role` is granted
+`iam:PassRole` permissions for that role to the CloudFormation service only.
+
+Please make sure the `AssumeRolePolicyDocument` of your custom role
+includes a similar definition to the default created by ADF.
+
+You can find the definition of this role the `global.yml` file see [note
+above](#custom-roles-for-pipelines).
+These roles would need to be created in the account where it will deploy to.
+For example, if you use it to deploy objects to an S3 bucket,
+it needs to live in the same account as the S3 bucket itself or be granted
+access to the bucket via the bucket policy.
+
+Additionally, the `adf-codepipeline-role` should be granted access to perform
+an `sts:AssumeRole` of the custom role you create. This change should be
+added to the `adf-bootstrap/deployment/global-iam.yml` file.
+
 ### Targets Syntax
 
 The Deployment Map has a shorthand syntax along with a more detailed version

@@ -145,6 +145,9 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+            Condition:
+              ArnLike:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:*"
       Path: /
       Policies:
         - PolicyName: AmazonECSTaskExecutionRolePolicy

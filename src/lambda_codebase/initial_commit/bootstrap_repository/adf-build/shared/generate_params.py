@@ -374,7 +374,7 @@ class Parameters:
         except FileNotFoundError:
             try:
                 with open(f"{file_path}.yml", encoding='utf-8') as file:
-                    yaml_content = yaml.load(file, Loader=yaml.FullLoader)
+                    yaml_content = yaml.safe_load(file)
                     LOGGER.debug(
                         "Read %s.yml: %s",
                         file_path,

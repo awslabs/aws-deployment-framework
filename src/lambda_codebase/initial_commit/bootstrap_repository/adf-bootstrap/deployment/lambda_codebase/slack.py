@@ -165,6 +165,8 @@ def send_message(url, payload):
     Sends the message to the designated slack webhook
     """
     params = json.dumps(payload).encode('utf8')
+    if not url.lower().startswith('http'):
+        raise ValueError('URL to send message to is forbidden') from None
     req = urllib.request.Request(
         url,
         data=params,

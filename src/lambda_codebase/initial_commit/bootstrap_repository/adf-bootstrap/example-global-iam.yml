@@ -48,14 +48,9 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              # These below actions are examples, change these to your requirements..
-              - "apigateway:*"
-              - "cloudformation:*"  # You will need CloudFormation actions in order to work with CloudFormation
-              - "logs:*"
-              - "codedeploy:*"
-              - "autoscaling:*"
-              - "cloudwatch:*"
-              - "elasticloadbalancing:*"
+              # These are example actions, please update these to the least privilege policy required:
+              - "cloudwatch:PutMetricAlarm"
+              - "logs:CreateLogGroup"
             Resource:
               - "*"
       Roles:
@@ -71,6 +66,7 @@ Resources:
 #   # Uncomment this line if you want to enable the terraform extensions
 #   Type: AWS::IAM::Role
 #   Properties:
+#     Path: /
 #     RoleName: "adf-terraform-role"
 #     AssumeRolePolicyDocument:
 #       Version: "2012-10-17"
@@ -86,7 +82,6 @@ Resources:
 #             AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
 #           Action:
 #             - sts:AssumeRole
-#     Path: /
 #
 # ADFTerraformPolicy:
 #   Type: AWS::IAM::Policy
@@ -118,6 +113,7 @@ Resources:
 #   # Am example custom role that you would need to create in order to deploy custom resources in other AWS Accounts within the organization.
 #   Type: AWS::IAM::Role
 #   Properties:
+#     Path: /
 #     RoleName: "adf-custom-deploy-role"
 #     AssumeRolePolicyDocument:
 #       Version: "2012-10-17"
@@ -141,7 +137,7 @@ Resources:
 # MyExampleCustomRolePolicy:
 #   Type: AWS::IAM::Policy
 #   Properties:
-#     PolicyName: "adf-custom-deploy-role-policy"
+#     PolicyName: "adf-pipeline-custom-deploy-policy"
 #     PolicyDocument:
 #       Version: "2012-10-17"
 #       Statement:

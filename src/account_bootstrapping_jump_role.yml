@@ -1,0 +1,310 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: ADF CloudFormation Stack for account bootstrapping jump role
+
+Parameters:
+  OrganizationId:
+    Type: String
+    MinLength: "1"
+
+  ADFVersion:
+    Type: String
+    MinLength: "1"
+
+  LambdaLayer:
+    Type: String
+    MinLength: "1"
+
+  CrossAccountAccessRoleName:
+    Type: String
+    MinLength: "1"
+
+  DeploymentAccountId:
+    Type: String
+    MinLength: "1"
+
+  LogLevel:
+    Description: >-
+      At what Log Level the ADF should operate, default is INFO.
+      Valid options are: DEBUG, INFO, WARN, ERROR, and CRITICAL.
+    Type: String
+    Default: "INFO"
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+      - CRITICAL
+
+  AllowBootstrappingOfManagementAccount:
+    Description: >-
+      Would ADF need to bootstrap the Management Account of your AWS
+      Organization too? If so, set this to "Yes".
+
+      Only set this to "Yes" if a pipeline will deploy to the management
+      account. Or if you need some of the bootstrap resources in the
+      management account too.
+
+      Please be careful: if you plan to set this to "Yes", make sure
+      that the management account is in a dedicated organization unit
+      that has bare minimum IAM permissions to deploy. Only grant access
+      to resource types that are required!
+
+      If you set/leave this at "No", make sure the management organization is
+      in the root of your AWS Organization structure. Or in a dedicated
+      organization unit and add the organization unit id to the protected
+      organization unit list via the (ProtectedOUs) parameter.
+
+      If not, leave at the default of "No".
+      Valid options are: Yes, No
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
+  GrantOrgWidePrivilegedBootstrapAccessUntil:
+    Description: >-
+      When set at a date in the future, ADF will use the privileged
+      cross-account access role to bootstrap the accounts. This is useful
+      in situations where you are reworking the IAM permissions of the
+      ADF bootstrap stacks (global-iam.yml). In some cases, setting this
+      in the future might be required to upgrade ADF to newer versions of
+      ADF too. If an ADF upgrade requires this, it will be clearly described
+      in the CHANGELOG.md file and the release notes.
+
+      Leave at the configured default to disable privileged bootstrap
+      access for all accounts. When the date is in the past, only the AWS
+      Accounts that are accessible to ADF but are not bootstrapped yet will
+      be allowed access via the privileged cross-account access role.
+
+      Date time format according to ISO 8601
+      https://www.w3.org/TR/NOTE-datetime
+    Type: String
+    Default: "1900-12-31T23:59:59Z"
+    AllowedPattern: "\\d{4}-[0-1]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z)"
+
+Globals:
+  Function:
+    Architectures:
+      - arm64
+    Runtime: python3.12
+    Timeout: 300
+    Tracing: Active
+    Layers:
+      - !Ref LambdaLayer
+
+Conditions:
+  DenyManagementJumpRoleAccess: !Equals
+    - !Ref AllowBootstrappingOfManagementAccount
+    - "Yes"
+
+Resources:
+  JumpRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/account-bootstrapping/jump/"
+      RoleName: "adf-bootstrapping-cross-account-jump-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action: "sts:AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-bootstrapping/adf-account-bootstrapping-cross-account-deploy-bootstrap"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-bootstrapping/adf-account-bootstrapping-update-deployment-resource-policies"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-bootstrapping/adf-account-bootstrapping-bootstrap-stack-waiter"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-bootstrapping/adf-account-bootstrapping-moved-to-root-cleanup-if-required"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-management/adf-account-management-config-account-alias"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-management/adf-account-management-delete-default-vpc"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-management/adf-account-management-get-account-regions"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap-pipeline/adf-bootstrap-pipeline-codebuild"
+      Policies:
+        - PolicyName: "adf-limit-scope-of-jump-role"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "DenyNonAssumeRoleOperations"
+                Effect: Deny
+                NotAction:
+                  - "sts:AssumeRole"
+                Resource: "*"
+              - Sid: "DenyAssumeRoleExternalToOrganization"
+                Effect: Deny
+                Action:
+                  - "sts:AssumeRole"
+                Resource: "*"
+                Condition:
+                  StringNotEquals:
+                    "aws:ResourceOrgID": !Ref OrganizationId
+              - Sid: "DenyAssumeRoleToUnknownRoles"
+                Effect: Deny
+                Action:
+                  - "sts:AssumeRole"
+                NotResource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
+              - Sid: "AllowAssumeRoleToLeastPrivilegeUpdateDeploymentRole"
+                Effect: Allow
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+                Condition:
+                  StringEquals:
+                    "aws:ResourceOrgID": !Ref OrganizationId
+              - Sid: "GrantOrgWidePrivilegedBootstrapAccessFallback"
+                Effect: Allow
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
+                Condition:
+                  DateLessThan:
+                    "aws:CurrentTime": !Ref GrantOrgWidePrivilegedBootstrapAccessUntil
+
+  JumpRoleProtectManagementAccountPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Condition: "DenyManagementJumpRoleAccess"
+    Properties:
+      Description: >-
+        This policy gets added to the Jump Role if ADF is not allowed to
+        bootstrap the management account.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "DenyAssumeRoleToManagementAccount"
+            Effect: Deny
+            Action:
+              - "sts:AssumeRole"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "aws:ResourceAccount": !Ref AWS::AccountId
+      Roles:
+        - !Ref JumpRole
+
+  JumpRoleManagedPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "The managed jump role policy that gets updated dynamically by the JumpRoleManager function"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # An empty list of statements is not allowed, hence creating
+          # a dummy statement that does not have any effect
+          - Sid: "EmptyClause"
+            Effect: Deny
+            Action:
+              # sts:AssumeRoleWithWebIdentity is not allowed by the
+              # inline policy of the jump role anyway.
+              # Hence blocking this would not cause any problems.
+              #
+              # It should not deny sts:AssumeRole here, as it might be granted
+              # via the GrantOrgWidePrivilegedBootstrapAccessFallback statement
+              - "sts:AssumeRoleWithWebIdentity"
+            Resource: "*"
+      Roles:
+        - !Ref JumpRole
+
+  JumpRoleManagerExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/account-bootstrapping/jump-manager/"
+      RoleName: "adf-bootstrapping-jump-manager-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "adf-lambda-create-account-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "xray:PutTelemetryRecords"
+                  - "xray:PutTraceSegments"
+                  - "cloudwatch:PutMetricData"
+                  - "codepipeline:PutJobSuccessResult"
+                  - "codepipeline:PutJobFailureResult"
+                Resource: "*"
+              - Effect: "Allow"
+                Action: "lambda:GetLayerVersion"
+                Resource: !Ref LambdaLayer
+              - Effect: Allow
+                Action:
+                  - "organizations:ListAccounts"
+                  - "organizations:ListParents"
+                  - "organizations:ListRoots"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "organizations:ListAccountsForParent"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:organizations::${AWS::AccountId}:root/${OrganizationId}/r-*"
+              - Effect: Allow
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf/bootstrap/adf-bootstrap-test-role"
+                Condition:
+                  StringEquals:
+                    "aws:ResourceOrgID": !Ref OrganizationId
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/protected"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/moves/to_root/action"
+              - Effect: Allow
+                Action:
+                  - "iam:CreatePolicyVersion"
+                  - "iam:DeletePolicyVersion"
+                  - "iam:ListPolicyVersions"
+                Resource:
+                  - !Ref JumpRoleManagedPolicy
+
+  JumpRoleManagerFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: main.lambda_handler
+      Description: ADF - Account Bootstrapping - Jump Role Manager
+      CodeUri: lambda_codebase/jump_role_manager
+      Environment:
+        Variables:
+          ADF_JUMP_MANAGED_POLICY_ARN: !Ref JumpRoleManagedPolicy
+          AWS_PARTITION: !Ref AWS::Partition
+          CROSS_ACCOUNT_ACCESS_ROLE_NAME: !Ref CrossAccountAccessRoleName
+          DEPLOYMENT_ACCOUNT_ID: !Ref DeploymentAccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
+          ADF_VERSION: !Ref ADFVersion
+          ADF_LOG_LEVEL: !Ref LogLevel
+      FunctionName: adf-bootstrapping-jump-role-manager
+      Role: !GetAtt JumpRoleManagerExecutionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt JumpRole.Arn
+
+  ManagerFunctionArn:
+    Value: !GetAtt JumpRoleManagerFunction.Arn
+
+  ManagerFunctionName:
+    Value: !Ref JumpRoleManagerFunction

@@ -14,7 +14,7 @@ phases:
       #
       # If you want to restrict public access, you can create a local copy
       # of the pip required packages and use S3 private link.
-      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --only-show-errors
       - pip install -r adf-build/requirements.txt -q
 
   build:

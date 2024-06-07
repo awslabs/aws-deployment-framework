@@ -63,7 +63,7 @@ class StepFunctions:
             stateMachineArn=(
                 f"arn:{partition}:states:{self.deployment_account_region}:"
                 f"{self.deployment_account_id}:stateMachine:"
-                "EnableCrossAccountAccess"
+                "adf-bootstrap-enable-cross-account"
             ),
             input=json.dumps({
                 "deployment_account_region": self.deployment_account_region,
@@ -112,7 +112,7 @@ class StepFunctions:
 
         if self.execution_status in ('FAILED', 'ABORTED', 'TIMED_OUT'):
             raise AssertionError(
-                "State Machine on Deployment account"
+                "State Machine on Deployment account "
                 f"{self.deployment_account_id} has "
                 f"status: {self.execution_status}, see logs"
             )

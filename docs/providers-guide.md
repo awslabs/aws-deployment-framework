@@ -87,10 +87,12 @@ Provider type: `codecommit`.
     information on the use of the owner attribute can be found in the
     [CodePipeline
     documentation](https://docs.aws.amazon.com/codepipeline/latest/APIReference/API_ActionTypeId.html).
-- *role* - *(String)* default ADF managed role.
-  - The role to use to fetch the contents of the CodeCommit repository. Only
-    specify when you need a specific role to access it. By default ADF will use
-    its own role to access it instead.
+- *role* - *(String)* default: `adf-codecommit-role`.
+  - The role name of the role to use to fetch the contents of the CodeCommit
+    repository. Only specify when you need a specific role to access it.
+    By default ADF will use its own role to access it instead.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *trigger_on_changes* - *(Boolean)* default: `True`.
   - Whether CodePipeline should release a change and trigger the pipeline.
   - **When set to False**, you either need to trigger the pipeline manually,
@@ -114,8 +116,14 @@ S3 can be used as the source for a pipeline too. **Please note:** you can use
 S3 as a source and deployment provider. The properties that are available are
 slightly different.
 
-The role used to fetch the object from the S3 bucket is:
+The default role used to fetch the object from the S3 bucket is:
 `arn:${partition}:iam::${source_account_id}:role/adf-codecommit-role`.
+
+Please add the required S3 read permissions to the `adf-codecomit-role` via the
+`adf-bootstrap/deployment/global-iam.yml` file in the
+`aws-deployment-framework-bootstrap` repository. Or, allow
+the `adf-codecommit-role` S3 read permissions in the bucket policy of the
+source bucket.
 
 Provider type: `s3`.
 
@@ -277,6 +285,8 @@ Provider type: `codebuild`.
     **Please note:** Since the CodeBuild environment runs in the deployment
     account, the role you specify will be assumed in and should be available
     in the deployment account too.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *timeout* *(Number)* in minutes, default: `20`.
   - If you wish to define a custom timeout for the Build stage.
 - *privileged* *(Boolean)* default: `False`.
@@ -452,12 +462,15 @@ Provider type: `codedeploy`.
   - The name of the CodeDeploy Application you want to use for this deployment.
 - *deployment_group_name* *(String)* **(required)**
   - The name of the Deployment Group you want to use for this deployment.
-- *role* - *(String)* default
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
+- *role* - *(String)* default `adf-cloudformation-role`
+  - Automatically assumes into the given role in the target account, i.e.
+    `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
   - The role you would like to use on the target AWS account to execute the
     CodeDeploy action. The role should allow the CodeDeploy service to assume
     it. As is [documented in the CodeDeploy service role
     documentation](https://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-create-service-role.html).
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 
 ### CloudFormation
 
@@ -513,11 +526,23 @@ Provider type: `cloudformation`.
     to `infra`.
   - **Defaults to empty string**, the root of the source repository or input
     artifact.
-- *role* - *(String)* default
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
+- *role* - *(String)* default `adf-cloudformation-deployment-role`
+  - Automatically assumes into the given role in the target account, i.e.
+    `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
   - The role you would like to use on the target AWS account to execute the
-    CloudFormation action. Ensure that the CloudFormation service should be
-    allowed to assume that role.
+    CloudFormation action.
+  - Ensure that the CloudFormation service should be allowed to assume that
+    role.
+  - Additionally, make sure that the `adf-cloudformation-role` is allowed to
+    perform an `iam:PassRole` action with the given role. Restrict this action
+    for the CloudFormation service only.
+    You can find an example of this in the `adf-bootstrap/deployment/global.yml`
+    file where it allows the CloudFormation Role to perform `iam:PassRole` with
+    the `adf-cloudformation-deployment-role`.
+    Please grant this access in the `adf-bootstrap/deployment/global-iam.yml`
+    file in the `aws-deployment-framework-bootstrap` repository.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *action* -
   (`CHANGE_SET_EXECUTE|CHANGE_SET_REPLACE|CREATE_UPDATE|DELETE_ONLY|REPLACE_ON_FAILURE`)
   default: `CHANGE_SET_EXECUTE`.
@@ -586,7 +611,7 @@ Provider type: `service_catalog`.
 
 ### S3
 
-S3 can use used to deploy with too.
+S3 is available as a source and deployment provider.
 
 S3 cannot be used to target multiple accounts or regions in one stage.
 As the `bucket_name` property needs to be defined and these are globally
@@ -597,8 +622,16 @@ instead. Where each will target the specific bucket in the target account.
 Please note: you can use S3 as a source and deployment provider. The properties
 that are available are slightly different.
 
-The role used to upload the object(s) to the S3 bucket is:
+When S3 is used as the deployment provider, the default role used to upload
+the object(s) to the S3 bucket is the:
 `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
+
+The `adf-cloudformation-role` is not granted access to read S3 buckets yet.
+Please add the required S3 write permissions to the `adf-cloudformation-role`
+via the `adf-bootstrap/global-iam.yml` file in the
+`aws-deployment-framework-bootstrap` repository. Or, alternatively, allow
+the `adf-cloudformation-role` S3 write permissions in the bucket policy of the
+target bucket.
 
 Provider type: `s3`.
 
@@ -611,9 +644,10 @@ Provider type: `s3`.
 - *extract* - *(Boolean)* default: `False`.
   - Whether CodePipeline should extract the contents of the object when it
     deploys it.
-- *role* - *(String)* default:
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
-  - The role you would like to use for this action.
+- *role* - *(String)* default: `adf-cloudformation-role`.
+  - The role name of the role you would like to use for this action.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *kms_encryption_key_arn* - *(String)*
   - The ARN of the AWS KMS encryption key for the host bucket. The
     `kms_encryption_key_arn` parameter encrypts uploaded artifacts with the

@@ -21,6 +21,7 @@ from sts import STS
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.getenv('AWS_REGION')
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 
 
 def lambda_handler(event, _):
@@ -30,11 +31,11 @@ def lambda_handler(event, _):
     partition = get_partition(REGION_DEFAULT)
     cross_account_access_role = event.get('cross_account_access_role')
 
-    role = sts.assume_cross_account_role(
-        (
-            f'arn:{partition}:iam::{deployment_account_id}:'
-            f'role/{cross_account_access_role}'
-        ),
+    role = sts.assume_bootstrap_deployment_role(
+        partition,
+        MANAGEMENT_ACCOUNT_ID,
+        deployment_account_id,
+        cross_account_access_role,
         'step_function',
     )
 

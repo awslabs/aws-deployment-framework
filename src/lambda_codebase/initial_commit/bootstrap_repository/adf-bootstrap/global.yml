@@ -22,6 +22,16 @@ Parameters:
     Description: Deployment Bucket Name
     Default: /adf/bucket_name
 
+  ManagementAccountId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Management Account ID
+    Default: /adf/management_account_id
+
+  BootstrapTemplatesBucketName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Bootstrap Templates Bucket Name
+    Default: /adf/bootstrap_templates_bucket
+
 Resources:
   CodeCommitRole:
     # This role is used to connect the Pipeline in the deployment account to CodeCommit in
@@ -29,6 +39,7 @@ Resources:
     # OU you can target this more specifically and remove it from the global.yml
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       RoleName: "adf-codecommit-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -41,13 +52,6 @@ Resources:
               AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
 
   CodeCommitPolicy:
     Type: AWS::IAM::Policy
@@ -69,22 +73,16 @@ Resources:
             Resource: "*"
           - Effect: Allow
             Action:
-              - "s3:Get*"
-              - "s3:List*"
-              - "s3:Put*"
+              - "s3:PutObject"
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
           - Effect: Allow
             Action:
               - "kms:Decrypt"
-              - "kms:Describe*"
-              - "kms:DescribeKey"
               - "kms:Encrypt"
-              - "kms:GenerateDataKey*"
-              - "kms:Get*"
-              - "kms:List*"
-              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
             Resource: !Ref KMSArn
       Roles:
         - !Ref CodeCommitRole
@@ -99,17 +97,42 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              - cloudformation:*
-              - codedeploy:*
-              - iam:PassRole
+              - cloudformation:ValidateTemplate
+              - cloudformation:CreateStack
+              - cloudformation:DeleteStack
+              - cloudformation:DescribeStackEvents
+              - cloudformation:DescribeStacks
+              - cloudformation:UpdateStack
+              - cloudformation:CreateChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:SetStackPolicy
+              - cloudformation:ValidateTemplate
+              - codedeploy:CreateDeployment
+              - codedeploy:GetApplicationRevision
+              - codedeploy:GetDeployment
+              - codedeploy:GetDeploymentConfig
+              - codedeploy:RegisterApplicationRevision
               - servicecatalog:CreateProvisioningArtifact
               - servicecatalog:DeleteProvisioningArtifact
               - servicecatalog:DescribeProvisioningArtifact
               - servicecatalog:ListProvisioningArtifacts
               - servicecatalog:UpdateProduct
             Resource: "*"
+          - Effect: Allow
+            Sid: "PassRole"
+            Action:
+              - "iam:PassRole"
+            Resource:
+              - !GetAtt CloudFormationDeploymentRole.Arn
+            Condition:
+              StringEqualsIfExists:
+                "iam:PassedToService":
+                  - "cloudformation.amazonaws.com"
       Roles:
         - !Ref CloudFormationRole
+
   CloudFormationKMSPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -124,7 +147,8 @@ Resources:
               - kms:DescribeKey
               - kms:Encrypt
               - kms:GenerateDataKey*
-              - kms:ReEncrypt*
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
             Resource: !Ref KMSArn
       Roles:
         - !Ref CloudFormationRole
@@ -139,9 +163,9 @@ Resources:
           - Effect: Allow
             Sid: "S3"
             Action:
-              - s3:Get*
-              - s3:List*
-              - s3:Put*
+              - s3:GetObject*
+              - s3:ListBucket
+              - s3:PutObject*
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}
               - !Sub arn:${AWS::Partition}:s3:::${DeploymentAccountBucketName}/*
@@ -151,6 +175,7 @@ Resources:
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       RoleName: "adf-cloudformation-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -165,7 +190,6 @@ Resources:
                   - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-cloudformation-role
             Action:
               - sts:AssumeRole
-      Path: /
 
   CloudFormationDeploymentPolicy:
     # This is the policy that will be used to deploy CloudFormation resources from
@@ -186,7 +210,8 @@ Resources:
               - "kms:DescribeKey"
               - "kms:Encrypt"
               - "kms:GenerateDataKey*"
-              - "kms:ReEncrypt*"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
             Resource: !Ref "KMSArn"
       Roles:
         - !Ref CloudFormationDeploymentRole
@@ -194,6 +219,7 @@ Resources:
   CloudFormationDeploymentRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       RoleName: "adf-cloudformation-deployment-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -205,23 +231,17 @@ Resources:
                 - cloudformation.amazonaws.com
             Action:
               - sts:AssumeRole
-          - Effect: Allow
-            Sid: "AssumeRole"
-            Principal:
-              AWS:
-                - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
-            Action:
-              - sts:AssumeRole
             Condition:
-              ArnEquals:
-                "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${DeploymentAccountId}:*"
-                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-codepipeline-role"
-      Path: /
+              StringEqualsIfExists:
+                "aws:SourceAccount":
+                  - !Ref AWS::AccountId
+                  - !Ref DeploymentAccountId
 
   UpdateCrossAccountAccessByDeploymentAccountRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-update-cross-account-access-role"
+      Path: /adf/bootstrap/
+      RoleName: "adf-update-cross-account-access"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -229,14 +249,13 @@ Resources:
             Sid: "AssumeRoleByEnableCrossAccountLambda"
             Condition:
               ArnEquals:
-                "aws:PrincipalArn": !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-enable-cross-account-access-lambda-role
+                "aws:PrincipalArn": !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf/bootstrap/adf-bootstrap-pipeline-enable-cross-account-access-role
             Principal:
               AWS: !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
-      Path: /
       Policies:
-        - PolicyName: "adf-allow-updating-cross-account-roles"
+        - PolicyName: "adf-pipeline-allow-updating-cross-accounts"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -255,6 +274,7 @@ Resources:
     # than 'aws-deployment-framework-pipelines'
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       RoleName: "adf-automation-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -264,14 +284,13 @@ Resources:
             Condition:
               ArnEquals:
                 "aws:PrincipalArn":
-                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-update-rule"
-                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf-automation/adf-pipeline-create-repository"
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf/pipeline-management/adf-pipeline-management-create-update-rule"
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:role/adf/pipeline-management/adf-pipeline-management-create-repository"
             Principal:
               AWS:
                 - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccountId}:root"
             Action:
               - sts:AssumeRole
-      Path: /
 
   AdfAutomationRolePolicy:
     Type: AWS::IAM::Policy
@@ -339,18 +358,51 @@ Resources:
               - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_id"
               - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/kms_arn"
           - Effect: Allow
-            Sid: "IAM"
+            Sid: "IAMCleanupV3LegacyRoles"
             Action:
-              - "iam:AttachRolePolicy"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
+          - Effect: Allow
+            Sid: "IAMFullPathOnly"
+            Action:
               - "iam:CreateRole"
               - "iam:DeleteRole"
+              - "iam:TagRole"
+              - "iam:UntagRole"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+          - Effect: Allow
+            Sid: "IAMFullPathAndNameOnly"
+            Action:
               - "iam:DeleteRolePolicy"
               - "iam:GetRole"
               - "iam:GetRolePolicy"
-              - "iam:PassRole"
               - "iam:PutRolePolicy"
             Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+          - Effect: Allow
+            Sid: "IAMPassRole"
+            Action:
+              - "iam:PassRole"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+            Condition:
+              StringEquals:
+                'iam:PassedToService':
+                  - "events.amazonaws.com"
+              ArnEquals:
+                'iam:AssociatedResourceArn':
+                  - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+          - Effect: Allow
+            Sid: "KMS"
+            Action:
+              # These are required for cross account deployments via CodePipeline.
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+            Resource: !Ref KMSArn
       Roles:
         - !Ref AdfAutomationRole
 
@@ -363,6 +415,7 @@ Resources:
     # in order to facilitate this scenario.
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       RoleName: "adf-readonly-automation-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -377,7 +430,6 @@ Resources:
                 - !Sub arn:${AWS::Partition}:iam::${DeploymentAccountId}:root
             Action:
               - sts:AssumeRole
-      Path: /
 
   ReadOnlyAutomationRolePolicy:
     Type: AWS::IAM::Policy
@@ -397,3 +449,149 @@ Resources:
               - "*"
       Roles:
         - !Ref ReadOnlyAutomationRole
+
+  BootstrapTestRole:
+    # This role is used to test whether the AWS Account is bootstrapped or not.
+    # Do not attach any policies to this role.
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /adf/bootstrap/
+      RoleName: "adf-bootstrap-test-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${ManagementAccountId}:role/adf/account-bootstrapping/jump-manager/adf-bootstrapping-jump-manager-role"
+            Principal:
+              AWS: !Sub "arn:${AWS::Partition}:iam::${ManagementAccountId}:root"
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: "lock-down-for-assumerole-test-only"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Deny
+                Action: "*"
+                Resource: "*"
+
+  BootstrapUpdateDeploymentRole:
+    # This role is used to test whether the AWS Account is bootstrapped or not.
+    # Do not attach any policies to this role.
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /adf/bootstrap/
+      RoleName: "adf-bootstrap-update-deployment-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Condition:
+              ArnEquals:
+                "aws:PrincipalArn": !Sub "arn:${AWS::Partition}:iam::${ManagementAccountId}:role/adf/account-bootstrapping/jump/adf-bootstrapping-cross-account-jump-role"
+            Principal:
+              AWS: !Sub "arn:${AWS::Partition}:iam::${ManagementAccountId}:root"
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: "allow-updates-to-bootstrap-stacks"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "cloudformation:CancelUpdateStack"
+                  - "cloudformation:ContinueUpdateRollback"
+                  - "cloudformation:DeleteChangeSet"
+                  - "cloudformation:DeleteStack"
+                  - "cloudformation:DescribeChangeSet"
+                  - "cloudformation:DescribeStacks"
+                  - "cloudformation:SetStackPolicy"
+                  - "cloudformation:SignalResource"
+                  - "cloudformation:UpdateTerminationProtection"
+                Resource:
+                  # Across all regions, as it needs to be able to find and
+                  # cleanup global stacks in non-global regions:
+                  - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-*/*"
+                  - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-regional-base-*/*"
+              - Effect: "Allow"
+                Action:
+                  - "cloudformation:CreateChangeSet"
+                  - "cloudformation:CreateStack"
+                  - "cloudformation:CreateUploadBucket"
+                  - "cloudformation:ExecuteChangeSet"
+                  - "cloudformation:TagResource"
+                  - "cloudformation:UntagResource"
+                  - "cloudformation:UpdateStack"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-global-base-bootstrap/*"
+                  - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/adf-global-base-iam/*"
+                  - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-regional-base-bootstrap/*"
+              - Effect: "Allow"
+                Action:
+                  - "cloudformation:ListStacks"
+                  - "cloudformation:ValidateTemplate"
+                  - "ec2:DeleteInternetGateway"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:DeleteRouteTable"
+                  - "ec2:DeleteSubnet"
+                  - "ec2:DeleteVpc"
+                  - "ec2:DescribeInternetGateways"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DescribeRegions"
+                  - "ec2:DescribeRouteTables"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DescribeVpcs"
+                  - "iam:CreateAccountAlias"
+                  - "iam:DeleteAccountAlias"
+                  - "iam:ListAccountAliases"
+                Resource:
+                  - "*"
+              - Effect: "Allow"
+                Action:
+                  - "ssm:GetParameters"
+                  - "ssm:GetParameter"
+                  - "ssm:PutParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
+              - Effect: "Allow"
+                Action:
+                  - "iam:CreateRole"
+                  - "iam:DeleteRole"
+                  - "iam:TagRole"
+                  - "iam:UntagRole"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - Effect: "Allow"
+                Action:
+                  - "iam:DeleteRolePolicy"
+                  - "iam:GetRole"
+                  - "iam:GetRolePolicy"
+                  - "iam:PutRolePolicy"
+                  - "iam:UpdateAssumeRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - Sid: "IAMGetOnly"
+                Effect: "Allow"
+                Action:
+                  - "iam:GetRole"
+                  - "iam:GetRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-bootstrap-*"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucketName}/adf-bootstrap/*"
