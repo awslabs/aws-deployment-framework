@@ -503,11 +503,10 @@ class Organizations:  # pylint: disable=R0904
                 ParentId=parent_ou_id,
                 Name=name
                 )
-        except Exception as exc:
-            LOGGER.exception(
-                'Failed to create OU called {%s}, with parent {%s}', name, parent_ou_id
-                )
-            raise OrganizationsException() from exc
+        except ClientError as client_err:
+            message = f'Failed to create OU called {name}, with parent {parent_ou_id}'
+            LOGGER.exception(message, client_err)
+            raise OrganizationsException(message) from client_err
         return ou
 
 
