@@ -120,7 +120,7 @@ Parameters:
     AllowedValues:
       - "TRUE"
       - "FALSE"
-      
+
   AllowBootstrappingOfManagementAccount:
     Description: >-
       Would ADF need to bootstrap the Management Account of your AWS
