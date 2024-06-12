@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 The Initial Commit Handler that is called when ADF is installed to commit the
 initial pipelines repository content.
@@ -26,6 +29,8 @@ except Exception as err:  # pylint: disable=broad-except
             "StackId": event["StackId"],
             "Reason": str(prior_error),
         }
+        if not event["ResponseURL"].lower().startswith('http'):
+            raise ValueError('ResponseURL is forbidden') from None
         with urlopen(
             Request(
                 event["ResponseURL"],

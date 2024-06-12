@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Pipeline Management Lambda Function
 Generates Pipeline Inputs
@@ -18,7 +21,9 @@ from partition import get_partition
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
+
+ORGANIZATIONS_READONLY_ROLE = "adf/organizations/adf-organizations-readonly"
 
 
 def store_regional_parameter_config(
@@ -33,7 +38,7 @@ def store_regional_parameter_config(
     These are only used to track pipelines.
     """
     parameter_store.put_parameter(
-        f"/deployment/{deployment_map_source}/{pipeline.name}/regions",
+        f"deployment/{deployment_map_source}/{pipeline.name}/regions",
         str(pipeline.get_all_regions()),
     )
 
@@ -59,31 +64,48 @@ def fetch_required_ssm_params(pipeline_input, regions):
         parameter_store = ParameterStore(region, boto3)
         output[region] = {
             "s3": parameter_store.fetch_parameter(
-                f"/cross_region/s3_regional_bucket/{region}",
+                f"cross_region/s3_regional_bucket/{region}",
             ),
             "kms": parameter_store.fetch_parameter(
-                f"/cross_region/kms_arn/{region}",
+                f"cross_region/kms_arn/{region}",
             ),
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
             output[region]["modules"] = parameter_store.fetch_parameter(
-                "deployment_account_bucket"
+                "shared_modules_bucket"
             )
             output["default_scm_branch"] = parameter_store.fetch_parameter(
-                "default_scm_branch",
+                "scm/default_scm_branch",
             )
-            codestar_connection_path = (
+            output["default_scm_codecommit_account_id"] = parameter_store.fetch_parameter(
+                "scm/default_scm_codecommit_account_id",
+            )
+            codeconnections_param_path = (
                 pipeline_input
                 .get("default_providers", {})
                 .get("source")
                 .get("properties", {})
-                .get("codestar_connection_path")
+                .get("codeconnections_param_path")
             )
-            if codestar_connection_path:
-                output["codestar_connection_arn"] = (
-                    parameter_store.fetch_parameter(codestar_connection_path)
+            if codeconnections_param_path:
+                output["codeconnections_arn"] = (
+                    parameter_store.fetch_parameter(codeconnections_param_path)
                 )
     return output
+
+
+def report_final_pipeline_targets(pipeline_object):
+    number_of_targets = 0
+    LOGGER.info(
+        "Targets found: %s",
+        pipeline_object.template_dictionary["targets"],
+    )
+    for target in pipeline_object.template_dictionary["targets"]:
+        for target_accounts in target:
+            number_of_targets = number_of_targets + len(target_accounts)
+    LOGGER.info("Number of targets found: %d", number_of_targets)
+    if number_of_targets == 0:
+        LOGGER.info("Attempting to create an empty pipeline as there were no targets found")
 
 
 def generate_pipeline_inputs(
@@ -137,8 +159,14 @@ def generate_pipeline_inputs(
         # consisting of multiple "waves". So if you see any reference to
         # a wave going forward it will be the individual batch of account ids.
         pipeline_object.template_dictionary["targets"].append(
-            list(target_structure.generate_waves()),
+            list(
+                target_structure.generate_waves(
+                    target=pipeline_target
+                )
+            ),
         )
+
+    report_final_pipeline_targets(pipeline_object)
 
     if DEPLOYMENT_ACCOUNT_REGION not in regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
@@ -148,12 +176,17 @@ def generate_pipeline_inputs(
         data["pipeline_input"],
         data["pipeline_input"]["regions"],
     )
-    if "codestar_connection_arn" in data["ssm_params"]:
+    if "codeconnections_arn" in data["ssm_params"]:
         data["pipeline_input"]["default_providers"]["source"]["properties"][
-            "codestar_connection_arn"
-        ] = data["ssm_params"]["codestar_connection_arn"]
-    data["pipeline_input"]["default_scm_branch"] = data["ssm_params"].get(
-        "default_scm_branch",
+            "codeconnections_arn"
+        ] = data["ssm_params"]["codeconnections_arn"]
+    data["pipeline_input"]["default_scm_branch"] = (
+        data["ssm_params"]
+        .get("default_scm_branch")
+    )
+    data["pipeline_input"]["default_scm_codecommit_account_id"] = (
+        data["ssm_params"]
+        .get("default_scm_codecommit_account_id")
     )
     store_regional_parameter_config(
         pipeline_object,
@@ -178,13 +211,10 @@ def lambda_handler(event, _):
     """
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     sts = STS()
-    cross_account_role_name = parameter_store.fetch_parameter(
-        "cross_account_access_role",
-    )
     role = sts.assume_cross_account_role(
         (
             f"arn:{get_partition(DEPLOYMENT_ACCOUNT_REGION)}:iam::"
-            f"{ROOT_ACCOUNT_ID}:role/{cross_account_role_name}-readonly"
+            f"{MANAGEMENT_ACCOUNT_ID}:role/{ORGANIZATIONS_READONLY_ROLE}"
         ),
         "pipeline",
     )

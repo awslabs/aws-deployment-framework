@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Config module used as part of bootstrap_repository
@@ -42,6 +42,18 @@ class Config:
         self.cross_account_access_role = None
         self.extensions = None
         self._load_config_file()
+
+    def sorted_regions(self):
+        target_regions_except_deploy = sorted(list(
+            set(self.target_regions)
+            - set([self.deployment_account_region])
+        ))
+        return [
+            # Make sure we start with the main deployment region
+            self.deployment_account_region,
+            # Followed by all other target regions configured
+            *target_regions_except_deploy,
+        ]
 
     def store_config(self):
         self._store_config()
@@ -90,11 +102,20 @@ class Config:
 
     def _load_config_file(self):
         """
-        Loads the adfconfig.yml file and executes _parse_config
+        Checks for an Org Specific adfconfig.yml (adfconfig.{ORG_ID}.yml)
+        and uses that if it exists. Otherwise it uses the default adfconfig.yml
+        and executes _parse_config
         """
-        with open(self.config_path, encoding="utf-8") as config:
-            self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
-            self._parse_config()
+        org_config_path = self.config_path.replace(".yml", f".{self.organization_id}.yml")
+        if os.path.exists(org_config_path):
+            with open(org_config_path, encoding="utf-8") as org_config_file:
+                LOGGER.info("Using organization specific ADF config: %s", org_config_path)
+                self.config_contents = yaml.safe_load(org_config_file)
+        else:
+            LOGGER.info("Using default ADF config: %s", self.config_path)
+            with open(self.config_path, encoding="utf-8") as config:
+                self.config_contents = yaml.safe_load(config)
+        self._parse_config()
 
     def _parse_config(self):
         """
@@ -140,12 +161,21 @@ class Config:
         in Parameter Store on the management account
         in deployment account main region.
         """
+        deployment_account_id = self.parameters_client.fetch_parameter(
+            'deployment_account_id',
+        )
+
         self.client_deployment_region = ParameterStore(
             self.deployment_account_region, boto3
         )
         self.client_deployment_region.put_parameter("adf_version", ADF_VERSION)
         self.client_deployment_region.put_parameter(
-            "cross_account_access_role", self.cross_account_access_role
+            "deployment_account_id",
+            deployment_account_id,
+        )
+        self.client_deployment_region.put_parameter(
+            "cross_account_access_role",
+            self.cross_account_access_role,
         )
 
     def _store_config(self):
@@ -166,9 +196,17 @@ class Config:
             ):
                 self.parameters_client.put_parameter(key, str(value))
 
+        for move in self.config.get('moves', []):
+            move_param_name = move.get('name', '').replace('-', '_')
+            if move_param_name and move.get('action'):
+                self.parameters_client.put_parameter(
+                    f"moves/{move_param_name}/action",
+                    str(move.get('action')),
+                )
+
         for extension, attributes in self.extensions.items():
             for attribute in attributes:
                 self.parameters_client.put_parameter(
-                    f"/adf/extensions/{extension}/{attribute}",
+                    f"extensions/{extension}/{attribute}",
                     str(attributes[attribute]),
                 )

@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 version: 0.2
 
 env:
@@ -7,10 +10,10 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: 3.12
     commands:
       - cd $INFRASTRUCTURE_ROOT_DIR
-      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --only-show-errors
       - pip install -r adf-build/requirements.txt -q
 
   build:

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -33,7 +33,7 @@ class Resolver:
             lambda resolver: resolver.supports(lookup_str),
             self.resolvers,
         ))
-        return None if len(matches) == 0 else matches[0]
+        return None if not matches else matches[0]
 
     def apply_intrinsic_function_if_any(
         self,

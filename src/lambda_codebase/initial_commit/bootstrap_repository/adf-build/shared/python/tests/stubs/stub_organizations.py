@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -11,7 +11,7 @@ describe_organization = {
         'Arn': 'string',
         'FeatureSet': 'ALL',
         'MasterAccountArn': 'string',
-        'MasterAccountId': 'some_master_account_id',
+        'MasterAccountId': 'some_management_account_id',
         'MasterAccountEmail': 'string',
         'AvailablePolicyTypes': [
             {

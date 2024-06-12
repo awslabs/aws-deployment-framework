@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Pipeline Management Lambda Function
 Creates or Updates a CodeCommit Repository
@@ -45,7 +48,7 @@ def lambda_handler(event, _):
 
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     auto_create_repositories = parameter_store.fetch_parameter(
-        "auto_create_repositories"
+        "scm/auto_create_repositories"
     )
     LOGGER.debug("Auto create repositories is: %s", auto_create_repositories)
     if auto_create_repositories != "enabled":
@@ -67,6 +70,7 @@ def lambda_handler(event, _):
         .get("properties", {})
         .get("repository", {})
     )
+
     if (
         code_account_id
         and str(code_account_id).isdigit()

@@ -27,7 +27,7 @@ In this guide, we will deploy a foundational VPC with associated resources along
 with a ECR Repository to hold our shared container images. Once the VPC is in
 place, we can deploy a ECS Cluster that will run our sample NodeJS application.
 
-ADF supports multiple source types *(Github, CodeCommit, S3, CodeStar)* for
+ADF supports multiple source types *(CodeCommit, S3, and CodeConnections)* for
 pipelines, in this example we will use AWS CodeCommit as the source for our
 pipelines.
 
@@ -307,8 +307,8 @@ URL on the *ECS Cluster* AWS CloudFormation stack within the target accounts.
 
 ![cfn-output](./images/cfn-output.png)
 
-Accessing the *ExternalUrl* output in your web browser, you should be greeted
-with the application running inside AWS Fargate.
+Accessing the *LoadBalancerExternalUrl* output in your web browser, you should
+be greeted with the application running inside AWS Fargate.
 
 For more samples, please see the other pipeline/resource definitions in the
 `samples` folder, or check out the numerous CloudFormation resource available

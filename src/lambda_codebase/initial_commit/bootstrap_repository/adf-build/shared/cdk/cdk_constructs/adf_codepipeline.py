@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodePipeline Action Input
@@ -11,7 +11,6 @@ from aws_cdk import (
     aws_codepipeline as _codepipeline,
     aws_events as _eventbridge,
     aws_events_targets as _eventbridge_targets,
-    SecretValue,
     Fn,
 )
 from constructs import Construct
@@ -24,7 +23,8 @@ ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 ADF_STACK_PREFIX = os.environ.get("ADF_STACK_PREFIX", "")
 ADF_PIPELINE_PREFIX = os.environ.get("ADF_PIPELINE_PREFIX", "")
 ADF_DEFAULT_BUILD_TIMEOUT = 20
-ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'master'
+ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
+ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
 
 
 LOGGER = configure_logger(__name__)
@@ -68,35 +68,57 @@ class Action:
             .get('properties', {})
             .get("account_id")
         )
-        self.role_arn = self._generate_role_arn()
         self.notification_endpoint = self.map_params.get("topic_arn")
         self.default_scm_branch = self.map_params.get(
             "default_scm_branch",
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
         )
+        self.default_scm_codecommit_account_id = self.map_params.get(
+            "scm/default_scm_codecommit_account_id",
+            ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
+        )
         self.configuration = self._generate_configuration()
         self.config = self.generate()
 
-    def _generate_role_arn(self):
-        if self.category not in ['Build', 'Deploy']:
-            return None
+    def _get_role_account_id(self):
+        if self.provider == ['CodeBuild', 'CodeStarSourceConnection']:
+            return ADF_DEPLOYMENT_ACCOUNT_ID
+
+        if self.category == 'Source':
+            return (
+                self.map_params["default_providers"]["source"]
+                .get('properties', {})
+                .get(
+                    'account_id',
+                    self.default_scm_codecommit_account_id,
+                )
+            )
+
+        if self.target and self.target.get('id'):
+            return self.target['id']
+
+        return None
+
+    def _generate_role_arn(self, default_role_name=None):
         default_provider = (
             self.map_params['default_providers'][self.category.lower()]
         )
-        specific_role = (
+        default_provider_role_name = (
+            default_provider
+            .get('properties', {})
+            .get('role', default_role_name)
+        )
+        specific_role_name = (
             self.target
             .get('properties', {})
-            .get('role', default_provider.get('properties', {}).get('role'))
-        )
-        if specific_role:
-            account_id = (
-                self.account_id
-                if self.provider == 'CodeBuild'
-                else self.target['id']
-            )
+            .get('role', default_provider_role_name)
+        ) if self.target else default_provider_role_name
+
+        account_id = self._get_role_account_id()
+        if specific_role_name and account_id:
             return (
                 f'arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:'
-                f'role/{specific_role}'
+                f'role/{specific_role_name}'
             )
         return None
 
@@ -183,6 +205,28 @@ class Action:
                         .get('object_key')
                     ))
                 ),
+                "KMSEncryptionKeyARN": (
+                    self.target
+                    .get('properties', {})
+                    .get('kms_encryption_key_arn', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('kms_encryption_key_arn')
+                    ))
+                ),
+                "CacheControl": (
+                    self.target
+                    .get('properties', {})
+                    .get('cache_control', (
+                        self.map_params
+                        .get('default_providers', {})
+                        .get('deploy', {})
+                        .get('properties', {})
+                        .get('cache_control')
+                    ))
+                ),
             }
         if self.provider == "CodeStarSourceConnection":
             default_source_props = (
@@ -196,17 +240,17 @@ class Action:
                 default_source_props
                 .get('repository', self.map_params['name'])
             )
-            if not default_source_props.get('codestar_connection_arn'):
+            if not default_source_props.get('codeconnections_arn'):
                 raise ValueError(
-                    "The CodeStar Connection Arn could not be resolved for "
+                    "The CodeConnections Arn could not be resolved for "
                     f"the {self.map_params['name']} pipeline. Please check "
-                    "whether the codestar_connection_path is setup correctly "
+                    "whether the codeconnections_param_path is setup correctly "
                     "and validate that the Parameter it points to is properly "
                     "configured in SSM Parameter Store."
                 )
             props = {
                 "ConnectionArn": default_source_props.get(
-                    'codestar_connection_arn',
+                    'codeconnections_arn',
                 ),
                 "FullRepositoryId": f"{owner}/{repo}",
                 "BranchName": default_source_props.get(
@@ -220,44 +264,6 @@ class Action:
             if output_artifact_format:
                 props["OutputArtifactFormat"] = output_artifact_format
             return props
-        if self.provider == "GitHub":
-            return {
-                "Owner": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source')
-                    .get('properties', {})
-                    .get('owner', '')
-                ),
-                "Repo": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source', {})
-                    .get('properties', {})
-                    .get('repository', self.map_params['name'])
-                ),
-                "Branch": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source', {})
-                    .get('properties', {})
-                    .get('branch', self.default_scm_branch)
-                ),
-                # pylint: disable=no-value-for-parameter
-                "OAuthToken": SecretValue.secrets_manager(
-                    (
-                        self.map_params['default_providers']['source']
-                        .get('properties', {})
-                        .get('oauth_token_path')
-                    ),
-                    json_field=(
-                        self.map_params['default_providers']['source']
-                        .get('properties', {})
-                        .get('json_field')
-                    ),
-                ),
-                "PollForSourceChanges": False
-            }
         if self.provider == "Lambda":
             return {
                 "FunctionName": (
@@ -340,9 +346,8 @@ class Action:
                     f"{input_artifact}::{path_prefix}params/{param_filename}"
                 ),
                 "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
-                "RoleArn": self.role_arn if self.role_arn else (
-                    f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                    f"role/adf-cloudformation-deployment-role"
+                "RoleArn": self._generate_role_arn(
+                    "adf-cloudformation-deployment-role",
                 )
             }
             contains_transform = (
@@ -506,64 +511,25 @@ class Action:
         raise ValueError(f"{self.provider} is not a valid provider")
 
     def _generate_codepipeline_access_role(self):  # pylint: disable=R0911
-        account_id = (
-            self.map_params['default_providers']['source']
-            .get('properties', {})
-            .get('account_id', '')
-        )
-
-        if self.provider == "GitHub":
-            return None
-        if self.provider == "CodeStarSourceConnection":
-            return None
-        if self.provider == "CodeBuild":
+        requires_no_access_role = [
+            "CodeBuild",
+            "CodeStarSourceConnection",
+            "Lambda",
+            "Manual",
+        ]
+        if self.provider in requires_no_access_role:
             return None
         if self.provider == "CodeCommit":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
-                "role/adf-codecommit-role"
-            )
+            return self._generate_role_arn('adf-codecommit-role')
         if self.provider == "S3" and self.category == "Source":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{account_id}:"
-                "role/adf-codecommit-role"
-            )
+            return self._generate_role_arn('adf-codecommit-role')
         if self.provider == "S3" and self.category == "Deploy":
             # This could be changed to use a new role that is bootstrapped,
             # ideally we rename adf-cloudformation-role to a
             # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "ServiceCatalog":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "CodeDeploy":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "Lambda":
-            # This could be changed to use a new role that is bootstrapped,
-            # ideally we rename adf-cloudformation-role to a
-            # generic deployment role name
-            return None
-        if self.provider == "CloudFormation":
-            return (
-                f"arn:{ADF_DEPLOYMENT_PARTITION}:iam::{self.target['id']}:"
-                "role/adf-cloudformation-role"
-            )
-        if self.provider == "Manual":
-            return None
+            return self._generate_role_arn('adf-cloudformation-role')
+        if self.provider in ["ServiceCatalog", "CodeDeploy", "CloudFormation"]:
+            return self._generate_role_arn('adf-cloudformation-role')
         raise ValueError(f'Invalid Provider {self.provider}')
 
     def generate(self):
@@ -730,6 +696,10 @@ class Pipeline(Construct):
         self.default_scm_branch = map_params.get(
             "default_scm_branch",
             ADF_DEFAULT_SCM_FALLBACK_BRANCH,
+        )
+        self.default_scm_codecommit_account_id = map_params.get(
+            "scm/default_scm_codecommit_account_id",
+            ADF_DEFAULT_SCM_CODECOMMIT_ACCOUNT_ID,
         )
         self.cfn = _codepipeline.CfnPipeline(
             self,

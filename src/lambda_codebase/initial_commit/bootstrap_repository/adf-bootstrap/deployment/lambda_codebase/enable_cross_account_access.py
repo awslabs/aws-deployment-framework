@@ -1,6 +1,5 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
-
 
 """
 Enables the connection between the deployment account
@@ -9,14 +8,16 @@ This runs as part of Step Functions on the Deployment Account
 """
 
 import os
-import boto3
 
+import boto3
 from botocore.exceptions import ClientError
+
+# ADF imports
+from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
 from logger import configure_logger
 from parameter_store import ParameterStore
-from sts import STS
 from partition import get_partition
-from iam_cfn_deploy_role_policy import IAMCfnDeployRolePolicy
+from sts import STS
 
 
 KEY_ID = os.environ["KMS_KEY_ID"]
@@ -39,13 +40,16 @@ TARGET_ROLE_POLICIES = {
 
 # Role Policies are updated in the deployment account.
 DEPLOYMENT_ROLE_POLICIES = {
+    "adf-codebuild-role": [
+        "adf-codebuild-role-policy-s3",
+        "adf-codebuild-role-policy-kms",
+    ],
     "adf-codepipeline-role": [
-        "adf-codepipeline-role-policy",
         "adf-codepipeline-role-policy-s3",
         "adf-codepipeline-role-policy-kms",
     ],
     "adf-cloudformation-deployment-role": [
-        "adf-cloudformation-deployment-role-policy",
+        "adf-cloudformation-deployment-role-policy-kms",
     ],
     "adf-cloudformation-role": [
         "adf-cloudformation-role-policy",
@@ -62,7 +66,7 @@ def _assume_role_if_required(account_id: str):
     try:
         role_arn_to_assume = (
             f'arn:{partition}:iam::{account_id}:'
-            f'role/adf-update-cross-account-access-role'
+            f'role/adf/bootstrap/adf-update-cross-account-access'
         )
         target_role = sts.assume_cross_account_role(
             role_arn_to_assume,
@@ -111,11 +115,11 @@ def lambda_handler(event, _):
         )
     ):
         kms_key_arn = parameter_store.fetch_parameter(
-            f"/cross_region/kms_arn/{region}"
+            f"cross_region/kms_arn/{region}"
         )
         kms_key_arns.append(kms_key_arn)
         s3_bucket = parameter_store.fetch_parameter(
-            f"/cross_region/s3_regional_bucket/{region}"
+            f"cross_region/s3_regional_bucket/{region}"
         )
         s3_buckets.append(s3_bucket)
 

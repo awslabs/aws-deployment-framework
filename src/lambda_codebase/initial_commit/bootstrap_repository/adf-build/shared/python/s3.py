@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -18,11 +18,12 @@ class S3:
     Class used for modeling S3
     """
 
-    def __init__(self, region, bucket):
+    def __init__(self, region, bucket, kms_key_arn=None):
         self.region = region
         self.client = boto3.client('s3', region_name=region)
         self.resource = boto3.resource('s3', region_name=region)
         self.bucket = bucket
+        self.kms_key_arn = kms_key_arn
 
     @staticmethod
     def supported_path_styles():
@@ -159,10 +160,14 @@ class S3:
                 self.region,
             )
             with open(file_path, mode='rb') as file_handler:
-                self.resource.Object(self.bucket, key).put(
-                    ACL=object_acl,
-                    Body=file_handler,
-                )
+                props = {
+                    "ACL": object_acl,
+                    "Body": file_handler,
+                }
+                if self.kms_key_arn:
+                    props['ServerSideEncryption'] = 'aws:kms'
+                    props['SSEKMSKeyId'] = self.kms_key_arn
+                self.resource.Object(self.bucket, key).put(**props)
                 LOGGER.debug("Upload of %s was successful.", key)
         except BaseException:
             LOGGER.error("Failed to upload %s", key, exc_info=True)

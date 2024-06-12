@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -122,7 +122,8 @@ class PipelineDefinition(TypedDict):
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 PROJECT_NAME = os.environ["ADF_PROJECT_NAME"]
-EMPTY_PARAMS_DICT: ParametersAndTags = {"Parameters": {}, "Tags": {}}
+EMPTY_PARAMS_DICT: ParametersAndTags = {'Parameters': {}, 'Tags': {}}
+ADF_ORG_STAGE = os.getenv("ADF_ORG_STAGE")
 
 
 class Parameters:
@@ -238,6 +239,7 @@ class Parameters:
                 i.e. "/devsecops/security_eu-west-1"
             1. f"{organization_unit_path}" i.e. "/devsecops/security"
             1. f"{global}_{region}" i.e. "global_eu-west-1"
+            1. f"{global}_{stage}" i.e. "global_dev"
             1. f"{global}" i.e. "global"
 
         It will then generate a JSON file that holds all the parameters per
@@ -307,6 +309,15 @@ class Parameters:
                     ),
                     current_params,
                 )
+                # Compare account_region final to global_stage
+                if ADF_ORG_STAGE:
+                    current_params = self._merge_params(
+                        Parameters._parse(
+                            params_root_path=self.cwd,
+                            params_filename=f"global_{ADF_ORG_STAGE}",
+                        ),
+                        current_params,
+                    )
                 # Compare account_region final to global
                 current_params = self._merge_params(
                     Parameters._parse(
@@ -370,8 +381,8 @@ class Parameters:
                 return json_content
         except FileNotFoundError:
             try:
-                with open(f"{file_path}.yml", encoding="utf-8") as file:
-                    yaml_content = yaml.load(file, Loader=yaml.FullLoader)
+                with open(f"{file_path}.yml", encoding='utf-8') as file:
+                    yaml_content = yaml.safe_load(file)
                     LOGGER.debug(
                         "Read %s.yml: %s",
                         file_path,
@@ -457,7 +468,7 @@ def main() -> None:
     """
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     definition_bucket_name = parameter_store.fetch_parameter(
-        "/adf/pipeline_definition_bucket",
+        "pipeline_definition_bucket",
     )
     definition_s3 = S3(DEPLOYMENT_ACCOUNT_REGION, definition_bucket_name)
     parameters = Parameters(

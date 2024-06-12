@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -11,6 +11,7 @@ import json
 import urllib
 import boto3
 
+# ADF imports
 from parameter_store import ParameterStore
 
 
@@ -164,6 +165,8 @@ def send_message(url, payload):
     Sends the message to the designated slack webhook
     """
     params = json.dumps(payload).encode('utf8')
+    if not url.lower().startswith('http'):
+        raise ValueError('URL to send message to is forbidden') from None
     req = urllib.request.Request(
         url,
         data=params,
@@ -190,7 +193,7 @@ def lambda_handler(event, _):
         region_name=os.environ["AWS_REGION"],
     )
     channel = parameter_store.fetch_parameter(
-        name=f'/notification_endpoint/{pipeline["name"]}',
+        name=f'notification_endpoint/{pipeline["name"]}',
         with_decryption=False,
     )
     # All slack url's must be stored in /adf/slack/channel_name since ADF only

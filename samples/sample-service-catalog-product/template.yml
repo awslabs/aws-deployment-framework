@@ -1,10 +1,11 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (Service Catalog Product)
 Metadata:
   License: Apache-2.0
+
 Parameters:
   ProductXTemplateURL:
     Type: String
@@ -18,16 +19,19 @@ Resources:
       Description: Portfolio containing Cloud9 Development Environment
       DisplayName: IDE Portfolio
       ProviderName: Company
+
   IDETagOption:
     Type: "AWS::ServiceCatalog::TagOption"
     Properties:
       Key: "ProductType"
       Value: "IDE"
+
   IDEPortfolioTagOptionAssociation:
     Type: "AWS::ServiceCatalog::TagOptionAssociation"
     Properties:
       ResourceId: !Ref Portfolio
       TagOptionId: !Ref IDETagOption
+
   Cloud9Product:
     Type: AWS::ServiceCatalog::CloudFormationProduct
     Properties:
@@ -42,12 +46,14 @@ Resources:
       SupportDescription: For help with Cloud9 Dev Environment contact us
       SupportEmail: john@example.com
       SupportUrl: http://example.com
+
   Association:
     Type: AWS::ServiceCatalog::PortfolioProductAssociation
     Properties:
       AcceptLanguage: en
       PortfolioId: !Ref Portfolio
       ProductId: !Ref Cloud9Product
+
   IDEPortfolioPrincipalAssociation:
     Type: "AWS::ServiceCatalog::PortfolioPrincipalAssociation"
     Properties:

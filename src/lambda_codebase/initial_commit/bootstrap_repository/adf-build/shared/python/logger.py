@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Primary Logging Configuration Function
@@ -19,7 +19,9 @@ def configure_logger(logger_name):
 
     # Define our logging formatter
     formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(name)s | %(message)s | (%(filename)s:%(lineno)d)')
+        '%(asctime)s | %(levelname)s | %(name)s | %(message)s '
+        '| (%(filename)s:%(lineno)d)',
+    )
 
     # Create our stream handler and apply the formatting
     stream_handler = logging.StreamHandler()

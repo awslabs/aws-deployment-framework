@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -6,6 +6,7 @@ The Organization Unit Main that is called when ADF is installed to create the
 deployment OU.
 """
 
+import os
 from typing import Mapping, Any, Tuple
 from dataclasses import dataclass, asdict
 import logging
@@ -13,6 +14,7 @@ import json
 import time
 import boto3
 from cfn_custom_resource import (  # pylint: disable=unused-import
+    lambda_handler,
     create,
     update,
     delete,
@@ -28,7 +30,8 @@ CloudFormationResponse = Tuple[PhysicalResourceId, Data]
 # Globals:
 ORGANIZATION_CLIENT = boto3.client("organizations")
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 class InvalidPhysicalResourceId(Exception):

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -64,4 +64,10 @@ class InvalidDeploymentMapError(Exception):
 class NoAccountsFoundError(Exception):
     """
     Raised when there are no Accounts found a specific OU defined in the Deployment Map
+    """
+
+
+class InsufficientWaveSizeError(Exception):
+    """
+    Raised when the defined wave size is less than the calculated minimum actions
     """

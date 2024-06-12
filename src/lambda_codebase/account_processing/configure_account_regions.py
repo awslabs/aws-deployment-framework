@@ -1,4 +1,4 @@
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -6,9 +6,10 @@ Takes regions that the account is not-opted into and opts into them.
 """
 from ast import literal_eval
 
-
 import boto3
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
 
 patch_all()
@@ -16,7 +17,10 @@ LOGGER = configure_logger(__name__)
 
 
 def get_regions_from_ssm(ssm_client):
-    regions = ssm_client.get_parameter(Name="target_regions")["Parameter"].get("Value")
+    regions = (
+        ssm_client.get_parameter(Name="/adf/target_regions")["Parameter"]
+        .get("Value")
+    )
     regions = literal_eval(regions)
     return regions
 

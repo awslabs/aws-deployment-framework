@@ -1,0 +1,22 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+# Files to work with
+SRC_DIR := ./src
+TEST_CONFIGS := $(shell find $(SRC_DIR) -name 'pytest.ini')
+
+all: test lint
+
+.PHONY: all test lint
+
+test:
+	# Run unit tests
+	@ $(foreach config,$(TEST_CONFIGS), \
+		pytest $$(dirname $(config)) -vvv -s -c $(config) || exit 1; \
+	)
+
+lint:
+	# Linter performs static analysis to catch latent bugs
+	find $(SRC_DIR) -iname "*.py" | xargs pylint --verbose --rcfile .pylintrc
+	find $(SRC_DIR) -iname "*.yml" -o -iname "*.yaml" | xargs yamllint -c .yamllint.yml
+	cfn-lint

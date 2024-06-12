@@ -89,18 +89,28 @@ pipelines:
   - name: vpc
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           # Optional, name property will be used if repository is not specified
           repository: my-github-vpc
           # Who owns this Github Repository
-          owner: bundyfx
-          # The path in AWS Secrets Manager that holds the GitHub Oauth token,
-          # ADF only has access to /adf/ prefix in Secrets Manager
-          oauth_token_path: /adf/github_token
-          # The field (key) name of the json object stored in AWS Secrets
-          # Manager that holds the Oauth token
-          json_field: token
+          owner: awslabs
+          # The path in Amazon Systems Manager Parameter Store that holds the
+          # Connections Arn.
+          # Please note, by default ADF only has access to read /adf/
+          # parameters. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          #
+          # Example content of the parameter, plain ARN as a simple string:
+          # arn:aws:codeconnections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          #
+          # Or in the case of a CodeStar Connection:
+          # arn:aws:codestar-connections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          codeconnections_param_path: /adf/my_github_connection_arn_param
     params:
       notification_endpoint: joes_team@example.com
     targets:
@@ -232,6 +242,96 @@ AWS CloudFormation.
 For detailed information on providers and their supported properties, see the
 [providers guide](./providers-guide.md).
 
+### Custom roles for pipelines
+
+Most providers allow you to define a role to use when actions need to be
+performed by the pipeline. For example, you could use a specific deployment
+role to create security infrastructure. Allowing you to configure the pipeline
+with least privilege, only granting access to the actions it requires to
+perform the task. While securing those resources from modifications by other
+pipelines that do not have access to this role.
+
+There are three types of roles, source, build and deploy.
+Please follow the guidelines below to define the role correctly.
+As always, it is important to grant these roles [least-privilege
+access](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege).
+
+For each of these roles, it is important to create the role ahead. So the
+pipeline can assume into it. For example, by defining these roles in the
+`global-iam.yml` file for the given organization units in the
+`aws-deployment-framework-bootstrap` repository. See the [admin guide for more
+details regarding this](./admin-guide.md#bootstrapping-accounts).
+
+**Please note:**
+In the sections below, when it references the `global.yml` file, it
+specifically means the one that you can find the definition in the
+`aws-deployment-framework-bootstrap` repository, in the
+`adf-bootstrap/global.yml` file. Do **NOT** edit the `global.yml` file itself.
+Instead create the role using the `global-iam.yml` counterpart. As any updates
+to the `global.yml` file get overwritten when ADF itself is updated.
+
+#### Source roles
+
+For source provider actions, like CodeCommit and S3, you can define a specific
+role to use. Please make sure the `AssumeRolePolicyDocument` of these roles
+includes a similar definition to the default `adf-codecommit-role` as created
+by ADF.
+
+You can find the definition of this role the `global.yml` file see [note
+above](#custom-roles-for-pipelines).
+These roles would need to be created in the account where the source performs
+its tasks.
+For example, if you use it to fetch the source from a CodeCommit repository,
+the role needs to be created in the same account as the repository itself.
+
+Additionally, the `adf-codepipeline-role` should be granted access to perform
+an `sts:AssumeRole` of the custom role you create. This change should be
+added to the `adf-bootstrap/deployment/global-iam.yml` file.
+
+#### Build roles
+
+For CodeBuild actions, you can define a specific role to use.
+Please make sure the `AssumeRolePolicyDocument` of these roles
+includes a similar definition to the default `adf-codebuild-role` as created
+by ADF in the deployment account. For the custom CodeBuild role, you will need
+to grant it the same permissions as the `adf-codebuild-role` to enable it.
+
+You can find the definition of this role in the
+`adf-bootstrap/deployment/global.yml` file.
+This custom role should be defined inside the
+`adf-bootstrap/deployment/global-iam.yml` file.
+
+#### Deployment roles
+
+For deployment provider actions, like CloudFormation and S3, you can define a
+specific role to use.
+
+For all deployment actions, except for CloudFormation, you should take a look
+at ADF's role of the `adf-cloudformation-role`. This role is responsible for
+performing cross-account operations and instructing the services to kick-off.
+
+For the CloudFormation action, a separate role is used for the deployment of
+CloudFormation Stack operations itself. That is the
+`adf-cloudformation-deployment-role`. The `adf-cloudformation-role` in the
+target account passes the `adf-cloudformation-deployment-role` to the
+CloudFormation service. If you create a custom role for CloudFormation
+deployments, you need to ensure that the `adf-cloudformation-role` is granted
+`iam:PassRole` permissions for that role to the CloudFormation service only.
+
+Please make sure the `AssumeRolePolicyDocument` of your custom role
+includes a similar definition to the default created by ADF.
+
+You can find the definition of this role the `global.yml` file see [note
+above](#custom-roles-for-pipelines).
+These roles would need to be created in the account where it will deploy to.
+For example, if you use it to deploy objects to an S3 bucket,
+it needs to live in the same account as the S3 bucket itself or be granted
+access to the bucket via the bucket policy.
+
+Additionally, the `adf-codepipeline-role` should be granted access to perform
+an `sts:AssumeRole` of the custom role you create. This change should be
+added to the `adf-bootstrap/deployment/global-iam.yml` file.
+
 ### Targets Syntax
 
 The Deployment Map has a shorthand syntax along with a more detailed version
@@ -296,8 +396,17 @@ The default of 50 will make sense for most pipelines.
 However, in some situations, you would like to limit the rate at which an
 update is rolled out to the list of accounts/regions.
 
-This can be configured using the `wave/size` target property. Setting these to
-`30` as shown above, will introduce a new stage for every 30 accounts/regions.
+This can be configured using the `wave/size` target property. Setting this to
+`30` as shown above, will introduce a new stage for every 30 accounts allocated
+within the target stage.
+
+Note: Each account defined within a stage may consist of several actions
+depending on the specific provider action type defined as well as how many
+regions are selected for the target stage. This should be taken into
+consideration when utilizing custom wave sizes.
+
+The minimum wave size should not be set less than the amount of actions
+necessary to deploy a single target account.
 
 If the `/my_ou/production/some_path` OU would contain 25 accounts (actually 26,
 but account `9999999999` is excluded by the setup above), multiplied by the two
@@ -375,12 +484,11 @@ pipelines:
   - name: my-web-app-pipeline
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           repository: my-web-app
           owner: cool_coder
-          oauth_token_path: /adf/github_token
-          json_field: token
+          codeconnections_param_path: /adf/my_github_connection_arn_param
     targets:
       - path: /banking/testing
         name: web-app-testing
@@ -394,12 +502,12 @@ pipelines:
   - name: ami-builder
     # Default providers and parameters are the same as defined above.
     # Only difference: instead of using `triggers` it uses the
-    # `completion_triggers`
+    # `completion_trigger`
     params:
       schedule: rate(7 days)
     # What should trigger this pipeline
     # and what should be triggered when it completes
-    completion_triggers:
+    completion_trigger:
       pipelines:
         - my-web-app-pipeline  # Start this pipeline
 
@@ -639,11 +747,12 @@ the corresponding OU parameter file will not be referenced.
 
 ```txt
 global.yml
-└───deployment_account_region.yml (e.g. global_eu-west-1.yml)
-    └───ou.yml (e.g. ou-1a2b-3c4d5e.yml)
-        └───ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
-            └───account.yml (e.g. dev-account-1.yml)
-                └───account_region.yml (e.g. dev-account-1_eu-west-1.yml)
+└───deployment_org_stage.yml (e.g. global_dev.yml)
+  └───deployment_account_region.yml (e.g. global_eu-west-1.yml)
+      └───ou.yml (e.g. ou-1a2b-3c4d5e.yml)
+          └───ou_region.yml (e.g. ou-1a2b-3c4d5e_eu-west-1.yml)
+              └───account.yml (e.g. dev-account-1.yml)
+                  └───account_region.yml (e.g. dev-account-1_eu-west-1.yml)
 ```
 
 This concept also works for applying **Tags** to the resources within your
@@ -702,6 +811,31 @@ the root of the repository.
 
 *Note:* Currently only Strings type values are supported as parameters to
 CloudFormation templates when deploying via AWS CodePipeline.
+
+#### CloudFormation Parameters in a Multi-Organization ADF Setup
+
+The CloudFormation Parameter generation feature is fully compatible with
+the [Multi-Organization ADF Setup](./multi-organization-guide.md) approach.
+
+For example, in a setup with three AWS Organizations; with a separate
+`dev`, an `int`, and a `prod` AWS Organization. This implies that the
+SSM parameter `/adf/org/stage` will have one of the following three
+values: `dev`, `int`, or `prod`; depending on the AWS organization
+you are in. Let's further assume that your application in scope
+requires AWS Organization specific parameters. In that case,
+the `params` folder should  have the following content:
+
+```txt
+params
+└───global_dev.yml
+└───global_int.yml
+└───global_prod.yml
+└───global.yml
+```
+
+Where it will prefer the AWS Organization specific configuration
+`global_${org_stage}` over the `global` parameters in case they both
+match the same parameter or tag.
 
 ### Serverless Transforms
 
@@ -945,8 +1079,8 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.11
-      nodejs: 18
+      python: 3.12
+      nodejs: 20
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
@@ -1155,7 +1289,7 @@ pipelines:
 4. Add variable definition to `tf/variables.tf` file and variable values to
    `tfvars/global.auto.tfvars`.
 
-   - Local variables (per account) can be configured using the following
+   - Local variables (per account and per region) can be configured using the following
      naming convention
 
      ```txt
@@ -1167,8 +1301,11 @@ pipelines:
      │
      └───111111111111 <-- this folders contains variable files related to
      │   │                the account
-     │   └──────│   local.auto.tfvars <-- this file contains variables related
-     │          │                         to the account
+     │   └──────│   local.auto.tfvars <-- this file contains variables
+     │          │                         related to the account
+     │          └───eu-west-1
+     │              └────── region.auto.tfvars <-- this file contains
+     │                      variables related to the account and the region
      │
      └───222222222222
          └──────│   local.auto.tfvars
@@ -1180,6 +1317,21 @@ pipelines:
 6. Push to your Terraform ADF repository, for example the sample-terraform one.
 7. Pipeline contains a manual approval step between Terraform plan and
    Terraform apply. Confirm to proceed.
+
+**Note**:
+The pipeline leverages the terraform behavior on reading *.local.tfvars files,
+so the latter file in lexicographical order overrides variables already defined
+in preceding files.
+
+Given the structure above, terraform can possibly find 3 files:
+
+- `global.auto.tfvars`
+- `local.auto.tfvars`
+- `region.auto.tfvars`
+
+and it means that `region.auto.tfvars` can override variables passed in
+`local.auto.tfvars`, that in turn can override variables passed in
+`global.auto.tfvars`.
 
 Terraform state files are stored in the regional S3 buckets in the deployment
 account. One state file per account/region/module is created.

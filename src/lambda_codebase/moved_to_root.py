@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -9,39 +9,32 @@ is moved to the root of the Organization.
 import ast
 import os
 from thread import PropagatingThread
+
 import boto3
 
-from sts import STS
+# ADF imports
+from cloudformation import CloudFormation
+from logger import configure_logger
 from parameter_store import ParameterStore
 from partition import get_partition
-from logger import configure_logger
-from cloudformation import CloudFormation
+from sts import STS
 
 LOGGER = configure_logger(__name__)
 REGION_DEFAULT = os.environ.get('AWS_REGION')
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 S3_BUCKET = os.environ.get("S3_BUCKET_NAME")
 
+ADF_PARAM_DESCRIPTION = 'Used by The AWS Deployment Framework'
 
-def worker_thread(sts, region, account_id, role, event):
-    partition = get_partition(REGION_DEFAULT)
 
-    role = sts.assume_cross_account_role(
-        f'arn:{partition}:iam::{account_id}:role/{role}',
-        'remove_base'
-    )
-
+def worker_thread(region, account_id, role, event):
     parameter_store = ParameterStore(region, role)
     paginator = parameter_store.client.get_paginator('describe_parameters')
     page_iterator = paginator.paginate()
     for page in page_iterator:
         for parameter in page['Parameters']:
-            is_adf_param = (
-                'Used by The AWS Deployment Framework' in parameter.get(
-                    'Description',
-                    '',
-                )
-            )
-            if is_adf_param:
+            description = parameter.get('Description', '')
+            if ADF_PARAM_DESCRIPTION in description:
                 parameter_store.delete_parameter(parameter.get('Name'))
 
     cloudformation = CloudFormation(
@@ -57,15 +50,33 @@ def worker_thread(sts, region, account_id, role, event):
     return cloudformation.delete_all_base_stacks()
 
 
-def remove_base(account_id, regions, role, event):
+def remove_base(account_id, regions, privileged_role_name, event):
     sts = STS()
     threads = []
 
-    for region in list(set([event.get('deployment_account_region')] + regions)):
+    partition = get_partition(REGION_DEFAULT)
+
+    role = sts.assume_bootstrap_deployment_role(
+        partition,
+        MANAGEMENT_ACCOUNT_ID,
+        account_id,
+        privileged_role_name,
+        'remove_base',
+    )
+
+    regions = list(
+        # Set to ensure we only have one of each
+        set(
+            # Make sure the deployment_account_region is in the list of
+            # regions:
+            [event.get('deployment_account_region')]
+            + regions
+        )
+    )
+    for region in regions:
         thread = PropagatingThread(
             target=worker_thread,
             args=(
-                sts,
                 region,
                 account_id,
                 role,
@@ -89,23 +100,20 @@ def execute_move_action(action, account_id, parameter_store, event):
             or []
         )
 
-        role = parameter_store.fetch_parameter('cross_account_access_role')
-        return remove_base(account_id, regions, role, event)
+        privileged_role_name = parameter_store.fetch_parameter(
+            'cross_account_access_role',
+        )
+        return remove_base(account_id, regions, privileged_role_name, event)
     return True
 
 
 def lambda_handler(event, _):
     parameter_store = ParameterStore(REGION_DEFAULT, boto3)
-    configuration_options = ast.literal_eval(
-        parameter_store.fetch_parameter('config')
+    action = parameter_store.fetch_parameter_accept_not_found(
+        name='moves/to_root/action',
+        default_value='safe',
     )
 
-    to_root_option = list(filter(
-        lambda option: option.get("name", []) == "to-root",
-        configuration_options.get('moves')
-    ))
-
-    action = to_root_option.pop().get('action')
     account_id = event.get('account_id')
     execute_move_action(action, account_id, parameter_store, event)
 

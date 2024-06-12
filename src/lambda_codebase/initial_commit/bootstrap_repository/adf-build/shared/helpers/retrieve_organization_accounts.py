@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 retrieve_organization_accounts.py
 
@@ -48,7 +51,8 @@ Options:
     -r <role-name>, --role-name <role-name>
                 The name of the role to assume into to get read access
                 to list and describe the member accounts in the
-                organization [default: OrganizationAccountAccessRole-readonly].
+                organization [default:
+                adf/organizations/adf-organizations-readonly].
 
     -s <session-name>, --session-name <session-name>
                 The session name to use when assuming into the billing account
@@ -66,6 +70,7 @@ Example:
     retrieve_organization_accounts.py -v -f Id -f Email -o src/lambda/dat.json
 """
 
+import os
 import sys
 import logging
 import json
@@ -79,7 +84,8 @@ from docopt import docopt
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 def main():

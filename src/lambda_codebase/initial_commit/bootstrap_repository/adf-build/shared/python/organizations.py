@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -12,6 +12,7 @@ from time import sleep
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+# ADF imports
 from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
@@ -194,12 +195,12 @@ class Organizations:  # pylint: disable=R0904
     def get_policy_body(path):
         bootstrap_path = f"./adf-bootstrap/{path}"
         with open(bootstrap_path, mode="r", encoding="utf-8") as policy:
-            return json.dumps(json.load(policy))
+            return json.dumps(json.load(policy), separators=(',', ':'))
 
     def list_policies(self, name, policy_type="SERVICE_CONTROL_POLICY"):
         response = list(paginator(self.client.list_policies, Filter=policy_type))
         filtered_policies = [policy for policy in response if policy["Name"] == name]
-        if len(filtered_policies) > 0:
+        if filtered_policies:
             return filtered_policies[0]["Id"]
         return []
 
@@ -216,7 +217,7 @@ class Organizations:  # pylint: disable=R0904
             for policy in response["Policies"]
             if f"ADF Managed {policy_type}" in policy["Description"]
         ]
-        if len(adf_managed_policies) > 0:
+        if adf_managed_policies:
             return adf_managed_policies[0]["Id"]
         return []
 
@@ -301,7 +302,7 @@ class Organizations:  # pylint: disable=R0904
     def get_organization_info(self):
         response = self.client.describe_organization()
         return {
-            "organization_master_account_id": (
+            "organization_management_account_id": (
                 response
                 .get("Organization")
                 .get("MasterAccountId")

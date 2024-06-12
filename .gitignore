@@ -18,9 +18,11 @@ master-deploy.yml
 shared_layer.zip
 .aws-sam
 samconfig.toml
+samconfig.yml
+samconfig.yaml
 pipeline.json
-template-sam.yml
 deploy.sh
+Makefile.new
 
 # Byte-compiled / optimized / DLL files
 __pycache__
@@ -49,6 +51,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+node_modules
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates.
+// SPDX-License-Identifier: Apache-2.0
+
 const express = require('express')
 
 const app = express()
@@ -13,7 +16,9 @@ app.get('/', (req, res) => {
 })
 
 app.get('/version', (req, res) => {
-  res.json({ version: '0.0.1' })
+  res.json({
+    version: '0.0.1'
+  })
 })
 
 app.listen(3000, () => {

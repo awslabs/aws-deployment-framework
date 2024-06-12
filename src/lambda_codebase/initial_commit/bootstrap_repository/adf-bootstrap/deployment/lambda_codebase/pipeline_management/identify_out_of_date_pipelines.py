@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Pipeline Management Lambda Function
 Compares pipeline definitions in S3 to the definitions stored in SSM Param Store.
@@ -21,8 +24,8 @@ LOGGER = configure_logger(__name__)
 S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ADF_PIPELINE_PREFIX = os.environ["ADF_PIPELINE_PREFIX"]
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
-DEPLOYMENT_PREFIX = "/deployment/"
-S3_BACKED_DEPLOYMENT_PREFIX = f"{DEPLOYMENT_PREFIX}S3/"
+DEPLOYMENT_PREFIX = "deployment"
+S3_BACKED_DEPLOYMENT_PREFIX = f"{DEPLOYMENT_PREFIX}/S3/"
 
 
 def download_deployment_maps(s3_resource, prefix, local):
@@ -145,11 +148,12 @@ def lambda_handler(event, _):
     )
 
     output = {}
-    if len(out_of_date_pipelines) > 0:
+    if out_of_date_pipelines:
         output["pipelines_to_be_deleted"] = out_of_date_pipelines
 
     data_md5 = hashlib.md5(
-        json.dumps(output, sort_keys=True).encode("utf-8")
+        json.dumps(output, sort_keys=True).encode("utf-8"),
+        usedforsecurity=False,
     ).hexdigest()
     root_trace_id = os.getenv("_X_AMZN_TRACE_ID", "na=na;na=na").split(";")[0]
     output["traceroot"] = root_trace_id

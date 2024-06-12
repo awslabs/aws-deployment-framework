@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -8,7 +8,10 @@ it is not already executing or failed
 """
 
 import os
+
 import boto3
+
+# ADF imports
 from logger import configure_logger
 from codepipeline import CodePipeline
 

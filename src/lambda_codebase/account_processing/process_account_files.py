@@ -1,4 +1,4 @@
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -13,15 +13,17 @@ import tempfile
 import logging
 from typing import Any, TypedDict
 import re
-import yaml
 
+import yaml
 from yaml.error import YAMLError
 
 import boto3
 from botocore.exceptions import ClientError
 from aws_xray_sdk.core import patch_all
-from organizations import Organizations
+
+# ADF imports
 from logger import configure_logger
+from organizations import Organizations
 
 
 patch_all()
@@ -142,7 +144,7 @@ def process_account_list(all_accounts, accounts_in_file):
 
 
 def sanitize_account_name_for_snf(account_name):
-    return re.sub("[^a-zA-Z0-9_]", "_", account_name[:30])
+    return re.sub(r"[^a-zA-Z0-9_]", "_", account_name[:30])
 
 
 def start_executions(

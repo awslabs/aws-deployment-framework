@@ -1,16 +1,19 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Parameter Store module used throughout the ADF
 """
 
 from botocore.config import Config
+
+# ADF imports
 from errors import ParameterNotFoundError
 from paginator import paginator
 from logger import configure_logger
 
 LOGGER = configure_logger(__name__)
 PARAMETER_DESCRIPTION = 'DO NOT EDIT - Used by The AWS Deployment Framework'
+PARAMETER_PREFIX = '/adf'
 SSM_CONFIG = Config(
     retries={
         "max_attempts": 10,
@@ -34,13 +37,18 @@ class ParameterStore:
             LOGGER.debug(
                 'No need to update parameter %s with value %s since they '
                 'are the same',
-                name,
+                ParameterStore._build_param_name(name),
                 value,
             )
         except (ParameterNotFoundError, AssertionError):
-            LOGGER.debug('Putting SSM Parameter %s with value %s', name, value)
+            param_name = ParameterStore._build_param_name(name)
+            LOGGER.debug(
+                'Putting SSM Parameter %s with value %s',
+                param_name,
+                value,
+            )
             self.client.put_parameter(
-                Name=name,
+                Name=param_name,
                 Description=PARAMETER_DESCRIPTION,
                 Value=value,
                 Type='String',
@@ -49,44 +57,79 @@ class ParameterStore:
             )
 
     def delete_parameter(self, name):
+        param_name = ParameterStore._build_param_name(name)
         try:
-            LOGGER.debug('Deleting Parameter %s', name)
+            LOGGER.debug('Deleting Parameter %s', param_name)
             self.client.delete_parameter(
-                Name=name
+                Name=param_name,
             )
         except self.client.exceptions.ParameterNotFound:
             LOGGER.debug(
                 'Attempted to delete Parameter %s but it was not found',
-                name,
+                param_name,
             )
 
     def fetch_parameters_by_path(self, path):
         """Gets a Parameter(s) by Path from Parameter Store (Recursively)
         """
+        param_path = ParameterStore._build_param_name(path)
         try:
-            LOGGER.debug('Fetching Parameters from path %s', path)
+            LOGGER.debug(
+                'Fetching Parameters from path %s',
+                param_path,
+            )
             return paginator(
                 self.client.get_parameters_by_path,
-                Path=path,
+                Path=param_path,
                 Recursive=True,
                 WithDecryption=False
             )
         except self.client.exceptions.ParameterNotFound as error:
             raise ParameterNotFoundError(
-                f'Parameter Path {path} Not Found',
+                f'Parameter Path {param_path} Not Found',
             ) from error
 
-    def fetch_parameter(self, name, with_decryption=False):
+    @staticmethod
+    def _build_param_name(name, adf_only=True):
+        slash_name = name if name.startswith('/') else f"/{name}"
+        add_prefix = (
+            adf_only
+            and not slash_name.startswith(f"{PARAMETER_PREFIX}/")
+        )
+        param_prefix = PARAMETER_PREFIX if add_prefix else ''
+        return f"{param_prefix}{slash_name}"
+
+    def fetch_parameter(self, name, with_decryption=False, adf_only=True):
         """Gets a Parameter from Parameter Store (Returns the Value)
         """
+        param_name = ParameterStore._build_param_name(name, adf_only)
         try:
-            LOGGER.debug('Fetching Parameter %s', name)
+            LOGGER.debug('Fetching Parameter %s', param_name)
             response = self.client.get_parameter(
-                Name=name,
+                Name=param_name,
                 WithDecryption=with_decryption
             )
             return response['Parameter']['Value']
         except self.client.exceptions.ParameterNotFound as error:
+            LOGGER.debug('Parameter %s not found', param_name)
             raise ParameterNotFoundError(
-                f'Parameter {name} Not Found',
+                f'Parameter {param_name} Not Found',
             ) from error
+
+    def fetch_parameter_accept_not_found(
+        self,
+        name,
+        with_decryption=False,
+        adf_only=True,
+        default_value=None,
+    ):
+        """
+        Performs the fetch_parameter action, while catching the
+        ParameterNotFoundError and returning the configured default_value
+        instead if this happens.
+        """
+        try:
+            return self.fetch_parameter(name, with_decryption, adf_only)
+        except ParameterNotFoundError:
+            LOGGER.debug('Using default instead: %s', default_value)
+            return default_value

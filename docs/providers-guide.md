@@ -17,39 +17,37 @@ Providers and Actions.
   - [Source](#source)
     - [CodeCommit](#codecommit)
       - [Properties](#properties)
-    - [GitHub](#github)
-      - [Properties](#properties-1)
     - [S3](#s3)
+      - [Properties](#properties-1)
+    - [CodeConnections](#codeconnections)
       - [Properties](#properties-2)
-    - [CodeStar](#codestar)
-      - [Properties](#properties-3)
   - [Build](#build)
     - [CodeBuild](#codebuild)
-      - [Properties](#properties-4)
+      - [Properties](#properties-3)
     - [Jenkins](#jenkins)
-      - [Properties](#properties-5)
+      - [Properties](#properties-4)
   - [Deploy](#deploy)
     - [Approval](#approval)
-      - [Properties](#properties-6)
+      - [Properties](#properties-5)
     - [CodeBuild](#codebuild-1)
-      - [Properties](#properties-7)
+      - [Properties](#properties-6)
     - [CodeDeploy](#codedeploy)
-      - [Properties](#properties-8)
+      - [Properties](#properties-7)
     - [CloudFormation](#cloudformation)
-      - [Properties](#properties-9)
+      - [Properties](#properties-8)
     - [Lambda](#lambda)
-      - [Properties](#properties-10)
+      - [Properties](#properties-9)
     - [Service Catalog](#service-catalog)
-      - [Properties](#properties-11)
+      - [Properties](#properties-10)
     - [S3](#s3-1)
-      - [Properties](#properties-12)
+      - [Properties](#properties-11)
 
 ## Source
 
 ```yaml
 default_providers:
   source:
-    provider: codecommit|github|s3|codestar
+    provider: codecommit|s3|codeconnections
     properties:
       # All provider specific properties go here.
 ```
@@ -63,11 +61,15 @@ Provider type: `codecommit`.
 
 #### Properties
 
-- *account_id* - *(String)* **(required)**
+- *account_id* - *(String)* **(optional)**
   - The AWS Account ID where the Source Repository is located. If the repository
     does not exist it will be created via AWS CloudFormation on the source
     account along with the associated cross account CloudWatch event action to
     trigger the pipeline.
+  - Additionally, the default account id for CodeCommit, can be set in
+    [adfconfig.yml: config/scm/default-scm-codecommit-account-id](./admin-guide.md#adfconfig).
+  - If not set here in the provider and if not set in adfconfig.yml,
+    the deployment account id will be used as default value.
 - *repository* - *(String)* defaults to name of the pipeline.
   - The AWS CodeCommit repository name.
 - *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
@@ -85,10 +87,12 @@ Provider type: `codecommit`.
     information on the use of the owner attribute can be found in the
     [CodePipeline
     documentation](https://docs.aws.amazon.com/codepipeline/latest/APIReference/API_ActionTypeId.html).
-- *role* - *(String)* default ADF managed role.
-  - The role to use to fetch the contents of the CodeCommit repository. Only
-    specify when you need a specific role to access it. By default ADF will use
-    its own role to access it instead.
+- *role* - *(String)* default: `adf-codecommit-role`.
+  - The role name of the role to use to fetch the contents of the CodeCommit
+    repository. Only specify when you need a specific role to access it.
+    By default ADF will use its own role to access it instead.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *trigger_on_changes* - *(Boolean)* default: `True`.
   - Whether CodePipeline should release a change and trigger the pipeline.
   - **When set to False**, you either need to trigger the pipeline manually,
@@ -106,52 +110,20 @@ Provider type: `codecommit`.
   - NB: The `CODEBUILD_CLONE_REF` value can only be used by CodeBuild downstream
     actions.
 
-### GitHub
-
-Use GitHub as a source to trigger your pipeline.
-The repository can also be hosted in another account.
-
-Provider type: `github`.
-
-#### Properties
-
-- *repository* - *(String)* defaults to name of the pipeline.
-  - The GitHub repository name. For example, for the ADF repository it would be
-    `aws-deployment-framework`.
-- *branch* - *(String)* default to configured [adfconfig.yml:
-  config/scm/default-scm-branch](./admin-guide.md#adfconfig).
-  - The Branch on the GitHub repository to use to trigger this specific
-    pipeline.
-- *owner* - *(String)* **(required)**
-  - The name of the GitHub user or organization who owns the GitHub repository.
-    For example, for the ADF repository that would be: `awslabs`.
-- *oauth_token_path* - *(String)* **(required)**
-  - The OAuth token path in AWS Secrets Manager on the Deployment Account that
-    holds the GitHub OAuth token used to create the web hook as part of the
-    pipeline. Read the CodePipeline documentation for more [information on
-    configuring GitHub
-    OAuth](https://docs.aws.amazon.com/codepipeline/latest/userguide/action-reference-GitHub.html#action-reference-GitHub-auth).
-- *json_field* - *(String)* **(required)**
-  - The name of the JSON key in the object that is stored in AWS Secrets Manager
-    that holds the OAuth Token.
-- *trigger_on_changes* - *(Boolean)* default: `True`.
-  - Whether CodePipeline should release a change and trigger the pipeline. When
-    set to False, you either need to trigger the pipeline manually, through a
-    schedule, or through the completion of another pipeline.
-  - This **disables the triggering** of changes when **set to False**.
-  - It will not deploy the web hook that GitHub would otherwise use to trigger
-    the pipeline on changes.
-  - **By default**, it will trigger deploy the web hook and trigger on changes
-    using web hook call executed by GitHub.
-
 ### S3
 
 S3 can be used as the source for a pipeline too. **Please note:** you can use
 S3 as a source and deployment provider. The properties that are available are
 slightly different.
 
-The role used to fetch the object from the S3 bucket is:
+The default role used to fetch the object from the S3 bucket is:
 `arn:${partition}:iam::${source_account_id}:role/adf-codecommit-role`.
+
+Please add the required S3 read permissions to the `adf-codecomit-role` via the
+`adf-bootstrap/deployment/global-iam.yml` file in the
+`aws-deployment-framework-bootstrap` repository. Or, allow
+the `adf-codecommit-role` S3 read permissions in the bucket policy of the
+source bucket.
 
 Provider type: `s3`.
 
@@ -173,43 +145,52 @@ Provider type: `s3`.
     CodePipeline. Monitoring the S3 object so it can trigger a release when an
     update took place.
 
-### CodeStar
+### CodeConnections
 
-Use CodeStar as a source to trigger your pipeline. The source action retrieves
+Use CodeConnections as a source to trigger your pipeline. The source action retrieves
 code changes when a pipeline is manually executed or when a webhook event is
-sent from the source provider. CodeStar Connections currently supports the
+sent from the source provider. AWS CodeConnections supports various external
+source providers:
 following third-party repositories:
 
-- Bitbucket
-- GitHub and GitHub Enterprise Cloud
+- Bitbucket Cloud
+- GitHub
+- GitHub Enterprise Cloud
 - GitHub Enterprise Server
+- GitLab.com
+- GitLab self-managed
 
-The AWS CodeStar connection needs to already exist and be in the "Available"
-Status. To use the AWS CodeStar Connection with ADF, its arn needs to be stored
+You can find an updated list of the
+[external source providers AWS CodeConnections supports
+here](https://docs.aws.amazon.com/dtconsole/latest/userguide/welcome-connections.html#welcome-connections-supported-providers)
+
+The AWS CodeConnections needs to exist and be in the "Available" Status.
+To use the AWS CodeConnections with ADF, its ARN needs to be stored
 in AWS Systems Manager Parameter Store in the deployment account's main region
 (see details below). Read the CodePipeline documentation for more
-[information on how to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
+[information on how-to setup the connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/getting-started-connections.html).
 
-Provider type: `codestar`.
+Provider type: `codeconnections`.
 
 #### Properties
 
 - *repository* - *(String)* defaults to name of the pipeline.
-  - The CodeStar repository name. For example, for the ADF repository it would
+  - The repository name. For example, for the ADF repository it would
     be `aws-deployment-framework`.
 - *branch* - *(String)* default to configured [adfconfig.yml: config/scm/default-scm-branch](./admin-guide.md#adfconfig).
-  - The Branch on the third-party repository to use to trigger this specific
-    pipeline.
+  - The Branch on the repository to use to trigger this specific pipeline.
 - *owner* - *(String)* **(required)**
   - The name of the third-party user or organization who owns the third-party
     repository. For example, for the ADF repository that would be: `awslabs`.
-- *codestar_connection_path* - *(String)* **(required)**
-  - The CodeStar Connection ARN token path in AWS Systems Manager Parameter
-    Store in the deployment account in the main region that holds the CodeStar
-    Connection ARN that will be used to download the source code and create the
-    web hook as part of the pipeline. Read the CodeStar Connections
+- *codeconnections_param_path* - *(String)* **(required)**
+  - The CodeConnections ARN path in AWS Systems Manager (SSM) Parameter Store
+    in the deployment account in the main region that holds the CodeConnections
+    resource ARN that will be used to download the source code and create the
+    web hook as part of the pipeline. Read the CodeConnections
     documentation for more
     [information](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html).
+  - If you are relying on an existing CodeStar connection, the SSM Parameter
+    should contain the AWS CodeStar Connection ARN instead.
 - *output_artifact_format* - *(String)* default: `CODE_ZIP`
   - The output artifact format. Values can be either `CODEBUILD_CLONE_REF` or
     `CODE_ZIP`. If unspecified, the default is `CODE_ZIP`.
@@ -247,16 +228,10 @@ Provider type: `codebuild`.
 
 #### Properties
 
-- *image* *(String)* - default: `STANDARD_7_0`.
-  - The Image that the AWS CodeBuild will use. Images can be found
+- *image* *(String|Object)*.
+  - It is required to specify the container image your pipeline requires.
+  - Specify the Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
-  - Image can also take an object that contains a property key of
-    `repository_arn` which is the repository ARN of an ECR repository on the
-    deployment account within the main deployment region. This allows your
-    pipeline to consume a custom image if required.
-  - Along with `repository_arn`, we also support a `tag` key which can be used
-    to define which image should be used (defaults to `latest`). An example of
-    this setup is provided [here](user-guide.md#custom-build-images).
   - Image can also take an object that contains a reference to a public docker
     hub image with a prefix of `docker-hub://`, such as
     `docker-hub://bitnami/mongodb`. This allows your pipeline to consume a
@@ -264,6 +239,30 @@ Provider type: `codebuild`.
     we also support using a tag which can be provided after the docker hub image
     name such as `docker-hub://bitnami/mongodb:3.6.23` in order to define which
     image should be used (defaults to `latest`).
+  - For images hosted in Amazon ECR, you can define the repository and image to
+    use by specifying an image object.
+    This allows your pipeline to consume a custom image if required.
+    For example, to configure a specific repository ARN, configure it as:
+
+    ```yaml
+    image:
+      repository_arn: 'arn:${partition}:ecr:${region}:${source_account_id}:repository/your-repo-name'
+      tag: 'latest' # Optional, defaults to latest
+    ```
+
+    Alternatively, you can set the `repository_name` if the ECR is hosted in
+    the deployment account in the main deployment region.
+
+    ```yaml
+    image:
+      repository_name: 'your-repo-name'
+      tag: 'latest' # Optional, defaults to latest
+    ```
+
+    Along with `repository_arn` or `repository_name`, we also support a `tag`
+    key. This can be used to define which image should be used
+    (defaults to `latest`). An example of this setup is provided
+    [here](user-guide.md#custom-build-images).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
   - The Compute type to use for the build, types can be found
     [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
@@ -286,6 +285,8 @@ Provider type: `codebuild`.
     **Please note:** Since the CodeBuild environment runs in the deployment
     account, the role you specify will be assumed in and should be available
     in the deployment account too.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *timeout* *(Number)* in minutes, default: `20`.
   - If you wish to define a custom timeout for the Build stage.
 - *privileged* *(Boolean)* default: `False`.
@@ -461,12 +462,15 @@ Provider type: `codedeploy`.
   - The name of the CodeDeploy Application you want to use for this deployment.
 - *deployment_group_name* *(String)* **(required)**
   - The name of the Deployment Group you want to use for this deployment.
-- *role* - *(String)* default
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
+- *role* - *(String)* default `adf-cloudformation-role`
+  - Automatically assumes into the given role in the target account, i.e.
+    `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
   - The role you would like to use on the target AWS account to execute the
     CodeDeploy action. The role should allow the CodeDeploy service to assume
     it. As is [documented in the CodeDeploy service role
     documentation](https://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-create-service-role.html).
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 
 ### CloudFormation
 
@@ -522,11 +526,23 @@ Provider type: `cloudformation`.
     to `infra`.
   - **Defaults to empty string**, the root of the source repository or input
     artifact.
-- *role* - *(String)* default
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
+- *role* - *(String)* default `adf-cloudformation-deployment-role`
+  - Automatically assumes into the given role in the target account, i.e.
+    `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-deployment-role`.
   - The role you would like to use on the target AWS account to execute the
-    CloudFormation action. Ensure that the CloudFormation service should be
-    allowed to assume that role.
+    CloudFormation action.
+  - Ensure that the CloudFormation service should be allowed to assume that
+    role.
+  - Additionally, make sure that the `adf-cloudformation-role` is allowed to
+    perform an `iam:PassRole` action with the given role. Restrict this action
+    for the CloudFormation service only.
+    You can find an example of this in the `adf-bootstrap/deployment/global.yml`
+    file where it allows the CloudFormation Role to perform `iam:PassRole` with
+    the `adf-cloudformation-deployment-role`.
+    Please grant this access in the `adf-bootstrap/deployment/global-iam.yml`
+    file in the `aws-deployment-framework-bootstrap` repository.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
 - *action* -
   (`CHANGE_SET_EXECUTE|CHANGE_SET_REPLACE|CREATE_UPDATE|DELETE_ONLY|REPLACE_ON_FAILURE`)
   default: `CHANGE_SET_EXECUTE`.
@@ -595,7 +611,7 @@ Provider type: `service_catalog`.
 
 ### S3
 
-S3 can use used to deploy with too.
+S3 is available as a source and deployment provider.
 
 S3 cannot be used to target multiple accounts or regions in one stage.
 As the `bucket_name` property needs to be defined and these are globally
@@ -606,8 +622,16 @@ instead. Where each will target the specific bucket in the target account.
 Please note: you can use S3 as a source and deployment provider. The properties
 that are available are slightly different.
 
-The role used to upload the object(s) to the S3 bucket is:
+When S3 is used as the deployment provider, the default role used to upload
+the object(s) to the S3 bucket is the:
 `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
+
+The `adf-cloudformation-role` is not granted access to read S3 buckets yet.
+Please add the required S3 write permissions to the `adf-cloudformation-role`
+via the `adf-bootstrap/global-iam.yml` file in the
+`aws-deployment-framework-bootstrap` repository. Or, alternatively, allow
+the `adf-cloudformation-role` S3 write permissions in the bucket policy of the
+target bucket.
 
 Provider type: `s3`.
 
@@ -620,6 +644,15 @@ Provider type: `s3`.
 - *extract* - *(Boolean)* default: `False`.
   - Whether CodePipeline should extract the contents of the object when it
     deploys it.
-- *role* - *(String)* default:
-  `arn:${partition}:iam::${target_account_id}:role/adf-cloudformation-role`.
-  - The role you would like to use for this action.
+- *role* - *(String)* default: `adf-cloudformation-role`.
+  - The role name of the role you would like to use for this action.
+  - Please read the [user guide](./user-guide.md#custom-roles-for-pipelines) to
+    learn more about creating custom roles.
+- *kms_encryption_key_arn* - *(String)*
+  - The ARN of the AWS KMS encryption key for the host bucket. The
+    `kms_encryption_key_arn` parameter encrypts uploaded artifacts with the
+    provided AWS KMS key. For a KMS key, you can use the key ID, the key ARN,
+    or the alias ARN.
+- *cache_control* - *(String)*
+  - The `cache_control` parameter controls caching behavior for
+    requests/responses for objects in the bucket.

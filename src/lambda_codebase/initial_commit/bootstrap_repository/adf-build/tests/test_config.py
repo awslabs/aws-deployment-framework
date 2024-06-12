@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
@@ -67,6 +67,23 @@ def test_raise_validation_length_deployment_target_region(cls):
     ]
     with raises(InvalidConfigError):
         assert cls._parse_config()
+
+
+def test_sorted_regions(cls):
+    cls.config_contents["regions"]["deployment-account"] = [
+        "us-east-1",
+    ]
+    cls.config_contents["regions"]["targets"] = [
+        "us-west-2",
+        "us-east-1",
+        "eu-west-3",
+    ]
+    cls._parse_config()
+    assert cls.sorted_regions() == [
+        "us-east-1",
+        "eu-west-3",
+        "us-west-2",
+    ]
 
 
 def test_raise_validation_organizations_scp(cls):

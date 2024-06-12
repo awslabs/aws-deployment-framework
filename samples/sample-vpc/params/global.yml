@@ -1,6 +1,10 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 Parameters:
-  CostCenter: '123'
-  Environment: testing
+  CostCenter: "123"
+  Environment: "testing"
+
 Tags:
-  TagKey: my_tag
-  MyKey: new_value
+  TagKey: "my_tag"
+  MyKey: "new_value"

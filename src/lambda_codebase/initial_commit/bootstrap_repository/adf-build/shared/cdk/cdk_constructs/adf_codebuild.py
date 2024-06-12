@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodeBuild Input
@@ -22,7 +22,6 @@ from cdk_constructs.adf_codepipeline import Action
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-DEFAULT_CODEBUILD_IMAGE = "STANDARD_7_0"
 DEFAULT_BUILD_SPEC_FILENAME = 'buildspec.yml'
 DEFAULT_DEPLOY_SPEC_FILENAME = 'deployspec.yml'
 ADF_DEFAULT_BUILD_ROLE_NAME = 'adf-codebuild-role'
@@ -339,14 +338,9 @@ class CodeBuild(Construct):
 
     @staticmethod
     def get_image_by_name(specific_image: str):
-        image_name = (
-            (
-                specific_image
-                or DEFAULT_CODEBUILD_IMAGE
-            ).upper()
-        )
-        if hasattr(_codebuild.LinuxBuildImage, image_name):
-            return getattr(_codebuild.LinuxBuildImage, image_name)
+        cdk_image_name = specific_image.upper()
+        if hasattr(_codebuild.LinuxBuildImage, cdk_image_name):
+            return getattr(_codebuild.LinuxBuildImage, cdk_image_name)
         if specific_image.startswith('docker-hub://'):
             specific_image = specific_image.split('docker-hub://')[-1]
             return _codebuild.LinuxBuildImage.from_docker_registry(
@@ -375,15 +369,33 @@ class CodeBuild(Construct):
                 .get('image')
             )
         if isinstance(specific_image, dict):
-            repo_arn = _ecr.Repository.from_repository_arn(
+            repository_name = specific_image.get('repository_name', '')
+            repository_arn = specific_image.get('repository_arn', '')
+            if not repository_arn and not repository_name:
+                raise ValueError("The repository arn or name needs to be specified")
+
+            if repository_arn and repository_name:
+                raise AssertionError("Specify the arn or the name of the repository, not both.")
+
+            if repository_name:
+                repository_arn = (
+                    f"arn:aws:ecr:{ADF_DEPLOYMENT_REGION}:"
+                    f"{ADF_DEPLOYMENT_ACCOUNT_ID}:{repository_name}"
+                )
+
+            ecr_repo = _ecr.Repository.from_repository_arn(
                 scope,
                 f'custom_repo_{codebuild_id}',
-                specific_image.get('repository_arn', ''),
+                repository_arn,
             )
             return _codebuild.LinuxBuildImage.from_ecr_repository(
-                repo_arn,
+                ecr_repo,
                 specific_image.get('tag', 'latest'),
             )
+
+        if not specific_image:
+            raise ValueError("Required CodeBuild image property is not configured")
+
         return CodeBuild.get_image_by_name(specific_image)
 
     @staticmethod

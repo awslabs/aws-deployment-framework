@@ -11,8 +11,7 @@ from cdk_constructs import adf_codepipeline
 from cdk_constructs import adf_codebuild
 from cdk_constructs import adf_jenkins
 from cdk_constructs import adf_codecommit
-from cdk_constructs import adf_github
-from cdk_constructs import adf_codestar
+from cdk_constructs import adf_codeconnections
 from cdk_constructs import adf_s3
 from cdk_constructs import adf_cloudformation
 from cdk_constructs import adf_notifications
@@ -68,13 +67,6 @@ def generate_adf_default_pipeline(scope: Stack, stack_input):
         stages,
     )
 
-    if "github" in _get_source_name(stack_input):
-        adf_github.GitHub.create_webhook_when_required(
-            scope,
-            pipeline.cfn,
-            stack_input["pipeline_input"],
-        )
-
     pipeline_triggers = (
         stack_input["pipeline_input"]
         .get("triggers", {})
@@ -117,17 +109,11 @@ def _generate_source_stage_for_pipeline(scope, stack_input):
             "source",
             stack_input["pipeline_input"],
         ).source
-    if "codestar" in source_name:
-        return adf_codestar.CodeStar(
+    if "codeconnections" in source_name:
+        return adf_codeconnections.CodeConnections(
             scope,
             "source",
             stack_input['pipeline_input'],
-        ).source
-    if "github" in source_name:
-        return adf_github.GitHub(
-            scope,
-            "source",
-            stack_input["pipeline_input"],
         ).source
     if "s3" in source_name:
         return adf_s3.S3(

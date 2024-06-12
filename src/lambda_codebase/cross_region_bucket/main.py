@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -7,12 +7,14 @@ the bucket in the management account in the deployment region
 """
 
 
+import os
 from typing import Mapping, Any, Tuple, MutableMapping
 from dataclasses import dataclass, asdict
 import logging
 import json
 import secrets
-import string # pylint: disable=deprecated-module # https://www.logilab.org/ticket/2481
+import string  # pylint: disable=deprecated-module
+# ^ https://www.logilab.org/ticket/2481
 import boto3
 from cfn_custom_resource import ( # pylint: disable=unused-import
     lambda_handler,
@@ -21,6 +23,7 @@ from cfn_custom_resource import ( # pylint: disable=unused-import
     delete,
 )
 
+# ADF imports
 from partition import get_partition
 
 # Type aliases:
@@ -34,7 +37,8 @@ S3Client = Any
 
 # Globals:
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 S3CLIENTS: MutableMapping[Region, S3Client] = {}
 SSM_CLIENT = boto3.client("ssm")
 
@@ -77,6 +81,7 @@ def create_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_ownership_controls(bucket_name, region)
     ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
@@ -93,6 +98,7 @@ def update_(event: Mapping[str, Any], _context: Any) -> CloudFormationResponse:
     bucket_name_prefix = event["ResourceProperties"]["BucketNamePrefix"]
     bucket_name, created = ensure_bucket(region, bucket_name_prefix)
     ensure_bucket_encryption(bucket_name, region)
+    ensure_bucket_ownership_controls(bucket_name, region)
     ensure_bucket_has_no_public_access(bucket_name, region)
     if policy:
         ensure_bucket_policy(bucket_name, region, policy)
@@ -132,7 +138,7 @@ def determine_region(event: Mapping[str, Any]):
         return event["ResourceProperties"]["Region"]
     try:
         get_parameter = SSM_CLIENT.get_parameter(
-            Name="deployment_account_region",
+            Name="/adf/deployment_account_region",
         )
         return get_parameter["Parameter"]["Value"]
     except SSM_CLIENT.exceptions.ParameterNotFound:
@@ -144,7 +150,9 @@ def determine_region(event: Mapping[str, Any]):
 
 def ensure_bucket(region: str, bucket_name_prefix: str) -> Tuple[BucketName, Created]:
     try:
-        get_parameter = SSM_CLIENT.get_parameter(Name="shared_modules_bucket")
+        get_parameter = SSM_CLIENT.get_parameter(
+            Name="/adf/shared_modules_bucket",
+        )
         return get_parameter["Parameter"]["Value"], False
     except SSM_CLIENT.exceptions.ParameterNotFound:
         pass  # Carry on with creating the bucket
@@ -190,6 +198,20 @@ def ensure_bucket_encryption(bucket_name: str, region: str) -> None:
     )
 
 
+def ensure_bucket_ownership_controls(bucket_name: str, region: str) -> None:
+    s3_client = get_s3_client(region)
+    s3_client.put_bucket_ownership_controls(
+        Bucket=bucket_name,
+        OwnershipControls={
+            "Rules": [
+                {
+                    "ObjectOwnership": "BucketOwnerEnforced",
+                },
+            ],
+        },
+    )
+
+
 def ensure_bucket_has_no_public_access(bucket_name: str, region: str) -> None:
     s3_client = get_s3_client(region)
     s3_client.put_public_access_block(
@@ -211,11 +233,18 @@ def ensure_bucket_policy(
     partition = get_partition(region)
 
     s3_client = get_s3_client(region)
+    bucket_arn = f"arn:{partition}:s3:::{bucket_name}"
     for action in policy["Statement"]:
-        action["Resource"] = [
-            f"arn:{partition}:s3:::{bucket_name}",
-            f"arn:{partition}:s3:::{bucket_name}/*",
-        ]
+        if action.get("Resource"):
+            action["Resource"] = list(map(
+                lambda res: res.replace('{bucket_arn}', bucket_arn),
+                action["Resource"],
+            ))
+        else:
+            action["Resource"] = [
+                bucket_arn,
+                f"{bucket_arn}/*",
+            ]
     s3_client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
 
 

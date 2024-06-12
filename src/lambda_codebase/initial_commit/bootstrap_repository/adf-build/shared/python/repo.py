@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -7,11 +7,13 @@ properties associated with a pipeline.
 """
 
 import os
+
+# ADF imports
 from cloudformation import CloudFormation
-from s3 import S3
-from sts import STS
 from logger import configure_logger
 from partition import get_partition
+from s3 import S3
+from sts import STS
 
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
@@ -34,7 +36,10 @@ class Repo:
         self.account_id = account_id
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         self.session = sts.assume_cross_account_role(
-            f'arn:{self.partition}:iam::{account_id}:role/adf-automation-role',
+            (
+                f'arn:{self.partition}:iam::{account_id}:'
+                'role/adf-automation-role'
+            ),
             f'create_repo_{account_id}'
         )
 
@@ -68,9 +73,9 @@ class Repo:
         }]
 
     def create_update(self):
-        s3_object_path = s3.put_object(
-            "adf-build/templates/codecommit.yml",
-            "templates/codecommit.yml"
+        s3_object_path = s3.build_pathing_style(
+            style="path",
+            key="adf-build/templates/codecommit.yml",
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,

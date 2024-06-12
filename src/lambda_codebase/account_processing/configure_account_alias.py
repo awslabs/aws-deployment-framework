@@ -1,4 +1,4 @@
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -6,15 +6,19 @@ Creates or updates an ALIAS for an account
 """
 
 import os
-from sts import STS
+
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
+from sts import STS
 
 patch_all()
 
 LOGGER = configure_logger(__name__)
-ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
+ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME = os.getenv("ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME")
 AWS_PARTITION = os.getenv("AWS_PARTITION")
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 
 
 def delete_account_aliases(account, iam_client, current_aliases):
@@ -72,8 +76,11 @@ def lambda_handler(event, _):
     if event.get("alias"):
         sts = STS()
         account_id = event.get("account_id")
-        role = sts.assume_cross_account_role(
-            f"arn:{AWS_PARTITION}:iam::{account_id}:role/{ADF_ROLE_NAME}",
+        role = sts.assume_bootstrap_deployment_role(
+            AWS_PARTITION,
+            MANAGEMENT_ACCOUNT_ID,
+            account_id,
+            ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME,
             "adf_account_alias_config",
         )
         ensure_account_has_alias(event, role.client("iam"))

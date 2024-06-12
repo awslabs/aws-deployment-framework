@@ -20,7 +20,9 @@
       - [Bootstrapping Recommendations](#bootstrapping-recommendations)
     - [Pipelines](#pipelines)
       - [Pipeline Parameters](#pipeline-parameters)
-      - [Using Github](#using-github)
+      - [Using AWS CodeConnections for Bitbucket, GitHub, or
+        GitLab](#using-aws-codeconnections-for-bitbucket-github-or-gitlab)
+      - [AWS CodeStar Connection](#aws-codestar-connection)
       - [Chaining Pipelines](#chaining-pipelines)
   - [Service Control Policies](#service-control-policies)
   - [Tagging Policies](#tagging-policies)
@@ -65,11 +67,11 @@ The configuration properties are synced into AWS Systems Manager Parameter
 Store and are used for certain orchestration options throughout your
 Organization.
 
-Below is an example of an `adfconfig.yml` file. When you install ADF via the
-Serverless Application Repository, some of the information entered at the time
-of deployment will be passed into the `adfconfig.yml` that is committed to the
-bootstrap repository as a starting point. You can always edit it and push it
-back into the bootstrap repository to update any values.
+Below is an example of an `adfconfig.yml` file. When you deploy ADF,
+the information entered at the time of deployment will be passed into the
+`adfconfig.yml` that is committed to the bootstrap repository as a starting
+point. You can always edit it and push it back into the bootstrap repository
+to update these values.
 
 ```yaml
 roles:
@@ -98,6 +100,8 @@ config:
   scm: # Source Control Management
     auto-create-repositories: enabled # Optional
     default-scm-branch: main          # Optional
+  org:
+    stage: dev # Optional
 ```
 
 In the above example the properties are categorized into `roles`, `regions`,
@@ -202,7 +206,7 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     repository it can be found at
     `${bootstrap_repository}/adf-build/shared/repo_templates/codecommit.yml`.
 
-  - **default-scm-branch** allows you to configure the default branch that
+  - `default-scm-branch` allows you to configure the default branch that
     should be used with all source-code management platforms that ADF supports.
     For any new installation of the AWS Deployment Framework, this will default
     to `main`, as this is the default branch used by CodeCommit.
@@ -212,6 +216,19 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     `master` instead. We recommend configuring the main scm branch name to
     `main`. As new repositories will most likely use this branch name as their
     default branch.
+- `deployment-maps` tracks all source code management configuration.
+  - `allow-empty-target`, when set to `enabled` this allows you to configure
+    deployment maps with empty targets.
+
+    If all targets get evaluated to empty, the ADF pipeline is still created
+    based on the remaining providers (e.g. source and build). It just does not
+    have a deploy stage.
+
+    This is useful when you need to:
+    - target an OU that does not have any AWS Accounts (initially or
+      temporarily).
+    - target AWS Accounts by tag with no AWS Accounts having that tag assigned
+      (yet).
 - `org` configures settings in case of staged multi-organization ADF deployments.
   - `stage` defines the AWS Organization stage in case of staged multi-
     organization ADF deployments. This is an optional setting. In enterprise-
@@ -219,10 +236,22 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
     and prod AWS Organization with its own ADF instance per AWS organization.
     This approach allows for well-tested and stable prod AWS Organization
     deployments.  If set, a matching SSM parameter `/adf/org/stage` gets
-    created that you can reference in your buildspec files to allow for
+    created in the deployment and all target accounts.
+    You can reference it within your buildspec files to allow for
     org-specific deployments; without hardcoding the AWS Organization stage in
     your buildspec. If this variable is not set, the SSM parameter
     `/adf/org/stage` defaults to "none".
+    More information about setting up ADF with multiple AWS Organizations can
+    be found in the [Multi-Organization Guide](multi-organization-guide.md)
+
+  - `default-scm-codecommit-account-id` allows you to configure the default
+    account id that should be used with all source-code management platforms
+    that ADF supports.
+    If not set here, the deployment account id is taken as default value.
+    The CodeCommit account-id can be still be overwritten with an explicit
+    account id in the individual deployment map.
+    The CodeCommit provider guide provides more details:
+    [providers-guide.md.yml: CodeCommit](./providers-guide.md#codecommit).
 
 ## Accounts
 
@@ -255,7 +284,8 @@ SCPs or CloudFormation templates that ADF will apply.
 The Deployment Account is the gatekeeper for all deployments throughout an
 Organization. Once the baselines have been applied to your accounts via the
 bootstrapping process, the Deployment account connects the dots by taking
-source code and resources from a repository _(e.g. Github, CodeCommit or S3)_
+source code and resources from a repository _(e.g. CodeCommit, S3, or external
+via AWS CodeConnections or an AWS CodeStar Connection)_
 and into the numerous target accounts and regions as defined in the deployment
 map files via AWS CodePipeline.
 
@@ -307,8 +337,8 @@ that is moved into a specific Organizational Unit in AWS Organizations.
 Bootstrapping of AWS accounts is a convenient way to apply a baseline to an
 account or sub-set of accounts based on the structure of your AWS Organization.
 
-When deploying ADF via the Serverless Application Repository, a CodeCommit
-repository titled `aws-deployment-framework-bootstrap` will also be created.
+When deploying ADF, a CodeCommit repository titled
+`aws-deployment-framework-bootstrap` will be created.
 This repository acts as an entry point for bootstrapping templates. The
 definition of which templates are applied to which Organization Unit are defined
 in the `adf-bootstrap` folder structure of the
@@ -316,15 +346,31 @@ in the `adf-bootstrap` folder structure of the
 
 Inside the `adf-bootstrap` folder of the `aws-deployment-framework-bootstrap`
 repository, create a folder structure and associated CloudFormation templates
-`global.yml` or `regional.yml` and optional parameters `global-params.json` or
-`regional-params.json` that match your desired specificity when bootstrapping
-your AWS Accounts.
+`global-iam.yml` or `regional.yml` and optional parameters
+`global-iam-params.json` or `regional-params.json` that match your desired
+specificity when bootstrapping your AWS Accounts.
+
+**Please be aware:** that you should not create a copy of the `global.yml` file
+that lives in the `adf-bootstrap` folder. ADF will automatically navigate up
+through the directory structure to find the `global.yml`. If you were to create
+a `global.yml` copy, it will not get updated by ADF automatically.
+
+Additionally, it is important to note that you should not make changes to the
+`global.yml` file. Changes in this file will be overwritten when a new version
+of ADF is installed. If you made changes, you would need to carefully apply
+them again with every update. Instead, it is suggested to use the
+`global-iam.yml` as described above.
 
 Commit and push this repository to the CodeCommit repository titled
 `aws-deployment-framework-bootstrap` on the management account.
 
 - `global.yml` in the base of the `adf-bootstrap` folder is required as it
-  functions as the base configuration for ADF.
+  functions as the base configuration for ADF. Do not create copies of this
+  file. The only two locations where the `global.yml` is allowed to exist are
+  `adf-bootstrap/global.yml` and `adf-bootstrap/deployment/global.yml`.
+  If you must deploy infrastructure in the global region only, please use the
+  `global-iam.yml` file name instead. This file will not get any automated
+  updates by ADF either, so changes persist after updates of ADF.
 - `regional.yml` is optional, deploying specific resources in each ADF-enabled
   region.
 
@@ -460,8 +506,8 @@ template as required, however, the default resources should not be removed.
 #### Bootstrapping Regions
 
 When you setup the initial configuration for the AWS Deployment Framework you
-define your parameters in the Serverless Application Repository, some of these
-details get placed into the [adfconfig.yml](#adfconfig).
+define your initial parameters, a subset of these get placed into the
+[adfconfig.yml](#adfconfig).
 
 This file defines the regions you will use for not only bootstrapping but which
 regions will later be used as targets for deployment pipelines. Be sure you read
@@ -530,26 +576,30 @@ pipelines:
 
 Here is an example of passing in a parameter to a pipeline to override the
 default branch that is used to trigger the pipeline from, this time using
-Github as a source _(No need for `source_account_id`)_.
+an AWS CodeConnections link to Bitbucket, GitHub, or GitLab as a
+source _(No need for `source_account_id`)_.
 
 ```yaml
 pipelines:
-  - name: vpc  # The Github repo would have this name
+  - name: vpc  # The GitHub repo would have this name
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           branch: dev/feature
           # Optional, name property will be used if repository is not specified
           repository: example-vpc
-          owner: bundyfx
-          # The path in AWS Secrets Manager that holds the GitHub Oauth token,
-          # ADF only has access to /adf/ prefix in Secrets Manager
-          oauth_token_path: /adf/github_token
-          # The field (key) name of the json object stored in AWS Secrets
-          # Manager that holds the Oauth token.
-          # e.g. {"token": "123"}
-          json_field: token
+          owner: example-owner
+          # The Code Connection ARN should be stored inside a AWS Systems
+          # Manager Parameter Store parameter name.
+          # Where the parameter key can have any name, as long as it starts
+          # with /adf/. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          code_connection_path: /adf/my_aws_codeconnections_param
     targets:
       - /security  # Shorthand example
 ```
@@ -598,44 +648,129 @@ globally unique we need some way to define which bucket we want to deploy our
 `output.zip` into at a stage level. The way we accomplish this is we can pass
 in `properties` in the form of `key/value` into the stage itself.
 
-#### Using Github
+#### Using AWS CodeConnections for Bitbucket, GitHub, or GitLab
 
-In order for a pipeline to be connected to Github you will need to create a
-Personal Access Token in Github that allows its connection to AWS CodePipeline.
-You can read more about creating a Token
-[here](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-rotate-personal-token-CLI.html).
-Once the token has been created you can store that in AWS Secrets Manager on
-the Deployment Account. The Webhook Secret is a value you define and store in
-AWS Secrets Manager with a path of `/adf/my_teams_token`. By Default, ADF only
-has read access access to Secrets with a path that starts with `/adf/`.
+**Please note:** This is the preferred method to setup external sources.
+If you have configured an AWS CodeStar Connection before and wonder how-to
+set it up again, please read the [AWS CodeStar Connection
+steps](#aws-codestar-connection).
 
-Once the values are stored, you can create the Repository in Github as per
-normal. Once its created you do not need to do anything else on Github's side
-just update your [deployment map](user-guide.md#deployment-map) to use the new
-source type and push to the deployment account. Here is an example of a
-deployment map with a single pipeline from Github, in this case the repository
-on github must be named 'vpc'.
+**Prerequisite:** To enable AWS CodeConnections to be used the following steps
+are required:
+
+- Navigate to the `aws-deployment-framework-bootstrap` repository, specifically
+  the `/adf-bootstrap/deployment/` folder (notice the `deployment` OU folder at
+  the end).
+- There should be a `global-iam.yml` file in that folder. If not, please rename
+  or copy the `example-global-iam.yml` file to `global-iam.yml` to proceed.
+- Inside the `global-iam.yml` file ensure the CloudFormation resources
+  named `CodeConnectionsPolicy` is no longer commented out.
+
+**Important note**: `CodeConnectionsPolicy` IAM policy is a sample.
+Please make sure you update this policy and scope it properly for the use cases
+you want to support.
+
+In order for a pipeline to be connected to Bitbucket, GitHub, or GitLab
+you will need to setup AWS CodeConnections first.
+Please follow the [steps as described in the AWS Developer Tools
+documentation](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections.html)
+on how-to setup a new connection with your code repository.
+
+Once the connection is created you can store the Connection ARN into
+the Deployment Account with AWS Systems Manager Parameter Store.
+
+Before you proceed, please check the Connection ARN of the connection you
+configured. Depending on the method and creation time of the connection it
+might have created a CodeStar Connection instead. If it did, the ARN will
+include the `codestar` keyword. If so, please proceed with the steps described
+in the [AWS CodeStar Connection](#aws-codestar-connection) first before you
+continue.
+
+Please use the `/adf/` prefix for this parameter. For example:
+`/adf/my_source_connection_param`
+As ADF has read access to parameters that start with `/adf/`.
+
+Once the values are stored, you can create the Repository in your external
+source provider (Bitbucket, GitHub, or GitLab) as per normal.
+Once the repository is ready, no further steps are required on the external
+source provider's side, just update your
+[deployment map](user-guide.md#deployment-map) to use the new source type and
+push to the deployment account. Here is an example of a
+deployment map with a single pipeline from an external source provider, in this
+case the external repository must be named 'vpc'.
 
 ```yaml
 pipelines:
   - name: vpc
     default_providers:
       source:
-        provider: github
+        provider: codeconnections
         properties:
           # Optional, name property will be used if repository is not specified
           repository: example-vpc
-          owner: bundyfx
-          # The path in AWS Secrets Manager that holds the GitHub Oauth token,
-          # ADF only has access to /adf/ prefix in Secrets Manager
-          oauth_token_path: /adf/github_token
-          # The field (key) name of the json object stored in AWS Secrets
-          # Manager that holds the Oauth token.
-          # e.g. {"token": "123"}
-          json_field: token
+          owner: awslabs
+          # The path in Amazon Systems Manager Parameter Store that holds the
+          # Connections Arn.
+          # Please note, by default ADF only has access to read /adf/
+          # parameters. You need to create this parameter manually
+          # in the deployment region in the deployment account once.
+          #
+          # It is recommended to add a Tag like CreatedBy with the user that
+          # created it. So it is clear this parameter is not managed by ADF
+          # itself.
+          #
+          # Example content of the parameter, plain ARN as a simple string:
+          # arn:aws:codeconnections:eu-west-1:111111111111:connection/11111111-2222-3333-4444-555555555555
+          codeconnections_param_path: /adf/my_github_connection_arn_param
     targets:
       - /security
 ```
+
+#### AWS CodeStar Connection
+
+**Please note:** Only proceed with the steps in this document if you have an
+existing AWS CodeStar Connection you like to maintain. With the [announcement
+of the AWS CodeStar Connection to AWS CodeConnections name
+change](https://aws.amazon.com/about-aws/whats-new/2024/03/aws-codeconnections-formerly-codestar-connections/)
+the preferred method to link GitHub, GitLab, Bitbucket, and other sources is
+AWS CodeConnections. You do not need to replace the AWS CodeStar Connection
+with an AWS CodeConnections resource if you have one already. According to the
+service documentation it will continue to be supported via the new AWS
+CodeConnections API without requiring further changes in ADF's config or the
+deployment maps.
+
+If you are about to setup a new connection to an external source code provider,
+please consider following the [AWS CodeConnections
+steps](#using-aws-codeconnections-for-bitbucket-github-or-gitlab)
+instead.
+
+**Prerequisite:** To enable an AWS CodeStar Connection to be used the following
+steps are required:
+
+- Navigate to the `aws-deployment-framework-bootstrap` repository, specifically
+  the `/adf-bootstrap/deployment/` folder (notice the `deployment` OU folder at
+  the end).
+- There should be a `global-iam.yml` file in that folder. If not, please rename
+  or copy the `example-global-iam.yml` file to `global-iam.yml` to proceed.
+- Inside the `global-iam.yml` file ensure the CloudFormation resources
+  named `CodeConnectionsPolicy` is no longer commented out.
+- Also make sure the CodeStar actions are no longer commented out.
+
+**Important note**: `CodeConnectionsPolicy` IAM policy is a sample.
+Please make sure you update this policy and scope it properly for the use cases
+you want to support. We recommend that you leave this policy name as
+`CodeConnectionsPolicy`, even though you are setting up a
+`CodeStar Connection`. This will make it easier to detect required updates if
+these would-be introduced by future ADF versions.
+
+The remaining steps are the same as configuring an AWS CodeConnections
+setup. So please follow the next steps as documented in the
+[Using AWS CodeConnections for Bitbucket, GitHub, or GitLab
+section](#using-aws-codeconnections-for-bitbucket-github-or-gitlab).
+
+**Please note: While the AWS CodeConnections source provider name is
+`codeconnections`, if the configured connection ARN refers to an AWS CodeStar
+Connection it will set that up instead.
 
 #### Chaining Pipelines
 
@@ -895,42 +1030,21 @@ account in us-east-1. Check the CloudFormation stack output or tag of the
 
 - In the outputs tab, it will show the version as the `ADFVersionNumber`.
 - In the tags on the CloudFormation stack, it is presented as
-  `serverlessrepo:semanticVersion`.
+  `ADFVersion` or `serverlessrepo:semanticVersion`.
 
 ### Latest ADF version that is available
 
 If you want to check which version is the latest one available, go to the
-management account in `us-east-1`:
-
-1. Navigate to the AWS Deployment Framework Serverless Application Repository
-   _(SAR)_, it can be found
-   [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-2. You can find the latest version in the title of the page, like so:
-   `aws-deployment-framework — version x.y.z`.
+[Open Source ADF Repository on GitHub to browse through its
+releases](https://github.com/awslabs/aws-deployment-framework/releases).
 
 ## Updating Between Versions
 
-Go to the management account in `us-east-1`:
+1. Follow the build and deploy steps, as documented in the [installation guide,
+   steps 1 to 3](./installation-guide.md).
 
-1. Navigate to the AWS Deployment Framework Serverless Application Repository
-   _(SAR)_, it can be found
-   [here](https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:112893979820:applications/aws-deployment-framework).
-2. To ease maintaining your ADF installation, it is recommended to ensure that
-   the values specified reflect what is installed/in use at the moment.
-   To gather the values, you can either find them in the
-   `aws-deployment-framework-bootstrap` repository in the `adfconfig.yml`
-   file. Or by looking up the values that were specified the last time ADF got
-   installed/updated via the CloudFormation template parameters of the
-   `serverlessrepo-aws-deployment-framework` stack in `us-east-1`.
-3. Tick the box at the bottom that states: _"I acknowledge that this app creates
-   custom IAM roles and resource policies."_
-4. Click the _Deploy_ button.
-
-This will take a few minutes to deploy and kick-off your SAR deployment using
-CloudFormation. Leave the browser window open until it changes pages.
-
-Your `serverlessrepo-aws-deployment-framework` stack is updating
-with new changes that were included in that release of ADF.
+The `serverlessrepo-aws-deployment-framework` stack is updated through this
+process with new changes that were included in that release of ADF.
 
 To check the progress in the management account in `us-east-1`, follow these
 steps:
@@ -953,7 +1067,7 @@ steps:
    in your AWS management account too.
 
    To ease this process, the AWS CloudFormation stack will run the
-   _InitialCommit_ Custom CloudFormation resource when updating via the SAR.
+   _InitialCommit_ Custom CloudFormation resource when updating ADF.
    This resource will open a pull request against the default branch (i.e.
    `main`) on the _bootstrap_ repository with a set of changes that you can
    optionally choose to merge. If those changes are merged into the default
@@ -983,7 +1097,7 @@ In the management account in `us-east-1`:
 2. There might be a pull request if the `aws-deployment-framework-bootstrap`
    repository that you have has to be updated to apply recent changes of ADF.
    This would show up with the version that you deployed recently, for example
-   `v3.2.0`.
+   `v4.0.0`.
 3. If there is no pull request, nothing to worry about. In that case, no
    changes were required in your repository for this update. Continue to
    the next step. If there is a pull request, open it and review the
@@ -1038,7 +1152,7 @@ This process is managed in an AWS Step Function state machine.
 
 1. Navigate to the AWS Step Functions service in the deployment account
    in _your main region_.
-2. Check the `ADFPipelineManagementStateMachine` state machine, all recent
+2. Check the `adf-pipeline-management` state machine, all recent
    invocations since we performed the update should succeed.
 
 We need to confirm that the pipelines generated by ADF are fully functional
@@ -1085,45 +1199,38 @@ Alternatively, you can also perform the update using the AWS CLI.
 
 If you wish to remove ADF you can delete the CloudFormation stack named
 `serverlessrepo-aws-deployment-framework` in the management account in
-the `us-east-1` region. This will move into a `DELETE_FAILED` at some stage because
-there is an S3 Bucket that is created via a custom resource _(cross region)_.
-After it moves into `DELETE_FAILED`, you can right-click on the stack and hit
-delete again while selecting to skip the Bucket the stack will successfully
-delete, you can then manually delete the bucket and its contents.
+the `us-east-1` region. This will remove most resources created by ADF
+in the management account. With the exception of S3 buckets and SSM parameters.
+If you bootstrapped ADF into the management account you need to manually remove
+the bootstrap stacks as well.
 
-After the main stack has been removed you can remove the base stack in the
-deployment account `adf-global-base-deployment` and any associated regional
+Feel free to delete the S3 buckets, SSM parameters that start with the `/adf`
+prefix, as well as other CloudFormation stacks such as:
+
+- adf-global-base-bootstrap (in the main deployment region)
+- adf-global-base-iam (in the main deployment region)
+- adf-regional-base-bootstrap (in every other region configured for ADF)
+
+When these stacks are removed, you can switch into the deployment
+account. We need to remove the base stack in the deployment account
+`adf-global-base-deployment` and any associated regional
 deployment account base stacks. After you have deleted these stacks, you can
 manually remove any base stacks from accounts that were bootstrapped.
+
 Alternatively prior to removing the initial
 `serverlessrepo-aws-deployment-framework` stack, you can set the _moves_ section
 of the `adfconfig.yml` file to _remove-base_ which would automatically clean up
 the base stack when the account is moved to the Root of the AWS Organization.
 
 One thing to keep in mind if you are planning to re-install ADF is that you
-will want to clean up the parameter from SSM Parameter Store named
-_deployment_account_id_ in `us-east-1` on the management account. AWS Step
-Functions uses this parameter to determine if ADF has already got a deployment
-account setup. If you re-install ADF with this parameter set to a value,
-ADF will attempt an assume role to the account to do some work, which will fail
-since that role will not be on the account at that point.
-
-There is also a CloudFormation stack named `adf-global-base-adf-build` which
-lives on the management account in your main deployment region. This stack
-creates two roles on the management account after the deployment account has
-been setup. These roles allow the deployment accounts CodeBuild role to assume a
-role back to the management account in order to query Organizations for AWS
-Accounts. This stack must be deleted manually also. If you do not remove this
-stack and then perform a fresh install of ADF, AWS CodeBuild on the deployment
-account will not be able to assume a role to the management account to query
-AWS Organizations. This is because this specific stack creates IAM roles with a
-strict trust relationship to the CodeBuild role on the deployment account, if
-that role gets deleted _(Which is will when you delete
-`adf-global-base-deployment`)_ then this stack references invalid IAM roles that
-no longer exist. If you forget to remove this stack and notice the trust
-relationship of the IAM roles referenced in the stack are no longer valid,
-you can delete the stack and re-run the main bootstrap pipeline which will
-recreate it with valid roles and links to the correct roles.
+will want to clean up the parameter from SSM Parameter Store. You can safely
+remove all `/adf` prefixed SSM parameters. But most importantly, you need to
+remove the `/adf/deployment_account_id` in `us-east-1` on the
+management account.
+As AWS Step Functions uses this parameter to determine if ADF has already got a
+deployment account setup. If you re-install ADF with this parameter set to a
+value, ADF will attempt an assume role to the account to configure it, which
+will fail since that role will not be on the account at that point.
 
 ## Troubleshooting
 
@@ -1181,22 +1288,22 @@ The main components to look at are:
    deployment region.
 8. Navigate to the [AWS Step Functions service](https://eu-west-1.console.aws.amazon.com/states/home?region=eu-west-1#/statemachines)
    in the deployment account in your main region. Please note, the link points
-   to the `eu-west-` region. Please update that to your own deployment region.
-   Check the state machines named `ADFPipelineManagementStateMachine`,
-   `EnableCrossAccountAccess`, and `PipelineDeletionStateMachine...`.
-   Look at recent executions only.
+   to the `eu-west-1` region. Please update that to your own deployment region.
+   Check the state machines named `adf-pipeline-management`,
+   `adf-bootstrap-enable-cross-account`, and
+   `adf-pipeline-management-delete-outdated`. Look at recent executions only.
     - When you find one that has a failed execution, check the components that
       are marked orange/red in the diagram.
     - If one failed and you want to trigger it again, you can execute it with
       the `New Execution` button in AWS Step Functions. Or even better in case
-      of the `ADFPipelineManagementStateMachine`, trigger all executions again,
+      of the `adf-pipeline-management`, trigger all executions again,
       Release a Change in the
       [ADF Pipeline generation CodePipeline - aws-deployment-framework-pipelines](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=eu-west-1).
 
 ### How to share debug information
 
 **Important**: If you are about to share any debug information through an
-issue on the [ADF Github repository](https://github.com/awslabs/aws-deployment-framework/issues),
+issue on the [ADF GitHub repository](https://github.com/awslabs/aws-deployment-framework/issues),
 please replace:
 
 - the account ids with simple account ids like: `111111111111`, `222222222222`,

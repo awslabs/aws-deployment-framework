@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -12,6 +12,8 @@ import yaml
 
 from schema import SchemaError
 from schema_validation import SchemaValidation
+
+# ADF imports
 from errors import InvalidDeploymentMapError
 from logger import configure_logger
 
@@ -60,7 +62,7 @@ class DeploymentMap:
         )
         if pipeline.notification_endpoint:
             self.parameter_store.put_parameter(
-                f"/notification_endpoint/{pipeline.name}",
+                f"notification_endpoint/{pipeline.name}",
                 str(pipeline.notification_endpoint)
             )
 
@@ -70,7 +72,7 @@ class DeploymentMap:
         try:
             LOGGER.info('Loading deployment_map file %s', file_path)
             with open(file_path, mode='r', encoding='utf-8') as stream:
-                _input = yaml.load(stream, Loader=yaml.FullLoader)
+                _input = yaml.safe_load(stream)
                 return SchemaValidation(_input).validated
         except FileNotFoundError:
             LOGGER.warning('No default map file found at %s, continuing', file_path)

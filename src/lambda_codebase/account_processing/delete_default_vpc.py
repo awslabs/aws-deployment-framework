@@ -1,34 +1,58 @@
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
 Deletes the default VPC in a particular region
 """
 import os
-from sts import STS
+
 from aws_xray_sdk.core import patch_all
+from botocore.exceptions import ClientError
+import tenacity
+
+# ADF imports
 from logger import configure_logger
+from sts import STS
 
 patch_all()
 
 LOGGER = configure_logger(__name__)
-ADF_ROLE_NAME = os.getenv("ADF_ROLE_NAME")
+ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME = os.getenv(
+    "ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME",
+)
 AWS_PARTITION = os.getenv("AWS_PARTITION")
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 
 
 def assume_role(account_id):
     sts = STS()
-    return sts.assume_cross_account_role(
-        f"arn:{AWS_PARTITION}:iam::{account_id}:role/{ADF_ROLE_NAME}",
+    return sts.assume_bootstrap_deployment_role(
+        AWS_PARTITION,
+        MANAGEMENT_ACCOUNT_ID,
+        account_id,
+        ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME,
         "adf_delete_default_vpc",
     )
 
-
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type(ClientError),
+    # Fail after 180 Sec of retrying
+    stop=tenacity.stop_after_delay(180),
+    # Wait 2^x * 1 second between each retry starting with 4s, max 10s intervals
+    wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
+)
 def find_default_vpc(ec2_client):
-    vpc_response = ec2_client.describe_vpcs()
-    for vpc in vpc_response["Vpcs"]:
-        if vpc["IsDefault"] is True:
-            return vpc["VpcId"]
+    try:
+        vpc_response = ec2_client.describe_vpcs()
+        for vpc in vpc_response["Vpcs"]:
+            if vpc.get("IsDefault", False):
+                return vpc["VpcId"]
+    except ClientError as error:
+        LOGGER.debug(
+            "An error occurred while describing VPCs: %s", error
+        )
+        raise
+    # If no default VPC found, return None
     return None
 
 

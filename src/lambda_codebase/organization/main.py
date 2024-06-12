@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -13,6 +13,7 @@ import os
 import json
 import boto3
 from cfn_custom_resource import (  # pylint: disable=unused-import
+    lambda_handler,
     create,
     update,
     delete,
@@ -29,7 +30,8 @@ CloudFormationResponse = Tuple[PhysicalResourceId, Data]
 # Globals:
 ORGANIZATION_CLIENT = boto3.client("organizations")
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
+logging.basicConfig(level=logging.INFO)
 
 
 class InvalidPhysicalResourceId(Exception):

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -11,16 +11,18 @@ are met.
 
 import os
 
-from sts import STS
-from s3 import S3
-from parameter_store import ParameterStore
+# ADF imports
+from cloudformation import CloudFormation
 from errors import RetryError
 from logger import configure_logger
-from cloudformation import CloudFormation
+from parameter_store import ParameterStore
 from partition import get_partition
+from s3 import S3
+from sts import STS
 
 S3_BUCKET = os.environ["S3_BUCKET_NAME"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
+MANAGEMENT_ACCOUNT_ID = os.getenv('MANAGEMENT_ACCOUNT_ID')
 LOGGER = configure_logger(__name__)
 
 
@@ -40,15 +42,16 @@ def update_deployment_account_output_parameters(
     regional_parameter_store.put_parameter(
         "organization_id", os.environ['ORGANIZATION_ID']
     )
-    # Regions needs to store its kms arn and s3 bucket in master and regional
+    # Regions needs to store its KMS ARN and S3 bucket.
+    # It is also stored in the main deployment region.
     for key, value in cloudformation.get_stack_regional_outputs().items():
         LOGGER.info('Updating %s on deployment account in %s', key, region)
         deployment_account_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
         regional_parameter_store.put_parameter(
-            f"/cross_region/{key}/{region}",
+            f"cross_region/{key}/{region}",
             value
         )
 
@@ -62,9 +65,12 @@ def lambda_handler(event, _):
     partition = get_partition(REGION_DEFAULT)
     cross_account_access_role = event.get('cross_account_access_role')
 
-    role = sts.assume_cross_account_role(
-        f'arn:{partition}:iam::{account_id}:role/{cross_account_access_role}',
-        'master'
+    role = sts.assume_bootstrap_deployment_role(
+        partition,
+        MANAGEMENT_ACCOUNT_ID,
+        account_id,
+        cross_account_access_role,
+        'management',
     )
 
     s3 = S3(REGION_DEFAULT, S3_BUCKET)

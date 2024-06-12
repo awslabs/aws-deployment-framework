@@ -1,5 +1,5 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
@@ -14,17 +14,17 @@ Metadata:
     Author: AWS ADF Builders Team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: ../LICENSE.txt
-    ReadmeUrl: ../docs/serverless-application-repo.md
+    ReadmeUrl: ../docs/installation-guide.md
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 3.2.0
+    SemanticVersion: 4.0.0
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 
 Mappings:
   Metadata:
     ADF:
-      Version: 3.2.0
+      Version: 4.0.0
 
 Parameters:
   CrossAccountAccessRoleName:
@@ -120,12 +120,67 @@ Parameters:
     AllowedValues:
       - "TRUE"
       - "FALSE"
+      
+  AllowBootstrappingOfManagementAccount:
+    Description: >-
+      Would ADF need to bootstrap the Management Account of your AWS
+      Organization too? If so, set this to "Yes".
+
+      Only set this to "Yes" if a pipeline will deploy to the management
+      account. Or if you need some of the bootstrap resources in the
+      management account too.
+
+      Please be careful: if you plan to set this to "Yes", make sure
+      that the management account is in a dedicated organization unit
+      that has bare minimum IAM permissions to deploy. Only grant access
+      to resource types that are required using least-privilege!
+
+      If you set/leave this at "No", make sure the management organization is
+      in the root of your AWS Organization structure. Or in a dedicated
+      organization unit and add the organization unit id to the protected
+      organization unit list via the (ProtectedOUs) parameter.
+
+      If not, leave at the default of "No".
+      Valid options are: Yes, No
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
+  GrantOrgWidePrivilegedBootstrapAccessUntil:
+    Description: >-
+      When set at a date in the future, ADF will use the privileged
+      cross-account access role to bootstrap the accounts. This is useful
+      in situations where you are reworking the IAM permissions of the
+      ADF bootstrap stacks (global-iam.yml). In some cases, setting this
+      in the future might be required to upgrade ADF to newer versions of
+      ADF too. If an ADF upgrade requires this, it will be clearly described
+      in the CHANGELOG.md file and the release notes.
+
+      Leave at the configured default to disable privileged bootstrap
+      access for all accounts. When the date is in the past, only the AWS
+      Accounts that are accessible to ADF but are not bootstrapped yet will
+      be allowed access via the privileged cross-account access role.
+
+      Date time format according to ISO 8601
+      https://www.w3.org/TR/NOTE-datetime
+    Type: String
+    Default: "1900-12-31T23:59:59Z"
+    AllowedPattern: "\\d{4}-[0-1]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z)"
 
 Globals:
   Function:
+    Architectures:
+      - arm64
     CodeUri: lambda_codebase
-    Runtime: python3.10
+    Runtime: python3.12
     Timeout: 300
+
+Conditions:
+  CreateCrossAccountAccessRole: !Equals
+    - !Ref AllowBootstrappingOfManagementAccount
+    - "Yes"
 
 Resources:
   BootstrapTemplatesBucketPolicy:
@@ -134,34 +189,56 @@ Resources:
       Bucket: !Ref "BootstrapTemplatesBucket"
       PolicyDocument:
         Statement:
-          - Action:
-              - s3:Get*
-              - s3:PutReplicationConfiguration
-              - s3:List*
+          - Sid: "AllowBootstrapDeployments"
+            Action:
+              - s3:GetObject
             Effect: Allow
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !GetAtt Organization.OrganizationId
             Resource:
-              - !GetAtt BootstrapTemplatesBucket.Arn
-              - !Sub "${BootstrapTemplatesBucket.Arn}/*"
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/adf-bootstrap/*
             Principal:
               AWS: "*"
-          - Action:
-              - s3:PutObject*
-            Effect: Allow
+            Condition:
+              StringEquals:
+                "aws:PrincipalOrgID":
+                  - !GetAtt Organization.OrganizationId
+              ArnLike:
+                "aws:PrincipalArn":
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
+                  - !Sub "arn:${AWS::Partition}:iam::*:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+          - Sid: "DenyInsecureConnections"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
             Resource:
-              - !GetAtt BootstrapTemplatesBucket.Arn
-              - !Sub "${BootstrapTemplatesBucket.Arn}/*"
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
             Principal:
-              AWS: !Ref AWS::AccountId
+              AWS: "*"
+          - Sid: "DenyInsecureTLS"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              NumericLessThan:
+                "s3:TlsVersion": "1.2"
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucket}/*
+            Principal:
+              AWS: "*"
 
   BootstrapArtifactStorageBucket:
+    Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    Type: AWS::S3::Bucket
     Properties:
       AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -180,6 +257,9 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -193,9 +273,11 @@ Resources:
         RestrictPublicBuckets: true
 
   ### Account processing begin
-  AccountProcessingLambdaRole:
+  AccountFileProcessingLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
+      RoleName: "adf-account-management-account-file-processing"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -205,11 +287,18 @@ Resources:
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountAccessRolePolicy
+        - !Ref AccountProcessingLambdaBasePolicy
 
-  AccountProcessingLambdaRolePolicy:
+  AccountFileProcessingLambdaPolicy:
+    # Added as an IAM Managed Policy to break the circular dependency chain
+    # This should not be added as a DependsOn on the lambda, by the time objects
+    # are written in the bucket this policy is in effect already.
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      Description: "Policy to allow the account file processing Lambda to perform actions"
+      Description: "Policy to process accounts as configured in the bucket"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -225,18 +314,15 @@ Resources:
             Action: "s3:ListBucket"
             Resource: !GetAtt ADFAccountBucket.Arn
           - Effect: "Allow"
-            Action: "lambda:GetLayerVersion"
-            Resource: !Ref LambdaLayerVersion
+            Action: "s3:GetObject"
+            Resource: !Sub "${ADFAccountBucket.Arn}/*"
           - Effect: "Allow"
             Action: "states:StartExecution"
             Resource: !Ref AccountManagementStateMachine
-          - Effect: "Allow"
-            Action: "s3:GetObject"
-            Resource: !Sub "${ADFAccountBucket.Arn}/*"
       Roles:
-        - !Ref AccountProcessingLambdaRole
+        - !Ref AccountFileProcessingLambdaRole
 
-  ADFAccountAccessRolePolicy:
+  AccountAccessRolePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
       Description: "Additional policy that allows a lambda to assume the cross account access role"
@@ -246,14 +332,10 @@ Resources:
           - Effect: Allow
             Action:
               - "sts:AssumeRole"
-            Resource: !Sub "arn:${AWS::Partition}:iam::*:role/${CrossAccountAccessRoleName}"
-      Roles:
-        - !Ref AccountProcessingLambdaRole
-        - !Ref GetAccountRegionsFunctionRole
-        - !Ref DeleteDefaultVPCFunctionRole
-        - !Ref AccountAliasConfigFunctionRole
+            Resource:
+              - !GetAtt CrossAccountJumpRoleArn.Value
 
-  ADFAccountProcessingLambdaBasePolicy:
+  AccountProcessingLambdaBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
       Description: "Base policy for all ADF account processing lambdas"
@@ -268,20 +350,11 @@ Resources:
               - "xray:PutTelemetryRecords"
               - "xray:PutTraceSegments"
             Resource: "*"
-      Roles:
-        - !Ref AccountProcessingLambdaRole
-        - !Ref GetAccountRegionsFunctionRole
-        - !Ref DeleteDefaultVPCFunctionRole
-        - !Ref AccountAliasConfigFunctionRole
-        - !Ref AccountRegionConfigFunctionRole
-        - !Ref AccountTagConfigFunctionRole
-        - !Ref AccountOUConfigFunctionRole
-        - !Ref CreateAccountFunctionRole
-        - !Ref RegisterAccountForSupportFunctionRole
 
-  StateMachineExecutionRole:
+  AccountManagementStateMachineExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -290,7 +363,9 @@ Resources:
               Service:
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:adf-account-management"
       Policies:
         - PolicyName: "adf-state-machine-role-policy"
           PolicyDocument:
@@ -313,28 +388,33 @@ Resources:
                   - !GetAtt GetAccountRegionsFunction.Arn
                   - !GetAtt DeleteDefaultVPCFunction.Arn
                   - !GetAtt AccountRegionConfigFunction.Arn
+                  - !GetAtt JumpRoleApplication.Outputs.ManagerFunctionArn
 
   AccountFileProcessingFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: process_account_files.lambda_handler
-      Description: "ADF Lambda Function - Account File Processing"
+      Description: >-
+        ADF - Account Management - Account File Event Processing.
+
+        Responsible to kick-off the account management state machine.
+        Triggers when new account configurations were added in the
+        adf-accounts folder of the aws-deployment-framework-bootstrap
+        repository.
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
           ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
-      FunctionName: AccountFileProcessorFunction
-      Role: !GetAtt AccountProcessingLambdaRole.Arn
+          ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: adf-account-management-file-event-processor
+      Role: !GetAtt AccountFileProcessingLambdaRole.Arn
       Events:
         S3YmlSuffixEvent:
           Type: S3
@@ -358,10 +438,14 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: yaml
+    Metadata:
+      BuildMethod: python3.12
 
-  AccountAliasConfigFunctionRole:
+  AccountAliasConfigLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
+      RoleName: "adf-account-management-config-account-alias"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -370,33 +454,37 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountAccessRolePolicy
+        - !Ref AccountProcessingLambdaBasePolicy
 
   AccountAliasConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: configure_account_alias.lambda_handler
-      Description: "ADF Lambda Function - Account Alias Configuration"
+      Description: ADF - Account Management - Account Alias Configuration
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
-      FunctionName: AccountAliasConfigurationFunction
-      Role: !GetAtt AccountAliasConfigFunctionRole.Arn
+          ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: adf-account-management-config-alias
+      Role: !GetAtt AccountAliasConfigLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountTagConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -405,7 +493,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountProcessingLambdaBasePolicy
       Policies:
         - PolicyName: "adf-lambda-tag-resource-policy"
           PolicyDocument:
@@ -415,31 +505,33 @@ Resources:
                 Action:
                   - "organizations:TagResource"
                   - "organizations:UntagResource"
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:organizations::${AWS::AccountId}:account/${Organization.OrganizationId}/*"
 
   AccountTagConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: configure_account_tags.lambda_handler
-      Description: "ADF Lambda Function - Account Tag Configuration"
+      Description: ADF - Account Management - Account Tag Configuration
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: AccountTagConfigurationFunction
+      FunctionName: adf-account-management-config-tags
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountRegionConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -448,7 +540,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountProcessingLambdaBasePolicy
       Policies:
         - PolicyName: "adf-lambda-account-region-resource-policy"
           PolicyDocument:
@@ -463,51 +557,52 @@ Resources:
               - Effect: Allow
                 Action: ssm:GetParameter
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/target_regions"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/target_regions"
 
   AccountRegionConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: configure_account_regions.lambda_handler
-      Description: "ADF Lambda Function - Account region Configuration"
+      Description: ADF - Account Management - Account Region Configuration
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: AccountRegionConfigurationFunction
+      FunctionName: adf-account-management-config-region
       Role: !GetAtt AccountRegionConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountOUConfigFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: configure_account_ou.lambda_handler
-      Description: "ADF Lambda Function - Account OU Configuration"
+      Description: ADF - Account Management - Account OU Configuration
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: AccountOUConfigurationFunction
+      FunctionName: adf-account-management-config-ou
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   AccountOUConfigFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -516,7 +611,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountProcessingLambdaBasePolicy
       Policies:
         - PolicyName: "adf-lambda-policy-move-ou"
           PolicyDocument:
@@ -536,27 +633,29 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: get_account_regions.lambda_handler
-      Description: "ADF Lambda Function - Get Default Regions for an account"
+      Description: ADF - Account Management - Get Default Regions
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
-      FunctionName: GetAccountRegionsFunction
-      Role: !GetAtt GetAccountRegionsFunctionRole.Arn
+          ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: adf-account-management-get-regions
+      Role: !GetAtt GetAccountRegionsLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
-  GetAccountRegionsFunctionRole:
+  GetAccountRegionsLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
+      RoleName: "adf-account-management-get-account-regions"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -565,33 +664,38 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountAccessRolePolicy
+        - !Ref AccountProcessingLambdaBasePolicy
 
   DeleteDefaultVPCFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: delete_default_vpc.lambda_handler
-      Description: "ADF Lambda Function - Delete the default VPC for a region"
+      Description: ADF - Account Management - Delete the Default VPCs
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
           AWS_PARTITION: !Ref AWS::Partition
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
-      FunctionName: DeleteDefaultVPCFunction
-      Role: !GetAtt DeleteDefaultVPCFunctionRole.Arn
+          ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: adf-account-management-delete-default-vpc
+      Role: !GetAtt DeleteDefaultVPCLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
-  DeleteDefaultVPCFunctionRole:
+  DeleteDefaultVPCLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
+      RoleName: "adf-account-management-delete-default-vpc"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -600,32 +704,36 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountAccessRolePolicy
+        - !Ref AccountProcessingLambdaBasePolicy
 
   CreateAccountFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: create_account.lambda_handler
-      Description: "ADF Lambda Function - Create an account"
+      Description: ADF - Account Management - Create Account
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-          ADF_ROLE_NAME: !Ref CrossAccountAccessRoleName
-      FunctionName: CreateAccountFunction
+          ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
+      FunctionName: adf-account-management-create-account
       Role: !GetAtt CreateAccountFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   CreateAccountFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -634,7 +742,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountProcessingLambdaBasePolicy
       Policies:
         - PolicyName: "adf-lambda-create-account-policy"
           PolicyDocument:
@@ -650,25 +760,26 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: register_account_for_support.lambda_handler
-      Description: "ADF Lambda Function - Registers an account for enterprise support"
+      Description: ADF - Account Management - Register support level
       CodeUri: lambda_codebase/account_processing
-      Architectures:
-        - arm64
       Tracing: Active
       Layers:
-        - !Ref LambdaLayerVersion
+        - !Ref ADFSharedPythonLambdaLayerVersion
       Environment:
         Variables:
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: RegisterAccountForSupportFunction
+      FunctionName: adf-account-management-register-support-level
       Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
   RegisterAccountForSupportFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-management/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -677,7 +788,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-management/"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+        - !Ref AccountProcessingLambdaBasePolicy
       Policies:
         - PolicyName: "adf-lambda-support-access-policy"
           PolicyDocument:
@@ -695,6 +808,9 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       AccessControl: BucketOwnerFullControl
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -710,7 +826,8 @@ Resources:
   AccountManagementStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
-      RoleArn: !GetAtt StateMachineExecutionRole.Arn
+      StateMachineName: "adf-account-management"
+      RoleArn: !GetAtt AccountManagementStateMachineExecutionRole.Arn
       TracingConfiguration:
         Enabled: true
       DefinitionString: !Sub |-
@@ -805,6 +922,31 @@ Resources:
                   "MaxAttempts": 6
                 }
               ],
+              "Next": "EnableBootstrappingJumpRole"
+            },
+            "EnableBootstrappingJumpRole": {
+              "Type": "Task",
+              "Resource": "${JumpRoleApplication.Outputs.ManagerFunctionArn}",
+              "TimeoutSeconds": 300,
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Next": "WaitForRoleUpdateToApply"
+            },
+            "WaitForRoleUpdateToApply": {
+              "Type": "Wait",
+              "Seconds": 60,
               "Next": "ConfigureAccountRegions"
             },
             "ConfigureAccountRegions": {
@@ -970,186 +1112,356 @@ Resources:
           }
   ### Account processing end
 
-  LambdaLayerVersion:
+  ADFSharedPythonLambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
-      ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/"
+      ContentUri: "./lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/python"
+      CompatibleArchitectures:
+        - arm64
       CompatibleRuntimes:
-        - python3.10
-      Description: "Shared Lambda Layer between master and deployment account"
-      LayerName: shared_layer
+        - python3.12
+      Description: "Shared Lambda Layer between management and deployment account"
+      LayerName: adf_shared_layer
+    Metadata:
+      BuildMethod: python3.12
+      BuildArchitecture: arm64
 
-  LambdaLayerVersionPermission:
-    Type: "AWS::Lambda::LayerVersionPermission"
+  LambdaLayerPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref LambdaLayerVersion
-      OrganizationId: !GetAtt Organization.OrganizationId
-      Principal: "*"
+      Description: "Policy to allow Lambda functions to use the ADF Shared Python layer"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "lambda:GetLayerVersion"
+            Resource: !Ref ADFSharedPythonLambdaLayerVersion
 
-  LambdaRole:
+  CommonLambdaPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to allow Lambda functions to common Lambda resources"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "xray:PutTelemetryRecords"
+              - "xray:PutTraceSegments"
+            Resource: "*"
+
+  ### Account-Bootstrapping Jump Role begin
+  JumpRoleApplication:
+    Type: AWS::Serverless::Application
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Properties:
+      Location: account_bootstrapping_jump_role.yml
+      Parameters:
+        OrganizationId: !GetAtt Organization.OrganizationId
+        ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
+        LambdaLayer: !Ref ADFSharedPythonLambdaLayerVersion
+        CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
+        DeploymentAccountId: !GetAtt DeploymentAccount.AccountId
+        LogLevel: !Ref LogLevel
+        GrantOrgWidePrivilegedBootstrapAccessUntil: !Ref GrantOrgWidePrivilegedBootstrapAccessUntil
+  ### Account-Bootstrapping Jump Role end
+
+  BootstrapStackWaiterLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-bootstrapping/"
+      RoleName: "adf-account-bootstrapping-bootstrap-stack-waiter"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
             Principal:
               Service:
-                - "states.amazonaws.com"
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CommonLambdaPolicy
+      Policies:
+        - PolicyName: "stack-waiter-policies"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !GetAtt CrossAccountJumpRoleArn.Value
+                Condition:
+                  StringEquals:
+                    aws:PrincipalOrgID: !GetAtt Organization.OrganizationId
 
-  LambdaPolicy:
-    Type: "AWS::IAM::ManagedPolicy"
-    Properties:
-      Description: "Policy to allow Lambda to perform actions"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Action:
-              - "sts:AssumeRole"
-              - "lambda:GetLayerVersion"
-              - "logs:CreateLogGroup"
-              - "logs:CreateLogStream"
-              - "logs:PutLogEvents"
-              - "organizations:DescribeOrganizationalUnit"
-              - "organizations:ListParents"
-              - "cloudformation:*"
-              - "iam:GetRole"
-              - "iam:PassRole"
-              - "iam:CreateRole"
-              - "iam:PutRolePolicy"
-              - "organizations:DescribeOrganization"
-              - "organizations:DescribeAccount"
-              - "ssm:*"
-              - "states:StartExecution"
-            Resource: "*"
-          - Effect: "Allow"
-            Action: "s3:ListBucket"
-            Resource: !GetAtt BootstrapTemplatesBucket.Arn
-          - Effect: "Allow"
-            Action: "s3:GetObject"
-            Resource:
-              !Sub "${BootstrapTemplatesBucket.Arn}/*"
-      Roles:
-        - !Ref LambdaRole
-
-  StackWaiterFunction:
+  BootstrapStackWaiterFunction:
     Type: "AWS::Serverless::Function"
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
       Handler: wait_until_complete.lambda_handler
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - StackWaiterFunction"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: ADF - Account Bootstrapping - Wait for Stack
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: StackWaiter
-      Role: !GetAtt LambdaRole.Arn
+      FunctionName: adf-account-bootstrapping-wait-for-bootstrap-stack
+      Role: !GetAtt BootstrapStackWaiterLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
+
+  DetermineEventLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/account-bootstrapping/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CommonLambdaPolicy
+      Policies:
+        - PolicyName: "determine-event-policies"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/config"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/cross_account_access_role"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/deployment_account_id"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/deployment_account_region"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/extensions/terraform/enabled"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/target_regions"
+              - Effect: "Allow"
+                Action:
+                  - "organizations:DescribeOrganizationalUnit"
+                  - "organizations:DescribeOrganization"
+                  - "organizations:ListParents"
+                Resource: "*"
 
   DetermineEventFunction:
     Type: "AWS::Serverless::Function"
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
       Handler: determine_event.lambda_handler
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - DetermineEvent"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: ADF - Account Bootstrapping - Determine Event Type
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          SHARED_MODULES_BUCKET: !GetAtt SharedModulesBucketName.Value
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: DetermineEventFunction
-      Role: !GetAtt LambdaRole.Arn
+      FunctionName: adf-account-bootstrapping-determine-event
+      Role: !GetAtt DetermineEventLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
-  CrossAccountExecuteFunction:
+  CrossAccountDeployBootstrapLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/account-bootstrapping/"
+      RoleName: "adf-account-bootstrapping-cross-account-deploy-bootstrap"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CommonLambdaPolicy
+      Policies:
+        - PolicyName: "cross-account-exec-policies"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !GetAtt CrossAccountJumpRoleArn.Value
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:PutParameter"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_id"
+                  - !Sub "arn:${AWS::Partition}:ssm:${DeploymentAccountMainRegion}:${AWS::AccountId}:parameter/adf/deployment_account_id"
+              - Effect: "Allow"
+                Action: "s3:ListBucket"
+                Resource: !GetAtt BootstrapTemplatesBucket.Arn
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  !Sub "${BootstrapTemplatesBucket.Arn}/*"
+
+  CrossAccountDeployBootstrapFunction:
     Type: "AWS::Serverless::Function"
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
       Handler: account_bootstrap.lambda_handler
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - CrossAccountExecuteFunction"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: >-
+        ADF - Account Bootstrapping - Cross-Account Deploy Bootstrap Stacks
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          DEPLOYMENT_ACCOUNT_BUCKET: !GetAtt SharedModulesBucketName.Value
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          SHARED_MODULES_BUCKET: !GetAtt SharedModulesBucketName.Value
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: CrossAccountExecuteFunction
-      Role: !GetAtt LambdaRole.Arn
+      FunctionName: adf-account-bootstrapping-cross-account-deploy-bootstrap
+      Role: !GetAtt CrossAccountDeployBootstrapLambdaRole.Arn
       Timeout: 900
+    Metadata:
+      BuildMethod: python3.12
 
-  RoleStackDeploymentFunction:
-    Type: "AWS::Serverless::Function"
+  MovedToRootCleanupIfRequiredLambdaRole:
+    Type: "AWS::IAM::Role"
     Properties:
-      Handler: deployment_account_config.lambda_handler
-      Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - RoleStackDeploymentFunction"
-      Environment:
-        Variables:
-          S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
-          TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
-          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
-          ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: RoleStackDeploymentFunction
-      Role: !GetAtt LambdaRole.Arn
+      Path: "/adf/account-bootstrapping/"
+      RoleName: "adf-account-bootstrapping-moved-to-root-cleanup-if-required"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CommonLambdaPolicy
+      Policies:
+        - PolicyName: "moved-to-root-policies"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/moves/to_root/action"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/cross_account_access_role"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/target_regions"
+              - Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !GetAtt CrossAccountJumpRoleArn.Value
 
-  MovedToRootActionFunction:
+  MovedToRootCleanupIfRequiredFunction:
     Type: "AWS::Serverless::Function"
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
       Handler: moved_to_root.lambda_handler
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - MovedToRootActionFunction"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: >-
+        ADF - Account Bootstrapping - Moved to Root Cleanup Bootstrap Stacks
+        if required.
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: MovedToRootActionFunction
-      Role: !GetAtt LambdaRole.Arn
+      FunctionName: adf-account-bootstrapping-moved-to-root-cleanup-if-required
+      Role: !GetAtt MovedToRootCleanupIfRequiredLambdaRole.Arn
       Timeout: 900
+    Metadata:
+      BuildMethod: python3.12
 
-  UpdateResourcePoliciesFunction:
+  UpdateDeploymentResourcePoliciesLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/account-bootstrapping/"
+      RoleName: "adf-account-bootstrapping-update-deployment-resource-policies"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CommonLambdaPolicy
+      Policies:
+        - PolicyName: "update-resource-policies"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sts:AssumeRole"
+                Resource:
+                  - !GetAtt CrossAccountJumpRoleArn.Value
+
+  UpdateDeploymentResourcePoliciesFunction:
     Type: "AWS::Serverless::Function"
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
       Handler: generic_account_config.lambda_handler
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - UpdateResourcePoliciesFunction"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: ADF - Account Bootstrapping - Configure Deployment Target
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref BootstrapTemplatesBucket
           TERMINATION_PROTECTION: false
-          MASTER_ACCOUNT_ID: !Ref AWS::AccountId
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
-      FunctionName: UpdateResourcePoliciesFunction
-      Role: !GetAtt LambdaRole.Arn
+      FunctionName: adf-account-bootstrapping-config-policies-deployment-target
+      Role: !GetAtt UpdateDeploymentResourcePoliciesLambdaRole.Arn
+    Metadata:
+      BuildMethod: python3.12
 
-  CloudWatchEventsRule:
+  AccountOUMoveEventsRule:
     Type: "AWS::Events::Rule"
     Properties:
-      Description: Triggers StateMachine on Move OU
+      Name: "adf-account-bootstrapping-account-ou-move"
+      Description: >-
+        Triggers Account Bootstrapping state machine on Account OU move
       EventPattern:
         source:
           - aws.organizations
@@ -1163,58 +1475,11 @@ Resources:
           RoleArn: !GetAtt AccountBootstrapStartExecutionRole.Arn
           Id: CreateStackLinkedAccountV1
 
-  CodeCommitRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: "adf-codecommit-role-base"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codecommit.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-
-  CodeCommitPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-organizations-codecommit-role-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - "codecommit:BatchGetRepositories"
-              - "codecommit:Get*"
-              - "codecommit:GitPull"
-              - "codecommit:List*"
-              - "codecommit:CancelUploadArchive"
-              - "codecommit:UploadArchive"
-            Resource: "*"
-      Roles:
-        - !Ref CodeCommitRole
-
-  CodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service:
-                - "codebuild.amazonaws.com"
-            Action:
-              - "sts:AssumeRole"
-      ManagedPolicyArns:
-        - !Ref "CodeBuildPolicy"
-      RoleName: "adf-codebuild-role"
-
   BootstrapCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: "/adf/bootstrap-pipeline/"
+      RoleName: adf-bootstrap-pipeline-codebuild
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1224,6 +1489,9 @@ Resources:
                 - "codebuild.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/adf-bootstrap-pipeline-build"
       ManagedPolicyArns:
         - !Ref "CodeBuildPolicy"
       Policies:
@@ -1240,10 +1508,15 @@ Resources:
   CodeBuildPolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      Description: "Policy to allow codebuild to perform actions"
+      Description: "Policy to allow CodeBuild to perform actions"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource:
+              - !GetAtt CrossAccountJumpRoleArn.Value
           - Effect: "Allow"
             Action:
               - "logs:CreateLogGroup"
@@ -1260,27 +1533,23 @@ Resources:
               - "organizations:EnablePolicyType"
               - "organizations:ListAccounts"
               - "organizations:ListAccountsForParent"
-              - "organizations:ListOrganizationalUnitsForParent"
               - "organizations:ListChildren"
+              - "organizations:ListOrganizationalUnitsForParent"
               - "organizations:ListParents"
               - "organizations:ListPolicies"
               - "organizations:ListPoliciesForTarget"
               - "organizations:ListTargetsForPolicy"
               - "organizations:ListRoots"
               - "organizations:UpdatePolicy"
-              - "organizations:CreateAccount"
-              - "organizations:MoveAccount"
-              - "organizations:DescribeCreateAccountStatus"
-              - "organizations:TagResource"
+              - "sts:GetCallerIdentity"
+            Resource: "*"
+          - Effect: Allow
+            Action:
               - "ssm:GetParameter"
               - "ssm:GetParameters"
               - "ssm:PutParameter"
-              - "states:Describe*"
-              - "states:StartExecution"
-              - "sts:GetCallerIdentity"
-              - "sts:assumeRole"
-              - "cloudformation:ValidateTemplate"
-            Resource: "*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
           - Effect: "Allow"
             Action:
               - "states:ListExecutions"
@@ -1289,60 +1558,65 @@ Resources:
               - !Ref AccountBootstrappingStateMachine
           - Effect: "Allow"
             Action:
-              - "cloudformation:CreateStack"
-              - "cloudformation:DescribeChangeSet"
-              - "cloudformation:DeleteStack"
-              - "cloudformation:UpdateStack"
-              - "cloudformation:CancelUpdateStack"
-              - "cloudformation:ContinueUpdateRollback"
-              - "cloudformation:CreateChangeSet"
-              - "cloudformation:DeleteChangeSet"
-              - "cloudformation:DescribeStacks"
-              - "cloudformation:CreateUploadBucket"
-              - "cloudformation:ExecuteChangeSet"
-              - "cloudformation:SetStackPolicy"
-              - "cloudformation:SignalResource"
-              - "cloudformation:UpdateTerminationProtection"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-global-base-*/*"
-              - !Sub "arn:${AWS::Partition}:cloudformation:*:*:stack/adf-regional-base-*/*"
-              - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
-          - Effect: "Allow"
-            Action:
               - "s3:DeleteObject"
               - "s3:GetBucketPolicy"
               - "s3:GetObject"
               - "s3:ListBucket"
               - "s3:PutObject"
-              - "s3:ListObjects"
             Resource:
+              - !GetAtt "ADFAccountBucket.Arn"
+              - !Sub "${ADFAccountBucket.Arn}/*"
               - !GetAtt "BootstrapTemplatesBucket.Arn"
               - !Sub "${BootstrapTemplatesBucket.Arn}/*"
-              - !GetAtt "BootstrapArtifactStorageBucket.Arn"
-              - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}"
               - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket.BucketName}/*"
-              - !GetAtt ADFAccountBucket.Arn
-              - !Sub "${ADFAccountBucket.Arn}/*"
           - Effect: "Allow"
             Action:
-              - "codebuild:*"
+              - "s3:GetBucketPolicy"
+              - "s3:GetObject"
+              - "s3:ListBucket"
             Resource:
-              # Hardcoded name (instead of !GetAtt CodeBuildProject.Arn) to avoid a circular
-              # dependency. Converting this to an inline policy can break the circle
-              - !Sub "arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/aws-deployment-framework-base-templates"
-          - Effect: "Allow"
+              - !GetAtt "BootstrapArtifactStorageBucket.Arn"
+              - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
+
+  OrganizationsReadonlyRole:
+    Type: AWS::IAM::Role
+    DependsOn: CleanupLegacyStacks
+    Properties:
+      Path: /adf/organizations/
+      RoleName: "adf-organizations-readonly"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:root"
+            Condition:
+              StringEquals:
+                "aws:PrincipalOrgID":
+                  - !GetAtt Organization.OrganizationId
+              ArnEquals:
+                "aws:PrincipalArn":
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:role/adf-codebuild-role"
+                  - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:role/adf/pipeline-management/adf-pipeline-management-generate-inputs"
             Action:
-              - "iam:CreatePolicy"
-              - "iam:CreateRole"
-              - "iam:DeleteRole"
-              - "iam:DeleteRolePolicy"
-              - "iam:GetRole"
-              - "iam:PutRolePolicy"
-              - "iam:UpdateAssumeRolePolicy"
-            Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "adf-organizations-readonly-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - organizations:ListAccounts
+                  - organizations:ListAccountsForParent
+                  - organizations:DescribeAccount
+                  - organizations:ListOrganizationalUnitsForParent
+                  - organizations:ListRoots
+                  - organizations:ListChildren
+                  - tag:GetResources
+                Resource: "*"
 
   CodeCommitRepository:
     Type: AWS::CodeCommit::Repository
@@ -1353,8 +1627,10 @@ Resources:
 
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
+    DependsOn:
+      - BootstrapTemplatesBucketPolicy
     Properties:
-      TimeoutInMinutes: 40
+      TimeoutInMinutes: 60
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -1372,9 +1648,9 @@ Resources:
             Value: !Ref BootstrapTemplatesBucket
           - Name: ACCOUNT_BUCKET
             Value: !Ref ADFAccountBucket
-          - Name: MASTER_ACCOUNT_ID
+          - Name: MANAGEMENT_ACCOUNT_ID
             Value: !Ref AWS::AccountId
-          - Name: DEPLOYMENT_ACCOUNT_BUCKET
+          - Name: SHARED_MODULES_BUCKET
             Value: !GetAtt SharedModulesBucketName.Value
           - Name: ORGANIZATION_ID
             Value: !GetAtt Organization.OrganizationId
@@ -1382,24 +1658,27 @@ Resources:
             Value: !Ref LogLevel
           - Name: ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN
             Value: !Ref AccountManagementStateMachine
+          - Name: MAIN_DEPLOYMENT_REGION
+            Value: !Ref DeploymentAccountMainRegion
           - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
             Value: !Ref AccountBootstrappingStateMachine
           - Name: ENABLED_V2_ORG_POLICY
             Value: !Ref EnablePolicyV2
         Type: LINUX_CONTAINER
-      Name: "aws-deployment-framework-base-templates"
-      ServiceRole: !Ref BootstrapCodeBuildRole
+      Name: "adf-bootstrap-pipeline-build"
+      ServiceRole: !GetAtt BootstrapCodeBuildRole.Arn
       Source:
         BuildSpec: |
           version: 0.2
           phases:
             install:
               runtime-versions:
-                python: 3.11
+                python: 3.12
             pre_build:
               commands:
                 - >-
                   pip install
+                  -r requirements-dev.txt
                   -r adf-build/requirements.txt
                   -r adf-build/requirements-dev.txt
                   -r adf-build/shared/requirements.txt
@@ -1407,20 +1686,42 @@ Resources:
                   -r adf-build/shared/helpers/requirements.txt
                   -r adf-build/shared/helpers/requirements-dev.txt
                   --quiet
-                - pytest -vvv
+                - tox
+                - >-
+                  docker run --privileged --rm
+                  public.ecr.aws/eks-distro-build-tooling/binfmt-misc:qemu-v7.0.0
+                  --install arm64
             build:
               commands:
-                - sam build -t adf-bootstrap/deployment/global.yml
                 - >-
-                    sam package --output-template-file adf-bootstrap/deployment/global.yml
-                    --s3-prefix adf-bootstrap/deployment --s3-bucket $DEPLOYMENT_ACCOUNT_BUCKET
+                  sam build
+                  --use-container
+                  --template adf-bootstrap/deployment/global.yml
+                - >-
+                  sam package
+                  --output-template-file adf-bootstrap/deployment/global.yml
+                  --region $MAIN_DEPLOYMENT_REGION
+                  --s3-prefix adf-bootstrap/deployment
+                  --s3-bucket $SHARED_MODULES_BUCKET
                 - python adf-build/store_config.py
                 # Shared Modules to be used with AWS CodeBuild:
-                - aws s3 sync ./adf-build/shared s3://$DEPLOYMENT_ACCOUNT_BUCKET/adf-build --quiet
+                - >-
+                  aws s3 sync
+                  ./adf-build/shared
+                  s3://$SHARED_MODULES_BUCKET/adf-build
+                  --only-show-errors
                 # Base templates:
-                - aws s3 sync . s3://$S3_BUCKET --quiet --delete
+                - >-
+                  aws s3 sync . s3://$S3_BUCKET --only-show-errors --delete
                 # Upload account files to the ACCOUNT_BUCKET
-                - python adf-build/shared/helpers/sync_to_s3.py --extension .yml --extension .yaml --metadata adf_version=${ADF_VERSION} --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID} --recursive adf-accounts s3://$ACCOUNT_BUCKET
+                - >-
+                  python adf-build/shared/helpers/sync_to_s3.py
+                  --extension .yml
+                  --extension .yaml
+                  --metadata adf_version=${ADF_VERSION}
+                  --upload-with-metadata execution_id=${CODEPIPELINE_EXECUTION_ID}
+                  --recursive adf-accounts
+                  s3://$ACCOUNT_BUCKET
                 # Sleep for 10 seconds so the state machine is able to kick start the processing
                 # of these newly uploaded files if any.
                 - sleep 10
@@ -1429,7 +1730,7 @@ Resources:
         Type: CODEPIPELINE
       Tags:
         - Key: "Name"
-          Value: "aws-deployment-framework-base-templates"
+          Value: "adf-bootstrap-pipeline-build"
 
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -1437,7 +1738,7 @@ Resources:
       ArtifactStore:
         Type: S3
         Location: !Ref BootstrapArtifactStorageBucket
-      RoleArn: !GetAtt CodePipelineRole.Arn
+      RoleArn: !GetAtt BootstrapCodePipelineRole.Arn
       Name: "aws-deployment-framework-bootstrap-pipeline"
       Stages:
         - Name: CodeCommit
@@ -1455,6 +1756,19 @@ Resources:
                 RepositoryName: !GetAtt CodeCommitRepository.Name
                 PollForSourceChanges: false
               RunOrder: 1
+        - Name: EnableBootstrappingViaJumpRole
+          Actions:
+            - Name: EnableBootstrappingViaJumpRole
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: "1"
+              RunOrder: 1
+              Configuration:
+                FunctionName: !GetAtt JumpRoleApplication.Outputs.ManagerFunctionName
+              InputArtifacts: []
+              OutputArtifacts: []
         - Name: UploadAndUpdateBaseStacks
           Actions:
             - Name: UploadAndUpdateBaseStacks
@@ -1478,11 +1792,25 @@ Resources:
                     }
                   ]
               RunOrder: 1
+        - Name: RestrictBootstrappingViaJumpRole
+          Actions:
+            - Name: RestrictBootstrappingViaJumpRole
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: "1"
+              RunOrder: 1
+              Configuration:
+                FunctionName: !GetAtt JumpRoleApplication.Outputs.ManagerFunctionName
+              InputArtifacts: []
+              OutputArtifacts: []
 
-  CodePipelineRole:
+  BootstrapCodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "adf-codepipeline-role"
+      Path: "/adf/bootstrap-pipeline/"
+      RoleName: "adf-bootstrap-codepipeline"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1492,58 +1820,51 @@ Resources:
                 - codepipeline.amazonaws.com
             Action:
               - sts:AssumeRole
-      Path: /
+            Condition:
+              StringEqualsIfExists:
+                "aws:SourceAccount": !Ref AWS::AccountId
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-bootstrap-pipeline"
+      Policies:
+        - PolicyName: bootstrap-codepipeline-policies
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "s3:PutObject"
+                Resource:
+                  - !GetAtt "BootstrapArtifactStorageBucket.Arn"
+                  - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
+              - Effect: Allow
+                Sid: "CodeBuild"
+                Action:
+                  - "codebuild:BatchGetBuilds"
+                  - "codebuild:StartBuild"
+                Resource:
+                  - !GetAtt CodeBuildProject.Arn
+              - Effect: Allow
+                Sid: "CodeCommit"
+                Action:
+                  - "codecommit:GetBranch"
+                  - "codecommit:GetCommit"
+                  - "codecommit:UploadArchive"
+                  - "codecommit:GetUploadArchiveStatus"
+                  - "codecommit:CancelUploadArchive"
+                Resource:
+                  - !GetAtt CodeCommitRepository.Arn
+              - Effect: Allow
+                Sid: "Lambda"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  - !GetAtt JumpRoleApplication.Outputs.ManagerFunctionArn
 
-  CodePipelineRolePolicy:
-    Type: "AWS::IAM::ManagedPolicy"
-    Properties:
-      Description: "Policy to allow codepipeline to perform actions"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Action:
-              - "codebuild:*"
-              - "codecommit:*"
-              - "s3:GetBucketPolicy"
-              - "s3:GetObject"
-              - "s3:ListBucket"
-              - "s3:PutObject"
-            Resource: "*"
-      Roles:
-        - !Ref CodePipelineRole
-
-  OrgEventCodePipelineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: "adf-org-event-codepipeline"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-
-  OrgEventCodePipelinePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "adf-org-event-codepipeline-policy"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - "codepipeline:StartPipelineExecution"
-            Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
-      Roles:
-        - !Ref OrgEventCodePipelineRole
-
-  StatesExecutionRole:
+  AccountBootstrapStateMachineExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-bootstrapping/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1552,7 +1873,9 @@ Resources:
               Service:
                 - states.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-bootstrapping/"
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:adf-account-bootstrapping"
       Policies:
         - PolicyName: "adf-state-machine-role-policy"
           PolicyDocument:
@@ -1563,15 +1886,16 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource:
                   - !GetAtt DetermineEventFunction.Arn
-                  - !GetAtt CrossAccountExecuteFunction.Arn
-                  - !GetAtt MovedToRootActionFunction.Arn
-                  - !GetAtt StackWaiterFunction.Arn
-                  - !GetAtt RoleStackDeploymentFunction.Arn
-                  - !GetAtt UpdateResourcePoliciesFunction.Arn
+                  - !GetAtt CrossAccountDeployBootstrapFunction.Arn
+                  - !GetAtt MovedToRootCleanupIfRequiredFunction.Arn
+                  - !GetAtt BootstrapStackWaiterFunction.Arn
+                  - !GetAtt UpdateDeploymentResourcePoliciesFunction.Arn
+                  - !GetAtt JumpRoleApplication.Outputs.ManagerFunctionArn
 
   AccountBootstrapStartExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
+      Path: "/adf/account-bootstrapping/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1580,7 +1904,9 @@ Resources:
               Service:
                 - events.amazonaws.com
             Action: "sts:AssumeRole"
-      Path: "/aws-deployment-framework/account-bootstrapping/"
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-account-bootstrapping-account-ou-move"
       Policies:
         - PolicyName: "adf-start-state-machine"
           PolicyDocument:
@@ -1595,7 +1921,8 @@ Resources:
   AccountBootstrappingStateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
-      RoleArn: !GetAtt StatesExecutionRole.Arn
+      StateMachineName: "adf-account-bootstrapping"
+      RoleArn: !GetAtt AccountBootstrapStateMachineExecutionRole.Arn
       TracingConfiguration:
         Enabled: true
       DefinitionString: !Sub |-
@@ -1606,7 +1933,7 @@ Resources:
             "DetermineEvent": {
               "Type": "Task",
               "Resource": "${DetermineEventFunction.Arn}",
-              "Next": "MovedToRootOrProtected?",
+              "Next": "EnableBootstrappingJumpRole",
               "TimeoutSeconds": 300,
               "Retry": [
                 {
@@ -1623,6 +1950,31 @@ Resources:
                 }
               ]
             },
+            "EnableBootstrappingJumpRole": {
+              "Type": "Task",
+              "Resource": "${JumpRoleApplication.Outputs.ManagerFunctionArn}",
+              "Next": "WaitForRoleUpdateToApply",
+              "TimeoutSeconds": 300,
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.Unknown",
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 6
+                }
+              ]
+            },
+            "WaitForRoleUpdateToApply": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "MovedToRootOrProtected?"
+            },
             "MovedToRootOrProtected?": {
               "Type": "Choice",
               "Choices": [
@@ -1634,14 +1986,14 @@ Resources:
                 {
                   "Variable": "$.moved_to_root",
                   "NumericEquals": 1,
-                  "Next": "MovedToRootAction"
+                  "Next": "MovedToRootCleanupIfRequired"
                 }
               ],
               "Default": "CreateOrUpdateBaseStack"
             },
             "CreateOrUpdateBaseStack": {
               "Type": "Task",
-              "Resource": "${CrossAccountExecuteFunction.Arn}",
+              "Resource": "${CrossAccountDeployBootstrapFunction.Arn}",
               "Retry": [
                 {
                   "ErrorEquals": [
@@ -1682,9 +2034,9 @@ Resources:
               "Next": "WaitUntilBootstrapComplete",
               "TimeoutSeconds": 900
             },
-            "MovedToRootAction": {
+            "MovedToRootCleanupIfRequired": {
               "Type": "Task",
-              "Resource": "${MovedToRootActionFunction.Arn}",
+              "Resource": "${MovedToRootCleanupIfRequiredFunction.Arn}",
               "Retry": [
                 {
                   "ErrorEquals": [
@@ -1718,7 +2070,7 @@ Resources:
             },
             "WaitUntilBootstrapComplete": {
               "Type": "Task",
-              "Resource": "${StackWaiterFunction.Arn}",
+              "Resource": "${BootstrapStackWaiterFunction.Arn}",
               "Retry": [
                 {
                   "ErrorEquals": ["RetryError"],
@@ -1754,34 +2106,14 @@ Resources:
                 {
                   "Variable": "$.is_deployment_account",
                   "NumericEquals": 1,
-                  "Next": "DeploymentAccountConfig"
+                  "Next": "Success"
                 }
               ],
               "Default": "ExecuteDeploymentAccountStateMachine"
             },
-            "DeploymentAccountConfig": {
-              "Type": "Task",
-              "Resource": "${RoleStackDeploymentFunction.Arn}",
-              "Retry": [
-                {
-                  "ErrorEquals": [
-                    "Lambda.Unknown",
-                    "Lambda.ServiceException",
-                    "Lambda.AWSLambdaException",
-                    "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
-                  ],
-                  "IntervalSeconds": 2,
-                  "BackoffRate": 2,
-                  "MaxAttempts": 6
-                }
-              ],
-              "End": true,
-              "TimeoutSeconds": 900
-            },
             "ExecuteDeploymentAccountStateMachine": {
               "Type": "Task",
-              "Resource": "${UpdateResourcePoliciesFunction.Arn}",
+              "Resource": "${UpdateDeploymentResourcePoliciesFunction.Arn}",
               "Retry": [
                 {
                   "ErrorEquals": [
@@ -1796,8 +2128,11 @@ Resources:
                   "MaxAttempts": 6
                 }
               ],
-              "End": true,
+              "Next": "Success",
               "TimeoutSeconds": 900
+            },
+            "Success": {
+              "Type": "Succeed"
             }
           }
         }
@@ -1814,7 +2149,9 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase/determine_default_branch
-      Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
+      Description: !Sub >-
+        ADF - Installer - Determine the default branch of the
+        ${CodeCommitRepository.Name} repository.
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -1823,6 +2160,8 @@ Resources:
                 - codecommit:GetRepository
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: ADFBootstrapDetermineDefaultBranchName
+    Metadata:
+      BuildMethod: python3.12
 
   InitialCommit:
     Type: Custom::InitialCommit
@@ -1831,7 +2170,7 @@ Resources:
       Version: !FindInMap ["Metadata", "ADF", "Version"]
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
       DirectoryName: bootstrap_repository
-      ExistingAccountId: !Ref DeploymentAccountId
+      ExistingAccountId: !GetAtt DeploymentAccount.AccountId
       DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
       DeploymentAccountFullName: !Ref DeploymentAccountName
       DeploymentAccountEmailAddress: !Ref DeploymentAccountEmailAddress
@@ -1847,7 +2186,12 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/initial_commit
-      Description: "ADF Lambda Function - BootstrapCreateInitialCommitFunction"
+      Description: !Sub >-
+        ADF - Installer - Initial Commit Bootstrap.
+
+        Creates the initial commit or update PR on the default branch of the
+        ${CodeCommitRepository.Name} repository. As required to install/update
+        ADF.
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -1861,9 +2205,13 @@ Resources:
                 - codecommit:GetDifferences
               Resource: !GetAtt CodeCommitRepository.Arn
       FunctionName: BootstrapCreateInitialCommitFunction
+    Metadata:
+      BuildMethod: python3.12
 
   SharedModulesBucket:
     Type: Custom::CrossRegionBucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt CrossRegionBucketHandler.Arn
       Region: !Ref DeploymentAccountMainRegion
@@ -1872,22 +2220,233 @@ Resources:
       PolicyDocument:
         Statement:
           - Action:
-              - s3:Get*
-              - s3:List*
-              - s3:PutObject
+              - s3:GetObject
             Effect: Allow
+            Resource:
+              - "{bucket_arn}/adf-bootstrap/*"
+              - "{bucket_arn}/adf-build/*"
             Principal:
-              AWS: !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:root"
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:root"
+          - Action:
+              - s3:ListBucket
+            Effect: Allow
+            Resource:
+              - "{bucket_arn}"
+            Principal:
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${DeploymentAccount.AccountId}:root"
+            Condition:
+              StringLike:
+                "s3:prefix":
+                  - "adf-bootstrap/*"
+                  - "adf-build/*"
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource:
+              - "{bucket_arn}/adf-bootstrap/*"
+            Principal:
               Service:
-                - codebuild.amazonaws.com
-                - lambda.amazonaws.com
                 - cloudformation.amazonaws.com
+            Condition:
+              StringEquals:
+                "aws:SourceOrgID":
+                  - !GetAtt Organization.OrganizationId
+          - Sid: "DenyInsecureConnections"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Principal:
+              AWS: "*"
+          - Sid: "DenyInsecureTLS"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              NumericLessThan:
+                "s3:TlsVersion": "1.2"
+            Principal:
+              AWS: "*"
+
+  CleanupLegacyStacks:
+    Type: Custom::CleanupLegacyStacks
+    Properties:
+      ServiceToken: !GetAtt CleanupLegacyStacksHandler.Arn
+      Version: !FindInMap ["Metadata", "ADF", "Version"]
+      DeploymentAccountRegion: !Ref DeploymentAccountMainRegion
+
+  CleanupLegacyStacksHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: lambda_codebase/cleanup_legacy_stacks
+      Description: >-
+        ADF - Installer - Cleanup Legacy Stacks.
+
+        Checks if legacy specific legacy bootstrap stacks exists.
+        If they do, they are cleaned up automatically.
+      Layers:
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Environment:
+        Variables:
+          MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
+          DEPLOYMENT_REGION: !Ref DeploymentAccountMainRegion
+          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_LOG_LEVEL: !Ref LogLevel
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - cloudformation:DescribeStacks
+                - cloudformation:DeleteStack
+              Resource:
+                - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:${AWS::AccountId}:stack/adf-global-base-adf-build"
+                - !Sub "arn:${AWS::Partition}:cloudformation:${DeploymentAccountMainRegion}:${AWS::AccountId}:stack/adf-global-base-adf-build/*"
+            - Effect: Allow
+              Action:
+                - iam:DeleteRole
+                - iam:DeleteRolePolicy
+                - iam:UntagRole
+              Resource:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}"
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CrossAccountAccessRoleName}-readonly"
+            - Effect: "Allow"
+              Action: "lambda:GetLayerVersion"
+              Resource: !Ref ADFSharedPythonLambdaLayerVersion
+      FunctionName: CleanupLegacyStacksFunction
+    Metadata:
+      BuildMethod: python3.12
+
+  OrganizationsRole:
+    # Only required if you intend to bootstrap the management account.
+    Type: AWS::IAM::Role
+    Condition: CreateCrossAccountAccessRole
+    DependsOn:
+      - CleanupLegacyStacks
+      - JumpRoleApplication
+    Properties:
+      Path: /
+      RoleName: !Ref CrossAccountAccessRoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt CrossAccountJumpRoleArn.Value
+            Action:
+              - "sts:AssumeRole"
+
+  OrganizationsPolicy:
+    # Only required if you intend to bootstrap the management account.
+    Type: AWS::IAM::Policy
+    Condition: CreateCrossAccountAccessRole
+    Properties:
+      PolicyName: "adf-management-account-bootstrap-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudformation:CancelUpdateStack
+              - cloudformation:ContinueUpdateRollback
+              - cloudformation:CreateChangeSet
+              - cloudformation:CreateStack
+              - cloudformation:CreateUploadBucket
+              - cloudformation:DeleteChangeSet
+              - cloudformation:DeleteStack
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DescribeStacks
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:ListStacks
+              - cloudformation:SetStackPolicy
+              - cloudformation:SignalResource
+              - cloudformation:UpdateStack
+              - cloudformation:UpdateTerminationProtection
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*"
+          - Effect: Allow
+            Action:
+              - cloudformation:ValidateTemplate
+              - ec2:DeleteInternetGateway
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteRouteTable
+              - ec2:DeleteSubnet
+              - ec2:DeleteVpc
+              - ec2:DescribeInternetGateways
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeRegions
+              - ec2:DescribeRouteTables
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - iam:CreateAccountAlias
+              - iam:DeleteAccountAlias
+              - iam:ListAccountAliases
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - ssm:PutParameter
+              - ssm:GetParameters
+              - ssm:GetParameter
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:TagRole
+              - iam:UntagRole
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-bootstrap-test-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-update-cross-account-access"
+          - Effect: Allow
+            Action:
+              - iam:DeleteRolePolicy
+              - iam:GetRole
+              - iam:GetRolePolicy
+              - iam:PutRolePolicy
+              - iam:UpdateAssumeRolePolicy
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-bootstrap-test-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-bootstrap-update-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-bootstrap-test-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-update-cross-account-access"
+          - Effect: "Allow"
+            Action:
+              - iam:DeleteRole
+              - iam:DeleteRolePolicy
+              - iam:UntagRole
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access-role"
+      Roles:
+        - !Ref OrganizationsRole
 
   SharedModulesBucketName:
     Type: AWS::SSM::Parameter
     Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
-      Name: shared_modules_bucket
+      Name: /adf/shared_modules_bucket
       Type: String
       Value: !GetAtt SharedModulesBucket.BucketName
 
@@ -1895,9 +2454,17 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: DO NOT EDIT - Used by The AWS Deployment Framework
-      Name: adf_log_level
+      Name: /adf/adf_log_level
       Type: String
       Value: !Ref LogLevel
+
+  CrossAccountJumpRoleArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: DO NOT EDIT - Used by The AWS Deployment Framework
+      Name: /adf/cross_account_jump_role
+      Type: String
+      Value: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/account-bootstrapping/jump/adf-bootstrapping-cross-account-jump-role"
 
   CrossRegionBucketHandler:
     Type: AWS::Serverless::Function
@@ -1905,20 +2472,27 @@ Resources:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/cross_region_bucket
       Layers:
-        - !Ref LambdaLayerVersion
-      Description: "ADF Lambda Function - Create Deployment Bucket in Main Deployment Region"
+        - !Ref ADFSharedPythonLambdaLayerVersion
+      Description: !Sub >-
+        ADF - Installer - Create Shared Modules Bucket in
+        ${DeploymentAccountMainRegion}.
       Policies:
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action: s3:CreateBucket
-              Resource: "*"
+              Resource: !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*"
+              Condition:
+                StringLike:
+                  "s3:LocationConstraint": !Ref DeploymentAccountMainRegion
             - Effect: Allow
               Action:
                 - s3:DeleteBucket
-                - s3:PutEncryptionConfiguration
+                - s3:PutBucketEncryption
+                - s3:PutBucketOwnershipControls
                 - s3:PutBucketPolicy
                 - s3:PutBucketPublicAccessBlock
+                - s3:PutEncryptionConfiguration
               # This must match BucketNamePrefix of the SharedModulesBucket resource
               Resource: !Sub "arn:${AWS::Partition}:s3:::adf-shared-modules-*"
             - Effect: Allow
@@ -1926,9 +2500,14 @@ Resources:
               Resource:
                 # Hardcoded name (instead of ${SharedModulesBucketName}) to avoid a circular
                 # dependency. Converting this to an inline policy can break the circle
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket"
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/shared_modules_bucket"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_region"
+            - Effect: "Allow"
+              Action: "lambda:GetLayerVersion"
+              Resource: !Ref ADFSharedPythonLambdaLayerVersion
       FunctionName: CrossRegionBucketHandler
+    Metadata:
+      BuildMethod: python3.12
 
   Organization:
     Type: Custom::Organization
@@ -1940,7 +2519,7 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization
-      Description: "ADF Lambda Function - Enable AWS Organizations"
+      Description: ADF - Installer - Enable AWS Organizations
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -1955,6 +2534,8 @@ Resources:
               Action: "iam:CreateServiceLinkedRole"
               Resource: !Sub "arn:${AWS::Partition}:iam::*:role/aws-service-role/*"
       FunctionName: AwsOrganizationsHandler
+    Metadata:
+      BuildMethod: python3.12
 
   DeploymentOrganizationUnit:
     Type: Custom::OrganizationUnit
@@ -1968,7 +2549,7 @@ Resources:
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/organization_unit
-      Description: "ADF Lambda Function - Create Organization Unit"
+      Description: ADF - Installer - Manage Deployment Organization Unit
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -1979,6 +2560,8 @@ Resources:
                 - "organizations:ListOrganizationalUnitsForParent"
               Resource: "*"
       FunctionName: OrganizationUnitHandler
+    Metadata:
+      BuildMethod: python3.12
 
   DeploymentAccount:
     Type: Custom::Account
@@ -1989,29 +2572,64 @@ Resources:
       AccountEmailAddress: !Ref DeploymentAccountEmailAddress
       CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
       ExistingAccountId: !Ref DeploymentAccountId
+      TriggerOnUpdateOfADF: !FindInMap ["Metadata", "ADF", "Version"]
+
+  AccountHandlerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/adf/installer/deployment-account-management/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref LambdaLayerPolicy
+      Policies:
+        - PolicyName: "adf-account-management-access"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "organizations:CreateAccount"
+                  - "organizations:DescribeCreateAccountStatus"
+                  - "organizations:ListAccountsForParent"
+                  - "organizations:ListOrganizationalUnitsForParent"
+                  - "organizations:ListRoots"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:PutParameter"
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/deployment_account_id"
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
 
   AccountHandler:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/account
-      Description: "ADF Lambda Function - Create Account"
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - "organizations:CreateAccount"
-                - "organizations:DescribeCreateAccountStatus"
-              Resource: "*"
-            - Effect: Allow
-              Action: ssm:GetParameter
-              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id"
+      Description: ADF - Installer - Deployment Account Management
+      Role: !GetAtt AccountHandlerFunctionRole.Arn
       FunctionName: AccountHandler
+      Layers:
+        - !Ref ADFSharedPythonLambdaLayerVersion
+    Metadata:
+      BuildMethod: python3.12
 
   PipelineCloudWatchEventRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: "/adf/bootstrap-pipeline/"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -2020,7 +2638,9 @@ Resources:
               Service:
                 - events.amazonaws.com
             Action: sts:AssumeRole
-      Path: /
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-bootstrap-pipeline-watch-repo"
       Policies:
         - PolicyName: adf-bootstrap-execute-cwe
           PolicyDocument:
@@ -2031,8 +2651,9 @@ Resources:
                 Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
 
   PipelineCloudWatchEventRule:
-    Type: AWS::Events::Rule
+    Type: "AWS::Events::Rule"
     Properties:
+      Name: "adf-bootstrap-pipeline-watch-repo"
       EventPattern:
         source:
           - aws.codecommit
@@ -2058,12 +2679,6 @@ Outputs:
     Value: !FindInMap ["Metadata", "ADF", "Version"]
     Export:
       Name: "ADFVersionNumber"
-
-  LayerArn:
-    Description: "The Shared modules Lambda Layer Arn"
-    Value: !Ref LambdaLayerVersion
-    Export:
-      Name: "SharedLayerArn"
 
   CodeCommitHttpURL:
     Description: "The CodeCommit HTTP Url"

@@ -1,5 +1,5 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Service Catalog Product
@@ -9,8 +9,9 @@ Metadata:
 Parameters:
   Environment:
     Type: String
-    Default: testing
+    Default: development
     AllowedValues:
+      - development
       - testing
     Description: The environment to use, IDE are only supported in testing
 
@@ -50,6 +51,7 @@ Resources:
       AutomaticStopTimeMinutes: !Ref AutomaticStopTimeInMinutes
       Description: !Ref InstanceDescription
       InstanceType: !Ref InstanceType
+      ImageId: 'amazonlinux-2023-x86_64'
       Name: !Ref InstanceName
       OwnerArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UserName}"  # In this sample case 'sample-developer' from the IAM stack can be used here
       SubnetId:

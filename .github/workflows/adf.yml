@@ -2,27 +2,36 @@ name: ADF CI
 
 on: [push, pull_request]
 
+env:
+  CI_BUILD: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.12"]
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 150
+          fetch-tags: true
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Set the correct Node version using nvm
         shell: bash -l {0}
         run: nvm install
-      - name: Install dependencies
-        run: make init
-      - name: Run tox
-        # Run tox using the version of Python in `PATH`
+      - name: Test compatibility of source dependencies
         run: |
-          tox --version
-          tox
+          make clean src_deps
+          echo "Source dependencies are compatible!"
+      - name: Run tox
+        run: |
+          make clean tox
+      - name: Build fully
+        run: |
+          make clean build

@@ -1,4 +1,4 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -10,7 +10,7 @@ def _flatten_list(input_list):
     result = []
     for item in input_list:
         if isinstance(item, list):
-            if len(item) > 0:
+            if item:
                 result.extend(
                     _flatten_list(item),
                 )

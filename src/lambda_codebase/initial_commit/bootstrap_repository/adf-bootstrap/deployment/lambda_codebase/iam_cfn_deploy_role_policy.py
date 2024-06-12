@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -47,7 +47,7 @@ class IAMCfnDeployRolePolicy:
 
     def _get_statement(self, statement_id):
         s3_statements = list(filter(
-            lambda stmt: stmt['Sid'] == statement_id,
+            lambda stmt: stmt.get('Sid') == statement_id,
             self.policy_document.get('Statement', {})
         ))
         if len(s3_statements) == 1:
@@ -72,7 +72,7 @@ class IAMCfnDeployRolePolicy:
             'calling grant_s3_buckets_access for bucket_names %s',
             bucket_names,
         )
-        if len(bucket_names) == 0:
+        if not bucket_names:
             return
 
         statement = self._get_statement('S3')
@@ -112,7 +112,7 @@ class IAMCfnDeployRolePolicy:
             'calling grant_usage_on_kms_keys for key arns %s',
             kms_key_arns,
         )
-        if len(kms_key_arns) == 0:
+        if not kms_key_arns:
             return
 
         statement = self._get_statement('KMS')

@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -8,6 +8,8 @@ properties associated with a pipeline.
 
 import os
 from copy import deepcopy
+
+# ADF imports
 from list_utils import flatten_to_unique_sorted
 
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]

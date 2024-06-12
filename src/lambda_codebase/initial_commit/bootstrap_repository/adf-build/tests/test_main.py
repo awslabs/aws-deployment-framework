@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
@@ -45,6 +45,7 @@ def sts():
         'Arn': 'string'
     }
     sts.assume_cross_account_role.return_value = role_mock
+    sts.assume_bootstrap_deployment_role.return_value = role_mock
     return sts
 
 
@@ -65,11 +66,11 @@ def test_update_deployment_account_output_parameters(cls, sts):
     with patch.object(ParameterStore, 'put_parameter') as mock:
         expected_calls = [
             call(
-                '/cross_region/kms_arn/eu-central-1',
+                'cross_region/kms_arn/eu-central-1',
                 'some_kms_arn',
             ),
             call(
-                '/cross_region/s3_regional_bucket/eu-central-1',
+                'cross_region/s3_regional_bucket/eu-central-1',
                 'some_s3_bucket',
             ),
         ]
@@ -133,27 +134,39 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            11 if param_store == deploy_param_store else 2
+            15 if param_store == deploy_param_store else 9
         )
         param_store.put_parameter.assert_has_calls(
             [
+                call('adf_version', '1.0.0'),
+                call('adf_log_level', 'CRITICAL'),
+                call('cross_account_access_role', 'some_role'),
+                call(
+                    'shared_modules_bucket',
+                    'some_shared_modules_bucket',
+                ),
+                call('bootstrap_templates_bucket', 'some_bucket'),
+                call('deployment_account_id', deployment_account_id),
+                call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),
-                call('/adf/extensions/terraform/enabled', 'False'),
+                call('extensions/terraform/enabled', 'False'),
             ],
             any_order=False,
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
-            call('adf_version', '1.0.0'),
-            call('adf_log_level', 'INFO'),
-            call('deployment_account_bucket', 'some_deployment_account_bucket'),
-            call('default_scm_branch', 'master'),
-            call('/adf/org/stage', 'none'),
-            call('cross_account_access_role', 'some_role'),
+            call('scm/default_scm_branch', 'main'),
+            call(
+                'scm/default_scm_codecommit_account_id',
+                deployment_account_id,
+            ),
+            call('deployment_maps/allow_empty_target', 'disabled'),
+            call('org/stage', 'none'),
             call('notification_type', 'email'),
             call('notification_endpoint', 'john@example.com'),
-            call('/adf/extensions/terraform/enabled', 'False'),
+            call('extensions/terraform/enabled', 'False'),
         ],
+        any_order=True,
     )
 
 
@@ -185,13 +198,14 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         'auto-create-repositories': 'disabled',
         'default-scm-branch': 'main',
     }
-    cls.config['extensions'] = {
-        'terraform': {
-            'enabled': 'True',
-        },
+    cls.extensions['terraform'] = {
+        'enabled': 'True',
     }
     cls.config['org'] = {
         'stage': 'test-stage',
+    }
+    cls.config['deployment-maps'] = {
+        'allow-empty-target': 'disabled',
     }
     prepare_deployment_account(
         sts=sts,
@@ -222,31 +236,42 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            13 if param_store == deploy_param_store else 2
+            17 if param_store == deploy_param_store else 9
         )
         param_store.put_parameter.assert_has_calls(
             [
+                call('adf_version', '1.0.0'),
+                call('adf_log_level', 'CRITICAL'),
+                call('cross_account_access_role', 'some_role'),
+                call(
+                    'shared_modules_bucket',
+                    'some_shared_modules_bucket',
+                ),
+                call('bootstrap_templates_bucket', 'some_bucket'),
+                call('deployment_account_id', deployment_account_id),
+                call('management_account_id', '123'),
                 call('organization_id', 'o-123456789'),
-                call('/adf/extensions/terraform/enabled', 'False'),
+                call('extensions/terraform/enabled', 'True'),
             ],
             any_order=False,
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
-            call('adf_version', '1.0.0'),
-            call('adf_log_level', 'INFO'),
-            call('deployment_account_bucket', 'some_deployment_account_bucket'),
-            call('default_scm_branch', 'main'),
-            call('/adf/org/stage', 'test-stage'),
-            call('auto_create_repositories', 'disabled'),
-            call('cross_account_access_role', 'some_role'),
+            call('scm/auto_create_repositories', 'disabled'),
+            call('scm/default_scm_branch', 'main'),
+            call(
+                'scm/default_scm_codecommit_account_id',
+                deployment_account_id,
+            ),
+            call('deployment_maps/allow_empty_target', 'disabled'),
+            call('org/stage', 'test-stage'),
             call('notification_type', 'slack'),
             call(
                 'notification_endpoint',
                 "arn:aws:lambda:eu-central-1:"
                 f"{deployment_account_id}:function:SendSlackNotification",
             ),
-            call('/notification_endpoint/main', 'slack-channel'),
-            call('/adf/extensions/terraform/enabled', 'False'),
+            call('notification_endpoint/main', 'slack-channel'),
         ],
+        any_order=False,
     )

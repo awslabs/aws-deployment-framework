@@ -1,4 +1,4 @@
-# Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -58,7 +58,7 @@ class ResolverUpload(BaseResolver):
             for item in S3.supported_path_styles()
         ):
             raise ValueError(
-                'When uploading to S3 you need to specify a path style'
+                'When uploading to S3 you need to specify a path style '
                 'to use for the returned value to be used. '
                 f'Supported path styles include: {S3.supported_path_styles()}'
             ) from None
@@ -68,14 +68,17 @@ class ResolverUpload(BaseResolver):
             lookup_str,
         )
         bucket_name = self.parameter_store.fetch_parameter(
-            f'/cross_region/s3_regional_bucket/{region}'
+            f'cross_region/s3_regional_bucket/{region}'
         )
-        s3_client = S3(region, bucket_name)
+        kms_key_arn = self.parameter_store.fetch_parameter(
+            f'cross_region/kms_arn/{region}'
+        )
+        s3_client = S3(region, bucket_name, kms_key_arn=kms_key_arn)
         resolved_location = s3_client.put_object(
-            f"adf-upload/{object_key}/{random_filename}",
-            str(object_key),
-            style,
-            True  # pre-check
+            key=f"adf-upload/{object_key}/{random_filename}",
+            file_path=str(object_key),
+            style=style,
+            pre_check=True,
         )
         self.cache.add(lookup_str, resolved_location)
         return resolved_location

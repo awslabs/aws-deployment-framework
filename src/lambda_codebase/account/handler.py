@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -28,6 +28,8 @@ except Exception as err:  # pylint: disable=broad-except
             "StackId": event["StackId"],
             "Reason": str(prior_error),
         }
+        if not event["ResponseURL"].lower().startswith('http'):
+            raise ValueError('ResponseURL is forbidden') from None
         with urlopen(
             Request(
                 event["ResponseURL"],

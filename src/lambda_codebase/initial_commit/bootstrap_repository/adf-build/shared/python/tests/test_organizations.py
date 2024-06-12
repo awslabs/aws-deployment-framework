@@ -1,9 +1,9 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
 
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import boto3
 
@@ -118,7 +118,8 @@ def test_get_accounts_with_suspended(paginator_mock, cls):
                 {
                     "Id": account_id,
                     "Status": (
-                        "SUSPENDED" if account_id in suspended_account_ids else "ACTIVE"
+                        "SUSPENDED" if account_id in suspended_account_ids
+                        else "ACTIVE"
                     ),
                 }
             ),
@@ -326,7 +327,7 @@ def test_get_organization_info(cls):
     )
     assert cls.get_organization_info() == {
         "organization_id": "some_org_id",
-        "organization_master_account_id": "some_master_account_id",
+        "organization_management_account_id": "some_management_account_id",
         "feature_set": "ALL",
     }
 
@@ -341,16 +342,21 @@ def test_describe_ou_name(cls):
 
 def test_describe_account_name(cls):
     cls.client = Mock()
-    cls.client.describe_account.return_value = stub_organizations.describe_account
+    cls.client.describe_account.return_value = (
+        stub_organizations.describe_account
+    )
     assert cls.describe_account_name("some_account_id") == "some_account_name"
 
 
 def test_determine_ou_path(cls):
-    assert (
-        cls.determine_ou_path("some_path", "some_ou_name") == "some_path/some_ou_name"
+    assert cls.determine_ou_path("some_path", "some_ou_name") == (
+        "some_path/some_ou_name"
     )
     assert (
-        cls.determine_ou_path("some_path/longer_path/plus_more", "some_ou_name")
+        cls.determine_ou_path(
+            "some_path/longer_path/plus_more",
+            "some_ou_name",
+        )
         == "some_path/longer_path/plus_more/some_ou_name"
     )
 
@@ -401,16 +407,20 @@ class OUPathsHappyTestCases(unittest.TestCase):
         }
 
         list_organizational_units_for_production_response = {
-            "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
+            "OrganizationalUnits": [
+                {"Id": "ou-080922", "Arn": "", "Name": "banking"},
+            ],
         }
 
         list_organizational_units_for_banking_response = {
             "OrganizationalUnits": [
                 {"Id": "ou-09092022", "Arn": "", "Name": "investment"}
-            ]
+            ],
         }
 
-        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {
+            "OrganizationalUnits": [],
+        }
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -420,7 +430,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+1@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ],
             "NextToken": "PAGE1",
@@ -433,7 +445,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+2@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -446,7 +460,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+3@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -458,7 +474,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+1@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
             {
                 "Id": "22222222222",
@@ -466,7 +484,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+2@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
         ]
 
@@ -540,21 +560,25 @@ class OUPathsHappyTestCases(unittest.TestCase):
 
         list_organizational_units_for_root_response = {
             "OrganizationalUnits": [
-                {"Id": "ou-123456", "Arn": "", "Name": "production"}
-            ]
+                {"Id": "ou-123456", "Arn": "", "Name": "production"},
+            ],
         }
 
         list_organizational_units_for_production_response = {
-            "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
+            "OrganizationalUnits": [
+                {"Id": "ou-080922", "Arn": "", "Name": "banking"},
+            ],
         }
 
         list_organizational_units_for_banking_response = {
             "OrganizationalUnits": [
-                {"Id": "ou-09092022", "Arn": "", "Name": "investment"}
-            ]
+                {"Id": "ou-09092022", "Arn": "", "Name": "investment"},
+            ],
         }
 
-        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {
+            "OrganizationalUnits": [],
+        }
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -564,7 +588,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+1@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ],
             "NextToken": "PAGE1",
@@ -577,7 +603,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+2@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -590,7 +618,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+3@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -602,7 +632,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+1@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
             {
                 "Id": "22222222222",
@@ -610,7 +642,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+2@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
             {
                 "Id": "3333333333",
@@ -618,7 +652,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+3@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
         ]
 
@@ -699,7 +735,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
         }
 
         list_organizational_units_for_production_response = {
-            "OrganizationalUnits": [{"Id": "ou-080922", "Arn": "", "Name": "banking"}]
+            "OrganizationalUnits": [
+                {"Id": "ou-080922", "Arn": "", "Name": "banking"},
+            ],
         }
 
         list_organizational_units_for_banking_response = {
@@ -709,9 +747,13 @@ class OUPathsHappyTestCases(unittest.TestCase):
             ]
         }
 
-        list_organizational_units_for_investment_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_investment_response = {
+            "OrganizationalUnits": [],
+        }
 
-        list_organizational_units_for_commercial_response = {"OrganizationalUnits": []}
+        list_organizational_units_for_commercial_response = {
+            "OrganizationalUnits": [],
+        }
 
         list_accounts_for_banking_response_page_0 = {
             "Accounts": [
@@ -721,7 +763,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+1@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ],
             "NextToken": "PAGE1",
@@ -734,7 +778,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+2@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -747,7 +793,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+3@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 8, 9),
+                    "JoinedTimestamp": (
+                        datetime(2022, 8, 9, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -760,7 +808,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Email": "account+4@example.com",
                     "Status": "ACTIVE",
                     "JoinedMethod": "Invited",
-                    "JoinedTimestamp": datetime(2022, 9, 26),
+                    "JoinedTimestamp": (
+                        datetime(2022, 9, 26, tzinfo=timezone.utc)
+                    ),
                 }
             ]
         }
@@ -772,7 +822,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+1@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
             {
                 "Id": "22222222222",
@@ -780,7 +832,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+2@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 8, 9),
+                "JoinedTimestamp": (
+                    datetime(2022, 8, 9, tzinfo=timezone.utc)
+                ),
             },
             {
                 "Id": "444444444",
@@ -788,7 +842,9 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Email": "account+4@example.com",
                 "Status": "ACTIVE",
                 "JoinedMethod": "Invited",
-                "JoinedTimestamp": datetime(2022, 9, 26),
+                "JoinedTimestamp": (
+                    datetime(2022, 9, 26, tzinfo=timezone.utc)
+                ),
             },
         ]
 

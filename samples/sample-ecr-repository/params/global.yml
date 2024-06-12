@@ -1,6 +1,10 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 Parameters:
-  TestingAccountId: '11111111111'
-  ProductionAccountId: '999999999999'
+  TestingAccountId: "11111111111"
+  ProductionAccountId: "999999999999"
+
 Tags:
-  TagKey: TagValue
-  MyKey: MyValue
+  TagKey: "TagValue"
+  MyKey: "MyValue"

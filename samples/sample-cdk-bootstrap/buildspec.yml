@@ -1,0 +1,22 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 20
+    commands:
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet
+      - pip install -r adf-build/requirements.txt -q
+      - python adf-build/generate_params.py
+
+  build:
+    commands:
+      - npm install aws-cdk -g
+      - cdk bootstrap --show-template > template.yml
+
+artifacts:
+  files: '**/*'

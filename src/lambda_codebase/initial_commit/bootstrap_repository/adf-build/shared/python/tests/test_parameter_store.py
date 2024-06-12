@@ -1,11 +1,11 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
 
 import os
 import boto3
-from pytest import fixture
+from pytest import fixture, mark
 from stubs import stub_parameter_store
 from mock import Mock
 
@@ -19,6 +19,41 @@ def cls():
         boto3
     )
     return cls
+
+
+@mark.parametrize(
+    "input_name, output_path",
+    [
+        ('/adf/test', '/adf/test'),
+        ('adf/test', '/adf/test'),
+        ('/adf_version', '/adf_version'),
+        ('/test', '/test'),
+        ('test', '/test'),
+        ('/other/test', '/other/test'),
+        ('other/test', '/other/test'),
+    ],
+)
+def test_build_param_name_not_adf_only(input_name, output_path):
+    assert ParameterStore._build_param_name(
+        input_name,
+        adf_only=False,
+    ) == output_path
+
+
+@mark.parametrize(
+    "input_name, output_path",
+    [
+        ('/adf/test', '/adf/test'),
+        ('adf/test', '/adf/test'),
+        ('/adf_version', '/adf/adf_version'),
+        ('/test', '/adf/test'),
+        ('test', '/adf/test'),
+        ('/other/test', '/adf/other/test'),
+        ('other/test', '/adf/other/test'),
+    ],
+)
+def test_build_param_name_adf_only(input_name, output_path):
+    assert ParameterStore._build_param_name(input_name) == output_path
 
 
 def test_fetch_parameter(cls):

@@ -1,13 +1,15 @@
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
 Moves an account to the specified OU.
 """
-from organizations import Organizations
 import boto3
 from aws_xray_sdk.core import patch_all
+
+# ADF imports
 from logger import configure_logger
+from organizations import Organizations
 
 
 patch_all()

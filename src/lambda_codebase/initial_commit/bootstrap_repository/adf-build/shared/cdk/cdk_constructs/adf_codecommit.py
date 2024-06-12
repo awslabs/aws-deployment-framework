@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to CodeCommit Input
@@ -23,6 +23,7 @@ class CodeCommit(Construct):
         default_providers = map_params.get("default_providers", {})
         source_props = default_providers.get("source", {}).get("properties", {})
         account_id = source_props.get("account_id", ADF_DEPLOYMENT_ACCOUNT_ID)
+
         self.source = _codepipeline.CfnPipeline.StageDeclarationProperty(
             name=f"Source-{account_id}",
             actions=[

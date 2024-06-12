@@ -10,6 +10,7 @@ APPLY_FIXES: none
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by default
 ENABLE_LINTERS:
   - BASH_EXEC
+  - BASH_SHFMT
   - CLOUDFORMATION_CFN_LINT
   - DOCKERFILE_HADOLINT
   - EDITORCONFIG_EDITORCONFIG_CHECKER
@@ -30,18 +31,20 @@ FILEIO_REPORTER: false
 
 # Install plugin for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
-  - command: |
-      npm install -g prettier-plugin-multiline-arrays@1.1.4
-      npm install --prefix /node-deps/ prettier-plugin-multiline-arrays@1.1.4
+  - command: "npm install prettier-plugin-multiline-arrays@3.0.4"
     cwd: "workspace"
 
 CLOUDFORMATION_CFN_LINT_CONFIG_FILE: '.cfnlintrc'
 CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
+
 EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: '.ecrc.json'
+
 MARKDOWN_MARKDOWN_LINK_CHECK_ARGUMENTS: '-q'
 MARKDOWN_MARKDOWNLINT_DISABLE_ERRORS: false
+
 SPELL_CSPELL_ARGUMENTS: '--gitignore --no-progress --show-suggestions'
 SPELL_CSPELL_FILE_EXTENSIONS: ["*"]
+
 TERRAFORM_TFLINT_UNSECURED_ENV_VARIABLES:
   - GITHUB_TOKEN
 

@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 roles:
   cross-account-access: OrganizationAccountAccessRole
   # ^ The role by ADF to assume cross account access
@@ -25,9 +28,16 @@ config:
   scm:  # Source control management
     auto-create-repositories: enabled
     # ^ If true and using CodeCommit as source, the repository will be automatically created
-    default-scm-branch: master
+    default-scm-branch: main
     # ^ The default branch is used when the pipeline does not specify a specific branch.
-    # If this parameter is not specified, it defaults to the "master" branch.
+    # If this parameter is not specified, it defaults to the "main" branch.
+  org:
+    stage: prod
+    # ^ This value will be set as an SSM Parameter named /adf/org/stage
+    # in both the deployment account and and all
+    # Target member accounts as part of the Bootstrap Statemachine.
+    # It is useful as a flag to drive Organization specific logic within
+    # IAM Role definitions/conditions as well as Build spec behavior.
 
 extensions:
   terraform:

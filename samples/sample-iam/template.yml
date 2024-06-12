@@ -1,10 +1,19 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ADF CloudFormation Sample Template (IAM)
 Metadata:
   License: Apache-2.0
+
+Parameters:
+  DeploymentAssetS3BucketName:
+    Type: "String"
+    Description: "The S3 Bucket name where deployment assets will be located"
+
+  DeploymentAssetKMSKeyArn:
+    Type: "String"
+    Description: "The KMS Key Arn with which deployment assets will encrypted"
 
 Resources:
   DevelopersIAMGroup:
@@ -38,7 +47,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
       ManagedPolicyArns:
-        - !Ref "DefaultInstanceManagedPolicy"
+        - !Ref DefaultInstanceManagedPolicy
       RoleName: "global-instance-role"
 
   DefaultInstanceManagedPolicy:
@@ -61,11 +70,20 @@ Resources:
               - "elasticloadbalancing:DescribeTargetGroups"
               - "elasticloadbalancing:DescribeTargetHealth"
               - "elasticloadbalancing:RegisterTargets"
+            Resource:
+              - "*"
+          - Effect: "Allow"
+            Action:
               - "kms:Decrypt"
+            Resource:
+              - !Ref DeploymentAssetKMSKeyArn
+          - Effect: "Allow"
+            Action:
               - "s3:GetObject"
               - "s3:GetObjectVersion"
             Resource:
-              - "*"
+              - !Sub "arn:${AWS::Partition}:s3:::${DeploymentAssetS3BucketName}/adf-upload/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${DeploymentAssetS3BucketName}/adf-pipeline-*"
 
   CodeDeployServiceRole:
     Type: "AWS::IAM::Role"
@@ -79,9 +97,25 @@ Resources:
                 - "codedeploy.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Ref AWS::AccountId
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole"
       RoleName: "codedeploy-service-role"
+
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
 
 Outputs:
   DevelopersIAMGroup:
@@ -90,15 +124,28 @@ Outputs:
       Name: SampleDevelopersIAMGroupArn
     Value: !GetAtt DevelopersIAMGroup.Arn
 
-  CodeDeployRole:
-    Description: The ARN of the CodeDeploy Service Role Arn to be exported.
+  GlobalInstanceProfileArn:
+    Description: The Arn of the EC2 Instance Profile to be exported.
     Export:
-      Name: CodeDeployRoleArn
+      Name: GlobalInstanceProfileArn
+    Value: !GetAtt GlobalInstanceProfile.Arn
+
+  CodeDeployServiceRoleArn:
+    Description: The Arn of the CodeDeploy IAM Role to be exported.
+    Export:
+      Name: CodeDeployServiceRoleArn
     Value: !GetAtt CodeDeployServiceRole.Arn
 
-  GlobalInstanceProfile:
-    Description: >-
-      The ARN of the Default EC2 Instance Role to be imported into application stacks.
-    Value: !Ref GlobalInstanceProfile
+  ApiGatewayCloudWatchRoleArn:
+    Description: The ARN of the API Gateway IAM Role Arn to be exported.
     Export:
-      Name: GlobalInstanceProfileName
+      Name: ApiGatewayCloudWatchRoleArn
+    Value: !GetAtt ApiGatewayCloudWatchRole.Arn
+
+  DefaultInstanceManagedPolicyArn:
+    Description: >-
+      The Arn of the Default EC2 Instance Managed Policy to be
+      imported into application stacks
+    Export:
+      Name: DefaultInstanceManagedPolicyArn
+    Value: !Ref DefaultInstanceManagedPolicy

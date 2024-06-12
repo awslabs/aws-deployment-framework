@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """
@@ -7,6 +7,8 @@ Step Functions module used throughout the ADF
 
 import json
 from time import sleep
+
+# ADF imports
 from logger import configure_logger
 from partition import get_partition
 
@@ -61,7 +63,7 @@ class StepFunctions:
             stateMachineArn=(
                 f"arn:{partition}:states:{self.deployment_account_region}:"
                 f"{self.deployment_account_id}:stateMachine:"
-                "EnableCrossAccountAccess"
+                "adf-bootstrap-enable-cross-account"
             ),
             input=json.dumps({
                 "deployment_account_region": self.deployment_account_region,
@@ -110,7 +112,7 @@ class StepFunctions:
 
         if self.execution_status in ('FAILED', 'ABORTED', 'TIMED_OUT'):
             raise AssertionError(
-                "State Machine on Deployment account"
+                "State Machine on Deployment account "
                 f"{self.deployment_account_id} has "
                 f"status: {self.execution_status}, see logs"
             )

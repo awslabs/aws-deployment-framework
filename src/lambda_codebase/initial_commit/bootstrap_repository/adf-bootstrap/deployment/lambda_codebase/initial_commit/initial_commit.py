@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 The Initial Commit main that is called when ADF is installed to commit the
 initial pipelines repository content.
@@ -9,6 +12,7 @@ from typing import Mapping, Optional, Union, List, Dict, Any, Tuple
 from dataclasses import dataclass, fields
 from enum import Enum
 from pathlib import Path
+from datetime import datetime, timezone
 import re
 import boto3
 import jinja2
@@ -37,10 +41,10 @@ LOGGER.setLevel(ADF_LOG_LEVEL)
 PR_DESCRIPTION = """ADF Version {0}
 
 You can find the changelog at:
-https://github.com/awslabs/aws-deployment-framework/releases/tag/v{0}
+https://github.com/awslabs/aws-deployment-framework/releases/tag/{0}
 
 This PR was automatically created when you deployed version {0} of the
-AWS Deployment Framework through the Serverless Application Repository.
+AWS Deployment Framework.
 
 Review this PR to understand what changes will be made to your bootstrapping
 repository. If you also made changes to the repository yourself,
@@ -234,6 +238,31 @@ def generate_commit_input(
     return output
 
 
+def branch_exists(repo_name, branch_name):
+    try:
+        CC_CLIENT.get_branch(
+            repositoryName=repo_name,
+            branchName=branch_name,
+        )
+        return True
+    except CC_CLIENT.exceptions.BranchDoesNotExistException:
+        return False
+
+
+def determine_unique_branch_name(repo_name, branch_name):
+    for index in range(0, 10):
+        new_branch_name = (
+            branch_name
+            if index == 0 else
+            f"{branch_name}-no-{index}"
+        )
+        if not branch_exists(repo_name, new_branch_name):
+            return new_branch_name
+    # Fallback, use the unix timestamp in the branch name
+    timestamp = round(datetime.now(timezone.utc).timestamp())
+    return f"{branch_name}-at-{timestamp}"
+
+
 def generate_commits(event, repo_name, directory, parent_commit_id=None):
     """
     Generate the commits for the specified repository.
@@ -256,6 +285,10 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
     default_branch_name = event.ResourceProperties.DefaultBranchName
     branch_name = version
     if parent_commit_id:
+        branch_name = determine_unique_branch_name(
+            repo_name=repo_name,
+            branch_name=branch_name,
+        )
         CC_CLIENT.create_branch(
             repositoryName=repo_name,
             branchName=branch_name,
@@ -480,7 +513,7 @@ def get_files_to_commit(directory_path: Path) -> List[FileToCommit]:
 def create_adf_config_file(props: CustomResourceProperties) -> FileToCommit:
     template = HERE / "adfconfig.yml.j2"
     adf_config = (
-        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined)
+        jinja2.Template(template.read_text(), undefined=jinja2.StrictUndefined , autoescape=True)
         .render(vars(props))
         .encode()
     )

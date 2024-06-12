@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Events Input
@@ -119,7 +119,7 @@ class Events(Construct):
                 _event = _events.Rule(
                     self,
                     f'completion_{pipeline}',
-                    description="Triggers {pipeline} on completion of {params['pipeline']}",
+                    description=f"Triggers {pipeline} on completion of {params['pipeline']}",
                     enabled=True,
                     event_pattern=_events.EventPattern(
                         detail={

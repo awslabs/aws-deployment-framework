@@ -1,4 +1,4 @@
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
 """Construct related to Notifications Codepipeline Input
@@ -47,7 +47,7 @@ class PipelineNotifications(Construct):
         )
         pipeline_arn = (
             f"arn:{stack.partition}:codepipeline:{ADF_DEPLOYMENT_REGION}:"
-            "{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
+            f"{ADF_DEPLOYMENT_ACCOUNT_ID}:{pipeline.ref}"
         )
         cp_notifications.CfnNotificationRule(
             scope,

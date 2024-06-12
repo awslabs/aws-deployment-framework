@@ -1,8 +1,11 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 version: 0.2
 
 env:
   variables:
-    TF_VAR_TARGET_ACCOUNT_ROLE: adf-terraform-role  # The IAM Role Terraform will assume to deploy resources
+    TF_VAR_TARGET_ACCOUNT_ROLE: adf-pipeline-terraform  # The IAM Role Terraform will assume to deploy resources
     TF_IN_AUTOMATION: true
     TF_STAGE: "plan"
     TF_CLI_ARGS: "-no-color"
@@ -10,7 +13,7 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: 3.12
 
   build:
     commands:

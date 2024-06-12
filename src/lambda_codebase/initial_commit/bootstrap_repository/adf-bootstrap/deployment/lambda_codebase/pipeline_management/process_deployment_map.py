@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Pipeline Management Lambda Function
 Triggered by new Deployment Maps in S3 Bucket.
@@ -25,6 +28,9 @@ PIPELINE_MANAGEMENT_STATEMACHINE = os.getenv(
 )
 ADF_VERSION = os.getenv("ADF_VERSION")
 ADF_VERSION_METADATA_KEY = "adf_version"
+
+S3_RESOURCE = boto3.resource("s3")
+SFN_CLIENT = boto3.client("stepfunctions")
 
 
 class DeploymentMapFileData(TypedDict):
@@ -173,13 +179,19 @@ def start_executions(
         full_pipeline_name = pipeline.get('name', 'no-pipeline-name')
         # AWS Step Functions supports max 80 characters.
         # Since the run_id equals 49 characters plus the dash, we have 30
-        # characters available. To ensure we don't run over, lets use a
-        # truncated version concatenated with an hash generated from
-        # the pipeline name
-        truncated_pipeline_name = full_pipeline_name[:24]
-        name_bytes_to_hash = bytes(full_pipeline_name + run_id, 'utf-8')
-        execution_unique_hash = hashlib.md5(name_bytes_to_hash).hexdigest()[:5]
-        sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"
+        # characters available. To ensure we don't run over in case of 80+
+        # characters, lets use a truncated version concatenated with an
+        # hash generated from the pipeline name. If below 80 characters, the
+        # full_pipeline_name + run_id is used.
+        sfn_execution_name = f"{full_pipeline_name}-{run_id}"
+        if len(sfn_execution_name) > 80:
+            truncated_pipeline_name = full_pipeline_name[:60]
+            name_bytes_to_hash = bytes(full_pipeline_name, 'utf-8')
+            execution_unique_hash = hashlib.md5(
+                name_bytes_to_hash,
+                usedforsecurity=False,
+            ).hexdigest()[:5]
+            sfn_execution_name = f"{truncated_pipeline_name}-{execution_unique_hash}-{run_id}"[:80]
         sfn_client.start_execution(
             stateMachineArn=PIPELINE_MANAGEMENT_STATEMACHINE,
             name=sfn_execution_name,
@@ -205,16 +217,14 @@ def lambda_handler(event, context):
         dict: The input event is returned.
     """
     output = event.copy()
-    s3_resource = boto3.resource("s3")
-    sfn_client = boto3.client("stepfunctions")
     s3_details = get_details_from_event(event)
-    deployment_map = get_file_from_s3(s3_details, s3_resource)
+    deployment_map = get_file_from_s3(s3_details, S3_RESOURCE)
     if deployment_map.get("content"):
         deployment_map["content"]["definition_bucket"] = s3_details.get(
             "object_key",
         )
         start_executions(
-            sfn_client,
+            SFN_CLIENT,
             s3_details.get("object_key"),
             deployment_map["content"],
             codepipeline_execution_id=deployment_map.get("execution_id"),

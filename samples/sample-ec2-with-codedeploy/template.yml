@@ -1,5 +1,5 @@
-# // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // SPDX-License-Identifier: Apache-2.0
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ADF CloudFormation Sample Template (EC2 Application with CodeDeploy Components)
@@ -52,10 +52,6 @@ Parameters:
     ConstraintDescription: "Must be one of the values from the list."
     Description: "Instance type for the EC2 instances."
 
-  KeyPair:
-    Description: "Amazon EC2 Key Pair"
-    Type: "AWS::EC2::KeyPair::KeyName"
-
 Resources:
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
@@ -71,7 +67,9 @@ Resources:
       AvailabilityZones: !GetAZs ""
       MinSize: !Ref "InstanceMinSize"
       MaxSize: !Ref "InstanceMaxSize"
-      LaunchConfigurationName: !Ref "LaunchConfiguration"
+      LaunchTemplate:
+        LaunchTemplateId: !GetAtt LaunchTemplate.LaunchTemplateId
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
       MetricsCollection:
         - Granularity: "1Minute"
       TerminationPolicies:
@@ -99,7 +97,7 @@ Resources:
           - DEPLOYMENT_FAILURE
       DeploymentGroupName: !Sub "${Environment}-${ApplicationName}"
       DeploymentConfigName: "CodeDeployDefault.OneAtATime"
-      ServiceRoleArn: !ImportValue CodeDeployRoleArn
+      ServiceRoleArn: !ImportValue "CodeDeployServiceRoleArn"
       DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
       LoadBalancerInfo:
@@ -108,32 +106,40 @@ Resources:
       AutoScalingGroups:
         - !Ref "AutoScalingGroup"
 
-  LaunchConfiguration:
-    Type: "AWS::AutoScaling::LaunchConfiguration"
+  LaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
     Properties:
-      AssociatePublicIpAddress: false
-      IamInstanceProfile: !ImportValue GlobalInstanceProfileName
-      ImageId: !Ref "ImageId"
-      InstanceType: !Ref "InstanceType"
-      KeyName: !Ref "KeyPair"
-      SecurityGroups:
-        - !Ref "PrivateSecurityGroup"
-      UserData:
-        "Fn::Base64": !Sub |
-          #!/bin/bash
-          BUCKET_NAME=$(echo ${CodeDeployAgentInstallScript} | sed 's/^.*adf-global-base/adf-global-base/' |sed 's/\/.*//')
-          KEY=$(echo ${CodeDeployAgentInstallScript} | sed 's/^.*adf-upload/adf-upload/')
-          aws s3api get-object --bucket $BUCKET_NAME --key $KEY /tmp/code_deploy_install.sh
+      LaunchTemplateName: !Sub ${AWS::StackName}-launch-template
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn: !ImportValue IamInstanceProfile
+        ImageId: !Ref "ImageId"
+        InstanceType: !Ref "InstanceType"
+        MetadataOptions:
+          HttpEndpoint: enabled
+          HttpPutResponseHopLimit: 2
+          HttpTokens: required
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: false
+            DeviceIndex: 0
+            Groups:
+              - !Ref "PrivateSecurityGroup"
+        UserData:
+          "Fn::Base64": !Sub |
+            #!/bin/bash
+            BUCKET_NAME=$(echo "${CodeDeployAgentInstallScript}" | sed 's/^.*adf-global-base/adf-global-base/' | sed 's/\/.*//')
+            KEY=$(echo "${CodeDeployAgentInstallScript}" | sed 's/^.*adf-upload/adf-upload/')
+            aws s3api get-object --bucket "${!BUCKET_NAME}" --key "${!KEY}" /tmp/code_deploy_install.sh
 
-          BUCKET_NAME=$(echo ${JavaInstallScript} | sed 's/^.*adf-global-base/adf-global-base/' |sed 's/\/.*//')
-          KEY=$(echo ${JavaInstallScript} | sed 's/^.*adf-upload/adf-upload/')
-          aws s3api get-object --bucket $BUCKET_NAME --key $KEY /tmp/java_install.sh
+            BUCKET_NAME=$(echo "${JavaInstallScript}" | sed 's/^.*adf-global-base/adf-global-base/' |sed 's/\/.*//')
+            KEY=$(echo "${JavaInstallScript}" | sed 's/^.*adf-upload/adf-upload/')
+            aws s3api get-object --bucket "${!BUCKET_NAME}" --key "${!KEY}" /tmp/java_install.sh
 
-          chmod +x /tmp/java_install.sh
-          chmod +x /tmp/code_deploy_install.sh
-          /tmp/code_deploy_install.sh
-          /tmp/java_install.sh
-          /opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+            chmod +x /tmp/java_install.sh
+            chmod +x /tmp/code_deploy_install.sh
+            /tmp/code_deploy_install.sh
+            /tmp/java_install.sh
+            /opt/aws/bin/cfn-signal -e 0 --stack "${AWS::StackName}" --resource AutoScalingGroup --region "${AWS::Region}"
 
   PrivateSecurityGroup:
     Type: AWS::EC2::SecurityGroup

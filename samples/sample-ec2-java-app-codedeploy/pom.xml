@@ -3,6 +3,9 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Copyright Amazon.com Inc. or its affiliates. -->
+    <!-- SPDX-License-Identifier: Apache-2.0 -->
+
     <groupId>org.springframework</groupId>
     <artifactId>gs-spring-boot</artifactId>
     <version>0.1.0</version>

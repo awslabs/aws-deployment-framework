@@ -1,3 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: MIT-0
+
 """
 Tests for schema validation
 """
@@ -137,36 +140,53 @@ class CodeCommitSchemaValidationHappyPaths(unittest.TestCase):
         )
 
 
-class GithubSchemaValidationHappyPaths(unittest.TestCase):
-    def test_github_source_props_schema_default(self):
+class CodeConnectionsSchemaValidationHappyPaths(unittest.TestCase):
+    def test_codeconnections_source_props_schema_default(self):
         source_props = {
             "repository": "a_repo_name",
             "branch": "mainline",
             "owner": "a_repo_owner",
-            "oauth_token_path": "a_token_path",
-            "json_field": "a_json_field",
-            "trigger_on_changes": True,
+            "codeconnections_param_path": "the_ssm_param_connection_path",
+            "output_artifact_format": "CODE_ZIP",
         }
         self.assertDictEqual(
-            Schema(schema_validation.GITHUB_SOURCE_PROPS).validate(source_props),
+            Schema(schema_validation.CODECONNECTIONS_SOURCE_PROPS).validate(source_props),
             source_props,
         )
 
-    def test_github_source_schema_default(self):
+    def test_codeconnections_source_schema_default(self):
         source_props = {
             "repository": "a_repo_name",
             "branch": "mainline",
             "owner": "a_repo_owner",
-            "oauth_token_path": "a_token_path",
-            "json_field": "a_json_field",
-            "trigger_on_changes": True,
+            "codeconnections_param_path": "the_ssm_param_connection_path",
+            "output_artifact_format": "CODE_ZIP",
         }
 
-        github_source = {"provider": "github", "properties": source_props}
+        codeconnections_source = {"provider": "codeconnections", "properties": source_props}
 
         self.assertDictEqual(
-            Schema(schema_validation.GITHUB_SOURCE).validate(github_source),
-            github_source,
+            Schema(schema_validation.CODECONNECTIONS_SOURCE).validate(codeconnections_source),
+            codeconnections_source,
+        )
+
+    def test_codeconnections_source_schema_required_only(self):
+        source_props = {
+            "owner": "a_repo_owner",
+            "codeconnections_param_path": "the_ssm_param_connection_path",
+        }
+
+        codeconnections_source = {"provider": "codeconnections", "properties": source_props}
+
+        self.assertDictEqual(
+            Schema(schema_validation.CODECONNECTIONS_SOURCE).validate(codeconnections_source),
+            {
+                "provider": "codeconnections",
+                "properties": {
+                    **codeconnections_source["properties"],
+                    "output_artifact_format": None,
+                }
+            },
         )
 
 

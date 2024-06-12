@@ -1,9 +1,12 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
 version: 0.2
 
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: 3.12
 
   build:
     commands:
