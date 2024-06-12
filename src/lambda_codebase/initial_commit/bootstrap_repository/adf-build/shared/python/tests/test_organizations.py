@@ -7,18 +7,45 @@ from datetime import datetime, timezone
 import os
 import boto3
 
-from pytest import fixture
+from pytest import fixture, raises
 from stubs import stub_organizations
 from mock import Mock, patch
 from cache import Cache
 from organizations import Organizations, OrganizationsException
 from botocore.stub import Stubber
+from botocore.exceptions import ClientError
 import unittest
 
 
 @fixture
 def cls():
     return Organizations(boto3, "123456789012")
+
+
+def test_create_ou(cls):
+    cls.client = Mock()
+    cls.client.create_organizational_unit.return_value = stub_organizations.create_organizational_unit
+
+    ou = cls.create_ou("some_parent_id", "some_ou_name")
+
+    assert ou['OrganizationalUnit']["Id"] == "new_ou_id"
+    assert ou['OrganizationalUnit']["Name"] == "new_ou_name"
+
+def test_create_ou_throws_client_error(cls):
+    cls.client = Mock()
+    cls.client.create_organizational_unit.side_effect = ClientError(operation_name='test', error_response={'Error': {'Code': 'Test', 'Message': 'Test Message'}})
+    with raises(OrganizationsException): 
+        cls.create_ou("some_parent_id", "some_ou_name")
+
+
+def test_get_ou_id_can_create_ou_one_layer(cls):
+    cls.client = Mock()
+    cls.client.create_organizational_unit.return_value = stub_organizations.create_organizational_unit
+    cls.client.get_paginator("list_organizational_units_for_parent").paginate.return_value = stub_organizations.list_organizational_units_for_parent
+
+    ou_id = cls.get_ou_id("/existing/new")
+
+    assert ou_id == "new_ou_id"
 
 
 def test_get_parent_info(cls):
