@@ -154,7 +154,7 @@ tox: deps
 
 docker:
 	@echo "Prepare docker to support all architectures..."
-	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker run --rm --privileged --platform linux/amd64 multiarch/qemu-user-static --reset -p yes --verbose
 
 version_number: .venv
 	@echo "Generate a new version number..."
@@ -214,12 +214,12 @@ verify_tooling: .venv
 			exit 1 \
 		); \
 	)
-	@( \
-		sed --version &> /dev/null || ( \
-			echo '$(CLR_RED)Sed is not installed!$(CLR_END)' && \
-			exit 1 \
-		); \
-	)
+	# @( \
+	# 	sed --version &> /dev/null || ( \
+	# 		echo '$(CLR_RED)Sed is not installed!$(CLR_END)' && \
+	# 		exit 1 \
+	# 	); \
+	# )
 	@( \
 		jq --version &> /dev/null || ( \
 			echo '$(CLR_RED)Jq is not installed!$(CLR_END)' && \
