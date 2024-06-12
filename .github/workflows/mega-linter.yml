@@ -27,11 +27,7 @@ jobs:
 
       - name: MegaLinter
         id: ml
-        # MegaLinter v7.11 upgrades Markdown-Link-Check to v3.12.1
-        # This version broke anchor link checks according to:
-        # https://github.com/tcort/markdown-link-check/issues/304
-        # Setting the version to v7.10.0 for now:
-        uses: oxsecurity/megalinter@v7.10.0
+        uses: oxsecurity/megalinter@v7
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
