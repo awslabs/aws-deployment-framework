@@ -29,7 +29,6 @@ CFN_CONFIG = Config(
 CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 ADF_GLOBAL_IAM_STACK_NAME = 'adf-global-base-iam'
 ADF_GLOBAL_BOOTSTRAP_STACK_NAME = 'adf-global-base-bootstrap'
-ADF_GLOBAL_ADF_BUILD_STACK_NAME = 'adf-global-base-adf-build'
 
 
 class StackProperties:
@@ -148,7 +147,6 @@ class StackProperties:
         if self.region == self.deployment_account_region:
             valid_stack_names.append(ADF_GLOBAL_IAM_STACK_NAME)
             valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_STACK_NAME)
-            valid_stack_names.append(ADF_GLOBAL_ADF_BUILD_STACK_NAME)
 
         return valid_stack_names
 
@@ -405,9 +403,9 @@ class CloudFormation(StackProperties):
             raise GenericAccountConfigureError(error) from error
         except WaiterError as error:
             err = error.last_response
-            if CloudFormation._change_set_failed_due_to_empty(
-                err["Status"],
-                err["StatusReason"],
+            if err and CloudFormation._change_set_failed_due_to_empty(
+                err.get("Status", ""),
+                err.get("StatusReason", ""),
             ):
                 LOGGER.debug(
                     "%s in %s - CloudFormation ChangeSet %s does not contain "
@@ -707,21 +705,7 @@ class CloudFormation(StackProperties):
             return None  # Return None if describe stack call fails
 
     def get_stack_status(self):
-        try:
-            stack = self.client.describe_stacks(
-                StackName=self.stack_name
-            )
-            return stack['Stacks'][0]['StackStatus']
-        except BaseException as error:
-            LOGGER.debug(
-                "%s in %s - Attempted to get stack status from %s but it "
-                "failed with: %s",
-                self.account_id,
-                self.region,
-                self.stack_name,
-                error,
-            )
-            return None  # Return None if the stack does not exist
+        return self._get_stack_status(self.stack_name)
 
     def delete_stack(self, stack_name, wait_override=False):
         try:

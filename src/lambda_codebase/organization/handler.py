@@ -32,6 +32,8 @@ except Exception as err:  # pylint: disable=broad-except
             "StackId": event["StackId"],
             "Reason": str(prior_error),
         }
+        if not event["ResponseURL"].lower().startswith('http'):
+            raise ValueError('ResponseURL is forbidden') from None
         with urlopen(
             Request(
                 event["ResponseURL"],

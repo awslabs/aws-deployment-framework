@@ -24,8 +24,7 @@ REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
 sts = boto3.client('sts')
 ssm = boto3.client('ssm')
-response = ssm.get_parameter(Name='/adf/cross_account_access_role')
-CROSS_ACCOUNT_ACCESS_ROLE = response['Parameter']['Value']
+ORGANIZATIONS_READONLY_ROLE = "adf/organizations/adf-organizations-readonly"
 
 
 def main():
@@ -43,8 +42,8 @@ def list_organizational_units_for_parent(parent_ou):
     organizations = get_boto3_client(
         'organizations',
         (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:'
+            f'role/{ORGANIZATIONS_READONLY_ROLE}'
         ),
         'getOrganizationUnits',
     )
@@ -71,8 +70,8 @@ def get_accounts():
     organizations = get_boto3_client(
         'organizations',
         (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:'
+            f'role/{ORGANIZATIONS_READONLY_ROLE}'
         ),
         'getaccountIDs',
     )
@@ -96,8 +95,8 @@ def get_accounts_from_ous():
     organizations = get_boto3_client(
         'organizations',
         (
-            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:role/'
-            f'{CROSS_ACCOUNT_ACCESS_ROLE}-readonly'
+            f'arn:{PARTITION}:sts::{MANAGEMENT_ACCOUNT_ID}:'
+            f'role/{ORGANIZATIONS_READONLY_ROLE}'
         ),
         'getRootAccountIDs',
     )

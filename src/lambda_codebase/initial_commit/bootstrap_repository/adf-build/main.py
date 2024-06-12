@@ -15,14 +15,13 @@ from thread import PropagatingThread
 
 import boto3
 
-from botocore.exceptions import ClientError
 from logger import configure_logger
 from cache import Cache
 from cloudformation import CloudFormation
 from parameter_store import ParameterStore
 from organizations import Organizations
 from stepfunctions import StepFunctions
-from errors import GenericAccountConfigureError, ParameterNotFoundError
+from errors import GenericAccountConfigureError, ParameterNotFoundError, Error
 from sts import STS
 from s3 import S3
 from partition import get_partition
@@ -33,10 +32,10 @@ from organization_policy import OrganizationPolicy
 S3_BUCKET_NAME = os.environ["S3_BUCKET"]
 REGION_DEFAULT = os.environ["AWS_REGION"]
 PARTITION = get_partition(REGION_DEFAULT)
-ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
-DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+SHARED_MODULES_BUCKET_NAME = os.environ["SHARED_MODULES_BUCKET"]
 CODEPIPELINE_EXECUTION_ID = os.environ.get("CODEPIPELINE_EXECUTION_ID")
 CODEBUILD_START_TIME_UNIXTS = floor(
     int(
@@ -65,14 +64,13 @@ def ensure_generic_account_can_be_setup(sts, config, account_id):
     """
     If the target account has been configured returns the role to assume
     """
-    try:
-        return sts.assume_cross_account_role(
-            f'arn:{PARTITION}:iam::{account_id}:role/'
-            f'{config.cross_account_access_role}',
-            'base_update'
-        )
-    except ClientError as error:
-        raise GenericAccountConfigureError from error
+    return sts.assume_bootstrap_deployment_role(
+        PARTITION,
+        MANAGEMENT_ACCOUNT_ID,
+        account_id,
+        config.cross_account_access_role,
+        'base_update',
+    )
 
 
 def update_deployment_account_output_parameters(
@@ -117,13 +115,14 @@ def prepare_deployment_account(sts, deployment_account_id, config):
     and returns the role that can be assumed by the management account
     to access the deployment account
     """
-    deployment_account_role = sts.assume_cross_account_role(
-        f'arn:{PARTITION}:iam::{deployment_account_id}:role/'
-        f'{config.cross_account_access_role}',
-        'management'
+    deployment_account_role = sts.assume_bootstrap_deployment_role(
+        PARTITION,
+        MANAGEMENT_ACCOUNT_ID,
+        deployment_account_id,
+        config.cross_account_access_role,
+        'management',
     )
-    for region in sorted(list(
-            set([config.deployment_account_region] + config.target_regions))):
+    for region in config.sorted_regions():
         deployment_account_parameter_store = ParameterStore(
             region,
             deployment_account_role
@@ -141,8 +140,12 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             config.cross_account_access_role,
         )
         deployment_account_parameter_store.put_parameter(
-            'deployment_account_bucket',
-            DEPLOYMENT_ACCOUNT_S3_BUCKET_NAME,
+            'shared_modules_bucket',
+            SHARED_MODULES_BUCKET_NAME,
+        )
+        deployment_account_parameter_store.put_parameter(
+            'bootstrap_templates_bucket',
+            S3_BUCKET_NAME,
         )
         deployment_account_parameter_store.put_parameter(
             'deployment_account_id',
@@ -150,7 +153,7 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         )
         deployment_account_parameter_store.put_parameter(
             'management_account_id',
-            ACCOUNT_ID,
+            MANAGEMENT_ACCOUNT_ID,
         )
         deployment_account_parameter_store.put_parameter(
             'organization_id',
@@ -270,13 +273,9 @@ def worker_thread(
         )
 
         # Regional base stacks can be updated after global
-        all_regions = list(set(
-            [config.deployment_account_region]
-            + config.target_regions
-        ))
-        for region in all_regions:
-            # Ensuring the kms_arn and bucket_name on the target account is
-            # up-to-date
+        for region in config.sorted_regions():
+            # Ensuring the kms_arn, bucket_name, and other important properties
+            # are available on the target account.
             parameter_store = ParameterStore(region, role)
             parameter_store.put_parameter(
                 'deployment_account_id',
@@ -290,6 +289,15 @@ def worker_thread(
                 'bucket_name',
                 updated_kms_bucket_dict[region]['s3_regional_bucket'],
             )
+            if region == config.deployment_account_region:
+                parameter_store.put_parameter(
+                    'management_account_id',
+                    MANAGEMENT_ACCOUNT_ID,
+                )
+                parameter_store.put_parameter(
+                    'bootstrap_templates_bucket',
+                    S3_BUCKET_NAME,
+                )
 
             # Ensuring the stage parameter on the target account is up-to-date
             parameter_store.put_parameter(
@@ -326,9 +334,11 @@ def worker_thread(
                     )
                 raise LookupError from error
 
-    except GenericAccountConfigureError as generic_account_error:
-        LOGGER.info(generic_account_error)
-        return
+    except Error as error:
+        LOGGER.exception("%s - worker thread failed: %s", account_id, error)
+        raise
+
+    LOGGER.debug("%s - worker thread finished successfully", account_id)
 
 
 def await_sfn_executions(sfn_client):
@@ -360,10 +370,19 @@ def await_sfn_executions(sfn_client):
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
             "https://%s.console.aws.amazon.com/states/home"
-            "?region=%s#/statemachines/view/%s",
+            "?region=%s#/statemachines/view/%s ",
             REGION_DEFAULT,
             REGION_DEFAULT,
             ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
+        )
+        LOGGER.warning(
+            "Please note: If you resolved the error, but still run into this "
+            "warning, make sure you release a change on the pipeline (by "
+            "clicking the orange \"Release Change\" button. "
+            "The pipeline checks for failed executions of the state machine "
+            "that were triggered by this pipeline execution. Only a new "
+            "pipeline execution updates the identified that it uses to track "
+            "the state machine's progress.",
         )
         sys.exit(1)
     if _sfn_execution_exists_with(
@@ -482,13 +501,7 @@ def main():  # pylint: disable=R0915
         kms_and_bucket_dict = {}
         # First Setup/Update the Deployment Account in all regions (KMS Key and
         # S3 Bucket + Parameter Store values)
-        regions_to_enable = list(
-            set(
-                [config.deployment_account_region]
-                + config.target_regions
-            )
-        )
-        for region in regions_to_enable:
+        for region in config.sorted_regions():
             cloudformation = CloudFormation(
                 region=region,
                 deployment_account_region=config.deployment_account_region,
@@ -511,19 +524,6 @@ def main():  # pylint: disable=R0915
             if region == config.deployment_account_region:
                 cloudformation.create_iam_stack()
 
-        # Updating the stack on the management account in deployment region
-        cloudformation = CloudFormation(
-            region=config.deployment_account_region,
-            deployment_account_region=config.deployment_account_region,
-            role=boto3,
-            wait=True,
-            stack_name=None,
-            s3=s3,
-            s3_key_path='adf-build',
-            account_id=ACCOUNT_ID
-        )
-        cloudformation.delete_deprecated_base_stacks()
-        cloudformation.create_stack()
         threads = []
         account_ids = [
             account_id["Id"]
@@ -532,10 +532,10 @@ def main():  # pylint: disable=R0915
                 include_root=False,
             )
         ]
-        non_deployment_account_ids = [
+        non_deployment_account_ids = sorted([
             account for account in account_ids
             if account != deployment_account_id
-        ]
+        ])
         for account_id in non_deployment_account_ids:
             thread = PropagatingThread(target=worker_thread, args=(
                 account_id,

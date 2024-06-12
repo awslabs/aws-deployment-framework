@@ -220,13 +220,27 @@ def ensure_account(
             "Using existing deployment account as specified %s.",
             existing_account_id,
         )
-        if is_update and not ssm_deployment_account_id:
+        if not ssm_deployment_account_id:
             LOGGER.info(
-                "The %s param was not found, creating it as we are "
-                "updating ADF",
+                "The %s parameter was not found, creating it",
                 DEPLOYMENT_ACCOUNT_ID_PARAM_PATH,
             )
             _set_deployment_account_id_parameter(existing_account_id)
+        parameter_mismatch = (
+            ssm_deployment_account_id
+            and ssm_deployment_account_id != existing_account_id
+        )
+        if parameter_mismatch:
+            raise RuntimeError(
+                "Failed to configure the deployment account. "
+                f"The {DEPLOYMENT_ACCOUNT_ID_PARAM_PATH} parameter has "
+                f"account id {ssm_deployment_account_id} configured, while "
+                f"the current operation requests using {existing_account_id} "
+                "instead. These need to match, if you are sure you want to "
+                f"use {existing_account_id}, please update or delete the "
+                f"{DEPLOYMENT_ACCOUNT_ID_PARAM_PATH} parameter in AWS Systems "
+                "Manager Parameter Store and try again.",
+            )
         return existing_account_id, False
 
     # If no existing account ID was provided, check if the ID is stored in

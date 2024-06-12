@@ -334,6 +334,11 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
             "bootstrap_repository/adf-bootstrap/example-global-iam.yml",
             "/tmp/global-iam.yml",
         )
+        initial_deploy_sample_global_iam = create_adf_config_file(
+            event.ResourceProperties,
+            "bootstrap_repository/adf-bootstrap/deployment/example-global-iam.yml",
+            "/tmp/global-deploy-iam.yml",
+        )
 
         create_deployment_account = (
             event.ResourceProperties.DeploymentAccountFullName
@@ -348,6 +353,7 @@ def generate_commits(event, repo_name, directory, parent_commit_id=None):
             files_to_commit.append(adf_deployment_account_yml)
         files_to_commit.append(adf_config)
         files_to_commit.append(initial_sample_global_iam)
+        files_to_commit.append(initial_deploy_sample_global_iam)
 
     chunked_files = chunks([f.as_dict() for f in files_to_commit], 99)
     commit_id = parent_commit_id

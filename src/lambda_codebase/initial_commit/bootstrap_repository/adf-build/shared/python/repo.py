@@ -36,7 +36,10 @@ class Repo:
         self.account_id = account_id
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         self.session = sts.assume_cross_account_role(
-            f'arn:{self.partition}:iam::{account_id}:role/adf-automation-role',
+            (
+                f'arn:{self.partition}:iam::{account_id}:'
+                'role/adf-automation-role'
+            ),
             f'create_repo_{account_id}'
         )
 
@@ -70,9 +73,9 @@ class Repo:
         }]
 
     def create_update(self):
-        s3_object_path = s3.put_object(
-            "adf-build/templates/codecommit.yml",
-            "templates/codecommit.yml"
+        s3_object_path = s3.build_pathing_style(
+            style="path",
+            key="adf-build/templates/codecommit.yml",
         )
         cloudformation = CloudFormation(
             region=DEPLOYMENT_ACCOUNT_REGION,

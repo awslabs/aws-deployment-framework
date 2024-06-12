@@ -13,7 +13,8 @@ import os
 from errors import ParameterNotFoundError, RootOUIDError
 
 DEPLOYMENT_ACCOUNT_OU_NAME = 'deployment'
-DEPLOYMENT_ACCOUNT_S3_BUCKET = os.environ["DEPLOYMENT_ACCOUNT_BUCKET"]
+SHARED_MODULES_BUCKET = os.environ["SHARED_MODULES_BUCKET"]
+BOOTSTRAP_TEMPLATES_BUCKET = os.environ["S3_BUCKET_NAME"]
 ADF_VERSION = os.environ["ADF_VERSION"]
 ADF_LOG_LEVEL = os.environ["ADF_LOG_LEVEL"]
 
@@ -125,7 +126,6 @@ class Event:
                 'adf_log_level': ADF_LOG_LEVEL,
                 'adf_version': ADF_VERSION,
                 'cross_account_access_role': self.cross_account_access_role,
-                'deployment_account_bucket': DEPLOYMENT_ACCOUNT_S3_BUCKET,
                 'deployment_account_id': self.deployment_account_id,
                 'management_account_id': organization_information.get(
                     "organization_management_account_id"
@@ -135,6 +135,8 @@ class Event:
                 'organization_id': organization_information.get(
                     "organization_id"
                 ),
+                'shared_modules_bucket': SHARED_MODULES_BUCKET,
+                'bootstrap_templates_bucket': BOOTSTRAP_TEMPLATES_BUCKET,
                 'extensions/terraform/enabled': (
                     self._read_parameter(
                         'extensions/terraform/enabled',

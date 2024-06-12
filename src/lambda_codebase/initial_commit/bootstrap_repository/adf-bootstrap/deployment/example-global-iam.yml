@@ -44,9 +44,8 @@ Resources:
           - Effect: Allow
             Sid: "CloudFormation"
             Action:
-              # These are examples, please update these to the least privilege policy required:
-              - "s3:*"
-              - "ecr:*"
+              # An example action, please update these to the least privilege policy required:
+              - "cloudwatch:PutMetricAlarm"
             Resource:
               - "*"
       Roles:
@@ -165,6 +164,7 @@ Resources:
 #   # add this policy
 #   Type: AWS::IAM::Role
 #   Properties:
+#     Path: /
 #     RoleName: "adf-terraform-role"
 #     AssumeRolePolicyDocument:
 #       Version: "2012-10-17"
@@ -176,7 +176,6 @@ Resources:
 #               - !Sub arn:aws:iam::${AWS::AccountId}:role/adf-codebuild-role
 #           Action:
 #             - sts:AssumeRole
-#     Path: /
 # ADFTerraformPolicy:
 #   Type: AWS::IAM::Policy
 #   Properties:

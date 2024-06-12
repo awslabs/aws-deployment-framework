@@ -43,6 +43,18 @@ class Config:
         self.extensions = None
         self._load_config_file()
 
+    def sorted_regions(self):
+        target_regions_except_deploy = sorted(list(
+            set(self.target_regions)
+            - set([self.deployment_account_region])
+        ))
+        return [
+            # Make sure we start with the main deployment region
+            self.deployment_account_region,
+            # Followed by all other target regions configured
+            *target_regions_except_deploy,
+        ]
+
     def store_config(self):
         self._store_config()
         self._store_cross_region_config()
@@ -98,11 +110,11 @@ class Config:
         if os.path.exists(org_config_path):
             with open(org_config_path, encoding="utf-8") as org_config_file:
                 LOGGER.info("Using organization specific ADF config: %s", org_config_path)
-                self.config_contents = yaml.load(org_config_file, Loader=yaml.FullLoader)
+                self.config_contents = yaml.safe_load(org_config_file)
         else:
             LOGGER.info("Using default ADF config: %s", self.config_path)
             with open(self.config_path, encoding="utf-8") as config:
-                self.config_contents = yaml.load(config, Loader=yaml.FullLoader)
+                self.config_contents = yaml.safe_load(config)
         self._parse_config()
 
     def _parse_config(self):
@@ -183,6 +195,14 @@ class Config:
                 "extensions",
             ):
                 self.parameters_client.put_parameter(key, str(value))
+
+        for move in self.config.get('moves', []):
+            move_param_name = move.get('name', '').replace('-', '_')
+            if move_param_name and move.get('action'):
+                self.parameters_client.put_parameter(
+                    f"moves/{move_param_name}/action",
+                    str(move.get('action')),
+                )
 
         for extension, attributes in self.extensions.items():
             for attribute in attributes:

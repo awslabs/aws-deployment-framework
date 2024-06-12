@@ -40,8 +40,11 @@ TARGET_ROLE_POLICIES = {
 
 # Role Policies are updated in the deployment account.
 DEPLOYMENT_ROLE_POLICIES = {
+    "adf-codebuild-role": [
+        "adf-codebuild-role-policy-s3",
+        "adf-codebuild-role-policy-kms",
+    ],
     "adf-codepipeline-role": [
-        "adf-codepipeline-role-policy",
         "adf-codepipeline-role-policy-s3",
         "adf-codepipeline-role-policy-kms",
     ],
@@ -63,7 +66,7 @@ def _assume_role_if_required(account_id: str):
     try:
         role_arn_to_assume = (
             f'arn:{partition}:iam::{account_id}:'
-            f'role/adf-update-cross-account-access-role'
+            f'role/adf/bootstrap/adf-update-cross-account-access'
         )
         target_role = sts.assume_cross_account_role(
             role_arn_to_assume,

@@ -152,7 +152,8 @@ def lambda_handler(event, _):
         output["pipelines_to_be_deleted"] = out_of_date_pipelines
 
     data_md5 = hashlib.md5(
-        json.dumps(output, sort_keys=True).encode("utf-8")
+        json.dumps(output, sort_keys=True).encode("utf-8"),
+        usedforsecurity=False,
     ).hexdigest()
     root_trace_id = os.getenv("_X_AMZN_TRACE_ID", "na=na;na=na").split(";")[0]
     output["traceroot"] = root_trace_id

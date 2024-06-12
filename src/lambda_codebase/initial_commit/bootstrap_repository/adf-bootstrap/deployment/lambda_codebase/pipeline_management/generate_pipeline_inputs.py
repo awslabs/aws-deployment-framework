@@ -21,7 +21,9 @@ from partition import get_partition
 LOGGER = configure_logger(__name__)
 DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
-ROOT_ACCOUNT_ID = os.environ["ROOT_ACCOUNT_ID"]
+MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
+
+ORGANIZATIONS_READONLY_ROLE = "adf/organizations/adf-organizations-readonly"
 
 
 def store_regional_parameter_config(
@@ -70,7 +72,7 @@ def fetch_required_ssm_params(pipeline_input, regions):
         }
         if region == DEPLOYMENT_ACCOUNT_REGION:
             output[region]["modules"] = parameter_store.fetch_parameter(
-                "deployment_account_bucket"
+                "shared_modules_bucket"
             )
             output["default_scm_branch"] = parameter_store.fetch_parameter(
                 "scm/default_scm_branch",
@@ -209,13 +211,10 @@ def lambda_handler(event, _):
     """
     parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
     sts = STS()
-    cross_account_role_name = parameter_store.fetch_parameter(
-        "cross_account_access_role",
-    )
     role = sts.assume_cross_account_role(
         (
             f"arn:{get_partition(DEPLOYMENT_ACCOUNT_REGION)}:iam::"
-            f"{ROOT_ACCOUNT_ID}:role/{cross_account_role_name}-readonly"
+            f"{MANAGEMENT_ACCOUNT_ID}:role/{ORGANIZATIONS_READONLY_ROLE}"
         ),
         "pipeline",
     )
