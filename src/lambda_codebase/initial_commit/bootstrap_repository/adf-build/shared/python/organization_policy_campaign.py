@@ -79,7 +79,7 @@ class OrganizationPolicyTarget:
             self.existing_policy_ids[policy_id] = policy_name
         else:
             LOGGER.info(
-                "Policy {%s} ({%s}) already attached to {%s}",
+                "Policy {%s} ({%s}) already attached to {%s}" %
                 (policy_name, policy_id, self),
             )
 
@@ -92,6 +92,7 @@ class OrganizationPolicyTarget:
             )
 
 
+# pylint: disable=W1508. R1735, W0235, R1734, W1201, W1203
 class OrganizationalPolicyCampaignPolicy:
     name: str
     body: str
@@ -176,7 +177,7 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except self.organizations_client.exceptions.ServiceException as e:
                 LOGGER.critical(
-                    "Error fetching targets for policy {%s} {%s}: Service Exception",
+                    "Error fetching targets for policy {%s} {%s}: Service Exception" %
                     (self.name.self.id),
                 )
                 LOGGER.error(e)
@@ -381,6 +382,7 @@ class OrganizationalPolicyCampaignPolicy:
         self.organizations_client.delete_policy(PolicyId=self.id)
 
 
+# pylint: disable=W1508. R1735, W0235, R1734, W1201, W1203
 class OrganizationPolicyApplicationCampaign:
     targets: dict()
     campaign_config: dict()

@@ -119,7 +119,8 @@ class OrganizationPolicy:
             organization_mapping,
             supported_policies,
         )
-
+        
+    # pylint: disable=R0914
     def apply_policies(
         self,
         organizations,
@@ -158,7 +159,7 @@ class OrganizationPolicy:
                     if stored_policy not in _legacy_policies:
                         # Schedule Policy deletion
                         LOGGER.info(
-                            "Scheduling policy: %s for deletion because it no longer exists in codebase",
+                            "Scheduling policy: %s for deletion",
                             stored_policy,
                         )
                         campaign.delete_policy(f"adf-{policy}-{path}")
