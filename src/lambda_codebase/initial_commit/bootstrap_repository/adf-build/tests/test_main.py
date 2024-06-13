@@ -81,7 +81,7 @@ def test_update_deployment_account_output_parameters(cls, sts):
             kms_and_bucket_dict={},
             cloudformation=cloudformation
         )
-        assert 4 == mock.call_count
+        assert 6 == mock.call_count
         mock.assert_has_calls(expected_calls, any_order=True)
 
 
@@ -155,17 +155,21 @@ def test_prepare_deployment_account_defaults(param_store_cls, cls, sts):
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
+            call('adf_version', '1.0.0'),
+            call('adf_log_level', 'CRITICAL'),
+            call('cross_account_access_role', 'some_role'),
+            call('shared_modules_bucket', 'some_shared_modules_bucket'),
+            call('bootstrap_templates_bucket', 'some_bucket'),
+            call('deployment_account_id', '111122223333'),
+            call('management_account_id', '123'),
+            call('organization_id', 'o-123456789'),
+            call('extensions/terraform/enabled', 'False'),
             call('scm/default_scm_branch', 'main'),
-            call(
-                'scm/default_scm_codecommit_account_id',
-                deployment_account_id,
-            ),
+            call('scm/default_scm_codecommit_account_id', '111122223333'),
             call('deployment_maps/allow_empty_target', 'disabled'),
             call('org/stage', 'none'),
             call('notification_type', 'email'),
-            call('notification_endpoint', 'john@example.com'),
-            call('extensions/terraform/enabled', 'False'),
-        ],
+            call('notification_endpoint', 'john@example.com')],
         any_order=True,
     )
 
@@ -236,7 +240,7 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
     )
     for param_store in parameter_store_list:
         assert param_store.put_parameter.call_count == (
-            17 if param_store == deploy_param_store else 9
+            18 if param_store == deploy_param_store else 9
         )
         param_store.put_parameter.assert_has_calls(
             [
@@ -257,21 +261,24 @@ def test_prepare_deployment_account_specific_config(param_store_cls, cls, sts):
         )
     deploy_param_store.put_parameter.assert_has_calls(
         [
+            call('adf_version', '1.0.0'),
+            call('adf_log_level', 'CRITICAL'),
+            call('cross_account_access_role', 'some_role'),
+            call('shared_modules_bucket', 'some_shared_modules_bucket'),
+            call('bootstrap_templates_bucket', 'some_bucket'),
+            call('deployment_account_id', '111122223333'),
+            call('management_account_id', '123'),
+            call('organization_id', 'o-123456789'),
+            call('extensions/terraform/enabled', 'True'),
             call('scm/auto_create_repositories', 'disabled'),
             call('scm/default_scm_branch', 'main'),
-            call(
-                'scm/default_scm_codecommit_account_id',
-                deployment_account_id,
-            ),
+            call('scm/default_scm_codecommit_account_id', '111122223333'),
             call('deployment_maps/allow_empty_target', 'disabled'),
             call('org/stage', 'test-stage'),
+            call('auto_create_repositories', 'disabled'),
             call('notification_type', 'slack'),
-            call(
-                'notification_endpoint',
-                "arn:aws:lambda:eu-central-1:"
-                f"{deployment_account_id}:function:SendSlackNotification",
-            ),
-            call('notification_endpoint/main', 'slack-channel'),
-        ],
+            call('notification_endpoint', 'arn:aws:lambda:eu-central-1:111122223333:function:SendSlackNotification'),
+            call('notification_endpoint/main', 'slack-channel')
+                ],
         any_order=False,
     )

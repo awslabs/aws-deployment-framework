@@ -876,6 +876,67 @@ Once you have enabled all features within your Organization, ADF can manage and
 automate the application and updating process of the Tag Policies. For more
 information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
+## Policies V2
+
+### What is Policies V2
+
+A new feature of ADF, that gives you the ability to define a policy in a
+single location, and apply it to multiple targets.
+
+### Enabling the new version
+
+Because of the difference in this approach to applying policies, it is not
+currently the default method and will have to be enabled. In order to enable it,
+you have to update your serverlessrepo stack in the organizational root account
+and set the parameter `EnablePolicyV2' to "TRUE". Once the stack has redeployed,
+it will be enabled.
+
+### Using the new version
+
+Inside your adf-bootstrap folder, create a directory named `adf-policies`,
+Inside the `adf-policies` directory you then create subdirectories per policy type.
+Currently, only `scp` and `tagging-policy` are supported in the AWS partition.
+Inside this directory you can create a JSON file that defines your policy.
+So in the following example, if you wanted to create an scp policy it would be in
+`adf-policies/scp/<your-file-name>.json`
+Using the following Schema:
+
+```json
+{
+    "Targets": [
+        "YourOrg", "YourOtherOrg",
+    ],
+    "Version": "2022-10-14",
+    "PolicyName": "Example",
+    "Policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Deny",
+                "Action": "cloudtrail:Stop*",
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+            },
+            {
+                "Effect": "Deny",
+                "Action": [
+                    "config:DeleteConfigRule",
+                    "config:DeleteConfigurationRecorder",
+                    "config:DeleteDeliveryChannel",
+                    "config:Stop*"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+}
+
+```
+
 ## Integrating Slack
 
 ### Integrating with Slack using Lambda
