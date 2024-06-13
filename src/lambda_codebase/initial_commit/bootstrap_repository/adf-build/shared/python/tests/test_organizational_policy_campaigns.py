@@ -1149,10 +1149,16 @@ class SadTestCases(unittest.TestCase):
         policy_campaign = OrganizationPolicyApplicationCampaign(
             "SERVICE_CONTROL_POLICY", org_mapping, {}, org_client
         )
+        ex_r = (
+            "WARNING:organization_policy_campaign:Error detaching policy"
+                " MyFirstPolicy (fake-policy-3) from target 11223344556: "
+                "Policy Not Attached"
+                )
+
         with self.assertLogs("organization_policy_campaign", "WARNING") as log:
             policy_campaign.apply()
             self.assertIn(
-                "WARNING:organization_policy_campaign:Error detaching policy MyFirstPolicy (fake-policy-3) from target 11223344556: Policy Not Attached",
+                ex_r,
                 log.output,
             )
 

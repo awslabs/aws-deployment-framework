@@ -27,6 +27,7 @@ REGION_DEFAULT = os.getenv("AWS_REGION")
 DEFAULT_ADF_POLICIES_DIR = "./adf-policies"
 
 
+# pylint: disable=W1201, C0209
 class OrganizationPolicy:
     adf_policies_dir: str
 
@@ -119,7 +120,7 @@ class OrganizationPolicy:
             organization_mapping,
             supported_policies,
         )
-        
+
     # pylint: disable=R0914
     def apply_policies(
         self,
@@ -168,7 +169,6 @@ class OrganizationPolicy:
                     "Parameter %s was not found in Parameter Store, continuing.",
                     policy,
                 )
-                pass
             for _policy in _legacy_policies:
                 LOGGER.info("Loading policy: %s", _policy)
                 proposed_policy = json.loads(
