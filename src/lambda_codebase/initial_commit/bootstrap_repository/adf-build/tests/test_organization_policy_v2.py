@@ -94,3 +94,4 @@ class HappyTestCases(unittest.TestCase):
                 org_client, param_store, {}, {"TestOrg": "ou-123456789"}, SCP_ONLY
             )
             self.assertGreaterEqual(len(log.records), 0)
+        org_stubber.assert_no_pending_responses()
