@@ -74,7 +74,8 @@ class OrganizationPolicyTarget:
             self.existing_policy_ids[policy_id] = policy_name
         else:
             LOGGER.info(
-                f"Policy {policy_name} ({policy_id}) already attached to {self}"
+                "Policy {%s} ({%s}) already attached to {%s}",
+                (policy_name, policy_id, self)
             )
 
         if (
@@ -137,7 +138,8 @@ class OrganizationalPolicyCampaignPolicy:
                 return current_targets
             except self.organizations_client.exceptions.AccessDeniedException as e:
                 LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Access Denied"
+                    "Error fetching targets for policy {%s} {%s}: Access Denied" %
+                    (self.name. self.id)
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(
@@ -145,13 +147,15 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except self.organizations_client.exceptions.AWSOrganizationsNotInUseException as e:
                 LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Organizations not in use"
+                    "Error fetching targets for policy {%s} {%s}: Organizations not in use" %
+                    (self.name. self.id)
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException("Organizations not in use") from e
             except self.organizations_client.exceptions.InvalidInputException as e:
-                LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Invalid Input"
+                 LOGGER.critical(
+                    "Error fetching targets for policy {%s} {%s}: Invalid Input" %
+                    (self.name. self.id)
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(
@@ -159,7 +163,8 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except self.organizations_client.exceptions.ServiceException as e:
                 LOGGER.critical(
-                    f"Error fetching targets for policy {self.name} {self.id}: Service Exception "
+                    "Error fetching targets for policy {%s} {%s}: Service Exception",
+                    (self.name. self.id)
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(
@@ -167,9 +172,8 @@ class OrganizationalPolicyCampaignPolicy:
                 ) from e
             except self.organizations_client.exceptions.TooManyRequestsException as e:
                 LOGGER.critical(
-                    "Error fetching targets for policy %s %s: Too Many Requests ",
-                    self.name,
-                    self.id,
+                    "Error fetching targets for policy {%s} {%s}: Access Denied" %
+                    (self.name. self.id)
                 )
                 LOGGER.error(e)
                 raise OrganizationPolicyException(

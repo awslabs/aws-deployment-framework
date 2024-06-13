@@ -54,6 +54,7 @@ class OrganizationPolicy:
 
     @staticmethod
     def _trim_scp_file_name(policy):
+        breakpoint()
         return policy[1:][:-8] if policy[1:][:-8] == "/" else policy[2:][:-9]
 
     @staticmethod
