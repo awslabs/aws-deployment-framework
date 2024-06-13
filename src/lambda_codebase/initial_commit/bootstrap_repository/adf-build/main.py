@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from thread import PropagatingThread
 
 import boto3
+from botocore.exceptions import ClientError
 
 from logger import configure_logger
 from cache import Cache

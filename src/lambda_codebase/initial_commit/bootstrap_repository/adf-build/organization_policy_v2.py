@@ -54,7 +54,7 @@ class OrganizationPolicy:
 
     @staticmethod
     def _trim_scp_file_name(policy):
-        breakpoint()
+        LOGGER.info("Policy is: %s" % policy)
         return policy[1:][:-8] if policy[1:][:-8] == "/" else policy[2:][:-9]
 
     @staticmethod
@@ -98,7 +98,9 @@ class OrganizationPolicy:
                 "scp": "SERVICE_CONTROL_POLICY",
             }
 
-        LOGGER.info("Currently supported policy types: %s", supported_policies.values())
+        LOGGER.info(
+            "Currently supported policy types: %s", supported_policies.values()
+        )
         for _, policy_type in supported_policies.items():
             organizations.enable_organization_policies(policy_type)
 
@@ -135,7 +137,9 @@ class OrganizationPolicy:
                 config.get("scp"),
                 organizations,
             )
-            _legacy_policies = OrganizationPolicy._find_all_legacy_policies(policy)
+            _legacy_policies = OrganizationPolicy._find_all_legacy_policies(
+                policy
+            )
             LOGGER.info(
                 "Discovered the following legacy policies: %s", _legacy_policies
             )
@@ -166,12 +170,16 @@ class OrganizationPolicy:
                 pass
             for _policy in _legacy_policies:
                 LOGGER.info("Loading policy: %s", _policy)
-                proposed_policy = json.loads(Organizations.get_policy_body(_policy))
+                proposed_policy = json.loads(
+                    Organizations.get_policy_body(_policy)
+                )
 
                 path = (
                     OrganizationPolicy._trim_scp_file_name(_policy)
                     if policy == "scp"
-                    else OrganizationPolicy._trim_tagging_policy_file_name(_policy)
+                    else OrganizationPolicy._trim_tagging_policy_file_name(
+                        _policy
+                    )
                 )
                 proposed_policy_name = f"adf-{policy}-{path}"
                 LOGGER.debug(proposed_policy)
@@ -186,8 +194,12 @@ class OrganizationPolicy:
             _policies = self._find_all_polices(policy)
             LOGGER.info("Discovered the following policies: %s", _policies)
             for _policy in _policies:
-                raw_policy_definition = json.loads(self.get_policy_body(_policy))
-                policy_definition = OrgPolicySchema(raw_policy_definition).schema
+                raw_policy_definition = json.loads(
+                    self.get_policy_body(_policy)
+                )
+                policy_definition = OrgPolicySchema(
+                    raw_policy_definition
+                ).schema
                 LOGGER.debug(policy_definition)
                 proposed_policy = policy_definition.get("Policy")
                 proposed_policy_name = policy_definition.get("PolicyName")
@@ -195,6 +207,8 @@ class OrganizationPolicy:
                     proposed_policy_name, proposed_policy
                 )
                 targets = policy_definition.get("Targets", [])
-                campaign_policy.set_targets([campaign.get_target(t) for t in targets])
+                campaign_policy.set_targets(
+                    [campaign.get_target(t) for t in targets]
+                )
             campaign.apply()
             parameter_store.put_parameter(policy, str(_legacy_policies))
