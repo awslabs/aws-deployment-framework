@@ -1,0 +1,32 @@
+{
+    "Targets": [
+        "TestOrg"
+    ],
+    "Version": "2022-10-14",
+    "PolicyName": "TestPolicy",
+    "Policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Deny",
+                "Action": "cloudtrail:Stop*",
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+            },
+            {
+                "Effect": "Deny",
+                "Action": [
+                    "config:DeleteConfigRule",
+                    "config:DeleteConfigurationRecorder",
+                    "config:DeleteDeliveryChannel",
+                    "config:Stop*"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+}
