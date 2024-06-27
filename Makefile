@@ -129,7 +129,7 @@ version_report: report_versions
 build_deps: .venv
 	( \
 		. .venv/bin/activate; \
-		pip install aws-sam-cli yq; \
+		pip install aws-sam-cli yq packaging; \
 	)
 
 deps: .venv
