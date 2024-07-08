@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.3
+MAKEFILE_VERSION := 2.3.1
 UPDATE_VERSION := make/latest
 
 # This Makefile requires Python version 3.9 or later
