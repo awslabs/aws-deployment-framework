@@ -28,15 +28,17 @@ tfinit() {
   fi
   terraform init \
     -backend-config "bucket=$S3_BUCKET_REGION_NAME" \
+    -backend-config "encrypt=true" \
     -backend-config "kms_key_id=$KMS_KEY_ARN" \
     -backend-config "region=$AWS_REGION" \
     -backend-config "key=$ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate" \
     -backend-config "dynamodb_table=adf-tflocktable"
 
-  echo "Bucket: $S3_BUCKET_REGION_NAME"
-  echo "KMS Key ARN: $KMS_KEY_ARN"
-  echo "Region: $AWS_REGION"
-  echo "Key:    $ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate"
+  echo "Bucket:         $S3_BUCKET_REGION_NAME"
+  echo "Encrypt:        true"
+  echo "KMS Key ARN:    $KMS_KEY_ARN"
+  echo "Region:         $AWS_REGION"
+  echo "Key:            $ADF_PROJECT_NAME/$ACCOUNT_ID.tfstate"
   echo "DynamoDB table: adf-tflocktable"
 }
 tfplan() {
@@ -50,7 +52,7 @@ tfplan() {
   aws s3 cp \
     "${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" \
     "s3://${S3_BUCKET_REGION_NAME}/${ADF_PROJECT_NAME}/tf-plan/${DATE}/${TF_VAR_TARGET_ACCOUNT_ID}/${ADF_PROJECT_NAME}-${TF_VAR_TARGET_ACCOUNT_ID}-${TS}.log" \
-    --sse-kms-key-id $KMS_KEY_ARN
+    --sse-kms-key-id $KMS_KEY_ARN --sse "aws:kms"
   echo "Path to terraform plan s3://$S3_BUCKET_REGION_NAME/$ADF_PROJECT_NAME/tf-plan/$DATE/$TF_VAR_TARGET_ACCOUNT_ID/$ADF_PROJECT_NAME-$TF_VAR_TARGET_ACCOUNT_ID-$TS.log"
 }
 tfapply() {
