@@ -222,9 +222,7 @@ class Organizations:  # pylint: disable=R0904
         return []
 
     def describe_policy(self, policy_id):
-        response = self.client.describe_policy(
-            PolicyId=policy_id,
-        )
+        response = self.client.describe_policy(PolicyId=policy_id)
         return response.get("Policy")
 
     def attach_policy(self, policy_id, target_id):
