@@ -391,7 +391,7 @@ Guide](./admin-guide.md#adfconfig).
 
 #### Parameter MainNotificationEndpoint
 
-Optional, default value: (empty)
+Required on installation, optional on update, default value: (empty)
 
 Example: `jane@example.com`
 
