@@ -153,6 +153,9 @@ Resources:
             Action:
               - kms:Decrypt
               - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
             Resource: "*"
             Condition:
               StringEquals:
