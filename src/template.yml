@@ -920,6 +920,11 @@ Resources:
               "TimeoutSeconds": 300,
               "Retry": [
                 {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 3,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 10
+                }, {
                   "ErrorEquals": [
                     "Lambda.Unknown",
                     "Lambda.ServiceException",
