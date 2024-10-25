@@ -113,6 +113,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf/pipeline-management/"
+      RoleName: "adf-pipeline-management-deployment-map-processor"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -226,6 +227,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf/pipeline-management/"
+      RoleName: "adf-pipeline-management-store-pipeline-definition"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -252,6 +254,7 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/adf/pipeline-management/"
+      RoleName: "adf-pipeline-management-identify-out-of-date-pipelines"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1227,3 +1230,6 @@ Outputs:
 
   CreateRepositoryLambdaRoleArn:
     Value: !GetAtt CreateRepositoryLambdaRole.Arn
+
+  PipelineManagementCodeBuildProjectArn:
+    Value: !GetAtt PipelineManagementCodeBuildProject.Arn
