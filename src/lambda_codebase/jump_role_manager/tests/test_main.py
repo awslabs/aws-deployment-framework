@@ -14,11 +14,15 @@ from aws_xray_sdk import global_sdk_config
 from main import (
     ADF_JUMP_MANAGED_POLICY_ARN,
     ADF_TEST_BOOTSTRAP_ROLE_NAME,
+    CHARS_PER_ACCOUNT_ID,
     CROSS_ACCOUNT_ACCESS_ROLE_NAME,
     INCLUDE_NEW_ACCOUNTS_IF_JOINED_IN_LAST_HOURS,
+    MAX_MANAGED_POLICY_LENGTH,
     MAX_NUMBER_OF_ACCOUNTS,
     MAX_POLICY_VERSIONS,
+    MAX_ROLE_NAME_LENGTH,
     POLICY_VALID_DURATION_IN_HOURS,
+    ZERO_ACCOUNTS_POLICY_LENGTH,
     _build_summary,
     _delete_old_policy_versions,
     _generate_policy_document,
@@ -65,7 +69,7 @@ def mock_organizations():
 
 
 def test_max_number_of_accounts():
-    assert MAX_NUMBER_OF_ACCOUNTS == 391
+    assert MAX_NUMBER_OF_ACCOUNTS == 361
 
 
 def test_max_policy_versions():
@@ -674,6 +678,7 @@ def test_generate_policy_document_no_accounts_to_bootstrap(get_mock):
     assert policy == expected_policy
 
 
+@patch("main.CROSS_ACCOUNT_ACCESS_ROLE_NAME", "z" * MAX_ROLE_NAME_LENGTH)
 @patch("main._get_valid_until")
 def test_generate_policy_document(get_mock):
     end_time = '2024-04-03T14:00:00Z'
@@ -683,6 +688,7 @@ def test_generate_policy_document(get_mock):
         '222222222222',
         '333333333333',
     ]
+    role_name = "z" * MAX_ROLE_NAME_LENGTH
     expected_policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -691,7 +697,7 @@ def test_generate_policy_document(get_mock):
                 "Effect": "Allow",
                 "Action": ["sts:AssumeRole"],
                 "Resource": [
-                    f"arn:aws:iam::*:role/{CROSS_ACCOUNT_ACCESS_ROLE_NAME}",
+                    f"arn:aws:iam::*:role/{role_name}",
                 ],
                 "Condition": {
                     "DateLessThan": {
@@ -707,6 +713,45 @@ def test_generate_policy_document(get_mock):
 
     policy = _generate_policy_document(non_bootstrapped_account_ids)
     assert policy == expected_policy
+    assert len(json.dumps(policy)) == (
+        ZERO_ACCOUNTS_POLICY_LENGTH
+        + CHARS_PER_ACCOUNT_ID * len(non_bootstrapped_account_ids)
+        - 2  # characters for the last account, as that does not include ", "
+    )
+
+
+@patch("main.CROSS_ACCOUNT_ACCESS_ROLE_NAME", "z" * MAX_ROLE_NAME_LENGTH)
+@patch("main._get_valid_until")
+def test_generate_policy_document_max_length(get_mock):
+    end_time = '2024-04-03T14:00:00Z'
+    get_mock.return_value = end_time
+    non_bootstrapped_account_ids = ['111111111111'] * MAX_NUMBER_OF_ACCOUNTS
+    role_name = "z" * MAX_ROLE_NAME_LENGTH
+    expected_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowNonBootstrappedAccounts",
+                "Effect": "Allow",
+                "Action": ["sts:AssumeRole"],
+                "Resource": [
+                    f"arn:aws:iam::*:role/{role_name}",
+                ],
+                "Condition": {
+                    "DateLessThan": {
+                        "aws:CurrentTime": end_time,
+                    },
+                    "StringEquals": {
+                        "aws:ResourceAccount": non_bootstrapped_account_ids,
+                    },
+                }
+            }
+        ]
+    }
+
+    policy = _generate_policy_document(non_bootstrapped_account_ids)
+    assert policy == expected_policy
+    assert len(json.dumps(policy)) < MAX_MANAGED_POLICY_LENGTH
 # ---------------------------------------------------------
 
 
