@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.3.1
+MAKEFILE_VERSION := 2.3.2
 UPDATE_VERSION := make/latest
 
 # This Makefile requires Python version 3.9 or later
@@ -153,8 +153,13 @@ tox: deps
 	)
 
 docker:
-	@echo "Prepare docker to support all architectures..."
-	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	( \
+		RUNNING_ON_ARCH=$$(arch); \
+		if [ "$$RUNNING_ON_ARCH" = "x86_64" ] || [ "$$RUNNING_ON_ARCH" = "i386" ]; then \
+			echo "Prepare docker to support the required architectures..." && \
+			docker run --rm --privileged multiarch/qemu-user-static --reset -p yes; \
+		fi \
+	)
 
 version_number: .venv
 	@echo "Generate a new version number..."
