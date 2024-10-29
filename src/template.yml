@@ -111,6 +111,16 @@ Parameters:
       - ERROR
       - CRITICAL
 
+  EnablePolicyV2:
+    Description: >-
+      Enable the second generation of ADF Policies.
+      See the documentation for more details.
+    Type: String
+    Default: "FALSE"
+    AllowedValues:
+      - "TRUE"
+      - "FALSE"
+
   AllowBootstrappingOfManagementAccount:
     Description: >-
       Would ADF need to bootstrap the Management Account of your AWS
@@ -1528,6 +1538,7 @@ Resources:
               - "organizations:ListParents"
               - "organizations:ListPolicies"
               - "organizations:ListPoliciesForTarget"
+              - "organizations:ListTargetsForPolicy"
               - "organizations:ListRoots"
               - "organizations:UpdatePolicy"
               - "sts:GetCallerIdentity"
@@ -1651,6 +1662,8 @@ Resources:
             Value: !Ref DeploymentAccountMainRegion
           - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
             Value: !Ref AccountBootstrappingStateMachine
+          - Name: ENABLED_V2_ORG_POLICY
+            Value: !Ref EnablePolicyV2
         Type: LINUX_CONTAINER
       Name: "adf-bootstrap-pipeline-build"
       ServiceRole: !GetAtt BootstrapCodeBuildRole.Arn
