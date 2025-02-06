@@ -125,15 +125,41 @@ Please add the required S3 read permissions to the `adf-codecomit-role` via the
 the `adf-codecommit-role` S3 read permissions in the bucket policy of the
 source bucket.
 
+If the `poll_for_changes` proerty set to `False`, ADF will monitor the S3 events 
+`Object Created` or `Object Copy` for the defined `object_key` of the defined 
+`bucket_name` and trigger the related pipeline.
+
+The source S3 bucket should enable `Bucket Versioning` and `Amazon EventBridge`, 
+otherwise, the auto pipeline trigger will not work.
+
+ADF supports source S3 bucket in a target account other than default Deployment account. 
+To make it work, an event bridge policy should be manually added to the default event bus 
+in the Deployment map. For example:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "allow_account_to_put_events",
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::<target-account-id>:root"
+    },
+    "Action": "events:PutEvents",
+    "Resource": "arn:aws:events:eu-central-1:<deployment-account-id>:event-bus/default"
+  }]
+}
+```
+
 Provider type: `s3`.
 
 #### Properties
 
-- *account_id* - *(String)* **(required)**
-  - The AWS Account ID where the source S3 Bucket is located.
-- *bucket_name* - *(String)* **(required)**
+- *account_id* - *(String)* **(optional)**
+  - The AWS Account ID where the source S3 Bucket is located. By default, it is Deployment account ID.
+- *bucket_name* - *(String)* 
   - The Name of the S3 Bucket that will be the source of the pipeline.
-- *object_key* - *(String)* **(required)**
+- *object_key* - *(String)* 
   - The Specific Object within the bucket that will trigger the pipeline
     execution.
 - *trigger_on_changes* - *(Boolean)* default: `True`.
@@ -144,7 +170,15 @@ Provider type: `s3`.
   - **By default**, it will trigger on changes using the polling mechanism of
     CodePipeline. Monitoring the S3 object so it can trigger a release when an
     update took place.
-
+- *poll_for_changes* - *(Boolean)* default: `True`.
+  - If CodePipeline should poll the repository for changes, defaults to `False`
+    in favor of Amazon EventBridge events. As the name implies, when polling
+    for changes it will check the repository for updates every minute or so.
+    This will show up as actions in CloudTrail.
+  - **By default**, it will poll for changes, however, if set to `False`, it 
+    will use the event triggered by S3 notification when an update to the 
+    s3 object took place.
+  
 ### CodeConnections
 
 Use CodeConnections as a source to trigger your pipeline. The source action retrieves
