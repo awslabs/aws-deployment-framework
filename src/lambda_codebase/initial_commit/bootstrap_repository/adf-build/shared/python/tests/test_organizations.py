@@ -363,12 +363,11 @@ def test_determine_ou_path(cls):
 
 def test_build_account_path(cls):
     cls.client = Mock()
-    cache = Cache()
     cls.client.list_parents.return_value = stub_organizations.list_parents_root
     cls.client.describe_organizational_unit.return_value = (
         stub_organizations.describe_organizational_unit
     )
-    assert cls.build_account_path("some_ou_id", [], cache) == "some_ou_name"
+    assert cls.build_account_path("some_ou_id", []) == "some_ou_name"
 
 
 class OUPathsHappyTestCases(unittest.TestCase):

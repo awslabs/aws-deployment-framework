@@ -256,14 +256,14 @@ def worker_thread(
 
     organizations = Organizations(
         role=boto3,
-        account_id=account_id
+        account_id=account_id,
+        cache=cache
     )
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
     account_path = organizations.build_account_path(
         ou_id,
-        [],  # Initial empty array to hold OU Path,
-        cache
+        [],  # Initial empty array to hold OU Path
     )
     try:
         role = ensure_generic_account_can_be_setup(

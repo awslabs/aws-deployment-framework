@@ -38,7 +38,7 @@ class Organizations:  # pylint: disable=R0904
     )
 
     def __init__(
-        self, role=None, account_id=None, org_client=None, tagging_client=None
+        self, role=None, account_id=None, org_client=None, tagging_client=None, cache=None
     ):
         if role:
             LOGGER.warning(
@@ -69,6 +69,8 @@ class Organizations:  # pylint: disable=R0904
             if not tagging_client
             else tagging_client
         )
+        if cache is not None:
+            self.cache = cache
         self.account_id = account_id
         self.root_id = None
 
@@ -302,7 +304,12 @@ class Organizations:  # pylint: disable=R0904
         return accounts
 
     def get_organization_info(self):
-        response = self.client.describe_organization()
+        if self.cache is not None:
+            if not self.cache.exists('organization'):
+                self.cache.add('organization', self.client.describe_organization())
+            response = self.cache.get('organization')
+        else:
+            response = self.client.describe_organization()
         return {
             "organization_management_account_id": (
                 response
@@ -340,6 +347,11 @@ class Organizations:  # pylint: disable=R0904
         return f"{ou_path}/{ou_child_name}" if ou_path else ou_child_name
 
     def list_parents(self, ou_id):
+        if self.cache is not None:
+            cache_key = f'parents_{ou_id}'
+            if not self.cache.exists(cache_key):
+                self.cache.add(cache_key, self.client.list_parents(ChildId=ou_id).get("Parents")[0])
+            return self.cache.get(cache_key)
         return self.client.list_parents(ChildId=ou_id).get("Parents")[0]
 
     def get_accounts_for_parent(self, parent_id):
@@ -351,6 +363,10 @@ class Organizations:  # pylint: disable=R0904
         )
 
     def get_ou_root_id(self):
+        if self.cache is not None:
+            if not self.cache.exists('ROOT'):
+                self.cache.add('ROOT', self.client.list_roots().get("Roots")[0].get("Id"))
+            return self.cache.get('ROOT')
         return self.client.list_roots().get("Roots")[0].get("Id")
 
     def ou_path_to_id(self, path):
@@ -399,7 +415,7 @@ class Organizations:  # pylint: disable=R0904
                     )
         return accounts
 
-    def build_account_path(self, ou_id, account_path, cache):
+    def build_account_path(self, ou_id, account_path):
         """
         Builds a path tree to the account from the root of the Organization
         """
@@ -408,14 +424,14 @@ class Organizations:  # pylint: disable=R0904
         # While not at the root of the Organization
         while current.get("Type") != "ROOT":
             # check cache for ou name of id
-            if not cache.exists(current.get("Id")):
-                cache.add(
+            if not self.cache.exists(current.get("Id")):
+                self.cache.add(
                     current.get("Id"),
                     self.describe_ou_name(current.get("Id")),
                 )
-            ou_name = cache.get(current.get("Id"))
+            ou_name = self.cache.get(current.get("Id"))
             account_path.append(ou_name)
-            return self.build_account_path(current.get("Id"), account_path, cache)
+            return self.build_account_path(current.get("Id"), account_path)
         return Organizations.determine_ou_path(
             "/".join(list(reversed(account_path))),
             self.describe_ou_name(self.get_parent_info().get("ou_parent_id")),
@@ -441,15 +457,28 @@ class Organizations:  # pylint: disable=R0904
         return account_ids
 
     def list_organizational_units_for_parent(self, parent_ou):
-        organizational_units = [
-            ou
-            for org_units in (
-                self.client.get_paginator("list_organizational_units_for_parent")
-                .paginate(ParentId=parent_ou)
-            )
-            for ou in org_units["OrganizationalUnits"]
-        ]
-        return organizational_units
+        if self.cache is not None:
+            cache_key = f'children_{parent_ou}'
+            if not self.cache.exists(cache_key):
+                self.cache.add(cache_key, [
+                    ou
+                    for org_units in (
+                        self.client.get_paginator("list_organizational_units_for_parent")
+                        .paginate(ParentId=parent_ou)
+                    )
+                    for ou in org_units["OrganizationalUnits"]
+                ])
+            return self.cache.get(f'organizational_units_{parent_ou}')
+        else:
+            organizational_units = [
+                ou
+                for org_units in (
+                    self.client.get_paginator("list_organizational_units_for_parent")
+                    .paginate(ParentId=parent_ou)
+                )
+                for ou in org_units["OrganizationalUnits"]
+            ]
+            return organizational_units
 
     def get_account_id(self, account_name):
         for account in self.list_accounts():
@@ -462,12 +491,21 @@ class Organizations:  # pylint: disable=R0904
         """
         Retrieves all accounts in organization.
         """
-        existing_accounts = [
-            account
-            for accounts in self.client.get_paginator("list_accounts").paginate()
-            for account in accounts["Accounts"]
-        ]
-        return existing_accounts
+        if self.cache is not None:
+            if not self.cache.exists('accounts'):
+                self.cache.add('accounts', [
+                    account
+                    for accounts in self.client.get_paginator("list_accounts").paginate()
+                    for account in accounts["Accounts"]
+                ])
+            return self.cache.get('accounts')
+        else:
+            existing_accounts = [
+                account
+                for accounts in self.client.get_paginator("list_accounts").paginate()
+                for account in accounts["Accounts"]
+            ]
+            return existing_accounts
 
     def get_ou_id(self, ou_path, parent_ou_id=None):
         # Return root OU if '/' is provided

@@ -21,21 +21,20 @@ REGION_DEFAULT = os.environ["AWS_REGION"]
 def lambda_handler(event, _):
     parameters = ParameterStore(region=REGION_DEFAULT, role=boto3)
     account_id = event.get('detail').get('requestParameters').get('accountId')
-    organizations = Organizations(role=boto3, account_id=account_id)
+    cache = Cache()
+    organizations = Organizations(role=boto3, account_id=account_id, cache=cache)
     parsed_event = Event(
         event=event,
         parameter_store=parameters,
         organizations=organizations,
         account_id=account_id
     )
-    cache = Cache()
 
     account_path = (
         "ROOT" if parsed_event.moved_to_root
         else parsed_event.organizations.build_account_path(
             parsed_event.destination_ou_id,
-            [],  # Initial empty array to hold OU Path,
-            cache,
+            [],  # Initial empty array to hold OU Path
         )
     )
 
