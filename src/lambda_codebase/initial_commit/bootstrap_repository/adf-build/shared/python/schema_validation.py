@@ -91,9 +91,10 @@ CODECONNECTIONS_SOURCE = {
 
 # S3 Source
 S3_SOURCE_PROPS = {
-    "account_id": AWS_ACCOUNT_ID_SCHEMA,
-    "bucket_name": str,
-    "object_key": str,
+    Optional("account_id"): AWS_ACCOUNT_ID_SCHEMA,
+    Optional("bucket_name"): str,
+    Optional("object_key"): str,
+    Optional("poll_for_changes"): bool,
     Optional("trigger_on_changes"): bool,
 }
 S3_SOURCE = {

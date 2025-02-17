@@ -23,7 +23,8 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 CLOUDWATCH = boto3.client("cloudwatch")
 METRICS = ADFMetrics(CLOUDWATCH, "PIPELINE_MANAGEMENT/RULE")
 
-_CACHE = None
+_CACHE_S3 = None
+_CACHE_CODECOMMIT = None
 
 
 def lambda_handler(event, _):
@@ -38,31 +39,52 @@ def lambda_handler(event, _):
         event (dict): The ADF Pipeline Management State Machine execution
             input object.
     """
-
     # pylint: disable=W0603
     # Global variable here to cache across lambda execution runtimes.
-    global _CACHE
-    if not _CACHE:
-        _CACHE = Cache()
+    global _CACHE_S3, _CACHE_CODECOMMIT
+
+    if not _CACHE_S3:
+        _CACHE_S3 = Cache()
         METRICS.put_metric_data(
-            {"MetricName": "CacheInitialized", "Value": 1, "Unit": "Count"}
+            {"MetricName": "S3CacheInitialized", "Value": 1, "Unit": "Count"}
+        )
+
+    if not _CACHE_CODECOMMIT:
+        _CACHE_CODECOMMIT = Cache()
+        METRICS.put_metric_data(
+            {"MetricName": "CodeCommitCacheInitialized", "Value": 1, "Unit": "Count"}
         )
 
     LOGGER.info(event)
 
     pipeline = event['pipeline_definition']
 
-    source_provider = (
-        pipeline.get("default_providers", {})
-        .get("source", {})
-        .get("provider", "codecommit")
-    )
-    source_account_id = (
-        pipeline.get("default_providers", {})
-        .get("source", {})
-        .get("properties", {})
-        .get("account_id")
-    )
+    default_source_provider = pipeline.get("default_providers", {}).get("source", {})
+    source_provider = default_source_provider.get("provider", "codecommit")
+    source_provider_properties = default_source_provider.get("properties", {})
+    source_account_id = source_provider_properties.get("account_id")
+    source_bucket_name = source_provider_properties.get("bucket_name")
+    if source_provider == "s3":
+        if not source_account_id:
+            source_account_id = DEPLOYMENT_ACCOUNT_ID
+            pipeline["default_providers"]["source"].setdefault("properties", {})["account_id"] = source_account_id
+        if not source_bucket_name:
+            try:
+                parameter_store = ParameterStore(DEPLOYMENT_ACCOUNT_REGION, boto3)
+                default_s3_source_bucket_name = parameter_store.fetch_parameter(
+                    "/adf/scm/default-s3-source-bucket-name"
+                )
+            except ParameterNotFoundError:
+                default_s3_source_bucket_name = os.environ["S3_BUCKET_NAME"]
+                LOGGER.debug("default_s3_source_bucket_name not found in SSM - Fall back to s3_bucket_name.")
+            pipeline["default_providers"]["source"].setdefault("properties", {})["bucket_name"] = default_s3_source_bucket_name
+            source_bucket_name = default_s3_source_bucket_name
+        event_params = {
+                "SourceS3BucketName": source_bucket_name
+        }
+    else:
+        event_params = {}
+        
 
     # Resolve codecommit source_account_id in case it is not set
     if source_provider == "codecommit" and not source_account_id:
@@ -98,25 +120,36 @@ def lambda_handler(event, _):
         )
 
     if (
-        source_provider == "codecommit"
-        and source_account_id
+        source_account_id
         and int(source_account_id) != int(DEPLOYMENT_ACCOUNT_ID)
-        and not _CACHE.exists(source_account_id)
+        and (
+            (source_provider == "codecommit" and not _CACHE_CODECOMMIT.exists(source_account_id))
+            or (source_provider == "s3" and not _CACHE_S3.exists(source_account_id))
+        )
     ):
         LOGGER.info(
-            "Source is CodeCommit and the repository is hosted in the %s "
+            "Source is %s and the repository/bucket is hosted in the %s "
             "account instead of the deployment account (%s). Creating or "
             "updating EventBridge forward rule to forward change events "
             "from the source account to the deployment account in "
             "EventBridge.",
+            source_provider,
             source_account_id,
             DEPLOYMENT_ACCOUNT_ID,
         )
-        rule = Rule(source_account_id)
+
+        rule = Rule(source_account_id, source_provider, event_params)
         rule.create_update()
-        _CACHE.add(source_account_id, True)
-        METRICS.put_metric_data(
-            {"MetricName": "CreateOrUpdate", "Value": 1, "Unit": "Count"}
-        )
+
+        if source_provider == "codecommit":
+            _CACHE_CODECOMMIT.add(source_account_id, True)
+            METRICS.put_metric_data(
+                {"MetricName": "CodeCommitCreateOrUpdate", "Value": 1, "Unit": "Count"}
+            )
+        elif source_provider == "s3":
+            _CACHE_S3.add(source_account_id, True)
+            METRICS.put_metric_data(
+                {"MetricName": "S3CreateOrUpdate", "Value": 1, "Unit": "Count"}
+            )
 
     return event
