@@ -125,16 +125,16 @@ Please add the required S3 read permissions to the `adf-codecomit-role` via the
 the `adf-codecommit-role` S3 read permissions in the bucket policy of the
 source bucket.
 
-If the `poll_for_changes` proerty set to `False`, ADF will monitor the S3 events 
+The Source S3 bucket should be manually created in advance. Additionally, the source S3 bucket should enable [Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html) and [Amazon EventBridge](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html), 
+otherwise, the auto pipeline trigger will not work.
+
+S3 provder supports property `poll_for_changes`, by default, it set to `True`, however, it is suggested to set to `False`, when it set to `False`, ADF will monitor the S3 events 
 `Object Created` or `Object Copy` for the defined `object_key` of the defined 
 `bucket_name` and trigger the related pipeline.
 
-The source S3 bucket should enable `Bucket Versioning` and `Amazon EventBridge`, 
-otherwise, the auto pipeline trigger will not work.
-
 ADF supports source S3 bucket in a target account other than default Deployment account. 
-To make it work, an event bridge policy should be manually added to the default event bus 
-in the Deployment map. For example:
+To make it work, an [event bus resource policy](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-bus-permissions-manage.html) should be manually added to the default event bus 
+in the Deployment account. For example:
 
 ```
 {
@@ -156,13 +156,16 @@ Provider type: `s3`.
 #### Properties
 
 - *account_id* - *(String)* **(optional)**
-  - The AWS Account ID where the source S3 Bucket is located. By default, it is Deployment account ID.
-- *bucket_name* - *(String)* 
+  - The AWS Account ID where the source S3 Bucket is located. 
+  - If not set here in the provider, the deployment account id will be used as default value.
+- *bucket_name* - *(String)* **(optional)**
   - The Name of the S3 Bucket that will be the source of the pipeline.
-- *object_key* - *(String)* 
+  - Additionally, the default source bucket name, can be set in
+    [adfconfig.yml: config/scm/default-s3-source-bucket-name](./admin-guide.md#adfconfig).
+- *object_key* - *(String)* **(optional)**
   - The Specific Object within the bucket that will trigger the pipeline
-    execution.
-- *trigger_on_changes* - *(Boolean)* default: `True`.
+    execution. By default, it will use the `pipeline name`.zip.
+- *trigger_on_changes* - *(Boolean)* default: `True`. **(optional)**
   - Whether CodePipeline should release a change and trigger the pipeline if a
     change was detected in the S3 object.
   - When set to **False**, you either need to trigger the pipeline manually,
@@ -170,7 +173,7 @@ Provider type: `s3`.
   - **By default**, it will trigger on changes using the polling mechanism of
     CodePipeline. Monitoring the S3 object so it can trigger a release when an
     update took place.
-- *poll_for_changes* - *(Boolean)* default: `True`.
+- *poll_for_changes* - *(Boolean)* default: `True`. **(optional)**
   - If CodePipeline should poll the repository for changes, defaults to `False`
     in favor of Amazon EventBridge events. As the name implies, when polling
     for changes it will check the repository for updates every minute or so.
