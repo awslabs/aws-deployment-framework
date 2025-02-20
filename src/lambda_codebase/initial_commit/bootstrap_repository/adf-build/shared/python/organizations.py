@@ -321,10 +321,14 @@ class Organizations:  # pylint: disable=R0904
 
     def describe_ou_name(self, ou_id):
         try:
-            response = self.client.describe_organizational_unit(
-                OrganizationalUnitId=ou_id
-            )
-            return response["OrganizationalUnit"]["Name"]
+            cache_key = f'ou_name_{ou_id}'
+            if not self.cache.exists(cache_key):
+                response = self.client.describe_organizational_unit(
+                    OrganizationalUnitId=ou_id
+                )
+                self.cache.add(cache_key, response["OrganizationalUnit"]["Name"])
+            return self.cache.get(cache_key)
+
         except ClientError as error:
             raise RootOUIDError(
                 "OU is the Root of the Organization",
@@ -332,8 +336,11 @@ class Organizations:  # pylint: disable=R0904
 
     def describe_account_name(self, account_id):
         try:
-            response = self.client.describe_account(AccountId=account_id)
-            return response["Account"]["Name"]
+            cache_key = f'account_name_{account_id}'
+            if not self.cache.exists(cache_key):
+                response = self.client.describe_account(AccountId=account_id)
+                self.cache.add(cache_key, response["Account"]["Name"])
+            return self.cache.get(cache_key)
         except ClientError as error:
             LOGGER.error(
                 "Failed to retrieve account name for account ID %s",
