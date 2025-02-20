@@ -462,10 +462,12 @@ class Organizations:  # pylint: disable=R0904
         ]
 
     def list_organizational_units_for_parent(self, parent_ou):
+        print(f'looking for children in {parent_ou}')
         cache_key = f'children_{parent_ou}'
         if not self.cache.exists(cache_key):
+            LOGGER.debug(f'Cache MISS for children of OU {parent_ou}')
             self.cache.add(cache_key, self._list_organizational_units_for_parent(parent_ou))
-        return self.cache.get(f'organizational_units_{parent_ou}')
+        return self.cache.get(cache_key)
 
     def get_account_id(self, account_name):
         for account in self.list_accounts():
