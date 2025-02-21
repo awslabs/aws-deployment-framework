@@ -367,9 +367,9 @@ class Organizations:  # pylint: disable=R0904
         )
 
     def get_ou_root_id(self):
-        if not self.cache.exists('ROOT'):
-            self.cache.add('ROOT', self.client.list_roots().get("Roots")[0].get("Id"))
-        return self.cache.get('ROOT')
+        if not self.cache.exists('root_id'):
+            self.cache.add('root_id', self.client.list_roots().get("Roots")[0].get("Id"))
+        return self.cache.get('root_id')
 
     def ou_path_to_id(self, path):
         nested_dir_paths = path.split('/')[1:]
