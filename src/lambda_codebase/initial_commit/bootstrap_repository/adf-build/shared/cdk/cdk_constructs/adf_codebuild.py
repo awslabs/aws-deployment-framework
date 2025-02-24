@@ -380,7 +380,7 @@ class CodeBuild(Construct):
             if repository_name:
                 repository_arn = (
                     f"arn:aws:ecr:{ADF_DEPLOYMENT_REGION}:"
-                    f"{ADF_DEPLOYMENT_ACCOUNT_ID}:{repository_name}"
+                    f"{ADF_DEPLOYMENT_ACCOUNT_ID}:repository/{repository_name}"
                 )
 
             ecr_repo = _ecr.Repository.from_repository_arn(
