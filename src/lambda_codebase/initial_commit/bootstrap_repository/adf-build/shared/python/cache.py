@@ -23,3 +23,7 @@ class Cache:
 
     def add(self, key, value):
         self._stash[key] = value
+
+    def remove(self, key):
+        if key in self._stash:
+            del self._stash[key]
