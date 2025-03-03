@@ -422,12 +422,6 @@ class Organizations:  # pylint: disable=R0904
 
         # While not at the root of the Organization
         while current.get("Type") != "ROOT":
-            # check cache for ou name of id
-            if not self.cache.exists(current.get("Id")):
-                self.cache.add(
-                    current.get("Id"),
-                    self.describe_ou_name(current.get("Id")),
-                )
             ou_name = self.describe_ou_name(current.get("Id"))
             account_path.append(ou_name)
             return self.build_account_path(current.get("Id"), account_path)
