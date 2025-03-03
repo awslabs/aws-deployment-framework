@@ -469,7 +469,7 @@ class Organizations:  # pylint: disable=R0904
         LOGGER.debug('Looking for children in %s', parent_ou)
         cache_key = f'children_{parent_ou}'
         if not self.cache.exists(cache_key):
-            LOGGER.debug(f'Cache MISS for children of OU {parent_ou}')
+            LOGGER.debug('Cache MISS for children of OU %s', parent_ou)
             self.cache.add(cache_key, self._list_organizational_units_for_parent(parent_ou))
         return self.cache.get(cache_key)
 
