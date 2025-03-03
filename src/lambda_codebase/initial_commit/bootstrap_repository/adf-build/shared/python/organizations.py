@@ -428,7 +428,7 @@ class Organizations:  # pylint: disable=R0904
                     current.get("Id"),
                     self.describe_ou_name(current.get("Id")),
                 )
-            ou_name = self.cache.get(current.get("Id"))
+            ou_name = self.describe_ou_name(current.get("Id"))
             account_path.append(ou_name)
             return self.build_account_path(current.get("Id"), account_path)
         return Organizations.determine_ou_path(
