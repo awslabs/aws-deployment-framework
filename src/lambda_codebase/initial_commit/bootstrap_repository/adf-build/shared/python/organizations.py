@@ -466,7 +466,7 @@ class Organizations:  # pylint: disable=R0904
         ]
 
     def list_organizational_units_for_parent(self, parent_ou):
-        print(f'looking for children in {parent_ou}')
+        LOGGER.debug('Looking for children in %s', parent_ou)
         cache_key = f'children_{parent_ou}'
         if not self.cache.exists(cache_key):
             LOGGER.debug(f'Cache MISS for children of OU {parent_ou}')
