@@ -27,7 +27,7 @@ jobs:
 
       - name: MegaLinter
         id: ml
-        uses: oxsecurity/megalinter@v8.1.0
+        uses: oxsecurity/megalinter@v8.4.2
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/

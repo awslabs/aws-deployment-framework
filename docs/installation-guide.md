@@ -92,6 +92,7 @@ Please note that building on *Windows* is not supported, please use the
     This should return a table that is possibly empty.
   - Additionally, running `docker --version` should return version 19 or
     later.
+<!-- markdown-link-check-disable-next-line -->
 - [make](https://www.gnu.org/software/make/)
   - To test if it is available, run `make --version`.
     This should return 4.3 or later.
@@ -101,6 +102,7 @@ Please note that building on *Windows* is not supported, please use the
 - [jq](https://github.com/jqlang/jq)
   - To test if it is available, run `jq --version`.
     This version should be 1.6 or later.
+<!-- markdown-link-check-disable-next-line -->
 - [sed](https://www.gnu.org/software/sed/)
   - To test if it is available, run `sed --version`.
     This should return 4.3 or later.
