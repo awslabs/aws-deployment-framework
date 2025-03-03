@@ -257,7 +257,7 @@ def worker_thread(
     organizations = Organizations(
         role=boto3,
         account_id=account_id,
-        cache=cache
+        cache=cache,
     )
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
