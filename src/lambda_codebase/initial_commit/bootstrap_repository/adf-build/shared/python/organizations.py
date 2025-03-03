@@ -70,10 +70,7 @@ class Organizations:  # pylint: disable=R0904
             if not tagging_client
             else tagging_client
         )
-        if cache is not None:
-            self.cache = cache
-        else:
-            self.cache = Cache()
+        self.cache = cache or Cache()
         self.account_id = account_id
 
     def get_parent_info(self, account_id=None):
