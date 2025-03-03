@@ -262,8 +262,9 @@ def worker_thread(
     ou_id = organizations.get_parent_info().get("ou_parent_id")
 
     account_path = organizations.build_account_path(
-        ou_id,
-        [],  # Initial empty array to hold OU Path
+        ou_id=ou_id,
+        account_path=[],  # Initial empty array to hold OU Path
+        cache=cache
     )
     try:
         role = ensure_generic_account_can_be_setup(
