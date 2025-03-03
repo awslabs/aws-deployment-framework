@@ -1620,19 +1620,38 @@ Resources:
       Version: !Ref ADFVersion
       RepositoryArn: !GetAtt CodeCommitRepository.Arn
 
+  DetermineDefaultBranchFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: /adf/bootstrap/
+      RoleName: "adf-determine-default-branch-lambda"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "adf-send-slack-notification"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codecommit:GetRepository"
+                Resource:
+                  - !GetAtt CodeCommitRepository.Arn
+
   DetermineDefaultBranchNameHandler:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/determine_default_branch
       Description: "ADF Lambda Function - BootstrapDetermineDefaultBranchName"
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - codecommit:GetRepository
-              Resource: !GetAtt CodeCommitRepository.Arn
+      Role: !GetAtt DetermineDefaultBranchFunctionRole.Arn
       FunctionName: ADFPipelinesDetermineDefaultBranchName
     Metadata:
       BuildMethod: python3.12
@@ -1646,26 +1665,45 @@ Resources:
       DirectoryName: pipelines_repository
       DefaultBranchName: !GetAtt DetermineDefaultBranchName.DefaultBranchName
 
+  InitialCommitFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: /adf/bootstrap/
+      RoleName: "adf-initial-commit"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "adf-send-slack-notification"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codecommit:GetDifferences"
+                  - "codecommit:CreateCommit"
+                  - "codecommit:CreatePullRequest"
+                  - "codecommit:DeleteBranch"
+                  - "codecommit:GetBranch"
+                  - "codecommit:CreateBranch"
+                  - "codecommit:CreatePullRequest"
+                  - "codecommit:DeleteBranch"
+                Resource:
+                  - !GetAtt CodeCommitRepository.Arn
+
   InitialCommitHandler:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handler.lambda_handler
       CodeUri: lambda_codebase/initial_commit
       Description: "ADF Lambda Function - PipelinesCreateInitialCommitFunction"
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - codecommit:GetDifferences
-                - codecommit:CreateCommit
-                - codecommit:CreatePullRequest
-                - codecommit:DeleteBranch
-                - codecommit:GetBranch
-                - codecommit:CreateBranch
-                - codecommit:CreatePullRequest
-                - codecommit:DeleteBranch
-              Resource: !GetAtt CodeCommitRepository.Arn
+      Role: !GetAtt InitialCommitFunctionRole.Arn
       FunctionName: PipelinesCreateInitialCommitFunction
       Timeout: 300
     Metadata:
@@ -1887,6 +1925,42 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-store-pipeline-definition:*"
               - Effect: "Allow"
                 Action:
+                  - "iam:PassRole"
+                Resource:
+                  - !GetAtt DetermineDefaultBranchFunctionRole.Arn
+                  - !GetAtt CheckPipelineStatusLambdaRole.Arn
+                  - !GetAtt InitialCommitFunctionRole.Arn
+                  - !GetAtt SendSlackNotificationLambdaRole.Arn
+                  - !GetAtt EnableCrossAccountAccessLambdaRole.Arn
+                Condition:
+                  ArnEquals:
+                    iam:AssociatedResourceArn:
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:ADFPipelinesDetermineDefaultBranchName"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:CheckPipelineStatus"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:PipelinesCreateInitialCommitFunction"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:SendSlackNotification"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:UpdateCrossAccountIAM"
+              - Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-create-repository"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-create-update-rule"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-deployment-map-processor"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-generate-inputs"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-identify-out-of-date-pipelines"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-store-pipeline-definition"
+                Condition:
+                  ArnEquals:
+                    iam:AssociatedResourceArn:
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-create-repository"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-create-update-rule"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-deployment-map-processor"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-generate-pipeline-inputs"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-identify-out-of-date-pipelines"
+                      - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:adf-pipeline-management-store-pipeline-definition"
+              - Effect: "Allow"
+                Action:
                   - "lambda:DeleteLayerVersion"
                   - "lambda:GetLayerVersion"
                   - "lambda:PublishLayerVersion"
@@ -1978,79 +2052,91 @@ Resources:
                   - "iam:DeleteRole"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
-              - Sid: "IAMFullPathOnlyTag"
-                Effect: "Allow"
-                Action:
-                  - "iam:TagRole"
-                  - "iam:UntagRole"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-codepipeline"
-              - Sid: "IAMFullPathAndNameOnly"
-                Effect: "Allow"
-                Action:
-                  - "iam:DeleteRolePolicy"
-                  - "iam:GetRole"
-                  - "iam:GetRolePolicy"
-                  - "iam:PutRolePolicy"
-                  - "iam:UpdateAssumeRolePolicy"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-check-pipeline-status-lambda"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-management-codepipeline"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-send-slack-notification-lambda"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-pipeline-check-pipeline-status-lambda"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-pipeline-send-slack-notification-lambda"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-codepipeline"
-              - Sid: "IAMGetOnly"
-                Effect: "Allow"
-                Action:
-                  - "iam:GetRole"
-                  - "iam:GetRolePolicy"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-*"
-                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/*"
-              - Effect: "Allow"
-                Action:
-                  - "s3:GetObject"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucketName}/adf-bootstrap/*"
-                  - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}/adf-bootstrap/*"
-              - Effect: "Allow"
-                Action:
-                  - "codecommit:GetRepository"
-                Resource:
-                  - !GetAtt CodeCommitRepository.Arn
-              - Effect: "Allow"
-                Action:
-                  - "codebuild:BatchGetProjects"
-                Resource:
-                  - !GetAtt CodeBuildProject.Arn
-              - Effect: "Allow"
-                Action:
-                  - "sns:GetTopicAttributes"
-                Resource:
-                  - !Ref PipelineSNSTopic
-              - Effect: Allow
-                Sid: "KickOffPipelineManagement"
-                Action:
-                  - "states:DescribeExecution"
-                  - "states:StartExecution"
-                Resource:
-                  - !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:adf-bootstrap-enable-cross-account
-                  - !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:adf-bootstrap-enable-cross-account:*
+
+  BootstrapUpdateDeploymentPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Policy to perform simple bootstrap updates"
+      Path: /adf/bootstrap/
+      Roles:
+        - !Ref BootstrapUpdateDeploymentRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "IAMFullPathOnlyTag"
+            Effect: "Allow"
+            Action:
+              - "iam:TagRole"
+              - "iam:UntagRole"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-codepipeline"
+          - Sid: "IAMFullPathAndNameOnly"
+            Effect: "Allow"
+            Action:
+              - "iam:DeleteRolePolicy"
+              - "iam:GetRole"
+              - "iam:GetRolePolicy"
+              - "iam:PutRolePolicy"
+              - "iam:UpdateAssumeRolePolicy"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-deployment-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cloudformation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codebuild-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codecommit-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-codepipeline-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-check-pipeline-status-lambda"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-management-codepipeline"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-pipeline-send-slack-notification-lambda"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-readonly-automation-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-terraform-role"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-pipeline-check-pipeline-status-lambda"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-pipeline-send-slack-notification-lambda"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/pipeline-management/adf-pipeline-management-codepipeline"
+          - Sid: "IAMGetOnly"
+            Effect: "Allow"
+            Action:
+              - "iam:GetRole"
+              - "iam:GetRolePolicy"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-*"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/*"
+          - Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${BootstrapTemplatesBucketName}/adf-bootstrap/*"
+              - !Sub "arn:${AWS::Partition}:s3:::${SharedModulesBucket}/adf-bootstrap/*"
+          - Effect: "Allow"
+            Action:
+              - "codecommit:GetRepository"
+            Resource:
+              - !GetAtt CodeCommitRepository.Arn
+          - Effect: "Allow"
+            Action:
+              - "codebuild:BatchGetProjects"
+            Resource:
+              - !GetAtt CodeBuildProject.Arn
+              - !GetAtt PipelineManagementApplication.Outputs.PipelineManagementCodeBuildProjectArn
+          - Effect: "Allow"
+            Action:
+              - "sns:GetTopicAttributes"
+            Resource:
+              - !Ref PipelineSNSTopic
+          - Effect: Allow
+            Sid: "KickOffPipelineManagement"
+            Action:
+              - "states:DescribeExecution"
+              - "states:StartExecution"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:adf-bootstrap-enable-cross-account"
+              - !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:adf-bootstrap-enable-cross-account:*"
 
 Outputs:
   ADFVersionNumber:
