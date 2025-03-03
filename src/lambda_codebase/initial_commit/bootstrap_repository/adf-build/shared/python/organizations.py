@@ -17,6 +17,7 @@ from errors import RootOUIDError
 from logger import configure_logger
 from paginator import paginator
 from partition import get_organization_api_region
+from cache import Cache
 
 LOGGER = configure_logger(__name__)
 AWS_REGION = os.getenv("AWS_REGION")
@@ -38,7 +39,7 @@ class Organizations:  # pylint: disable=R0904
     )
 
     def __init__(
-        self, role=None, account_id=None, org_client=None, tagging_client=None
+        self, role=None, account_id=None, org_client=None, tagging_client=None, cache=None
     ):
         if role:
             LOGGER.warning(
@@ -69,8 +70,8 @@ class Organizations:  # pylint: disable=R0904
             if not tagging_client
             else tagging_client
         )
+        self.cache = cache or Cache()
         self.account_id = account_id
-        self.root_id = None
 
     def get_parent_info(self, account_id=None):
         """
@@ -302,7 +303,9 @@ class Organizations:  # pylint: disable=R0904
         return accounts
 
     def get_organization_info(self):
-        response = self.client.describe_organization()
+        if not self.cache.exists('organization'):
+            self.cache.add('organization', self.client.describe_organization())
+        response = self.cache.get('organization')
         return {
             "organization_management_account_id": (
                 response
@@ -315,10 +318,14 @@ class Organizations:  # pylint: disable=R0904
 
     def describe_ou_name(self, ou_id):
         try:
-            response = self.client.describe_organizational_unit(
-                OrganizationalUnitId=ou_id
-            )
-            return response["OrganizationalUnit"]["Name"]
+            cache_key = f'ou_name_{ou_id}'
+            if not self.cache.exists(cache_key):
+                response = self.client.describe_organizational_unit(
+                    OrganizationalUnitId=ou_id
+                )
+                self.cache.add(cache_key, response["OrganizationalUnit"]["Name"])
+            return self.cache.get(cache_key)
+
         except ClientError as error:
             raise RootOUIDError(
                 "OU is the Root of the Organization",
@@ -326,8 +333,11 @@ class Organizations:  # pylint: disable=R0904
 
     def describe_account_name(self, account_id):
         try:
-            response = self.client.describe_account(AccountId=account_id)
-            return response["Account"]["Name"]
+            cache_key = f'account_name_{account_id}'
+            if not self.cache.exists(cache_key):
+                response = self.client.describe_account(AccountId=account_id)
+                self.cache.add(cache_key, response["Account"]["Name"])
+            return self.cache.get(cache_key)
         except ClientError as error:
             LOGGER.error(
                 "Failed to retrieve account name for account ID %s",
@@ -340,7 +350,10 @@ class Organizations:  # pylint: disable=R0904
         return f"{ou_path}/{ou_child_name}" if ou_path else ou_child_name
 
     def list_parents(self, ou_id):
-        return self.client.list_parents(ChildId=ou_id).get("Parents")[0]
+        cache_key = f'parents_{ou_id}'
+        if not self.cache.exists(cache_key):
+            self.cache.add(cache_key, self.client.list_parents(ChildId=ou_id).get("Parents")[0])
+        return self.cache.get(cache_key)
 
     def get_accounts_for_parent(self, parent_id):
         return paginator(self.client.list_accounts_for_parent, ParentId=parent_id)
@@ -351,7 +364,9 @@ class Organizations:  # pylint: disable=R0904
         )
 
     def get_ou_root_id(self):
-        return self.client.list_roots().get("Roots")[0].get("Id")
+        if not self.cache.exists('root_id'):
+            self.cache.add('root_id', self.client.list_roots().get("Roots")[0].get("Id"))
+        return self.cache.get('root_id')
 
     def ou_path_to_id(self, path):
         nested_dir_paths = path.split('/')[1:]
@@ -399,7 +414,7 @@ class Organizations:  # pylint: disable=R0904
                     )
         return accounts
 
-    def build_account_path(self, ou_id, account_path, cache):
+    def build_account_path(self, ou_id, account_path):
         """
         Builds a path tree to the account from the root of the Organization
         """
@@ -407,15 +422,9 @@ class Organizations:  # pylint: disable=R0904
 
         # While not at the root of the Organization
         while current.get("Type") != "ROOT":
-            # check cache for ou name of id
-            if not cache.exists(current.get("Id")):
-                cache.add(
-                    current.get("Id"),
-                    self.describe_ou_name(current.get("Id")),
-                )
-            ou_name = cache.get(current.get("Id"))
+            ou_name = self.describe_ou_name(current.get("Id"))
             account_path.append(ou_name)
-            return self.build_account_path(current.get("Id"), account_path, cache)
+            return self.build_account_path(current.get("Id"), account_path)
         return Organizations.determine_ou_path(
             "/".join(list(reversed(account_path))),
             self.describe_ou_name(self.get_parent_info().get("ou_parent_id")),
@@ -440,8 +449,8 @@ class Organizations:  # pylint: disable=R0904
             account_ids.append(account_id)
         return account_ids
 
-    def list_organizational_units_for_parent(self, parent_ou):
-        organizational_units = [
+    def _list_organizational_units_for_parent(self, parent_ou):
+        return [
             ou
             for org_units in (
                 self.client.get_paginator("list_organizational_units_for_parent")
@@ -449,7 +458,14 @@ class Organizations:  # pylint: disable=R0904
             )
             for ou in org_units["OrganizationalUnits"]
         ]
-        return organizational_units
+
+    def list_organizational_units_for_parent(self, parent_ou):
+        LOGGER.debug('Looking for children in %s', parent_ou)
+        cache_key = f'children_{parent_ou}'
+        if not self.cache.exists(cache_key):
+            LOGGER.debug('Cache MISS for children of OU %s', parent_ou)
+            self.cache.add(cache_key, self._list_organizational_units_for_parent(parent_ou))
+        return self.cache.get(cache_key)
 
     def get_account_id(self, account_name):
         for account in self.list_accounts():
@@ -462,21 +478,22 @@ class Organizations:  # pylint: disable=R0904
         """
         Retrieves all accounts in organization.
         """
-        existing_accounts = [
-            account
-            for accounts in self.client.get_paginator("list_accounts").paginate()
-            for account in accounts["Accounts"]
-        ]
-        return existing_accounts
+        if not self.cache.exists('accounts'):
+            self.cache.add('accounts', [
+                account
+                for accounts in self.client.get_paginator("list_accounts").paginate()
+                for account in accounts["Accounts"]
+            ])
+        return self.cache.get('accounts')
 
     def get_ou_id(self, ou_path, parent_ou_id=None):
         # Return root OU if '/' is provided
         if ou_path.strip() == "/":
-            return self.root_id
+            return self.get_ou_root_id()
 
         # Set initial OU to start looking for given ou_path
         if parent_ou_id is None:
-            parent_ou_id = self.root_id
+            parent_ou_id = self.get_ou_root_id()
 
         # Parse ou_path and find the ID
         ou_hierarchy = ou_path.strip("/").split("/")
@@ -497,7 +514,6 @@ class Organizations:  # pylint: disable=R0904
         return parent_ou_id
 
     def move_account(self, account_id, ou_path):
-        self.root_id = self.get_ou_root_id()
         ou_id = self.get_ou_id(ou_path)
         response = self.client.list_parents(ChildId=account_id)
         source_parent_id = response["Parents"][0]["Id"]
