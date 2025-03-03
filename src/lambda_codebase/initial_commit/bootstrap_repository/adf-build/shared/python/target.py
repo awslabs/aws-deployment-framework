@@ -156,7 +156,6 @@ class Target:
             ).lower() == "enabled"
         )
 
-
     @staticmethod
     def _account_is_active(account):
         return bool(account.get("Status") == "ACTIVE")
