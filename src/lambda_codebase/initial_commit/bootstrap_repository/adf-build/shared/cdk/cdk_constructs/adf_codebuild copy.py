@@ -22,6 +22,7 @@ from cdk_constructs.adf_codepipeline import Action
 
 ADF_DEPLOYMENT_REGION = os.environ["AWS_REGION"]
 ADF_DEPLOYMENT_ACCOUNT_ID = os.environ["ACCOUNT_ID"]
+DEFAULT_CODEBUILD_IMAGE = "STANDARD_5_0"
 DEFAULT_BUILD_SPEC_FILENAME = 'buildspec.yml'
 DEFAULT_DEPLOY_SPEC_FILENAME = 'deployspec.yml'
 ADF_DEFAULT_BUILD_ROLE_NAME = 'adf-codebuild-role'
@@ -354,7 +355,7 @@ class CodeBuild(Construct):
 
     @staticmethod
     def get_image_by_name(specific_image: str):
-        cdk_image_name = specific_image.upper()
+        cdk_image_name = (specific_image or DEFAULT_CODEBUILD_IMAGE).upper()
         if hasattr(_codebuild.LinuxBuildImage, cdk_image_name):
             return getattr(_codebuild.LinuxBuildImage, cdk_image_name)
         if specific_image.startswith('docker-hub://'):
@@ -408,9 +409,6 @@ class CodeBuild(Construct):
                 ecr_repo,
                 specific_image.get('tag', 'latest'),
             )
-
-        if not specific_image:
-            raise ValueError("Required CodeBuild image property is not configured")
 
         return CodeBuild.get_image_by_name(specific_image)
 

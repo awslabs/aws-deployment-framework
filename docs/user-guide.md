@@ -980,6 +980,8 @@ There are five different styles that one could choose from.
   method](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html).
   - In case the bucket is stored in `us-east-1`, it will return:
     `https://s3.amazonaws.com/${bucket}/${key}`
+  - In case the bucket is stored in `cn-north-1` or `cn-northwest-1`, it will return:
+    `https://${bucket}.s3.${region}.amazonaws.cn/${key}`    
   - In case the bucket is stored in any other region, it will return:
     `https://s3-${region}.amazonaws.com/${bucket}/${key}`
 - `virtual-hosted` style, will return the S3 location using the virtual hosted

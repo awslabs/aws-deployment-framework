@@ -28,7 +28,7 @@ It is okay to install ADF and AWS Control Tower in different regions.
 For example:
 
 - Install AWS Control Tower in `eu-central-1`.
-- Install ADF in `us-east-1`.
+- Install ADF in `us-east-1` or `cn-north-1`.
 
 **If you want to use ADF and AWS Control Tower, we recommend that you setup
 AWS Control Tower prior to installing ADF.**
@@ -43,12 +43,12 @@ Ensure you have setup [AWS CloudTrail](https://aws.amazon.com/cloudtrail/)
 *(Not the default trail)* in your Management Account that spans **all
 regions**, the trail itself can be created in any region. Events [triggered via
 CloudTrail](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_incident-response.html)
-for AWS Organizations can only be acted upon in the us-east-1 (North Virginia)
+for AWS Organizations can only be acted upon in the us-east-1 (North Virginia) or `cn-northwest-1`
 region.
 
 Please use the [AWS CloudTrail
 instructions](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
-to configure the CloudTrail in the `us-east-1` region within the AWS
+to configure the CloudTrail in the `us-east-1` or `cn-north-1` region within the AWS
 Organizations Management AWS Account.
 
 ### 1.2. Enable AWS Organizations API Access
@@ -92,7 +92,6 @@ Please note that building on *Windows* is not supported, please use the
     This should return a table that is possibly empty.
   - Additionally, running `docker --version` should return version 19 or
     later.
-<!-- markdown-link-check-disable-next-line -->
 - [make](https://www.gnu.org/software/make/)
   - To test if it is available, run `make --version`.
     This should return 4.3 or later.
@@ -102,7 +101,6 @@ Please note that building on *Windows* is not supported, please use the
 - [jq](https://github.com/jqlang/jq)
   - To test if it is available, run `jq --version`.
     This version should be 1.6 or later.
-<!-- markdown-link-check-disable-next-line -->
 - [sed](https://www.gnu.org/software/sed/)
   - To test if it is available, run `sed --version`.
     This should return 4.3 or later.
@@ -289,7 +287,7 @@ or applications into via AWS CodePipeline *(this can be updated later)*.
 
 When deploying ADF for the first time, part of the installation process will
 automatically create an AWS CodeCommit repository in the management AWS Account
-within the `us-east-1` region. It will also make the initial commit to the
+within the `us-east-1` or `cn-north-1` region. It will also make the initial commit to the
 default branch of this repository with a default set of examples that act as a
 starting point to help define the AWS Account bootstrapping processes for your
 Organization.
@@ -330,7 +328,7 @@ To gather the values, you can either find them in the
 `aws-deployment-framework-bootstrap` repository in the `adfconfig.yml`
 file. Or by looking up the values that were specified the last time ADF got
 installed/updated via the CloudFormation template parameters of the
-`serverlessrepo-aws-deployment-framework` stack in `us-east-1`.
+`serverlessrepo-aws-deployment-framework` stack in `us-east-1` or `cn-north-1`.
 
 #### Stack Name
 
@@ -352,6 +350,7 @@ Value to use depends on the AWS partition it is deployed to:
 
 - For the AWS partition (most common), use; `us-east-1`
 - For the US-Gov partition, use: `us-gov-west-1`
+- For the China partition, use `cn-north-1`
 
 **Explanation:**
 ADF needs to be deployed in the region where the control plane of the
@@ -517,7 +516,7 @@ This can always be updated later via the `adfconfig.yml` file.
 
 You don't need to include the main region in this list. For example, if you
 use the example values for the default region and target regions, it will allow
-pipelines to deploy to `eu-west-1`, `eu-central-`, and `us-east-1`.
+pipelines to deploy to `eu-west-1`, `eu-central-`, `cn-north-1` and `us-east-1`.
 
 *This is not required when performing an update between versions of ADF.*
 *Only supported when installing ADF for the first time.
@@ -647,8 +646,8 @@ automatically in the background, to follow its progress:
 
 1. Please navigate to the AWS Console in the AWS Management account.
    As the stack `serverlessrepo-aws-deployment-framework` completes you can now
-   open AWS CodePipeline from within the management account in `us-east-1` and
-   see that there is an initial pipeline execution that started.
+   open AWS CodePipeline from within the management account in `us-east-1` or 
+   `cn-north-1` and see that there is an initial pipeline execution that started.
 
    Upon first installation, this pipeline might fail to fetch the source
    code from the repository. Click the retry failed action button to try again.
@@ -693,7 +692,7 @@ automatically in the background, to follow its progress:
    that started the bootstrap process for the deployment account. You can view
    the progress of this in the management account in the AWS Step Functions
    console for the step function `AccountBootstrappingStateMachine-` in the
-   `us-east-1` region.
+   `us-east-1` or `cn-north-1` region.
 
 3. Once the Step Function has completed, switch roles over to the newly
    bootstrapped deployment account in the region you defined as your main

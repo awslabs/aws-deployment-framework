@@ -809,6 +809,10 @@ Resources:
               commands:
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --only-show-errors
                 - aws s3 cp --sse aws:kms --sse-kms-key-id $ADF_PIPELINE_ASSET_KMS_ARN ./adf-build/templates/ s3://$ADF_PIPELINE_ASSET_BUCKET/adf-build/templates/ --recursive --only-show-errors
+                - |
+                  if [ "${AWS::Region}" = "cn-north-1" ]; then
+                    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+                  fi
                 - pip install -r adf-build/requirements.txt -r adf-build/helpers/requirements.txt -q -t ./adf-build
             pre_build:
               commands:
@@ -1193,7 +1197,7 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId
               ArnLike:
-                aws:PrincipalArn: 'arn:aws:iam::*:role/adf-codecommit-role'
+                aws:PrincipalArn: !Sub 'arn:${AWS::Partition}:iam::*:role/adf-codecommit-role'
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
             Principal:

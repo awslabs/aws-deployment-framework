@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: ADF CloudFormation Initial Base Stack for the Management Account in the us-east-1 region.
+Description: ADF CloudFormation Initial Base Stack for the Management Account in the base region of the partition (us-east-1, us-gov-west-1 or cn-north-1).
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -77,9 +77,9 @@ Parameters:
 
   DeploymentAccountMainRegion:
     Type: String
-    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa)-(central|(north|south)?(east|west)?)-\\d"
+    AllowedPattern: "(us(-gov)?|ap|ca|eu|sa|cn)-(central|(north|south)?(east|west)?)-\\d"
     MinLength: 6
-    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1"
+    Description: "Example -> us-east-1, us-gov-west-1, eu-west-1, cn-north-1"
 
   DeploymentAccountTargetRegions:
     Type: CommaDelimitedList
@@ -171,6 +171,13 @@ Conditions:
   CreateCrossAccountAccessRole: !Equals
     - !Ref AllowBootstrappingOfManagementAccount
     - "Yes"
+  IsChinaMainRegion:
+    "Fn::Equals":
+      - !Sub "${AWS::Region}"
+      - "cn-north-1"
+  NotChinaMainRegion:
+    "Fn::Not":
+      - Condition: IsChinaMainRegion
 
 Resources:
   BootstrapTemplatesBucketPolicy:
@@ -1448,6 +1455,7 @@ Resources:
 
   AccountOUMoveEventsRule:
     Type: "AWS::Events::Rule"
+    Condition: NotChinaMainRegion
     Properties:
       Name: "adf-account-bootstrapping-account-ou-move"
       Description: >-
@@ -1568,6 +1576,59 @@ Resources:
               - !GetAtt "BootstrapArtifactStorageBucket.Arn"
               - !Sub "${BootstrapArtifactStorageBucket.Arn}/*"
 
+  CodeBuildPolicyChina:
+    Type: "AWS::IAM::ManagedPolicy"
+    Condition: IsChinaMainRegion
+    Properties:
+      Description: "Policy to allow codebuild to perform actions for china region"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "lambda:*"
+              - "iam:PassRole"
+              - "iam:CreatePolicy"
+              - "iam:CreateRole"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:GetRole"
+              - "iam:PutRolePolicy"
+              - "iam:UpdateAssumeRolePolicy"
+              - "iam:TagRole"
+              - "iam:DeleteRole"
+
+            Resource:
+              - !Sub "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:ForwardStateMachineFunction"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-china-extra/adf-regional-base-*"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-regional-base-*"
+          - Effect: "Allow"
+            Action:
+              - "s3:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::adf-china-bootstrap-cn-northwest-1-${AWS::AccountId}"
+              - !Sub "arn:${AWS::Partition}:s3:::adf-china-bootstrap-cn-northwest-1-${AWS::AccountId}/*"
+          - Effect: "Allow"
+            Action:
+              - "events:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:events:cn-northwest-1:${AWS::AccountId}:rule/adf-regional-base-china*"
+          - Effect: "Allow"
+            Action:
+              - "cloudformation:*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:cn-northwest-1:${AWS::AccountId}:stack/adf-regional-base-china-bucket/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:cn-northwest-1:${AWS::AccountId}:stack/adf-regional-base-china-extra/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:cn-northwest-1:aws:transform/Serverless-2016-10-31"
+          - Effect: "Allow"
+            Action:
+              - "cloudformation:ValidateTemplate"
+              - "cloudformation:List*"
+              - "cloudformation:Describe*"
+            Resource: "*"
+      Roles:
+        - !Ref BootstrapCodeBuildRole
+
   OrganizationsReadonlyRole:
     Type: AWS::IAM::Role
     DependsOn: CleanupLegacyStacks
@@ -1601,9 +1662,7 @@ Resources:
                   - organizations:ListAccounts
                   - organizations:ListAccountsForParent
                   - organizations:DescribeAccount
-                  - organizations:ListOrganizationalUnitsForParent
-                  - organizations:ListRoots
-                  - organizations:ListChildren
+                  - organizations:List*
                   - tag:GetResources
                 Resource: "*"
 
@@ -1663,6 +1722,10 @@ Resources:
                 python: 3.12
             pre_build:
               commands:
+                - |
+                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
+                    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+                  fi
                 - >-
                   pip install
                   -r requirements-dev.txt
@@ -1691,6 +1754,12 @@ Resources:
                   --s3-prefix adf-bootstrap/deployment
                   --s3-bucket $SHARED_MODULES_BUCKET
                 - python adf-build/store_config.py
+                - |
+                  if [ "${AWS_REGION}" = "cn-north-1" ]; then
+                    python adf-build/china-support/create_s3_cn.py
+                    sam build -t adf-build/china-support/cn_northwest_deploy.yml --region cn-northwest-1
+                    sam package --output-template-file adf-build/china-support/cn_northwest_deploy.yml --s3-prefix adf-bootstrap --s3-bucket adf-china-bootstrap-cn-northwest-1-${MANAGEMENT_ACCOUNT_ID} --region cn-northwest-1
+                  fi
                 # Shared Modules to be used with AWS CodeBuild:
                 - >-
                   aws s3 sync
@@ -2382,7 +2451,7 @@ Resources:
               - ssm:GetParameters
               - ssm:GetParameter
             Resource:
-              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/adf/*"
+              - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
           - Effect: Allow
             Action:
               - iam:CreateRole
@@ -2426,6 +2495,11 @@ Resources:
               - iam:UntagRole
             Resource:
               - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-update-cross-account-access-role"
+          - Effect: "Allow"
+            Action:
+              - iam:*
+            Resource:
+              - "*"
       Roles:
         - !Ref OrganizationsRole
 

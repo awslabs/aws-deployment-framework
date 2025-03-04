@@ -354,7 +354,7 @@ def _generate_policy_document(non_bootstrapped_account_ids):
                     "sts:AssumeRole"
                 ],
                 "Resource": [
-                    f"arn:aws:iam::*:role/{CROSS_ACCOUNT_ACCESS_ROLE_NAME}",
+                    f"arn:{AWS_PARTITION}:iam::*:role/{CROSS_ACCOUNT_ACCESS_ROLE_NAME}",
                 ],
                 "Condition": {
                     "DateLessThan": {
