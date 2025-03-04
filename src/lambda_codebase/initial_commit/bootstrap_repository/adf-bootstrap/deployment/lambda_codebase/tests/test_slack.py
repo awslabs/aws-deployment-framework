@@ -2,15 +2,20 @@
 # SPDX-License-Identifier: MIT-0
 
 # pylint: skip-file
-
+import os
+from boto3.session import Session
 from pytest import fixture
 from ..slack import *
+
 from .stubs.slack import (
     stub_approval_event,
     stub_failed_pipeline_event,
     stub_bootstrap_event,
     stub_failed_bootstrap_event,
 )
+
+REGION = os.getenv("AWS_REGION", "us-east-1")
+PARTITION = Session().get_partition_for_region(REGION)
 
 @fixture
 def stubs():

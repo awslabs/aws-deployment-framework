@@ -667,6 +667,11 @@ Resources:
                 python: 3.12
                 nodejs: 20
               commands:
+                - |
+                  if [ "${AWS::Region}" = "cn-north-1" ]; then
+                    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+                    npm config set registry https://registry.npmmirror.com
+                  fi
                 - npm install aws-cdk@2.136.0 -g -y --quiet --no-progress
                 - aws s3 cp s3://$SHARED_MODULES_BUCKET/adf-build/ ./adf-build/ --recursive --only-show-errors
                 - pip install -r adf-build/requirements.txt -q -t ./adf-build
