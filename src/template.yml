@@ -111,16 +111,6 @@ Parameters:
       - ERROR
       - CRITICAL
 
-  PerformTests:
-    Description: >-
-      Should ADF perform tox tests during bootstrap?
-      Valid options are: true, false
-    Type: String
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-
   AllowBootstrappingOfManagementAccount:
     Description: >-
       Would ADF need to bootstrap the Management Account of your AWS
@@ -1659,8 +1649,6 @@ Resources:
             Value: !Ref DeploymentAccountMainRegion
           - Name: ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN
             Value: !Ref AccountBootstrappingStateMachine
-          - Name: ADF_PERFORM_TESTS
-            Value: !Ref PerformTests
         Type: LINUX_CONTAINER
       Name: "adf-bootstrap-pipeline-build"
       ServiceRole: !GetAtt BootstrapCodeBuildRole.Arn
@@ -1673,6 +1661,8 @@ Resources:
                 python: 3.12
             pre_build:
               commands:
+                - pip install yq --root-user-action ignore --quiet
+                - ADF_PERFORM_TESTS=`cat adfconfig.yml | yq -r '.config."run-tests" // "disabled"'`
                 - >-
                   pip install
                   -r adf-build/requirements.txt
@@ -1681,7 +1671,8 @@ Resources:
                   --root-user-action ignore
                   --quiet
                 - |
-                  if [ "$ADF_PERFORM_TESTS" = "true" ] ; then
+                  if [ "$ADF_PERFORM_TESTS" = "enabled" ] ; then
+                    echo "Performing tests"
                     pip install \
                     -r requirements-dev.txt \
                     -r adf-build/requirements-dev.txt \
