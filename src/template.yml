@@ -1101,6 +1101,7 @@ Resources:
             }
           }
   ### Account processing end
+
   ADFSharedPythonLambdaLayerVersion:
     Type: "AWS::Serverless::LayerVersion"
     Properties:
