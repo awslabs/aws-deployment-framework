@@ -1663,7 +1663,7 @@ Resources:
             pre_build:
               commands:
                 - pip install yq --root-user-action ignore --quiet
-                - ADF_PERFORM_TESTS=`cat adfconfig.yml | yq -r '.config."run-tests" // "enabled"'`
+                - ADF_PERFORM_TESTS=`cat adfconfig.yml | yq -r '.config."bootstrap-pipeline"."run-tests" // "enabled"'`
                 - >-
                   pip install
                   -r adf-build/requirements.txt
