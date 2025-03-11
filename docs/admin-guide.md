@@ -257,12 +257,12 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
       tests or not. If not set, the default value is `enabled`.
 
       Allowed values are `enabled` or `disabled`
-      
+
       Unit tests are important for the ADF development lifecycle to maintain code
       stability and avoid regressions, but for installations where users aren't
       updating the ADF core, they can be safely skipped to gain some improvement
       in the bootstrap pipeline execution time. Disabling the tests means that
-      the development packages won't be installed and all tests will be skipped, 
+      the development packages won't be installed and all tests will be skipped,
       leading to a noticeable improvement on the overall execution time.
 
 ## Accounts
