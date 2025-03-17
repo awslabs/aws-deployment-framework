@@ -496,22 +496,36 @@ class Organizations:  # pylint: disable=R0904
             parent_ou_id = self.get_ou_root_id()
 
         # Parse ou_path and find the ID
-        ou_hierarchy = ou_path.strip("/").split("/")
-        hierarchy_index = 0
+        ou_path_as_list = ou_path.strip('/').split('/')
 
-        while hierarchy_index < len(ou_hierarchy):
+        for ou in ou_path_as_list:
             org_units = self.list_organizational_units_for_parent(parent_ou_id)
-            for ou in org_units:
-                if ou["Name"] == ou_hierarchy[hierarchy_index]:
-                    parent_ou_id = ou["Id"]
-                    hierarchy_index += 1
+
+            for org_unit in org_units:
+                if org_unit["Name"] == ou:
+                    parent_ou_id = org_unit["Id"]
                     break
             else:
-                raise ValueError(
-                    f"Could not find ou with name {ou_hierarchy} in OU list {org_units}.",
-                )
+                LOGGER.info(
+                    'No OU found with name {%s} and parent {%s}, will create.', ou, parent_ou_id
+                    )
+                new_ou = self.create_ou(parent_ou_id, ou)
+                parent_ou_id = new_ou['OrganizationalUnit']['Id']
 
         return parent_ou_id
+
+    def create_ou(self, parent_ou_id, name):
+        try:
+            ou = self.client.create_organizational_unit(
+                ParentId=parent_ou_id,
+                Name=name
+                )
+        except ClientError as client_err:
+            message = f'Failed to create OU called {name}, with parent {parent_ou_id}'
+            LOGGER.exception(message, client_err)
+            raise OrganizationsException(message) from client_err
+        return ou
+
 
     def move_account(self, account_id, ou_path):
         ou_id = self.get_ou_id(ou_path)
