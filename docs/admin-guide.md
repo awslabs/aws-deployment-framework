@@ -229,6 +229,23 @@ Config has five components in `main-notification-endpoint`, `scp`, `scm`,
       temporarily).
     - target AWS Accounts by tag with no AWS Accounts having that tag assigned
       (yet).
+  - `codebase-source`, the value is a map which contains deployment map code source
+    configuration. if not set, it will use codecommit and handled by ADF.
+    - `source-type`, the source type deployment map pipeline. Can be
+    `codecommit` or `s3`, by default it is `codecommit`.
+    - `s3-bucket-name`, the S3 bucket name where the codebase is stored,
+    if not set, it will be created automatically with a random name.
+    (only used when source-type is s3)
+    - `s3-object-key`, the S3 key where the codebase is stored, by default,
+    it is set to `aws-deployment-framework-pipelines.zip`
+    (only used when source-type is s3).
+    - `s3-use-existing`, determines if the existing S3 bucket should be used.
+    By default, it is set to `disabled` (only used when source-type is s3).
+    If you want to specific configuration of your S3 bucket, you could use
+    the existing S3 bucket. Please make sure the existing S3 bucket have
+    following configuration:
+      - [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
+      - [S3 notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html)
 - `org` configures settings in case of staged multi-organization ADF deployments.
   - `stage` defines the AWS Organization stage in case of staged multi-
     organization ADF deployments. This is an optional setting. In enterprise-

@@ -23,3 +23,5 @@ config:
     keep-default-scp: enabled
   deployment-maps:
     allow-empty-target: disabled
+    codebase-source:
+      source-type: codecommit

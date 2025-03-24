@@ -100,6 +100,15 @@ class Config:
         if not isinstance(self.target_regions, list):
             self.target_regions = [self.target_regions]
 
+        if self.config.get(
+            "deployment-maps", {}
+        ).get("codebase-source", {}).get(
+            "source-type", "codecommit"
+        ) not in ['codecommit', 's3']:
+            raise InvalidConfigError(
+                "ADF currently only supports codecommit or s3 as deployment map codebase source"
+            ) from None
+
     def _load_config_file(self):
         """
         Checks for an Org Specific adfconfig.yml (adfconfig.{ORG_ID}.yml)
