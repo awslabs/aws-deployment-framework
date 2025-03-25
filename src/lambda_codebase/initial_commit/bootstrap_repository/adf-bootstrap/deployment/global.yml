@@ -35,6 +35,26 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: /adf/cross_account_access_role
 
+  SourceType:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Map Source Type
+    Default: /adf/deployment_maps/codebase-source/source-type
+
+  S3SourceBucketName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Map S3 Source Bucket Name
+    Default: /adf/deployment_maps/codebase-source/s3-source-details/s3-bucket-name
+
+  S3SourceObjectKey:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Map S3 Source Bucket Object Name
+    Default: /adf/deployment_maps/codebase-source/s3-source-details/s3-object-key
+
+  S3SourceUseExistingBucket:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Use an existing S3 bucket for the Deployment Map S3 Source Bucket, by default a new bucket will be created
+    Default: /adf/deployment_maps/codebase-source/s3-source-details/s3-use-existing
+
   Image:
     Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:7.0).
     Type: String
@@ -74,6 +94,22 @@ Parameters:
 Conditions:
   ADFTerraformExtensionEnabled:
     !Equals [!Ref ADFTerraformExtension, "True"]
+  UseS3Source: !Equals
+    - !Ref SourceType
+    - "s3"
+  UseCodeCommitSource: !Equals
+    - !Ref SourceType
+    - "codecommit"
+  HasS3SourceBucketName: !Not
+    - !Equals
+      - !Ref S3SourceBucketName
+      - "none"
+  NoExistingS3SourceBucket: !Equals
+    - !Ref S3SourceUseExistingBucket
+    - "disabled"
+  CreateNewS3SourceBucket: !And
+    - !Condition UseS3Source
+    - !Condition NoExistingS3SourceBucket
 
 Globals:
   Function:
@@ -191,6 +227,68 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SourceCodeBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateNewS3SourceBucket
+    Properties:
+      Bucket: !Ref "SourceCodeBucket"
+      PolicyDocument:
+        Statement:
+          - Sid: "DenyInsecureConnections"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${SourceCodeBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${SourceCodeBucket}/*
+            Principal:
+              AWS: "*"
+          - Sid: "DenyInsecureTLS"
+            Action:
+              - "s3:*"
+            Effect: Deny
+            Condition:
+              NumericLessThan:
+                "s3:TlsVersion": "1.2"
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${SourceCodeBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${SourceCodeBucket}/*
+            Principal:
+              AWS: "*"
+
+  SourceCodeBucket:
+    Type: "AWS::S3::Bucket"
+    Condition: CreateNewS3SourceBucket
+    DependsOn: BootstrapUpdateDeploymentRole
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketName: !If
+        - HasS3SourceBucketName
+        - !Ref S3SourceBucketName
+        - !Ref "AWS::NoValue"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -879,16 +977,36 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}
               - !Sub arn:${AWS::Partition}:s3:::${PipelineBucket}/*
-          - Effect: Allow
-            Sid: "CodeCommit"
-            Action:
-              - codecommit:GetBranch
-              - codecommit:GetCommit
-              - codecommit:UploadArchive
-              - codecommit:GetUploadArchiveStatus
-              - codecommit:CancelUploadArchive
-            Resource:
-              - !GetAtt CodeCommitRepository.Arn
+          - !If
+            - UseCodeCommitSource
+            - Effect: Allow
+              Sid: "CodeCommit"
+              Action:
+                - codecommit:GetBranch
+                - codecommit:GetCommit
+                - codecommit:UploadArchive
+                - codecommit:GetUploadArchiveStatus
+                - codecommit:CancelUploadArchive
+              Resource:
+                - !GetAtt CodeCommitRepository.Arn
+            - Effect: Allow
+              Sid: "S3Source"
+              Action:
+                - "s3:GetObject"
+                - "s3:GetObjectVersion"
+                - "s3:GetBucketVersioning"
+                - "s3:GetBucketPolicy"
+                - "s3:ListBucket"
+                - "s3:ListBucketVersions"
+              Resource:
+                - !If
+                  - HasS3SourceBucketName
+                  - !Sub "arn:${AWS::Partition}:s3:::${S3SourceBucketName}"
+                  - !Sub "arn:${AWS::Partition}:s3:::adf-global-base-deployment-*"
+                - !If
+                  - HasS3SourceBucketName
+                  - !Sub "arn:${AWS::Partition}:s3:::${S3SourceBucketName}/*"
+                  - !Ref "AWS::NoValue"
           - Effect: Allow
             Action:
               - kms:Decrypt
@@ -913,21 +1031,41 @@ Resources:
       RestartExecutionOnUpdate: true
       Name: "aws-deployment-framework-pipelines"
       Stages:
-        - Name: CodeCommit
+        - Name: Source
           Actions:
-            - Name: Source
-              ActionTypeId:
-                Category: Source
-                Owner: AWS
-                Version: "1"
-                Provider: CodeCommit
-              OutputArtifacts:
-                - Name: "Source"
-              Configuration:
-                BranchName: !GetAtt DetermineDefaultBranchName.DefaultBranchName
-                RepositoryName: !GetAtt CodeCommitRepository.Name
-                PollForSourceChanges: false
-              RunOrder: 1
+            # CodeCommit source action (used when SourceType is CodeCommit)
+            - !If
+              - UseCodeCommitSource
+              - Name: Source
+                ActionTypeId:
+                  Category: Source
+                  Owner: AWS
+                  Version: "1"
+                  Provider: CodeCommit
+                OutputArtifacts:
+                  - Name: "Source"
+                Configuration:
+                  BranchName: !GetAtt DetermineDefaultBranchName.DefaultBranchName
+                  RepositoryName: !GetAtt CodeCommitRepository.Name
+                  PollForSourceChanges: false
+                RunOrder: 1
+              # S3 source action (used when SourceType is S3)
+              - Name: Source
+                ActionTypeId:
+                  Category: Source
+                  Owner: AWS
+                  Version: "1"
+                  Provider: S3
+                OutputArtifacts:
+                  - Name: "Source"
+                Configuration:
+                  S3Bucket: !If
+                    - CreateNewS3SourceBucket
+                    - !Ref SourceCodeBucket
+                    - !Ref S3SourceBucketName
+                  S3ObjectKey: !Ref S3SourceObjectKey
+                  PollForSourceChanges: false
+                RunOrder: 1
         - Name: KickoffCreateOrUpdatePipelines
           Actions:
             - Name: CreateOrUpdate
@@ -1704,6 +1842,7 @@ Resources:
 
   PipelineCloudWatchEventRule:
     Type: AWS::Events::Rule
+    Condition: UseCodeCommitSource
     Properties:
       EventPattern:
         source:
@@ -1720,6 +1859,30 @@ Resources:
             - branch
           referenceName:
             - !GetAtt DetermineDefaultBranchName.DefaultBranchName
+      Targets:
+        - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
+          RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
+          Id: adf-codepipeline-trigger-pipeline
+
+  S3PipelineCloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Condition: UseS3Source
+    Properties:
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - "Object Created"
+          - "Object Copy"
+        detail:
+          bucket:
+            name: !If
+              - CreateNewS3SourceBucket
+              - [!Ref SourceCodeBucket]
+              - [!Ref S3SourceBucketName]
+          object:
+            key:
+              - !Ref S3SourceObjectKey
       Targets:
         - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
           RoleArn: !GetAtt PipelineCloudWatchEventRole.Arn
@@ -2051,7 +2214,63 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:adf-bootstrap-enable-cross-account
                   - !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:adf-bootstrap-enable-cross-account:*
-
+              - Effect: Allow
+                Sid: "UpdatePipeline"
+                Action:
+                  - "codepipeline:UpdatePipeline"
+                  - "codepipeline:GetPipeline"
+                  - "codepipeline:StartPipelineExecution"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-pipelines
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:aws-deployment-framework-pipelines/*
+              - Effect: Allow
+                Sid: "UpdateEventRule"
+                Action:
+                  - "events:DescribeRule"
+                  - "events:EnableRule"
+                  - "events:ListRules"
+                  - "events:PutEvents"
+                  - "events:PutRule"
+                  - "events:PutTargets"
+                  - "events:RemoveTargets"
+                  - "events:DeleteRule"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-global-base-deploymen*
+              - Effect: Allow
+                Sid: "UpdateS3Policy"
+                Action:
+                  - "s3:DeleteBucketPolicy"
+                Resource: "*"
+              - Sid: "IAMUpdatePolicy"
+                Effect: "Allow"
+                Action:
+                  - "iam:PutRolePolicy"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/bootstrap/adf-bootstrap-update-deployment-role"
+              - !If
+                - UseS3Source
+                - Effect: Allow
+                  Sid: "S3Source"
+                  Action:
+                    - "s3:GetObject"
+                    - "s3:GetObjectVersion"
+                    - "s3:GetBucketVersioning"
+                    - "s3:GetBucketPolicy"
+                    - "s3:ListBucket"
+                    - "s3:ListBucketVersions"
+                    - "s3:PutObject"
+                    - "s3:PutObjectAcl"
+                    - "s3:CreateBucket"
+                  Resource:
+                    - !If
+                      - HasS3SourceBucketName
+                      - !Sub "arn:${AWS::Partition}:s3:::${S3SourceBucketName}"
+                      - !Sub "arn:${AWS::Partition}:s3:::adf-global-base-deployment-*"
+                    - !If
+                      - HasS3SourceBucketName
+                      - !Sub "arn:${AWS::Partition}:s3:::${S3SourceBucketName}/*"
+                      - !Ref "AWS::NoValue"
+                - !Ref "AWS::NoValue"
 Outputs:
   ADFVersionNumber:
     Value: !Ref ADFVersion
@@ -2099,6 +2318,22 @@ Outputs:
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh
     Export:
       Name: "aws-deployment-framework-pipelines-codecommit-ssh-url"
+
+  SourceCodeBucketName:
+    Condition: UseS3Source
+    Description: "The S3 bucket Name used as source"
+    Value: !If
+      - CreateNewS3SourceBucket
+      - !Ref SourceCodeBucket
+      - !Ref S3SourceBucketName
+
+  SourceCodeBucketArn:
+    Condition: UseS3Source
+    Description: "The ARN of the S3 Source bucket being used"
+    Value: !If
+      - CreateNewS3SourceBucket
+      - !GetAtt SourceCodeBucket.Arn
+      - !Sub "arn:${AWS::Partition}:s3:::${S3SourceBucketName}"
 
   CodePipelineRoleArn:
     Description: "The CodePipeline Arn"

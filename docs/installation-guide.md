@@ -546,6 +546,70 @@ Please update the configuration to use in the `adfconfig.yml`
 file instead, as documented in the [adfconfig section in the Admin
 Guide](./admin-guide.md#adfconfig).
 
+#### Parameter SourceType
+
+Optional, default value: (CodeCommit)
+
+Example: `CodeCommit`
+
+**Explanation:**
+An optional string of Source Type of ADF Bootstrap pipeline, Currently only
+support `S3` and `CodeCommit`.
+
+*This is not required when performing an update between versions of ADF.*
+
+Please note that changing this value will directly change the source provider of
+ADF Boostrap pipeline in the management account.
+
+#### Parameter S3SourceBucketName
+
+Optional, default value: (empty)
+
+Example: `aws-deployment-framework-bootstrap-pipeline-<management-account-id>`
+
+**Explanation:**
+An optional string specifying the S3 bucket name for the ADF Bootstrap source code.
+This parameter is only applicable when SourceType is set to S3. If left empty while
+SourceType is S3, a new bucket with a random name will be created automatically.
+
+*This is not required when performing an update between versions of ADF.*
+*only used when SourceType is S3*
+
+#### Parameter S3SourceObjectKey
+
+Optional, default value: (aws-deployment-framework-bootstrap.zip)
+
+Example: `aws-deployment-framework-bootstrap.zip`
+
+**Explanation:**
+An optional string specifying the S3 object key for the ADF Bootstrap source code.
+This parameter is only applicable when SourceType is set to S3.
+
+*This is not required when performing an update between versions of ADF.*
+*only used when SourceType is S3*
+
+#### Parameter S3SourceUseExistingBucket
+
+Optional, default value: (No)
+
+Example: `No`
+
+**Explanation:**
+An optional string specifying whether to use an existing S3 bucket
+for the ADF Bootstrap source code.
+This parameter is only applicable when SourceType is set to S3.
+If set to "Yes," the ADF Bootstrap source will be
+directed to the existing S3 bucket.
+
+Additionally, the bucket must be located in the ADF installation account.
+The S3 bucket following configured:
+
+- [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
+- [S3 notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html)
+
+*This is not required when performing an update between versions of ADF.*
+*only used when SourceType is S3*
+
 #### Parameter LogLevel
 
 Optional, default value: `INFO`

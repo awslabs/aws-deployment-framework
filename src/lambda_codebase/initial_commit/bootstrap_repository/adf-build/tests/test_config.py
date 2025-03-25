@@ -68,6 +68,10 @@ def test_raise_validation_length_deployment_target_region(cls):
     with raises(InvalidConfigError):
         assert cls._parse_config()
 
+def test_raise_validation_deployment_maps_codebase_source_source_type(cls):
+    cls.config_contents["config"]["deployment-maps"]["codebase-source"]["source-type"] = "github"
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
 
 def test_sorted_regions(cls):
     cls.config_contents["regions"]["deployment-account"] = [

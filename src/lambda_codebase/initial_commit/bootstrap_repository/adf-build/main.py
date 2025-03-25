@@ -56,6 +56,10 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
 )
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
 ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = 'disabled'
+ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_TYPE = 'codecommit'
+ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_BUCKET_NAME = 'none'
+ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_KEY = 'aws-deployment-framework-pipelines.zip'
+ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_USE_EXISTING = 'disabled'
 ADF_DEFAULT_ORG_STAGE = "none"
 LOGGER = configure_logger(__name__)
 
@@ -193,6 +197,48 @@ def prepare_deployment_account(sts, deployment_account_id, config):
         config.config.get('deployment-maps', {}).get(
             'allow-empty-target',
             ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET,
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        'deployment_maps/codebase-source/source-type',
+        config.config.get('deployment-maps', {}).get(
+            'codebase-source', {}
+        ).get(
+            'source-type',
+            ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_TYPE,
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        'deployment_maps/codebase-source/s3-source-details/s3-bucket-name',
+        config.config.get('deployment-maps', {}).get(
+            'codebase-source', {}
+        ).get(
+            's3-source-details', {}
+        ).get(
+            's3-bucket-name',
+            ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_BUCKET_NAME,
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        'deployment_maps/codebase-source/s3-source-details/s3-object-key',
+        config.config.get('deployment-maps', {}).get(
+            'codebase-source', {}
+        ).get(
+            's3-source-details', {}
+        ).get(
+            's3-object-key',
+            ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_KEY,
+        )
+    )
+    deployment_account_parameter_store.put_parameter(
+        'deployment_maps/codebase-source/s3-source-details/s3-use-existing',
+        config.config.get('deployment-maps', {}).get(
+            'codebase-source', {}
+        ).get(
+            's3-source-details', {}
+        ).get(
+            's3-use-existing',
+            ADF_DEFAULT_DEPLOYMENT_MAPS_CODEBASE_SOURCE_S3_USE_EXISTING,
         )
     )
     deployment_account_parameter_store.put_parameter(

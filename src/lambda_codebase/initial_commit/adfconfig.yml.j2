@@ -37,6 +37,22 @@ config:
     allow-empty-target: disabled
     # ^ Needs to be set to "enabled" to activate. Defaults to "disabled" when
     # not set.
+    # Optional:
+    # codebase-source:
+    # ^ The source of the codebase configuration. if not set, it will use codecommit
+      # source-type: codecommit
+      # ^ The source of the codebase. Can be codecommit or s3, by default it is
+      # set to codecommit
+        # s3-bucket-name: aws-deployment-framework-pipelines-<deployment-account-id>
+        # ^ The S3 bucket name where the codebase is stored, if not set, it will be created
+        # (only used when source-type is s3)
+        # s3-object-key: aws-deployment-framework-pipelines.zip
+        # ^ The S3 key where the codebase is stored, by default, it is set to
+        # aws-deployment-framework-pipelines.zip (only used when source-type is s3)
+        # s3-use-existing: disabled
+        # ^ Determines if the existing S3 bucket should be used. By default, it is set to
+        # "disabled". (only used when source-type is s3)
+
 # Optional config for multi-organization deployments of ADF:
 #   org:
 #    # Optional: Use this variable to define the AWS Organization in case of
