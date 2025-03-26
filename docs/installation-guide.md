@@ -43,13 +43,13 @@ Ensure you have setup [AWS CloudTrail](https://aws.amazon.com/cloudtrail/)
 *(Not the default trail)* in your Management Account that spans **all
 regions**, the trail itself can be created in any region. Events [triggered via
 CloudTrail](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_incident-response.html)
-for AWS Organizations can only be acted upon in the us-east-1 (North Virginia) or `cn-northwest-1`
-region.
+for AWS Organizations can only be acted upon in the us-east-1 (North Virginia)
+or cn-northwest-1 region.
 
 Please use the [AWS CloudTrail
 instructions](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html)
-to configure the CloudTrail in the `us-east-1` or `cn-north-1` region within the AWS
-Organizations Management AWS Account.
+to configure the CloudTrail in the `us-east-1` or `cn-north-1` region
+within the AWS Organizations Management AWS Account.
 
 ### 1.2. Enable AWS Organizations API Access
 
@@ -92,6 +92,7 @@ Please note that building on *Windows* is not supported, please use the
     This should return a table that is possibly empty.
   - Additionally, running `docker --version` should return version 19 or
     later.
+<!-- markdown-link-check-disable-next-line -->
 - [make](https://www.gnu.org/software/make/)
   - To test if it is available, run `make --version`.
     This should return 4.3 or later.
@@ -101,6 +102,7 @@ Please note that building on *Windows* is not supported, please use the
 - [jq](https://github.com/jqlang/jq)
   - To test if it is available, run `jq --version`.
     This version should be 1.6 or later.
+<!-- markdown-link-check-disable-next-line -->
 - [sed](https://www.gnu.org/software/sed/)
   - To test if it is available, run `sed --version`.
     This should return 4.3 or later.
@@ -287,10 +289,10 @@ or applications into via AWS CodePipeline *(this can be updated later)*.
 
 When deploying ADF for the first time, part of the installation process will
 automatically create an AWS CodeCommit repository in the management AWS Account
-within the `us-east-1` or `cn-north-1` region. It will also make the initial commit to the
-default branch of this repository with a default set of examples that act as a
-starting point to help define the AWS Account bootstrapping processes for your
-Organization.
+within the `us-east-1` or `cn-north-1` region. It will also make the initial
+commit to the default branch of this repository with a default set of
+examples that act as a starting point to help define the AWS Account
+bootstrapping processes for your Organization.
 
 Part of the questions that follow will end up in the initial commit into the
 repository. These are passed directly the `adfconfig.yml` file prior to it
@@ -646,8 +648,9 @@ automatically in the background, to follow its progress:
 
 1. Please navigate to the AWS Console in the AWS Management account.
    As the stack `serverlessrepo-aws-deployment-framework` completes you can now
-   open AWS CodePipeline from within the management account in `us-east-1` or 
-   `cn-north-1` and see that there is an initial pipeline execution that started.
+   open AWS CodePipeline from within the management account in `us-east-1`
+   or `cn-north-1` and see that there is an initial pipeline
+   execution that started.
 
    Upon first installation, this pipeline might fail to fetch the source
    code from the repository. Click the retry failed action button to try again.

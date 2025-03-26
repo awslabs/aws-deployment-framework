@@ -14,17 +14,16 @@ from stepfunction_helper import Stepfunction
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
 SFN_ARN = os.getenv("SFN_ARN", "")
-sfn_name = SFN_ARN.split(':')[-1]
+sfn_name = SFN_ARN.split(":")[-1]
 
-def lambda_handler(event, context):
+
+def lambda_handler(event, _):
     LOGGER.debug(event)
     if "source" in event and event["source"] == "aws.organizations":
         session = boto3.session.Session(region_name="cn-north-1")
         sfn_instance = Stepfunction(session, LOGGER)
         _, state_name = sfn_instance.invoke_sfn_execution(
             sfn_arn=SFN_ARN,
-            input=event,
+            input_data=event,
         )
         LOGGER.info("Successfully invoke sfn %s with statemachine name %s.", sfn_name, state_name)
-
-

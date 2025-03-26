@@ -469,7 +469,7 @@ def _china_region_extra_deploy():
     if REGION_DEFAULT == CHINA_PRIMARY_REGION:
         parameters = [
             {
-                'ParameterKey': 'AcoountBootstrapingStateMachineArn',
+                'ParameterKey': 'AccountBootstrapingStateMachineArn',
                 'ParameterValue': ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
                 'UsePreviousValue': False,
             },
@@ -500,8 +500,8 @@ def _china_region_extra_deploy():
             cloudformation.create_stack()
         except Exception as error:
             LOGGER.error(
-                "China extra stack adf-regional-base-china-extra deployment failed in region %(region)s, please check following error: "
-                "%(error)s",
+                "China extra stack adf-regional-base-china-extra deployment failed in region "
+                "%(region)s, please check following error: %(error)s",
                 {
                     "region": CHINA_SECONDARY_REGION,
                     "error": str(error),

@@ -219,12 +219,12 @@ class CloudFormation(StackProperties):
     ):
         try:
             # Read the CloudFormation template from a file
-            with open(template_path, 'r') as template_file:
+            with open(template_path, 'r', encoding='utf-8') as template_file:
                 template_body = template_file.read()
 
             return template_body
         except Exception as error:
-            LOGGER.error(f"Process _handle_template_path function error:\n {error}.")
+            LOGGER.error("Process _handle_template_path function error:\n %s", error)
             return None
 
     def _wait_if_in_progress(self):

@@ -11,7 +11,7 @@ Resources:
     DeletionPolicy: Delete
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref BucketName 
+      BucketName: !Ref BucketName
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
         ServerSideEncryptionConfiguration:

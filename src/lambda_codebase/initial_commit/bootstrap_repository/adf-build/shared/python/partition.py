@@ -12,9 +12,11 @@ https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genre
 from boto3.session import Session
 from botocore.exceptions import UnknownRegionError
 
+
 class IncompatibleRegionError(Exception):
     """Raised in case the regions is not supported."""
-    pass
+
+
 
 def get_partition(region_name: str) -> str:
     """Given the region, this function will return the appropriate partition.
@@ -26,10 +28,9 @@ def get_partition(region_name: str) -> str:
     try:
         partition = Session().get_partition_for_region(region_name)
     except UnknownRegionError as e:
-        raise IncompatibleRegionError(
-            f'The region {region_name} is not supported.'
-        )
+        raise IncompatibleRegionError(f"The region {region_name} is not supported.") from e
     return partition
+
 
 def get_organization_api_region(region_name: str) -> str:
     """
@@ -39,17 +40,17 @@ def get_organization_api_region(region_name: str) -> str:
     :param region_name: The name of the region (eu-west-1, us-gov-east-1 or cn-northwest-1)
     :return: Returns the AWS Organizations API region to use as a string.
     """
-    if get_partition(region_name) == 'aws-us-gov':
-        return 'us-gov-west-1'
-    elif get_partition(region_name) == 'aws-cn':
-        return 'cn-northwest-1'
-    return 'us-east-1'
+    if get_partition(region_name) == "aws-us-gov":
+        return "us-gov-west-1"
+    if get_partition(region_name) == "aws-cn":
+        return "cn-northwest-1"
+    return "us-east-1"
+
 
 def get_aws_domain(region_name: str) -> str:
     """
     Get AWS domain suffix
     """
     if region_name.startswith("cn-north"):
-        return "amazonaws.com.{0}".format(region_name.split("-")[0])
-    else:
-        return "amazonaws.com"
+        return f"amazonaws.com.{region_name.split('-')[0]}"
+    return "amazonaws.com"

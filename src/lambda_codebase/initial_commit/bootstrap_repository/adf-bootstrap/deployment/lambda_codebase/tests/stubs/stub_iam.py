@@ -9,27 +9,25 @@ REGION = os.getenv("AWS_REGION", "us-east-1")
 PARTITION = Session().get_partition_for_region(REGION)
 
 if PARTITION == "aws":
-    test_region =  "eu-west-1"
+    test_region = "eu-west-1"
 else:
-    test_region =  "cn-northwest-1"
+    test_region = "cn-northwest-1"
 
 """
 Stubs for testing iam.py
 """
 
 get_role_policy = {
-    'RoleName': 'string',
-    'PolicyName': 'string',
-    'PolicyDocument': {
+    "RoleName": "string",
+    "PolicyName": "string",
+    "PolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
             {
                 "Sid": "KMS",
                 "Effect": "Allow",
                 "Action": ["iam:ChangePassword"],
-                "Resource": (
-                    f"arn:{PARTITION}:kms:{test_region}:111111111111:key/existing_key"
-                ),
+                "Resource": (f"arn:{PARTITION}:kms:{test_region}:111111111111:key/existing_key"),
             },
             {
                 "Sid": "S3",
@@ -44,8 +42,8 @@ get_role_policy = {
                 "Sid": "AssumeRole",
                 "Effect": "Allow",
                 "Action": "sts:AssumeRole",
-                "Resource": ['something'],
+                "Resource": ["something"],
             },
-        ]
-    }
+        ],
+    },
 }
