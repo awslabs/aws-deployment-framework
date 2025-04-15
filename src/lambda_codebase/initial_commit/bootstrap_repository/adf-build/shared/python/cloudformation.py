@@ -16,6 +16,8 @@ import tenacity
 from errors import InvalidTemplateError, GenericAccountConfigureError
 from logger import configure_logger
 from paginator import paginator
+from partition import get_partition
+
 
 LOGGER = configure_logger(__name__)
 STACK_TERMINATION_PROTECTION = os.environ.get('TERMINATION_PROTECTION', False)
@@ -29,7 +31,8 @@ CFN_CONFIG = Config(
 CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 ADF_GLOBAL_IAM_STACK_NAME = 'adf-global-base-iam'
 ADF_GLOBAL_BOOTSTRAP_STACK_NAME = 'adf-global-base-bootstrap'
-
+ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME = "adf-regional-base-china-bucket"
+ADF_GLOBAL_BOOTSTRAP_CHINA_EXTRA_STACK_NAME = "adf-regional-base-china-extra"
 
 class StackProperties:
     clean_stack_status = [
@@ -105,6 +108,7 @@ class StackProperties:
             else None
         )
         self.s3 = s3
+        self.partition = get_partition(region)
         self.stack_name = stack_name or self._get_stack_name()
 
     def _get_geo_prefix(self):
@@ -147,6 +151,10 @@ class StackProperties:
         if self.region == self.deployment_account_region:
             valid_stack_names.append(ADF_GLOBAL_IAM_STACK_NAME)
             valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_STACK_NAME)
+
+        if self.partition == "aws-cn":
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME)
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_CHINA_EXTRA_STACK_NAME)
 
         return valid_stack_names
 

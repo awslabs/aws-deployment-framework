@@ -14,14 +14,14 @@ from cloudformation import CloudFormation
 REGION_DEFAULT = os.environ["AWS_REGION"]
 MANAGEMENT_ACCOUNT_ID = os.environ["MANAGEMENT_ACCOUNT_ID"]
 LOGGER = configure_logger(__name__)
-
+ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME = "adf-regional-base-china-bucket"
 
 def _create_s3_bucket(bucket_name):
     try:
         LOGGER.info("Deploy S3 bucket %s...", bucket_name)
         extra_deploy_region = "cn-northwest-1"
         template_path = "adf-build/china-support/cn_northwest_bucket.yml"
-        stack_name = "adf-regional-base-china-bucket"
+        stack_name = ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME
         parameters = [
             {
                 "ParameterKey": "BucketName",
