@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 
 from aws_xray_sdk import global_sdk_config
 from main import (
+    AWS_PARTITION,
     ADF_JUMP_MANAGED_POLICY_ARN,
     ADF_TEST_BOOTSTRAP_ROLE_NAME,
     CROSS_ACCOUNT_ACCESS_ROLE_NAME,
@@ -691,7 +692,7 @@ def test_generate_policy_document(get_mock):
                 "Effect": "Allow",
                 "Action": ["sts:AssumeRole"],
                 "Resource": [
-                    f"arn:aws:iam::*:role/{CROSS_ACCOUNT_ACCESS_ROLE_NAME}",
+                    f"arn:{AWS_PARTITION}:iam::*:role/{CROSS_ACCOUNT_ACCESS_ROLE_NAME}",
                 ],
                 "Condition": {
                     "DateLessThan": {

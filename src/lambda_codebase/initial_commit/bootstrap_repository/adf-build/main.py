@@ -24,7 +24,7 @@ from stepfunctions import StepFunctions
 from errors import GenericAccountConfigureError, ParameterNotFoundError, Error
 from sts import STS
 from s3 import S3
-from partition import get_partition
+from partition import get_partition, get_aws_domain
 from config import Config
 from organization_policy import OrganizationPolicy
 
@@ -57,6 +57,10 @@ ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN = os.environ.get(
 ADF_DEFAULT_SCM_FALLBACK_BRANCH = 'main'
 ADF_DEFAULT_DEPLOYMENT_MAPS_ALLOW_EMPTY_TARGET = 'disabled'
 ADF_DEFAULT_ORG_STAGE = "none"
+CHINA_PRIMARY_REGION = "cn-north-1"
+CHINA_SECONDARY_REGION = "cn-northwest-1"
+ADF_REGIONAL_BASE_CHINA_EXTRA_STACK_NAME = "adf-regional-base-china-extra"
+CHINA_SECONDARY_REGION_DEPLOY_TEMP = "china-support/cn_northwest_deploy"
 LOGGER = configure_logger(__name__)
 
 
@@ -369,9 +373,10 @@ def await_sfn_executions(sfn_client):
             "Account Management State Machine encountered a failed, "
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
-            "https://%s.console.aws.amazon.com/states/home"
+            "https://%s.console.%s/states/home"
             "?region=%s#/statemachines/view/%s ",
             REGION_DEFAULT,
+            get_aws_domain(REGION_DEFAULT),
             REGION_DEFAULT,
             ACCOUNT_MANAGEMENT_STATE_MACHINE_ARN,
         )
@@ -401,10 +406,11 @@ def await_sfn_executions(sfn_client):
             "Account Bootstrapping State Machine encountered a failed, "
             "timed out, or aborted execution. Please look into this problem "
             "before retrying the bootstrap pipeline. You can navigate to: "
-            "https://%(region)s.console.aws.amazon.com/states/home"
+            "https://%(region)s.console.%(domain)s/states/home"
             "?region=%(region)s#/statemachines/view/%(sfn_arn)s",
             {
                 "region": REGION_DEFAULT,
+                "domain": get_aws_domain(REGION_DEFAULT),
                 "sfn_arn": ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
             },
         )
@@ -459,6 +465,49 @@ def _sfn_execution_exists_with(
 
     return False
 
+def _china_region_extra_deploy():
+    if REGION_DEFAULT == CHINA_PRIMARY_REGION:
+        parameters = [
+            {
+                'ParameterKey': 'AccountBootstrapingStateMachineArn',
+                'ParameterValue': ACCOUNT_BOOTSTRAPPING_STATE_MACHINE_ARN,
+                'UsePreviousValue': False,
+            },
+            {
+                'ParameterKey': 'AdfLogLevel',
+                'ParameterValue': ADF_LOG_LEVEL,
+                'UsePreviousValue': False,
+            },
+        ]
+        try:
+            s3_china = S3(
+                region=REGION_DEFAULT,
+                bucket=S3_BUCKET_NAME
+            )
+            cloudformation = CloudFormation(
+                region=CHINA_SECONDARY_REGION,
+                deployment_account_region=CHINA_SECONDARY_REGION,
+                role=boto3,
+                wait=True,
+                stack_name=ADF_REGIONAL_BASE_CHINA_EXTRA_STACK_NAME,
+                s3=s3_china,
+                s3_key_path='adf-build',
+                account_id=MANAGEMENT_ACCOUNT_ID,
+                template_file_prefix=CHINA_SECONDARY_REGION_DEPLOY_TEMP,
+                parameters=parameters
+
+            )
+            cloudformation.create_stack()
+        except Exception as error:
+            LOGGER.error(
+                "China extra stack adf-regional-base-china-extra deployment failed in region "
+                "%(region)s, please check following error: %(error)s",
+                {
+                    "region": CHINA_SECONDARY_REGION,
+                    "error": str(error),
+                },
+            )
+            sys.exit(2)
 
 def main():  # pylint: disable=R0915
     LOGGER.info("ADF Version %s", ADF_VERSION)
@@ -469,7 +518,8 @@ def main():  # pylint: disable=R0915
     policies = OrganizationPolicy()
     config = Config()
     cache = Cache()
-
+    # fix the china org service endpoint issue
+    _china_region_extra_deploy()
     try:
         parameter_store = ParameterStore(REGION_DEFAULT, boto3)
         deployment_account_id = parameter_store.fetch_parameter(

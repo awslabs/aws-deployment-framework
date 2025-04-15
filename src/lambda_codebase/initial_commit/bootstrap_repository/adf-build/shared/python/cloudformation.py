@@ -16,6 +16,8 @@ import tenacity
 from errors import InvalidTemplateError, GenericAccountConfigureError
 from logger import configure_logger
 from paginator import paginator
+from partition import get_partition
+
 
 LOGGER = configure_logger(__name__)
 STACK_TERMINATION_PROTECTION = os.environ.get('TERMINATION_PROTECTION', False)
@@ -29,7 +31,8 @@ CFN_CONFIG = Config(
 CFN_UNACCEPTED_CHARS = re.compile(r"[^-a-zA-Z0-9]")
 ADF_GLOBAL_IAM_STACK_NAME = 'adf-global-base-iam'
 ADF_GLOBAL_BOOTSTRAP_STACK_NAME = 'adf-global-base-bootstrap'
-
+ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME = "adf-regional-base-china-bucket"
+ADF_GLOBAL_BOOTSTRAP_CHINA_EXTRA_STACK_NAME = "adf-regional-base-china-extra"
 
 class StackProperties:
     clean_stack_status = [
@@ -105,6 +108,7 @@ class StackProperties:
             else None
         )
         self.s3 = s3
+        self.partition = get_partition(region)
         self.stack_name = stack_name or self._get_stack_name()
 
     def _get_geo_prefix(self):
@@ -148,6 +152,10 @@ class StackProperties:
             valid_stack_names.append(ADF_GLOBAL_IAM_STACK_NAME)
             valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_STACK_NAME)
 
+        if self.partition == "aws-cn":
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_CHINA_BUCKET_STACK_NAME)
+            valid_stack_names.append(ADF_GLOBAL_BOOTSTRAP_CHINA_EXTRA_STACK_NAME)
+
         return valid_stack_names
 
 
@@ -170,6 +178,8 @@ class CloudFormation(StackProperties):
             parameters=None,
             account_id=None,  # Used for logging visibility
             role_arn=None,
+            template_file_prefix=None, # define a custom template file
+            local_template_path=None, # support local tempplate path
     ):
         self.client = role.client(
             'cloudformation',
@@ -189,6 +199,12 @@ class CloudFormation(StackProperties):
             s3=s3,
             s3_key_path=s3_key_path
         )
+        self.template_url_from_template_file_prefix = self.s3.fetch_s3_url(
+            self._create_template_path(self.s3_key_path, template_file_prefix)
+        ) \
+            if template_file_prefix else None
+        self.template_url = template_url or self.template_url_from_template_file_prefix
+        self.local_template_path = local_template_path
 
     def validate_template(self):
         try:
@@ -204,6 +220,20 @@ class CloudFormation(StackProperties):
             raise InvalidTemplateError(
                 f"{self.template_url}: {error}",
             ) from None
+
+    def _handle_template_path(
+        self,
+        template_path
+    ):
+        try:
+            # Read the CloudFormation template from a file
+            with open(template_path, 'r', encoding='utf-8') as template_file:
+                template_body = template_file.read()
+
+            return template_body
+        except Exception as error:
+            LOGGER.error("Process _handle_template_path function error:\n %s", error)
+            return None
 
     def _wait_if_in_progress(self):
         status = self.get_stack_status()
@@ -358,16 +388,26 @@ class CloudFormation(StackProperties):
             self.stack_name,
         )
         try:
-            self.template_url = (
-                self.template_url
-                if self.template_url is not None
-                else self.get_template_url()
-            )
-            if self.template_url:
-                self.validate_template()
+            # Add local template ability
+            cfn_template_map = None
+            if self.local_template_path:
+                cfn_template_map = {
+                    "TemplateBody": self._handle_template_path(self.local_template_path)
+                }
+            else:
+                self.template_url = (
+                    self.template_url
+                    if self.template_url is not None
+                    else self.get_template_url()
+                )
+                if self.template_url:
+                    self.validate_template()
+                    cfn_template_map = {
+                        "TemplateURL": self.template_url
+                    }
+            if cfn_template_map:
                 change_set_params = {
                     "StackName": self.stack_name,
-                    "TemplateURL": self.template_url,
                     "Parameters": (
                         self.parameters
                         if self.parameters is not None
@@ -384,6 +424,7 @@ class CloudFormation(StackProperties):
                     "ChangeSetName": self.stack_name,
                     "ChangeSetType": self._get_change_set_type()
                 }
+                change_set_params.update(cfn_template_map)
                 if self.role_arn:
                     change_set_params["RoleARN"] = self.role_arn
                 self._clean_up_when_required()
