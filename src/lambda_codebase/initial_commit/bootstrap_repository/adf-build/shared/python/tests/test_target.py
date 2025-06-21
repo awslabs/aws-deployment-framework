@@ -361,10 +361,10 @@ def test_target_structure_respects_multi_region():
             waves, total_actions = target.target_structure.generate_waves(target=target)
 
             assert len(waves) == 3
-            assert total_actions == 40
-            assert len(waves[0]) == 2 # x2 accounts x4 region x2 action = 16
-            assert len(waves[1]) == 2 # x2 accounts x4 region x2 action = 16
-            assert len(waves[2]) == 1 # x1 accounts x4 region x2 action = 8
+            assert total_actions == 40 # assert accounts(5) * regions(4) * actions(2) = 40
+            assert len(waves[0]) == 2 # assert accounts(2) * regions(4) * actions(2) = 16
+            assert len(waves[1]) == 2 # assert accounts(2) * regions(4) * actions(2) = 16
+            assert len(waves[2]) == 1 # assert accounts(1) * regions(4) * actions(2) = 8
 
 
 def test_target_structure_respects_multi_action_single_region():
@@ -405,10 +405,10 @@ def test_target_structure_respects_multi_action_single_region():
             )
 
             assert len(waves) == 3
-            assert total_actions == 60
-            assert len(waves[0]) == 10 # assert accts(20) region(1) action(2) = 20
-            assert len(waves[1]) == 10 # assert accnts(10) region(1) action(2) = 20
-            assert len(waves[1]) == 10 # assert accnts(10) region(1) action(2) = 20
+            assert total_actions == 60 # assert accounts(30) * regions(1) * actions(2) = 60
+            assert len(waves[0]) == 10 # assert accounts(20) * region(1) * action(2) = 20
+            assert len(waves[1]) == 10 # assert accounts(10) * region(1) * action(2) = 20
+            assert len(waves[2]) == 10 # assert accounts(10) * region(1) * action(2) = 20
 
 
 def test_target_structure_respects_multi_action_multi_region():
@@ -449,9 +449,9 @@ def test_target_structure_respects_multi_action_multi_region():
 
             waves, total_actions = target.target_structure.generate_waves(target=target)
             assert len(waves) == 2
-            assert total_actions == 136 # x34 Accounts with x2 actions x2 regions
-            assert len(waves[0]) == 25 # assert accts(25) regions(2) actions(2) = 100
-            assert len(waves[1]) == 9 # assert accts(10) regions(2) actions(2) = 36
+            assert total_actions == 136 # assert accounts(34) * regions(2) * actions(2) = 136
+            assert len(waves[0]) == 25 # assert accounts(25) * regions(2) * actions(2) = 100
+            assert len(waves[1]) == 9 # assert accounts(9) * regions(2) * actions(2) = 36
 
 
 
@@ -496,9 +496,9 @@ def test_target_structure_respects_change_set_approval_single_region():
 
             waves, total_actions = target.target_structure.generate_waves(target=target)
             assert len(waves) == 2
-            assert total_actions == 180 # x60 Accounts with x3 actions
-            assert len(waves[0]) == 33 # assert accts(33) regions(1) actions(3) = 99
-            assert len(waves[1]) == 27 # assert accts(27) regions(1) actions(3) = 81
+            assert total_actions == 180 # assert accounts(60) * regions(1) * actions(3) = 180
+            assert len(waves[0]) == 33 # assert accounts(33) * regions(1) * actions(3) = 99
+            assert len(waves[1]) == 27 # assert accounts(27) * regions(1) * actions(3) = 81
 
 
 def test_target_wave_structure_respects_exclude_config():
