@@ -9,7 +9,7 @@ require mutation depending on their structure.
 
 import re
 import os
-
+from typing import Tuple
 import boto3
 
 # ADF imports
@@ -17,7 +17,9 @@ from errors import (
     InvalidDeploymentMapError,
     NoAccountsFoundError,
     InsufficientWaveSizeError,
+    TooManyActionsError
 )
+
 from botocore.exceptions import ClientError
 from logger import configure_logger
 from parameter_store import ParameterStore
@@ -30,7 +32,7 @@ DEPLOYMENT_ACCOUNT_REGION = os.environ["AWS_REGION"]
 AWS_ACCOUNT_ID_REGEX = re.compile(AWS_ACCOUNT_ID_REGEX_STR)
 CLOUDFORMATION_PROVIDER_NAME = "cloudformation"
 RECURSIVE_SUFFIX = "/**/*"
-
+PIPELINE_MAXIMUM_ACTIONS = 1000
 
 class TargetStructure:
     def __init__(self, target):
@@ -88,13 +90,24 @@ class TargetStructure:
             actions_per_region += (1 + int(change_set_approval))
         return actions_per_region * regions_defined
 
-    def generate_waves(self, target):
+    def validate_actions_limit(self, pipeline_name, num_actions) -> None:
+        """Raise an exception if total amount of actions generated for the
+        pipeline would exceed the allowed threshold."""
+        if num_actions > PIPELINE_MAXIMUM_ACTIONS:
+            raise TooManyActionsError(
+                f"Pipeline {pipeline_name} has too many actions: "
+                f"{num_actions} maximum supported for any given "
+                f"Pipeline is {PIPELINE_MAXIMUM_ACTIONS} consider splitting the "
+                "Deployment Map into multiple Pipelines."
+            )
+
+    def generate_waves(self, target) -> Tuple[list, int]:
         """ Given the maximum actions allowed in a wave via wave.size property,
         reduce the accounts allocated in each wave by a factor
-        matching the number of actions necessary per account, which inturn
+        matching the number of actions necessary per account, which inturn is
         derived from the number of target regions and the specific action_type
         defined for that target. """
-        wave_size = self.wave.get('size', 50)
+        wave_size = self.wave.get('size', 100)
         actions_per_target_account = self._get_actions_per_target_account(
             regions=target.regions,
             provider=target.provider,
@@ -115,7 +128,7 @@ class TargetStructure:
         wave_size = wave_size // actions_per_target_account
         waves = []
         length = len(self.account_list)
-
+        total_actions = length * actions_per_target_account
         for start_index in range(0, length, wave_size):
             end_index = min(
                 start_index + wave_size,
@@ -124,7 +137,7 @@ class TargetStructure:
             waves.append(
                 self.account_list[start_index:end_index],
             )
-        return waves
+        return waves, total_actions
 
 class Target:
     """

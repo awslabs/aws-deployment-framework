@@ -82,7 +82,7 @@ class InputPipelineWaveTarget(TypedDict):
 # When defining the pipeline, the accounts that it deploys to are mapped
 # in waves. Within each wave, it will contain a list of wave targets to
 # make sure that referencing 100 accounts for example will be broken down
-# into two waves of 50 accounts each as max supported by CodePipeline.
+# into two waves of 100 accounts each as max supported by CodePipeline.
 TargetWavesWithNestedWaveTargets = List[  # Waves
     List[  # Wave Targets
         InputPipelineWaveTarget
