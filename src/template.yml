@@ -381,7 +381,7 @@ Resources:
                   - !GetAtt JumpRoleApplication.Outputs.ManagerFunctionArn
 
   AccountFileProcessingFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: process_account_files.lambda_handler
       Description: >-
@@ -399,7 +399,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
           ACCOUNT_MANAGEMENT_STATEMACHINE_ARN: !Ref AccountManagementStateMachine
           ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
@@ -450,7 +450,7 @@ Resources:
         - !Ref AccountProcessingLambdaBasePolicy
 
   AccountAliasConfigFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: configure_account_alias.lambda_handler
       Description: ADF - Account Management - Account Alias Configuration
@@ -463,7 +463,7 @@ Resources:
           AWS_PARTITION: !Ref AWS::Partition
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
           ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: adf-account-management-config-alias
@@ -499,7 +499,7 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:organizations::${AWS::AccountId}:account/${Organization.OrganizationId}/*"
 
   AccountTagConfigFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: configure_account_tags.lambda_handler
       Description: ADF - Account Management - Account Tag Configuration
@@ -511,7 +511,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: adf-account-management-config-tags
       Role: !GetAtt AccountTagConfigFunctionRole.Arn
@@ -550,7 +550,7 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/adf/target_regions"
 
   AccountRegionConfigFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: configure_account_regions.lambda_handler
       Description: ADF - Account Management - Account Region Configuration
@@ -562,7 +562,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: adf-account-management-config-region
       Role: !GetAtt AccountRegionConfigFunctionRole.Arn
@@ -570,7 +570,7 @@ Resources:
       BuildMethod: python3.12
 
   AccountOUConfigFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: configure_account_ou.lambda_handler
       Description: ADF - Account Management - Account OU Configuration
@@ -582,7 +582,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: adf-account-management-config-ou
       Role: !GetAtt AccountOUConfigFunctionRole.Arn
@@ -620,7 +620,7 @@ Resources:
                 Resource: "*"
 
   GetAccountRegionsFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: get_account_regions.lambda_handler
       Description: ADF - Account Management - Get Default Regions
@@ -633,7 +633,7 @@ Resources:
           AWS_PARTITION: !Ref AWS::Partition
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
           ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: adf-account-management-get-regions
@@ -660,7 +660,7 @@ Resources:
         - !Ref AccountProcessingLambdaBasePolicy
 
   DeleteDefaultVPCFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: delete_default_vpc.lambda_handler
       Description: ADF - Account Management - Delete the Default VPCs
@@ -673,7 +673,7 @@ Resources:
           AWS_PARTITION: !Ref AWS::Partition
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
           ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: adf-account-management-delete-default-vpc
@@ -700,7 +700,7 @@ Resources:
         - !Ref AccountProcessingLambdaBasePolicy
 
   CreateAccountFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: create_account.lambda_handler
       Description: ADF - Account Management - Create Account
@@ -712,7 +712,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
           ADF_PRIVILEGED_CROSS_ACCOUNT_ROLE_NAME: !Ref CrossAccountAccessRoleName
       FunctionName: adf-account-management-create-account
@@ -747,7 +747,7 @@ Resources:
                 Resource: "*"
 
   RegisterAccountForSupportFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: "AWS::Serverless::Function"
     Properties:
       Handler: register_account_for_support.lambda_handler
       Description: ADF - Account Management - Register support level
@@ -759,7 +759,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           ORGANIZATION_ID: !GetAtt Organization.OrganizationId
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       FunctionName: adf-account-management-register-support-level
       Role: !GetAtt RegisterAccountForSupportFunctionRole.Arn
@@ -1152,7 +1152,7 @@ Resources:
       Location: account_bootstrapping_jump_role.yml
       Parameters:
         OrganizationId: !GetAtt Organization.OrganizationId
-        ADFVersion: !FindInMap ['Metadata', 'ADF', 'Version']
+        ADFVersion: !FindInMap ["Metadata", "ADF", "Version"]
         LambdaLayer: !Ref ADFSharedPythonLambdaLayerVersion
         CrossAccountAccessRoleName: !Ref CrossAccountAccessRoleName
         DeploymentAccountId: !GetAtt DeploymentAccount.AccountId
@@ -1311,8 +1311,7 @@ Resources:
                 Resource: !GetAtt BootstrapTemplatesBucket.Arn
               - Effect: "Allow"
                 Action: "s3:GetObject"
-                Resource:
-                  !Sub "${BootstrapTemplatesBucket.Arn}/*"
+                Resource: !Sub "${BootstrapTemplatesBucket.Arn}/*"
 
   CrossAccountDeployBootstrapFunction:
     Type: "AWS::Serverless::Function"
@@ -1491,9 +1490,9 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'support:CreateCase'
-                  - 'support:DescribeSeverityLevels'
-                Resource: '*'
+                  - "support:CreateCase"
+                  - "support:DescribeSeverityLevels"
+                Resource: "*"
 
   CodeBuildPolicy:
     Type: "AWS::IAM::ManagedPolicy"
@@ -1663,17 +1662,29 @@ Resources:
                 python: 3.12
             pre_build:
               commands:
+                - pip install yq --root-user-action ignore --quiet
+                - ADF_PERFORM_TESTS=`cat adfconfig.yml | yq -r '.config."bootstrap-pipeline"."run-tests" // "enabled"'`
                 - >-
                   pip install
-                  -r requirements-dev.txt
                   -r adf-build/requirements.txt
-                  -r adf-build/requirements-dev.txt
                   -r adf-build/shared/requirements.txt
-                  -r adf-build/shared/requirements-dev.txt
                   -r adf-build/shared/helpers/requirements.txt
-                  -r adf-build/shared/helpers/requirements-dev.txt
+                  --root-user-action ignore
                   --quiet
-                - tox
+                - |
+                  if [ "$ADF_PERFORM_TESTS" = "enabled" ] ; then
+                    echo "Performing tests"
+                    pip install \
+                    -r requirements-dev.txt \
+                    -r adf-build/requirements-dev.txt \
+                    -r adf-build/shared/requirements-dev.txt \
+                    -r adf-build/shared/helpers/requirements-dev.txt \
+                    --quiet \
+                    --root-user-action ignore
+                    tox
+                  else
+                    echo "Skipping tests"
+                  fi
                 - >-
                   docker run --privileged --rm
                   public.ecr.aws/eks-distro-build-tooling/binfmt-misc:qemu-v7.0.0
@@ -2282,7 +2293,7 @@ Resources:
         Variables:
           MANAGEMENT_ACCOUNT_ID: !Ref AWS::AccountId
           DEPLOYMENT_REGION: !Ref DeploymentAccountMainRegion
-          ADF_VERSION: !FindInMap ['Metadata', 'ADF', 'Version']
+          ADF_VERSION: !FindInMap ["Metadata", "ADF", "Version"]
           ADF_LOG_LEVEL: !Ref LogLevel
       Policies:
         - Version: "2012-10-17"

@@ -37,6 +37,12 @@ config:
     allow-empty-target: disabled
     # ^ Needs to be set to "enabled" to activate. Defaults to "disabled" when
     # not set.
+
+  bootstrap-pipeline:
+    # Configure whether or not to run tests in the bootstrap pipeline.
+    # Needs to be set to "enabled" to activate. Defaults to "enabled" when not set.
+    run-tests: enabled
+
 # Optional config for multi-organization deployments of ADF:
 #   org:
 #    # Optional: Use this variable to define the AWS Organization in case of
