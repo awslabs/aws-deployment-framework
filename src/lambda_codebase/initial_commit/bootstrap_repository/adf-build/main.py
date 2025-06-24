@@ -188,6 +188,15 @@ def prepare_deployment_account(sts, deployment_account_id, config):
             .get('default-scm-codecommit-account-id', deployment_account_id)
         )
     )
+    # TODO merge
+    deployment_account_parameter_store.put_parameter(
+        'scm/default-s3-source-bucket-name',
+        (
+            config.config
+            .get('scm', {})
+            .get('default-s3-source-bucket-name', S3_BUCKET_NAME)
+        )
+    )
     deployment_account_parameter_store.put_parameter(
         'deployment_maps/allow_empty_target',
         config.config.get('deployment-maps', {}).get(
