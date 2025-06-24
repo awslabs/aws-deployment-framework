@@ -228,7 +228,7 @@ Provider type: `codebuild`.
 
 #### Properties
 
-- *image* *(String|Object)*.
+- *image* *(String|Object)*. - default: `STANDARD_5_0`
   - It is required to specify the container image your pipeline requires.
   - Specify the Image that the AWS CodeBuild will use. Images can be found
     [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).

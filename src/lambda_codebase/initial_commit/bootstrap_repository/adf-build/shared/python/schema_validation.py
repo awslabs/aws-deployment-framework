@@ -57,7 +57,7 @@ SOURCE_OUTPUT_ARTIFACT_FORMAT = Or(
 
 # CodeCommit Source
 CODECOMMIT_SOURCE_PROPS = {
-    "account_id": AWS_ACCOUNT_ID_SCHEMA,
+    Optional("account_id"): AWS_ACCOUNT_ID_SCHEMA,
     Optional("repository"): str,
     Optional("branch"): str,
     Optional("poll_for_changes"): bool,
@@ -308,7 +308,7 @@ PROVIDER_SCHEMA = {
             lambda x: PROVIDER_SOURCE_SCHEMAS[x['provider']].validate(x),
         ),
     ),
-    'build': Or(
+    Optional('build'): Or(
         And(
             {
                 Optional("provider"): 'codebuild',
