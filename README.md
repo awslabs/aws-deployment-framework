@@ -1,8 +1,8 @@
 # AWS Deployment Framework
 
-[![Build Status](https://github.com/awslabs/aws-deployment-framework/workflows/ADF%20CI/badge.svg?branch=master)](https://github.com/awslabs/aws-deployment-framework/actions?query=workflow%3AADF%20CI+branch%3Amaster)
+[![Build Status](https://github.com/awslabs/aws-deployment-framework/actions/workflows/adf.yml/badge.svg?branch=master)](https://github.com/awslabs/aws-deployment-framework/actions?query=workflow%3AADF%20CI+branch%3Amaster)
 
-[![MegaLinter](https://github.com/awslabs/aws-deployment-framework/workflows/MegaLinter/badge.svg?branch=master)](https://github.com/awslabs/aws-deployment-framework/actions?query=workflow%3AMegaLinter+branch%3Amaster)
+[![MegaLinter](https://github.com/awslabs/aws-deployment-framework/actions/workflows/mega-linter.yml/badge.svg?branch=master)](https://github.com/awslabs/aws-deployment-framework/actions?query=workflow%3AMegaLinter+branch%3Amaster)
 
 The AWS Deployment Framework *(ADF)* is an extensive and flexible framework to
 manage and deploy resources across multiple AWS accounts and regions within an
