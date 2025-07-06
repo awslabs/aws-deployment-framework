@@ -1,2 +1,2 @@
-mock~=5.1.0
-pytest~=8.1.1
+mock~=5.2.0
+pytest~=8.4.1
