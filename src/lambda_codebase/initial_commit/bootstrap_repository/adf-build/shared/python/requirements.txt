@@ -5,5 +5,4 @@ pyyaml~=6.0.2
 schema~=0.7.7
 tenacity==9.1.2
 typing-extensions~=4.14.1
-urllib3~=1.26.18 ; python_version < "3.10"
-urllib3~=2.5.0 ; python_version >= "3.10"
+urllib3~=2.5.0
