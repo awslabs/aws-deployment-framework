@@ -158,14 +158,18 @@ class Action:
                     .get('default_providers', {})
                     .get('source', {})
                     .get('properties', {})
-                    .get('object_key')
+                    .get('object_key', f"{self.map_params['name']}.zip")
                 ),
                 "PollForSourceChanges": (
-                    self.map_params
-                    .get('default_providers', {})
-                    .get('source', {})
-                    .get('properties', {})
-                    .get('trigger_on_changes', True)
+                    (
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('trigger_on_changes', True)
+                    ) and (
+                        self.map_params['default_providers']['source']
+                        .get('properties', {})
+                        .get('poll_for_changes', True)
+                    )
                 ),
             }
         if self.provider == "S3" and self.category == "Deploy":
@@ -202,7 +206,7 @@ class Action:
                         .get('default_providers', {})
                         .get('deploy', {})
                         .get('properties', {})
-                        .get('object_key')
+                        .get('object_key', f"{self.map_params['name']}.zip")
                     ))
                 ),
                 "KMSEncryptionKeyARN": (
@@ -706,7 +710,12 @@ class Pipeline(Construct):
             'pipeline',
             **pipeline_args
         )
-        adf_events.Events(self, 'events', {
+        _provider = (map_params
+                     .get('default_providers', {})
+                     .get('source', {})
+                     .get('provider')
+        )
+        _event_params = {
             "pipeline": (
                 f'arn:{ADF_DEPLOYMENT_PARTITION}:codepipeline:'
                 f'{ADF_DEPLOYMENT_REGION}:{ADF_DEPLOYMENT_ACCOUNT_ID}:'
@@ -753,7 +762,7 @@ class Pipeline(Construct):
                     .get('default_providers', {})
                     .get('source', {})
                     .get('properties', {})
-                    .get('poll_for_changes', False)
+                    .get('poll_for_changes', True if _provider == "s3" else False)
                 ),
                 "trigger_on_changes": (
                     map_params
@@ -763,7 +772,21 @@ class Pipeline(Construct):
                     .get('trigger_on_changes', True)
                 ),
             }
-        })
+        }
+        if _provider == "s3":
+            _event_params["s3_bucket_name"] = (map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('bucket_name')
+                )
+            _event_params["s3_object_key"] = (map_params
+                    .get('default_providers', {})
+                    .get('source', {})
+                    .get('properties', {})
+                    .get('object_key', f"{map_params['name']}.zip")
+                )
+        adf_events.Events(self, 'events', _event_params)
 
     @staticmethod
     def restructure_tags(current_tags):

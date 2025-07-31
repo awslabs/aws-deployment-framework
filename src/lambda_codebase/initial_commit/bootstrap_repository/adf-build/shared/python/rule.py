@@ -28,9 +28,27 @@ s3 = S3(
 
 
 class Rule:
-    def __init__(self, source_account_id):
+    def __init__(
+        self, 
+        source_account_id: str, 
+        source_provider: str,
+        params: dict = None
+    ):
         self.source_account_id = source_account_id
-        self.stack_name = f'adf-event-rule-{source_account_id}-{DEPLOYMENT_ACCOUNT_ID}'
+        self.source_provider = source_provider
+        self.parameters = [
+            {
+                'ParameterKey': param_key,
+                'ParameterValue': param_value
+            }
+            for param_key, param_value in (params or {}).items()
+        ]
+        if source_provider == "codecommit":
+            self.stack_name = f'adf-event-rule-{source_account_id}-{DEPLOYMENT_ACCOUNT_ID}'
+            self.event_template_name = 'events.yml'
+        else:
+            self.stack_name = f'adf-event-rule-{source_account_id}-{DEPLOYMENT_ACCOUNT_ID}-{source_provider}'
+            self.event_template_name = f'events-{source_provider}.yml'
         self.partition = get_partition(DEPLOYMENT_ACCOUNT_REGION)
         # Requirement adf-automation-role to exist on target
         self.role = sts.assume_cross_account_role(
@@ -44,14 +62,15 @@ class Rule:
     def create_update(self):
         s3_object_path = s3.build_pathing_style(
             style="path",
-            key="adf-build/templates/events.yml",
+            key=f"adf-build/templates/{self.event_template_name}",
         )
+
         cloudformation = CloudFormation(
             region=SOURCE_ACCOUNT_REGION,
             deployment_account_region=SOURCE_ACCOUNT_REGION,
             role=self.role,
             template_url=s3_object_path,
-            parameters=[],
+            parameters=self.parameters,
             wait=True,
             stack_name=self.stack_name,
             s3=None,
@@ -59,7 +78,8 @@ class Rule:
             account_id=DEPLOYMENT_ACCOUNT_ID,
         )
         LOGGER.info(
-            'Ensuring Stack State for Event Rule forwarding from %s to %s',
+            'Ensuring Stack State for %s Event Rule forwarding from %s to %s',
+            self.source_provider,
             self.source_account_id,
             DEPLOYMENT_ACCOUNT_ID,
         )

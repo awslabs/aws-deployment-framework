@@ -1,0 +1,62 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+Parameters:
+  DeploymentAccountId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: Deployment Account ID
+    Default: /adf/deployment_account_id
+  SourceS3BucketName:
+    Type: "String"
+    Description: Source S3 Bucket Name
+
+Resources:
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /adf/cross-account-events/
+      RoleName: !Sub adf-s3-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-s3-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+      Policies:
+        - PolicyName: !Sub events-to-${DeploymentAccountId}
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default"
+                Condition:
+                  ForAnyValue:StringEquals:
+                    "events:detail-type": 
+                      - "Object Created"
+                      - "Object Copy"
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub adf-s3-event-from-${AWS::AccountId}-to-${DeploymentAccountId}
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - "Object Created"
+          - "Object Copy"
+        detail:
+          bucket:
+            name:
+              - !Ref SourceS3BucketName
+      Targets:
+        - Arn: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${DeploymentAccountId}:event-bus/default
+          RoleArn: !GetAtt EventRole.Arn
+          Id: s3-push-event
