@@ -60,10 +60,54 @@ def test_raise_validation_remove_deployment_target_region(cls):
         assert cls._parse_config()
 
 
+def test_raise_validation_no_notification_endpoint(cls):
+    cls.config.pop("main-notification-endpoint", None)
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
 def test_raise_validation_length_deployment_target_region(cls):
     cls.config_contents["regions"]["deployment-account"] = [
         "region1",
         "region2",
+    ]
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_empty_roles(cls):
+    cls.config_contents["roles"]["cross-account-access"] = ""
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_empty_deployment_region(cls):
+    cls.config_contents["regions"]["deployment-account"] = ""
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_zero_notification_endpoint(cls):
+    cls.config["main-notification-endpoint"] = []
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_empty_obj_notification_endpoint(cls):
+    cls.config["main-notification-endpoint"] = [{}]
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_empty_email_notification_endpoint(cls):
+    cls.config["main-notification-endpoint"] = [{"target": ""}]
+    with raises(InvalidConfigError):
+        assert cls._parse_config()
+
+
+def test_raise_validation_no_at_in_email_notification_endpoint(cls):
+    cls.config["main-notification-endpoint"] = [
+        {"target": "some-str", "type": "email"},
     ]
     with raises(InvalidConfigError):
         assert cls._parse_config()

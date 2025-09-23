@@ -320,6 +320,7 @@ Resources:
               - "sts:AssumeRole"
             Resource:
               - !Sub arn:${AWS::Partition}:iam::*:role/adf-readonly-automation-role
+              - !Sub arn:${AWS::Partition}:iam::*:role/adf/organizations/adf-organizations-readonly
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationId

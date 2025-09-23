@@ -71,3 +71,9 @@ class InsufficientWaveSizeError(Exception):
     """
     Raised when the defined wave size is less than the calculated minimum actions
     """
+
+class TooManyActionsError(Exception):
+    """
+    Raised when the Targets Deployment map configuration exceeds the theoretical
+    maximum allowed actions in a pipeline.
+    """

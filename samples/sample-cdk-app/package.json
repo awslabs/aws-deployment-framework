@@ -1,6 +1,6 @@
 {
   "name": "lambda-cron",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "Running a Lambda on a schedule",
   "private": true,
   "scripts": {
@@ -15,11 +15,11 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.4"
+    "@types/node": "^22.13.14",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.135.0",
-    "constructs": "^10.3.0"
+    "aws-cdk-lib": "^2.204.0",
+    "constructs": "^10.4.2"
   }
 }

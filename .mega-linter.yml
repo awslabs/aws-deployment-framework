@@ -31,7 +31,7 @@ FILEIO_REPORTER: false
 
 # Install plugin for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
-  - command: "npm install prettier-plugin-multiline-arrays@3.0.4"
+  - command: "npm install prettier-plugin-multiline-arrays@3.0.6"
     cwd: "workspace"
 
 CLOUDFORMATION_CFN_LINT_CONFIG_FILE: '.cfnlintrc'

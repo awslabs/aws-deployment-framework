@@ -10,6 +10,7 @@ from pytest import fixture, raises
 from mock import Mock, patch,call
 from .stubs import stub_target
 from ..target import Target, TargetStructure
+from ..target import TooManyActionsError
 from parameter_store import ParameterStore
 
 
@@ -217,7 +218,7 @@ def test_target_structure_respects_wave():
                 }
             )
             target.fetch_accounts_for_target()
-            waves = list(target.target_structure.generate_waves(target=target))
+            waves, total_actions = target.target_structure.generate_waves(target=target)
             assert len(waves) == 3
 
             assert len(waves[0]) == 2
@@ -277,6 +278,47 @@ def test_target_structure_respects_wave():
                 },
             ]
 
+def test_target_structure_too_many_actions():
+    """Validates that when too many targets are defined then total_actions would
+    an exception. """
+    parameter_store = Mock()
+    parameter_store.client.put_parameter.return_value = True
+    with patch.object(ParameterStore, 'fetch_parameter') as mock:
+        expected_calls = [
+            call(
+                'deployment_maps/allow_empty_target',
+                'disabled',
+            ),
+        ]
+        test_target_config = {"path": "/some/random/ou",}
+        target_structure = TargetStructure(
+            target=test_target_config,
+        )
+        for step in target_structure.target:
+            target = Target(
+                path=test_target_config.get("path")[0],
+                target_structure=target_structure,
+
+                organizations=MockOrgClient([
+                    {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                    for x in range(200)
+                ]),
+                step={
+                    **step,
+                    "provider": "cloudformation",
+                    "regions": ["region1", "region2", "region3", "region4"]
+                }
+            )
+            target.fetch_accounts_for_target()
+            waves, total_actions = target.target_structure.generate_waves(
+                target=target
+            )
+            with raises(TooManyActionsError):
+                target.target_structure.validate_actions_limit(
+                    "dummy_name",
+                    total_actions
+                )
+
 
 def test_target_structure_respects_multi_region():
     """ Validate behavior with multiple accounts (x5) using cloudformation
@@ -316,13 +358,13 @@ def test_target_structure_respects_multi_region():
             )
             target.fetch_accounts_for_target()
 
-            waves = list(target.target_structure.generate_waves(target=target))
+            waves, total_actions = target.target_structure.generate_waves(target=target)
 
             assert len(waves) == 3
-
-            assert len(waves[0]) == 2 # x2 accounts x4 region x2 action = 16
-            assert len(waves[1]) == 2 # x2 accounts x4 region x2 action = 16
-            assert len(waves[2]) == 1 # x1 accounts x4 region x2 action = 8
+            assert total_actions == 40 # assert accounts(5) * regions(4) * actions(2) = 40
+            assert len(waves[0]) == 2 # assert accounts(2) * regions(4) * actions(2) = 16
+            assert len(waves[1]) == 2 # assert accounts(2) * regions(4) * actions(2) = 16
+            assert len(waves[2]) == 1 # assert accounts(1) * regions(4) * actions(2) = 8
 
 
 def test_target_structure_respects_multi_action_single_region():
@@ -338,7 +380,7 @@ def test_target_structure_respects_multi_action_single_region():
                 'disabled',
             ),
         ]
-        test_target_config = {"path": "/some/random/ou"}
+        test_target_config = {"path": "/some/random/ou", "wave": {"size": 20}}
         target_structure = TargetStructure(
             target=test_target_config,
         )
@@ -358,21 +400,21 @@ def test_target_structure_respects_multi_action_single_region():
                 }
             )
             target.fetch_accounts_for_target()
-            waves = list(
-                target.target_structure.generate_waves(
-                    target=target,
-                ),
+            waves, total_actions = target.target_structure.generate_waves(
+                target=target
             )
-            assert len(waves) == 2
 
-            assert len(waves[0]) == 25 # assert accts(25) region(1) action(2) = 50
-            assert len(waves[1]) == 5 # assert accnts(5) region(1) action(2) = 10
+            assert len(waves) == 3
+            assert total_actions == 60 # assert accounts(30) * regions(1) * actions(2) = 60
+            assert len(waves[0]) == 10 # assert accounts(20) * region(1) * action(2) = 20
+            assert len(waves[1]) == 10 # assert accounts(10) * region(1) * action(2) = 20
+            assert len(waves[2]) == 10 # assert accounts(10) * region(1) * action(2) = 20
 
 
 def test_target_structure_respects_multi_action_multi_region():
     """ Validate behavior with multiple accounts (x34) using cloudformation
     default actions (x2 actions) across two region (x2)
-    Limited to default 50 actions per region should split by 3 waves"""
+    Limited to default 100 actions per region should split by 2 waves"""
     parameter_store = Mock()
     parameter_store.client.put_parameter.return_value = True
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
@@ -405,18 +447,18 @@ def test_target_structure_respects_multi_action_multi_region():
             )
             target.fetch_accounts_for_target()
 
-            waves = list(target.target_structure.generate_waves(target=target))
-            assert len(waves) == 3
+            waves, total_actions = target.target_structure.generate_waves(target=target)
+            assert len(waves) == 2
+            assert total_actions == 136 # assert accounts(34) * regions(2) * actions(2) = 136
+            assert len(waves[0]) == 25 # assert accounts(25) * regions(2) * actions(2) = 100
+            assert len(waves[1]) == 9 # assert accounts(9) * regions(2) * actions(2) = 36
 
-            assert len(waves[0]) == 12 # assert accts(12) regions(2) actions(2) = 48
-            assert len(waves[1]) == 12 # assert accts(12) regions(2) actions(2) = 48
-            assert len(waves[2]) == 10 # assert accts(10) regions(2) actions(2) = 40
 
 
 def test_target_structure_respects_change_set_approval_single_region():
     """ Validate behavior with multiple accounts (x60) using cloudformation
     change_set_approval (x3 actions) across single region (x1)
-    Limited to default 50 actions per region"""
+    Limited to default 100 actions per region"""
     parameter_store = Mock()
     parameter_store.client.put_parameter.return_value = True
     with patch.object(ParameterStore, 'fetch_parameter') as mock:
@@ -452,13 +494,11 @@ def test_target_structure_respects_change_set_approval_single_region():
             )
             target.fetch_accounts_for_target()
 
-            waves = list(target.target_structure.generate_waves(target=target))
-            assert len(waves) == 4
-
-            assert len(waves[0]) == 16 # assert accts(16) regions(1) actions(3) = 48
-            assert len(waves[1]) == 16 # assert accts(16) regions(1) actions(3) = 48
-            assert len(waves[2]) == 16 # assert accts(16) regions(1) actions(3) = 48
-            assert len(waves[3]) == 12 # remaining 60 - (3 * 16) = 12
+            waves, total_actions = target.target_structure.generate_waves(target=target)
+            assert len(waves) == 2
+            assert total_actions == 180 # assert accounts(60) * regions(1) * actions(3) = 180
+            assert len(waves[0]) == 33 # assert accounts(33) * regions(1) * actions(3) = 99
+            assert len(waves[1]) == 27 # assert accounts(27) * regions(1) * actions(3) = 81
 
 
 def test_target_wave_structure_respects_exclude_config():
@@ -502,7 +542,7 @@ def test_target_wave_structure_respects_exclude_config():
                 }
             )
             target.fetch_accounts_for_target()
-            waves = list(target.target_structure.generate_waves(target=target))
+            waves, _ = target.target_structure.generate_waves(target=target)
             assert len(waves) == 3
 
             assert len(waves[0]) == 2

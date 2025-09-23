@@ -349,30 +349,30 @@ IAM permission boundaries. Where applicable, the roles received a new prefix.
 This makes it easier to identify what part of ADF relies on those roles and
 whom should have access to assume the role or modify it.
 
-| Previous prefix  | Previous name                                                       | New prefix                 | New name                                                      |
-|------------------|---------------------------------------------------------------------|----------------------------|---------------------------------------------------------------|
-| /                | ${CrossAccountAccessRoleName}-readonly                              | /adf/organizations/        | adf-organizations-readonly                                    |
-| /                | adf-update-cross-account-access-role                                | /adf/bootstrap/            | adf-update-cross-account-access                               |
-| /adf-automation/ | adf-create-repository-role                                          | /adf/pipeline-management/  | adf-pipeline-management-create-repository                     |
-| /adf-automation/ | adf-pipeline-provisioner-generate-inputs                            | /adf/pipeline-management/  | adf-pipeline-management-generate-inputs                       |
-| /adf-automation/ | adf-pipeline-create-update-rule                                     | /adf/pipeline-management/  | adf-pipeline-management-create-update-rule                    |
-| /                | adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-* | /adf/cross-account-events/ | adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId} |
-|------------------|---------------------------------------------------------------------|----------------------------|---------------------------------------------------------------|
+| Previous prefix    | Previous name                                                         | New prefix                   | New name                                                        |
+|--------------------|-----------------------------------------------------------------------|------------------------------|-----------------------------------------------------------------|
+| /                  | ${CrossAccountAccessRoleName}-readonly                                | /adf/organizations/          | adf-organizations-readonly                                      |
+| /                  | adf-update-cross-account-access-role                                  | /adf/bootstrap/              | adf-update-cross-account-access                                 |
+| /adf-automation/   | adf-create-repository-role                                            | /adf/pipeline-management/    | adf-pipeline-management-create-repository                       |
+| /adf-automation/   | adf-pipeline-provisioner-generate-inputs                              | /adf/pipeline-management/    | adf-pipeline-management-generate-inputs                         |
+| /adf-automation/   | adf-pipeline-create-update-rule                                       | /adf/pipeline-management/    | adf-pipeline-management-create-update-rule                      |
+| /                  | adf-event-rule-${AWS::AccountId}-${DeploymentAccountId}-EventRole-*   | /adf/cross-account-events/   | adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}   |
+| ------------------ | --------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------- |
 
 #### ADF Renaming of Resources
 
-| Type         | Previous name                                 | New name                                               |
-|--------------|-----------------------------------------------|--------------------------------------------------------|
-| StateMachine | EnableCrossAccountAccess                      | adf-bootstrap-enable-cross-account                     |
-| StateMachine | ADFPipelineManagementStateMachine             | adf-pipeline-management                                |
-| StateMachine | PipelineDeletionStateMachine-*                | adf-pipeline-management-delete-outdated                |
-| Lambda       | DeploymentMapProcessorFunction                | adf-pipeline-management-deployment-map-processor       |
-| Lambda       | ADFPipelineCreateOrUpdateRuleFunction         | adf-pipeline-management-create-update-rule             |
-| Lambda       | ADFPipelineCreateRepositoryFunction           | adf-pipeline-management-create-repository              |
-| Lambda       | ADFPipelineGenerateInputsFunction             | adf-pipeline-management-generate-pipeline-inputs       |
-| Lambda       | ADFPipelineStoreDefinitionFunction            | adf-pipeline-management-store-pipeline-definition      |
-| Lambda       | ADFPipelineIdentifyOutOfDatePipelinesFunction | adf-pipeline-management-identify-out-of-date-pipelines |
-|--------------|-----------------------------------------------|--------------------------------------------------------|
+| Type           | Previous name                                   | New name                                                 |
+|----------------|-------------------------------------------------|----------------------------------------------------------|
+| StateMachine   | EnableCrossAccountAccess                        | adf-bootstrap-enable-cross-account                       |
+| StateMachine   | ADFPipelineManagementStateMachine               | adf-pipeline-management                                  |
+| StateMachine   | PipelineDeletionStateMachine-*                  | adf-pipeline-management-delete-outdated                  |
+| Lambda         | DeploymentMapProcessorFunction                  | adf-pipeline-management-deployment-map-processor         |
+| Lambda         | ADFPipelineCreateOrUpdateRuleFunction           | adf-pipeline-management-create-update-rule               |
+| Lambda         | ADFPipelineCreateRepositoryFunction             | adf-pipeline-management-create-repository                |
+| Lambda         | ADFPipelineGenerateInputsFunction               | adf-pipeline-management-generate-pipeline-inputs         |
+| Lambda         | ADFPipelineStoreDefinitionFunction              | adf-pipeline-management-store-pipeline-definition        |
+| Lambda         | ADFPipelineIdentifyOutOfDatePipelinesFunction   | adf-pipeline-management-identify-out-of-date-pipelines   |
+| -------------- | ----------------------------------------------- | -------------------------------------------------------- |
 
 #### ADF Parameters in AWS Systems Manager Parameter Store
 
@@ -1208,7 +1208,7 @@ around IAM we have created two new IAM Role that lives on each AWS Account
 within the organization. These role are created in the global.yml
 *(base stack)* of each account and are used for the following purposes:
 
-**adf-automation-role:**
+__adf-automation-role:__
 
 > When creating pipelines in ADF there are certain things that are required to
 > be setup on multiple different accounts. For example, the source account
@@ -1222,7 +1222,7 @@ This new role (`adf-automation-role`) is assumed by CodeBuild in the
 `aws-deployment-framework-pipelines` pipeline exclusively and cannot be
 assumed by the standard *(other)* deployment pipelines.
 
-**adf-readonly-automation-role:**
+__adf-readonly-automation-role:__
 
 > When CodeBuild runs as part of a standard deployment pipeline
 > *(anything other than `aws-deployment-framework-pipelines`)* it uses the

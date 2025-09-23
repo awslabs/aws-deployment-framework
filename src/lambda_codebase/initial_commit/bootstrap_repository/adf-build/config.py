@@ -76,18 +76,29 @@ class Config:
                 "adfconfig.yml is missing required properties. "
                 "Please see the documentation."
             ) from None
-
-        try:
-            if self.config.get("scp"):
-                assert self.config.get("scp").get("keep-default-scp") in [
-                    "enabled",
-                    "disabled",
-                ]
-        except AssertionError:
+        if "" in (
+            self.cross_account_access_role,
+            self.deployment_account_region,
+            self.notification_endpoint,
+        ):
             raise InvalidConfigError(
-                "Configuration settings for organizations should be either "
-                "enabled or disabled"
+                "adfconfig.yml is missing required properties, set as ''. "
+                "Please see the documentation."
             ) from None
+        if self.notification_type == "email" and "@" not in self.notification_endpoint:
+            raise InvalidConfigError(
+                "The main-notification-endpoint configured in adfconfig.yml, "
+                "is configured as an email, but lacks the '@' character. "
+                "Please see the documentation."
+            ) from None
+
+        if self.config.get("scp"):
+            valid_options = ["enabled", "disabled"]
+            if self.config.get("scp").get("keep-default-scp") not in valid_options:
+                raise InvalidConfigError(
+                    "Configuration settings for organizations should be either "
+                    "enabled or disabled"
+                ) from None
 
         if isinstance(self.deployment_account_region, list):
             if len(self.deployment_account_region) > 1:
@@ -134,18 +145,15 @@ class Config:
 
         # TODO Investigate why this only considers the first notification
         # endpoint. Seems like a bug, it should support multiple.
-        adf_config_notification_type = self.config.get("main-notification-endpoint")[
-            0
-        ].get("type")
+        main_notification_endpoint = (self.config.get("main-notification-endpoint") or [{}])[0]
         self.notification_type = (
-            "lambda" if adf_config_notification_type == "slack" else "email"
+            "lambda" if main_notification_endpoint.get("type") == "slack" else "email"
         )
-        self.notification_endpoint = self.config.get("main-notification-endpoint")[
-            0
-        ].get("target")
+        self.notification_endpoint = main_notification_endpoint.get("target", "")
         self.notification_channel = (
             None if self.notification_type == "email" else self.notification_endpoint
         )
+
         self.extensions = self.config_contents.get("extensions", {})
         self._configure_default_extensions_behavior()
 

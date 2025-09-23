@@ -47,6 +47,11 @@ Parameters:
 Resources:
   Cloud9Instance:
     Type: AWS::Cloud9::EnvironmentEC2
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E1152
     Properties:
       AutomaticStopTimeMinutes: !Ref AutomaticStopTimeInMinutes
       Description: !Ref InstanceDescription

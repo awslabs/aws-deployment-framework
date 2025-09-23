@@ -32,6 +32,7 @@ import os
 
 from aws_xray_sdk.core import patch_all
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 # ADF imports
@@ -69,8 +70,9 @@ POLICY_VALID_DURATION_IN_HOURS = 2
 INCLUDE_NEW_ACCOUNTS_IF_JOINED_IN_LAST_HOURS = 2
 
 MAX_MANAGED_POLICY_LENGTH = 6144
-ZERO_ACCOUNTS_POLICY_LENGTH = 265
-CHARS_PER_ACCOUNT_ID = 15
+MAX_ROLE_NAME_LENGTH = 64
+ZERO_ACCOUNTS_POLICY_LENGTH = 289 + MAX_ROLE_NAME_LENGTH
+CHARS_PER_ACCOUNT_ID = 16
 MAX_NUMBER_OF_ACCOUNTS = math.floor(
     (
         MAX_MANAGED_POLICY_LENGTH
@@ -79,8 +81,13 @@ MAX_NUMBER_OF_ACCOUNTS = math.floor(
     / CHARS_PER_ACCOUNT_ID,
 )
 
+BOTO_ORG_CONFIG = Config(
+    retries={
+        "max_attempts": 15,
+    },
+)
 IAM_CLIENT = boto3.client("iam")
-ORGANIZATIONS_CLIENT = boto3.client("organizations")
+ORGANIZATIONS_CLIENT = boto3.client("organizations", config=BOTO_ORG_CONFIG)
 TAGGING_CLIENT = boto3.client("resourcegroupstaggingapi")
 CODEPIPELINE_CLIENT = boto3.client("codepipeline")
 

@@ -107,7 +107,7 @@ def report_final_pipeline_targets(pipeline_object):
     if number_of_targets == 0:
         LOGGER.info("Attempting to create an empty pipeline as there were no targets found")
 
-
+# pylint: disable=R0914
 def generate_pipeline_inputs(
     pipeline,
     deployment_map_source,
@@ -129,8 +129,8 @@ def generate_pipeline_inputs(
     """
     data = {}
     pipeline_object = Pipeline(pipeline)
-    regions = []
-
+    total_pipeline_actions = 2
+    # Assumption is that a Source and Build Stage is = 2 Actions
     for target in pipeline.get("targets", []):
         target_structure = TargetStructure(target)
         for raw_step in target_structure.target:
@@ -158,17 +158,22 @@ def generate_pipeline_inputs(
         # For the sake of consistency we should probably think of a target
         # consisting of multiple "waves". So if you see any reference to
         # a wave going forward it will be the individual batch of account ids.
-        pipeline_object.template_dictionary["targets"].append(
-            list(
-                target_structure.generate_waves(
-                    target=pipeline_target
-                )
-            ),
+
+        waves, wave_action_count =  target_structure.generate_waves(
+            target=pipeline_target
         )
+        pipeline_object.template_dictionary["targets"].append(list(waves))
+        # Add the actions from the waves to the total_pipeline_actions count
+        total_pipeline_actions += wave_action_count
+
+    target_structure.validate_actions_limit(
+        pipeline.get("name"),
+        total_pipeline_actions
+    )
 
     report_final_pipeline_targets(pipeline_object)
 
-    if DEPLOYMENT_ACCOUNT_REGION not in regions:
+    if DEPLOYMENT_ACCOUNT_REGION not in pipeline_object.stage_regions:
         pipeline_object.stage_regions.append(DEPLOYMENT_ACCOUNT_REGION)
 
     data["pipeline_input"] = pipeline_object.generate_input()
@@ -180,14 +185,12 @@ def generate_pipeline_inputs(
         data["pipeline_input"]["default_providers"]["source"]["properties"][
             "codeconnections_arn"
         ] = data["ssm_params"]["codeconnections_arn"]
-    data["pipeline_input"]["default_scm_branch"] = (
-        data["ssm_params"]
-        .get("default_scm_branch")
-    )
-    data["pipeline_input"]["default_scm_codecommit_account_id"] = (
-        data["ssm_params"]
-        .get("default_scm_codecommit_account_id")
-    )
+    data["pipeline_input"].update({
+        "default_scm_branch": data["ssm_params"].get("default_scm_branch"),
+        "default_scm_codecommit_account_id": data["ssm_params"].get(
+            "default_scm_codecommit_account_id"
+        )
+    })
     store_regional_parameter_config(
         pipeline_object,
         parameter_store,

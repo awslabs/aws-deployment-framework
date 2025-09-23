@@ -1005,6 +1005,7 @@ Resources:
                   - "lambda:CreateFunction"
                   - "lambda:DeleteFunction"
                   - "lambda:GetFunction"
+                  - "lambda:ListTags"
                   - "lambda:GetFunctionConfiguration"
                   - "lambda:UpdateFunctionCode"
                   - "lambda:UpdateFunctionConfiguration"
