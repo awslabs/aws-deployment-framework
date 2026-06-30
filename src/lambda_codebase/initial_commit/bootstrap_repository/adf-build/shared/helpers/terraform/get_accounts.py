@@ -82,7 +82,11 @@ def get_accounts():
                 'Email': account['Email'],
             },
             filter(
-                lambda account: account['Status'] == 'ACTIVE',
+                # Prefer `State`, fall back to the deprecated `Status` field
+                # (removed after September 2026) for backward compatibility.
+                lambda account: (
+                    account.get('State', account.get('Status')) == 'ACTIVE'
+                ),
                 paginator(organizations.list_accounts)
             )
         )
