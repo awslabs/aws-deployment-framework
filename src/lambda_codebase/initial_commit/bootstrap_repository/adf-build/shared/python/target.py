@@ -171,7 +171,10 @@ class Target:
 
     @staticmethod
     def _account_is_active(account):
-        return bool(account.get("Status") == "ACTIVE")
+        # Prefer the `State` field, falling back to the deprecated `Status`
+        # field (removed after September 2026) for backward compatibility.
+        account_state = account.get("State", account.get("Status"))
+        return bool(account_state == "ACTIVE")
 
     def _create_target_info(self, name, account_id):
         return {

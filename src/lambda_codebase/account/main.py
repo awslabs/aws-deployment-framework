@@ -151,7 +151,11 @@ def _find_deployment_account_via_orgs_api() -> str:
             DEPLOYMENT_OU_PATH,
         )
         active_accounts = list(filter(
-            lambda account: account.get("Status") == "ACTIVE",
+            # Prefer `State`, fall back to the deprecated `Status` field
+            # (removed after September 2026) for backward compatibility.
+            lambda account: (
+                account.get("State", account.get("Status")) == "ACTIVE"
+            ),
             accounts_found,
         ))
         number_of_deployment_accounts = len(active_accounts)

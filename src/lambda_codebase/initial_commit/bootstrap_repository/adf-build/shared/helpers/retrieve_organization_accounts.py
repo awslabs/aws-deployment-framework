@@ -212,7 +212,12 @@ def _get_member_accounts(billing_account_id, options):
         accounts.extend(page["Accounts"])
 
     # Remove any account that is not actively part of this organization yet.
-    only_active_accounts = filter(lambda a: a["Status"] == "ACTIVE", accounts)
+    # Prefer the `State` field, falling back to the deprecated `Status` field
+    # (removed after September 2026) for backward compatibility.
+    only_active_accounts = filter(
+        lambda a: a.get("State", a.get("Status")) == "ACTIVE",
+        accounts,
+    )
 
     # Only return the key: value pairs that are defined in the --field option.
     only_certain_fields_of_active = list(
