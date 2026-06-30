@@ -266,11 +266,17 @@ class Organizations:  # pylint: disable=R0904
                     account_ou_id,
                 )
                 return False
-        if account.get("Status") != "ACTIVE":
+        # AWS Organizations is replacing the `Status` field with the more
+        # granular `State` field. The `Status` field is deprecated and will be
+        # removed after September 2026. Prefer `State` when present and fall
+        # back to `Status` for backward compatibility. See:
+        # https://aws.amazon.com/blogs/mt/updates-to-account-status-information-in-aws-organizations/
+        account_state = account.get("State", account.get("Status"))
+        if account_state != "ACTIVE":
             LOGGER.warning(
                 "Account %s is not an active AWS Account, state reported: %s",
                 account["Id"],
-                account.get("Status"),
+                account_state,
             )
             return False
         return True
