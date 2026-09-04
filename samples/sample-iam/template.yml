@@ -22,7 +22,6 @@ Resources:
       GroupName: adf-sample-developers-group
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSServiceCatalogEndUserFullAccess"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCloud9User"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCloudFormationReadOnlyAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSCodeCommitFullAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3ReadOnlyAccess"

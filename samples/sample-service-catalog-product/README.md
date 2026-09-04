@@ -1,6 +1,6 @@
 # Sample Service Catalog Product
 
-This stack imports values from `sample-vpc` and `sample-iam`.
+This stack imports values from `sample-iam`.
 
 ## Deployment Map example
 
