@@ -1,2 +1,2 @@
-aws-xray-sdk==2.14.0
-pyyaml~=6.0.2
+aws-xray-sdk==2.15.0
+pyyaml~=6.0.3

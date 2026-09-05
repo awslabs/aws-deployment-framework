@@ -63,7 +63,7 @@ def enable_regions_for_account(
         regions_enabled[region] = False
         desired_region_status = region_status.get(region.lower())
         if not desired_region_status:
-            LOGGER.warning("Unable to obtain status of %s, not enabling")
+            LOGGER.warning("Unable to obtain status of %s, not enabling", region)
         if desired_region_status == "DISABLED":
             LOGGER.info("Enabling Region %s because it is currently Disabled", region)
             enable_region_args["RegionName"] = region.lower()

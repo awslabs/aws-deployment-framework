@@ -1,6 +1,6 @@
-astroid==3.3.10
-aws-sam-cli==1.142.1
-boto3==1.39.3
-botocore==1.39.3
-pyyaml~=6.0.2
-schema==0.7.7
+astroid==4.0.4
+aws-sam-cli==1.166.1
+boto3==1.43.83
+botocore==1.43.83
+pyyaml~=6.0.3
+schema==0.7.8
