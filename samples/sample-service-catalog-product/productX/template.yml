@@ -13,52 +13,36 @@ Parameters:
     AllowedValues:
       - development
       - testing
-    Description: The environment to use, IDE are only supported in testing
+    Description: The environment this product is provisioned into.
 
-  InstanceType:
+  BucketBaseName:
     Type: String
-    Default: t3.micro
-    AllowedValues:
-      - t3.micro
-      - m5.large
-    Description: Enter t3.micro or m5.large. Default is t3.micro.
-
-  AutomaticStopTimeInMinutes:
-    Type: Number
-    Default: 480
-    AllowedValues:
-      - 480
-      - 960
-    Description: The amount of minutes that this Cloud9 Instance should stop after (8 or 16 hours).
-
-  InstanceDescription:
-    Type: String
-    Default: "Development environment used during office hours"
-    Description: The Description of the Cloud9 Instance.
-
-  InstanceName:
-    Type: String
-    Description: The name of the Cloud9 Instance.
-
-  UserName:
-    Type: String
-    Description: Your IAM UserName that will be used as the OwnerArn in the Cloud9 Instance.
+    Default: adf-sample-product-bucket
+    Description: >-
+      Base name for the S3 bucket. The environment and account id are
+      appended to keep the bucket name globally unique.
 
 Resources:
-  Cloud9Instance:
-    Type: AWS::Cloud9::EnvironmentEC2
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - E1152
+  SampleBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      AutomaticStopTimeMinutes: !Ref AutomaticStopTimeInMinutes
-      Description: !Ref InstanceDescription
-      InstanceType: !Ref InstanceType
-      ImageId: 'amazonlinux-2023-x86_64'
-      Name: !Ref InstanceName
-      OwnerArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UserName}"  # In this sample case 'sample-developer' from the IAM stack can be used here
-      SubnetId:
-        Fn::ImportValue:
-          Fn::Sub: ${Environment}-public-subnet-1a  # Imported from sample-vpc
+      BucketName: !Sub "${BucketBaseName}-${Environment}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+  SampleBucketName:
+    Description: Name of the S3 bucket provisioned via Service Catalog.
+    Value: !Ref SampleBucket

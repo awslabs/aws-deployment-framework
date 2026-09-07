@@ -16,34 +16,34 @@ Resources:
     Type: AWS::ServiceCatalog::Portfolio
     Properties:
       AcceptLanguage: en
-      Description: Portfolio containing Cloud9 Development Environment
-      DisplayName: IDE Portfolio
+      Description: Portfolio containing sample Service Catalog products
+      DisplayName: Sample Portfolio
       ProviderName: Company
 
-  IDETagOption:
+  SampleTagOption:
     Type: "AWS::ServiceCatalog::TagOption"
     Properties:
       Key: "ProductType"
-      Value: "IDE"
+      Value: "Storage"
 
-  IDEPortfolioTagOptionAssociation:
+  SamplePortfolioTagOptionAssociation:
     Type: "AWS::ServiceCatalog::TagOptionAssociation"
     Properties:
       ResourceId: !Ref Portfolio
-      TagOptionId: !Ref IDETagOption
+      TagOptionId: !Ref SampleTagOption
 
-  Cloud9Product:
+  SampleProduct:
     Type: AWS::ServiceCatalog::CloudFormationProduct
     Properties:
       AcceptLanguage: en
-      Description: CloudFormation Template to deploy Cloud9 Development Environment
+      Description: CloudFormation Template to deploy a sample S3 bucket
       Distributor: Company
-      Name: Cloud9 Development Environment
+      Name: Sample S3 Bucket
       Owner: Company
       ProvisioningArtifactParameters:
         - Info:
             LoadTemplateFromURL: !Ref ProductXTemplateURL
-      SupportDescription: For help with Cloud9 Dev Environment contact us
+      SupportDescription: For help with this sample product contact us
       SupportEmail: john@example.com
       SupportUrl: http://example.com
 
@@ -52,9 +52,9 @@ Resources:
     Properties:
       AcceptLanguage: en
       PortfolioId: !Ref Portfolio
-      ProductId: !Ref Cloud9Product
+      ProductId: !Ref SampleProduct
 
-  IDEPortfolioPrincipalAssociation:
+  SamplePortfolioPrincipalAssociation:
     Type: "AWS::ServiceCatalog::PortfolioPrincipalAssociation"
     Properties:
       PortfolioId: !Ref Portfolio

@@ -37,7 +37,7 @@ The following diagram shows such a setup in the most generic level:
 ## Common Use Case for a Multi-Organization ADF Setup - A Multi-Stage Landing Zone
 
 The most common use case for a multi-organization ADF setup is a multi-stage
-(and multi-organization) [landing zone](https://docs.aws.amazon.com/prescriptive-guidance/latest/migration-aws-environment/understanding-landing-zones.html).
+(and multi-organization) [landing zone](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-migration/aws-landing-zone.html).
 Such a setup enables stable landing zone feature development that is otherwise
 not possible in a single AWS Organization.
 

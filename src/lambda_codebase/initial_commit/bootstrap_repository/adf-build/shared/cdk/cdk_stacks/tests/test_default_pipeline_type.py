@@ -27,14 +27,14 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_1_target_with_2_wa
         "targets": [
             [
                 [
-                    {"name": "account-1", "id": "001", "regions": ["eu-west-1"]},
-                    {"name": "account-2", "id": "002", "regions": ["eu-west-1"]},
-                    {"name": "account-3", "id": "003", "regions": ["eu-west-1"]},
+                    {"name": "account-1", "id": "111111111111", "regions": ["eu-west-1"]},
+                    {"name": "account-2", "id": "222222222222", "regions": ["eu-west-1"]},
+                    {"name": "account-3", "id": "333333333333", "regions": ["eu-west-1"]},
                 ],
                 [
-                    {"name": "account-4", "id": "004", "regions": ["eu-west-1"]},
-                    {"name": "account-5", "id": "005", "regions": ["eu-west-1"]},
-                    {"name": "account-6", "id": "006", "regions": ["eu-west-1"]},
+                    {"name": "account-4", "id": "444444444444", "regions": ["eu-west-1"]},
+                    {"name": "account-5", "id": "555555555555", "regions": ["eu-west-1"]},
+                    {"name": "account-6", "id": "666666666666", "regions": ["eu-west-1"]},
                 ],
             ],
         ]
@@ -93,17 +93,17 @@ def test_pipeline_creation_outputs_as_expected_when_input_has_2_targets_with_2_w
         "targets": [
             [
                 [
-                    {"name": "account-1", "id": "001", "regions": ["eu-west-1"]},
-                    {"name": "account-2", "id": "002", "regions": ["eu-west-1"]},
-                    {"name": "account-3", "id": "003", "regions": ["eu-west-1"]},
+                    {"name": "account-1", "id": "111111111111", "regions": ["eu-west-1"]},
+                    {"name": "account-2", "id": "222222222222", "regions": ["eu-west-1"]},
+                    {"name": "account-3", "id": "333333333333", "regions": ["eu-west-1"]},
                 ],
                 [
-                    {"name": "account-4", "id": "004", "regions": ["eu-west-1"]},
-                    {"name": "account-5", "id": "005", "regions": ["eu-west-1"]},
-                    {"name": "account-6", "id": "006", "regions": ["eu-west-1"]},
+                    {"name": "account-4", "id": "444444444444", "regions": ["eu-west-1"]},
+                    {"name": "account-5", "id": "555555555555", "regions": ["eu-west-1"]},
+                    {"name": "account-6", "id": "666666666666", "regions": ["eu-west-1"]},
                 ],
             ],
-            [[{"name": "account-7", "id": "007", "regions": ["eu-west-2"]}]],
+            [[{"name": "account-7", "id": "777777777777", "regions": ["eu-west-2"]}]],
         ]
     }
 
