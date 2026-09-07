@@ -28,7 +28,7 @@ This sample stack depends on resources in `sample-iam` and `sample-vpc`.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_7_0" # So we can specify which Python version we need
+          image: "STANDARD_8_0" # So we can specify which Python version we need
     targets:
       - /banking/testing
       - /banking/production

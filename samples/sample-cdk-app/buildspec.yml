@@ -7,7 +7,7 @@ phases:
   install:
     runtime-versions:
       python: 3.12
-      nodejs: 20
+      nodejs: 24
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --only-show-errors
       - pip install -r adf-build/requirements.txt -q

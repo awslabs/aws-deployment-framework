@@ -17,7 +17,7 @@ this sample. The VPC should be deployed to the same target accounts and region.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_7_0" # So we can specify which Python version we need
+          image: "STANDARD_8_0" # So we can specify which Python version we need
     targets:
       - 222222222222
       - path: 333333333333

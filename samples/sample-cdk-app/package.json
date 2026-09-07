@@ -15,11 +15,11 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^22.13.14",
-    "typescript": "^5.8.3"
+    "@types/node": "^24.1.0",
+    "typescript": "~5.9.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.204.0",
-    "constructs": "^10.4.2"
+    "aws-cdk-lib": "^2.268.0",
+    "constructs": "^10.8.1"
   }
 }
