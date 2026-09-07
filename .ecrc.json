@@ -4,7 +4,9 @@
     "IgnoreDefaults": false,
     "SpacesAftertabs": false,
     "NoColor": false,
-    "Exclude": ["LICENSE.txt"],
+    "Exclude": [
+        "LICENSE.txt"
+    ],
     "AllowedContentTypes": [],
     "PassedFiles": [],
     "Disable": {

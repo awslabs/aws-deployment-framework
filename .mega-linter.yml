@@ -1,5 +1,5 @@
 # Configuration file for MegaLinter
-# See all available variables at https://megalinter.io/configuration/ and in linters documentation
+# See all available variables at https://megalinter.io/latest/configuration/ and in linters documentation
 
 # all, none, or list of linter keys
 APPLY_FIXES: none
@@ -18,10 +18,10 @@ ENABLE_LINTERS:
   - JSON_PRETTIER
   - JSON_V8R
   - JAVASCRIPT_STANDARD
-  - MARKDOWN_MARKDOWN_LINK_CHECK
   - MARKDOWN_MARKDOWNLINT
   - MARKDOWN_MARKDOWN_TABLE_FORMATTER
   - SPELL_CSPELL
+  - SPELL_LYCHEE
   - TERRAFORM_TFLINT
   - YAML_YAMLLINT
 
@@ -31,7 +31,7 @@ FILEIO_REPORTER: false
 
 # Install plugin for list handling.
 JSON_PRETTIER_PRE_COMMANDS:
-  - command: "npm install prettier-plugin-multiline-arrays@3.0.6"
+  - command: "npm install prettier-plugin-multiline-arrays@4.1.11"
     cwd: "workspace"
 
 CLOUDFORMATION_CFN_LINT_CONFIG_FILE: '.cfnlintrc'
@@ -39,7 +39,6 @@ CLOUDFORMATION_CFN_LINT_FILE_EXTENSIONS: [".yml", ".yaml"]
 
 EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: '.ecrc.json'
 
-MARKDOWN_MARKDOWN_LINK_CHECK_ARGUMENTS: '-q'
 MARKDOWN_MARKDOWNLINT_DISABLE_ERRORS: false
 
 SPELL_CSPELL_ARGUMENTS: '--gitignore --no-progress --show-suggestions'
@@ -48,5 +47,10 @@ SPELL_CSPELL_FILE_EXTENSIONS: ["*"]
 TERRAFORM_TFLINT_UNSECURED_ENV_VARIABLES:
   - GITHUB_TOKEN
 
-GITHUB_STATUS_REPORTER: true
-GITHUB_COMMENT_REPORTER: true
+# Reporters that post back to GitHub are disabled to keep the workflow's
+# GITHUB_TOKEN at least privilege (only security-events: write, for the SARIF
+# upload). Enabling these would require granting statuses: write and
+# pull-requests: write, expanding the token's blast radius for the third-party
+# code MegaLinter runs. Rely on the job status and the Security tab instead.
+GITHUB_STATUS_REPORTER: false
+GITHUB_COMMENT_REPORTER: false

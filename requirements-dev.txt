@@ -1,3 +1,7 @@
+# SAM templates are not compatible with cfn-lint > 1.54 at this point, so this
+# is pinned below that version. When bumping cfn-lint past 1.54, verify SAM
+# compatibility and remove the E1019 and E1010 rules from the ignore_checks
+# list in .cfnlintrc (they were only added to work around this limitation).
 cfn-lint~=1.53.3
 isort==6.1.0
 mock==5.2.0

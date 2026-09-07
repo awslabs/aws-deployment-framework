@@ -886,7 +886,7 @@ Tag Policies are available only in an organization that has
 [all features enabled](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html).
 Once you have enabled all features within your Organization, ADF can manage and
 automate the application and updating process of the Tag Policies. For more
-information, see [here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
+information, see the [Tag policies documentation](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html).
 
 ## Integrating Slack
 
@@ -1093,9 +1093,9 @@ _deployment account_ in _your main region_:
 4. This should progress and turn up as green. If any of these steps fail, it
    could be that one of your pipelines could not be updated. You can click on
    the `Details` link to get more insights into the failure. Please report the
-   step where it failed by opening an issue
-   [here](https://github.com/awslabs/aws-deployment-framework/issues) and
-   include a copy of the logs when it fails here.
+   step where it failed by
+   [opening an issue](https://github.com/awslabs/aws-deployment-framework/issues)
+   and include a copy of the logs when it fails here.
 
 The `aws-deployment-framework-pipelines` pipeline will trigger the creation of
 pipelines as defined in the deployment maps.

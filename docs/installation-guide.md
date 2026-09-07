@@ -150,8 +150,8 @@ or later.
 #### 2.2.2. Network Settings
 
 To build and deploy ADF, you will need to setup a Cloud9 environment that has
-credentials setup. The recommended approach as documented
-[here](https://docs.aws.amazon.com/cloud9/latest/user-guide/credentials.html)
+credentials setup. The recommended approach, as described in the
+[Cloud9 credentials documentation](https://docs.aws.amazon.com/cloud9/latest/user-guide/credentials.html),
 is to use AWS Managed Temporary Credentials. In Cloud9, it will be able
 to operate with your access rights (similarly to how AWS CloudShell works) if
 you set it up:
@@ -462,7 +462,7 @@ Example: `deployment`
 **Explanation:**
 The Alias of the deployment account. The account alias is a globally unique
 name for an account that enable things such as custom login URLs. Read more
-[here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html#AboutAccountAlias).
+[about AWS account aliases](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html#AboutAccountAlias).
 
 *This is not required when performing an update between versions of ADF.*
 *Only supported when installing ADF for the first time.*

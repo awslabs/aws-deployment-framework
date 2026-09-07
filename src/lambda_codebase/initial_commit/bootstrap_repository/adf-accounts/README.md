@@ -65,7 +65,8 @@ a `/` (see examples above).
   As a prerequisite your organization management account must already have
   enterprise support activated.**
 - `alias`: AWS account alias. Must be unique globally otherwise cannot be
-  created. Check [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html)
+  created. Check the
+  [AWS account alias documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html)
   for further details. If the account alias is not created or already exists,
   in the Federation login page, no alias will be presented.
 - `tags`: list of tags associate to the account.
