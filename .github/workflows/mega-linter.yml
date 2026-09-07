@@ -3,7 +3,15 @@
 # More info at https://megalinter.io
 name: MegaLinter
 
-on: [push, pull_request]
+on:
+  # Only lint pushes to mainline; branch pushes are covered by the
+  # pull_request trigger below. This avoids MegaLinter running twice for
+  # the same commit when a branch has an open pull request.
+  push:
+    branches:
+      - main
+      - master
+  pull_request: {}
 
 env:
   APPLY_FIXES: none
