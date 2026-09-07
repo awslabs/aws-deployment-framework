@@ -16,3 +16,10 @@ include_checks:
 ignore_checks:
   - W3002
   - W3045
+  # SAM templates are not compatible with cfn-lint > 1.54 at this point.
+  # To make it work with the latest version of MegaLinter, we have to disable
+  # the newly added rules E1019 and E1010 below. Once cfn-lint regains SAM
+  # compatibility and we upgrade past 1.54 (see requirements-dev.txt), these
+  # two rules should be removed from this disabled list.
+  - E1019
+  - E1010

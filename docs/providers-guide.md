@@ -230,8 +230,8 @@ Provider type: `codebuild`.
 
 - *image* *(String|Object)*.
   - It is required to specify the container image your pipeline requires.
-  - Specify the Image that the AWS CodeBuild will use. Images can be found
-    [here](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
+  - Specify the Image that the AWS CodeBuild will use. See the available
+    [CodeBuild Linux build images](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html).
   - Image can also take an object that contains a reference to a public docker
     hub image with a prefix of `docker-hub://`, such as
     `docker-hub://bitnami/mongodb`. This allows your pipeline to consume a
@@ -261,11 +261,11 @@ Provider type: `codebuild`.
 
     Along with `repository_arn` or `repository_name`, we also support a `tag`
     key. This can be used to define which image should be used
-    (defaults to `latest`). An example of this setup is provided
-    [here](user-guide.md#custom-build-images).
+    (defaults to `latest`). See an
+    [example of custom build images](user-guide.md#custom-build-images).
 - *size* *(String)* **(small|medium|large)** - default: `small`.
-  - The Compute type to use for the build, types can be found
-    [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
+  - The Compute type to use for the build. See the available
+    [CodeBuild compute types](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html).
 - *environment_variables* *(Object)* defaults to empty object.
   - Any Environment Variables you wish to be available within the build stage
     for this pipeline. These are to be passed in as Key/Value pairs. For
@@ -298,7 +298,7 @@ Provider type: `codebuild`.
   - If you wish to pass in a custom inline Buildspec as a string for the
     CodeBuild Project this would override any `buildspec.yml` file.
 
-    Read more [here](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example).
+    Read more in the [buildspec reference](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec-ref-example).
   - **Note:** Either specify the `spec_inline` or the `spec_filename` in the
     properties block. If both are supplied, the pipeline generator will throw an
     error instead.

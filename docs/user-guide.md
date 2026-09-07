@@ -445,8 +445,8 @@ notification_endpoint:
   **Start**, **Complete**, or **Fail**.
 - *schedule* *(String)* defaults to none
   - If the Pipeline should execute on a specific schedule. Schedules are defined
-    by using a Rate or an Expression. See
-    [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions)
+    by using a Rate or an Expression. See the
+    [CloudWatch schedule expressions documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions)
     for more information on how to define a Rate or an Expression.
 
 - *restart_execution_on_update* *(Boolean)* default: `False`.
@@ -1141,8 +1141,8 @@ pipelines:
       - *some_target_account
 ```
 
-For more advanced yaml usage, see
-[here](https://learnxinyminutes.com/docs/yaml/)
+For more advanced yaml usage, see the
+[YAML tutorial](https://learnxinyminutes.com/docs/yaml/)
 
 ### One to many relationships
 

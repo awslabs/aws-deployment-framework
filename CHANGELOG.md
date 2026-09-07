@@ -1277,8 +1277,8 @@ Policies via AWS Organizations. Tagging Policies can now be applied to OU's in
 the same manner as Service Control Policies could be in prior versions.
 Using a tagging-policy.json file in a specific folder of the bootstrap
 repository that matches to your organization structure enables the tagging
-policy for the specific OU. Read more about how tagging policies work
-[here](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html)
+policy for the specific OU. Read more about
+[how tagging policies work](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies.html)
 and see the example-tagging-policy.json in the bootstrap repo for a simple
 reference.
 

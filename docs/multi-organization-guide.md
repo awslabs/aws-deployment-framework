@@ -131,8 +131,8 @@ AWS Organization stage ("dev", "int", "prod") and ADF will behave exactly the sa
 
 One challenge with synchronizing the `aws-deployment-framework-bootstrap` repository
 across AWS Organizations is that the contents of the `adfconfig.yml` configuration
-file is typically tailored to the ADF installation. The can be solved by adding a
-custom adfconfig file for the given organization.
+file is typically tailored to the ADF installation. This can be solved by
+adding a custom adfconfig file for the given organization.
 
 Adding a configuration file with the name pattern `adfconfig.{organization id}.yml``
 in the root of the`aws-deployment-framework-bootstrap` repository will take
