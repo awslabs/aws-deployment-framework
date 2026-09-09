@@ -7,10 +7,9 @@
 #   - 300..=399: redirects. Combined with max_redirects = 0 below, lychee does
 #     not follow redirects and treats a 3xx response as a valid link, so
 #     harmless 301/302 redirects are not reported.
-#   - 429 (Too Many Requests): some external sites we link to, such as
-#     https://www.gnu.org/software/make/, are reachable but rate-limit this
-#     workflow because it queries them frequently. A 429 means the host is up,
-#     so we treat it as valid rather than failing the build.
+#   - 429 (Too Many Requests): some external sites we link to are reachable but
+#     rate-limit this workflow because it queries them frequently. A 429 means
+#     the host is up, so we treat it as valid rather than failing the build.
 accept = [
     "100..=103",
     "200..=299",
@@ -22,11 +21,20 @@ accept = [
 # lychee from reporting harmless 301/302 redirects.
 max_redirects = 0
 
+# Retry transient failures (e.g. request timeouts) before failing the build.
+max_retries = 3
+retry_wait_time = 2
+# Allow slower hosts more time to respond before treating it as a timeout.
+timeout = 30
+
 # URLs and mail addresses to skip. Values are regular expressions.
 exclude = [
     # Fake internal URL used only for demonstration in the sample testspec;
     # it is not a real endpoint and will never resolve.
     '^https?://integration-test-url\.internal',
+    # www.gnu.org rate-limits and times out this workflow (it queries the
+    # host frequently). The links are known-good, so skip checking them.
+    '^https?://www\.gnu\.org/',
 ]
 
 # Paths to skip. Values are regular expressions.
