@@ -6,7 +6,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: corretto8
+      java: corretto25
 
   build:
     commands:

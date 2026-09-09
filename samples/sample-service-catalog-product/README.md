@@ -14,7 +14,7 @@ This stack imports values from `sample-iam`.
       build:
         provider: codebuild
         properties:
-          image: "STANDARD_7_0"
+          image: "STANDARD_8_0"
     targets:
       - /banking/testing
       - path: /banking/production
