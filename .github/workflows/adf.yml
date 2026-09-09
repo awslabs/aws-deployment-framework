@@ -1,6 +1,14 @@
 name: ADF CI
 
-on: [push, pull_request]
+on:
+  # Only lint pushes to mainline; branch pushes are covered by the
+  # pull_request trigger below. This avoids MegaLinter running twice for
+  # the same commit when a branch has an open pull request.
+  push:
+    branches:
+      - main
+      - master
+  pull_request: {}
 
 env:
   CI_BUILD: 1
@@ -10,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ['3.12']
 
     steps:
       - name: Checkout Repo
