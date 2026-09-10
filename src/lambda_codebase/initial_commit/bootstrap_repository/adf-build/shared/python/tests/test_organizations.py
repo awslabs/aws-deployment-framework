@@ -160,6 +160,69 @@ def test_get_accounts_with_suspended(paginator_mock, cls):
 
 
 @patch("organizations.paginator")
+def test_get_accounts_with_state_field(paginator_mock, cls):
+    # AWS Organizations is replacing `Status` with the more granular `State`
+    # field. Ensure ADF honors `State` and filters out non-active accounts.
+    all_account_ids = [
+        "111111111111",
+        "222222222222",
+        "333333333333",
+        "444444444444",
+    ]
+    non_active_account_ids = {
+        "222222222222": "PENDING_CLOSURE",
+        "444444444444": "SUSPENDED",
+    }
+    cls.client.list_parents.side_effect = lambda account_id: (
+        {
+            "Id": f"ou-{account_id}",
+            "Type": "ORGANIZATIONAL_UNIT",
+        }
+    )
+    paginator_mock.return_value = list(
+        map(
+            lambda account_id: (
+                {
+                    "Id": account_id,
+                    "State": non_active_account_ids.get(account_id, "ACTIVE"),
+                }
+            ),
+            all_account_ids,
+        )
+    )
+    assert set(
+        map(
+            lambda account: account["Id"],
+            cls.get_accounts(),
+        )
+    ) == (set(all_account_ids) - set(non_active_account_ids))
+
+
+@patch("organizations.paginator")
+def test_get_accounts_state_takes_precedence_over_status(paginator_mock, cls):
+    # When both fields are present, the newer `State` field wins over the
+    # deprecated `Status` field.
+    cls.client.list_parents.side_effect = lambda account_id: (
+        {
+            "Id": f"ou-{account_id}",
+            "Type": "ORGANIZATIONAL_UNIT",
+        }
+    )
+    paginator_mock.return_value = [
+        # State says SUSPENDED, legacy Status says ACTIVE -> excluded.
+        {"Id": "111111111111", "State": "SUSPENDED", "Status": "ACTIVE"},
+        # State says ACTIVE -> included.
+        {"Id": "222222222222", "State": "ACTIVE", "Status": "ACTIVE"},
+    ]
+    assert set(
+        map(
+            lambda account: account["Id"],
+            cls.get_accounts(),
+        )
+    ) == {"222222222222"}
+
+
+@patch("organizations.paginator")
 def test_get_accounts_ignore_root(paginator_mock, cls):
     all_account_ids = [
         "111111111111",
