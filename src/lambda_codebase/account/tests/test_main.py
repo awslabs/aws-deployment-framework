@@ -625,15 +625,23 @@ def test_deployment_account_find_via_orgs_api_one_found(
     org_instance.get_accounts_in_path.return_value = [
         {
             "Id": "111111111111",
-            "Status": "SUSPENDED",
+            "State": "SUSPENDED",
+        },
+        {
+            "Id": "222222222222",
+            "State": "PENDING_ACTIVATION",
         },
         {
             "Id": account_id,
-            "Status": "ACTIVE",
+            "State": "ACTIVE",
         },
         {
-            "Id": "111111111111",
-            "Status": "PENDING_CLOSURE",
+            "Id": "333333333333",
+            "State": "PENDING_CLOSURE",
+        },
+        {
+            "Id": "444444444444",
+            "State": "CLOSED",
         },
     ]
 
@@ -663,11 +671,19 @@ def test_deployment_account_find_via_orgs_api_none_found(
     org_instance.get_accounts_in_path.return_value = [
         {
             "Id": "111111111111",
-            "Status": "SUSPENDED",
+            "State": "SUSPENDED",
         },
         {
-            "Id": "111111111111",
-            "Status": "PENDING_CLOSURE",
+            "Id": "222222222222",
+            "State": "PENDING_ACTIVATION",
+        },
+        {
+            "Id": "333333333333",
+            "State": "PENDING_CLOSURE",
+        },
+        {
+            "Id": "444444444444",
+            "State": "CLOSED",
         },
     ]
 
@@ -700,11 +716,11 @@ def test_deployment_account_find_via_orgs_api_multiple_found(
     org_instance.get_accounts_in_path.return_value = [
         {
             "Id": "111111111111",
-            "Status": "ACTIVE",
+            "State": "ACTIVE",
         },
         {
             "Id": "222222222222",
-            "Status": "ACTIVE",
+            "State": "ACTIVE",
         },
     ]
 

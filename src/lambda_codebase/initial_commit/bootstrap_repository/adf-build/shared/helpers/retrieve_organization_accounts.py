@@ -34,10 +34,17 @@ Options:
     -f <field>, --field <field>
                 Add a specific field that is available in the organization
                 member account details. Available options include 'Id', 'Arn',
-                'Email', 'Name', 'Status', 'JoinedMethod', 'JoinedTimestamp'.
-                You can specify multiple by adding them one after another.
-                All other details that would otherwise be returned by the
-                AWS Organizations: ListAccounts API call will be ignored
+                'Email', 'Name', 'State', 'Status', 'JoinedMethod',
+                'JoinedTimestamp'. You can specify multiple by adding them one
+                after another. All other details that would otherwise be
+                returned by the AWS Organizations: ListAccounts API call will
+                be ignored.
+                Please note, the 'Status' field is no longer returned by the
+                AWS Organizations API. For backward compatibility, its value is
+                derived automatically from the 'State' field by mapping the new
+                state values onto the legacy status values. This backward
+                compatible behavior will be deprecated in the next major
+                release of ADF.
                 [default: Id Email Name].
 
     -h, --help  Show help info related to generic or command
@@ -86,6 +93,29 @@ logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(os.environ.get("ADF_LOG_LEVEL", logging.INFO))
 logging.basicConfig(level=logging.INFO)
+
+# Mapping of the new AWS Organizations account `State` values to the legacy
+# `Status` values.
+#
+# The AWS Organizations API no longer returns the legacy `Status` field on its
+# own; it introduced a more granular `State` field instead. For details see:
+# https://aws.amazon.com/blogs/mt/updates-to-account-status-information-in-aws-organizations/
+#
+# To avoid a breaking change for consumers that still rely on `Status`, ADF
+# derives the legacy `Status` value from the new `State` value using this
+# mapping. This backward compatible behavior will be deprecated in the next
+# major release of ADF.
+STATE_TO_LEGACY_STATUS_MAP = {
+    # An account that has not completed sign-up maps to the legacy ACTIVE
+    # status, which also covered accounts still in the sign-up process.
+    "PENDING_ACTIVATION": "ACTIVE",
+    "ACTIVE": "ACTIVE",
+    "SUSPENDED": "SUSPENDED",
+    "PENDING_CLOSURE": "PENDING_CLOSURE",
+    # A closed account is in its 90-day post-closure period; per the AWS
+    # documentation this state currently maps to the legacy SUSPENDED status.
+    "CLOSED": "SUSPENDED",
+}
 
 
 def main():
@@ -157,6 +187,26 @@ def main():
     return 0
 
 
+def _map_state_to_legacy_status(state):
+    """
+    Map the new AWS Organizations account `State` value onto the legacy
+    `Status` value for backward compatibility.
+
+    The AWS Organizations API no longer returns the legacy `Status` field on
+    its own. To avoid a breaking change for consumers that still rely on
+    `Status`, this function derives it from the `State` value.
+
+    Args:
+        state (str): The account `State` value as returned by the AWS
+            Organizations API (for example `ACTIVE` or `CLOSED`).
+
+    Returns:
+        str: The corresponding legacy `Status` value, or None when the state
+        is unknown or not provided.
+    """
+    return STATE_TO_LEGACY_STATUS_MAP.get(state)
+
+
 def _get_partition(region_name: str) -> str:
     """Given the region, this function will return the appropriate partition.
 
@@ -211,11 +261,19 @@ def _get_member_accounts(billing_account_id, options):
     for page in list_accounts_paginator.paginate():
         accounts.extend(page["Accounts"])
 
+    # The AWS Organizations API no longer returns the legacy `Status` field on
+    # its own. For backward compatibility, derive `Status` from the `State`
+    # field so that consumers requesting `Status` continue to work. When an
+    # older SDK returns `Status` but not `State`, the existing `Status` value
+    # is left untouched. To be deprecated in the next major release of ADF.
+    for account in accounts:
+        state = account.get("State")
+        if state is not None:
+            account["Status"] = _map_state_to_legacy_status(state)
+
     # Remove any account that is not actively part of this organization yet.
-    # Prefer the `State` field, falling back to the deprecated `Status` field
-    # (removed after September 2026) for backward compatibility.
     only_active_accounts = filter(
-        lambda a: a.get("State", a.get("Status")) == "ACTIVE",
+        lambda a: a.get("State") == "ACTIVE",
         accounts,
     )
 
