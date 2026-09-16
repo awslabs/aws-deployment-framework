@@ -13,6 +13,9 @@ on:
 env:
   CI_BUILD: 1
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
