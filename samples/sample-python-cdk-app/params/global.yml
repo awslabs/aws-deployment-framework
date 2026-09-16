@@ -1,0 +1,6 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+Tags:
+  Application: sample-python-cdk-app
+  CostCenter: overhead
