@@ -23,7 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  security-events: write
+  contents: read          # checkout
+  security-events: write  # upload-sarif to the Security tab
 
 jobs:
   build:
