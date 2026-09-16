@@ -220,7 +220,7 @@ verify_tooling: .venv
 		); \
 	)
 	@( \
-		sed --version &> /dev/null || ( \
+		sed --version &> /dev/null || echo 'test' | sed 's/test/works/g' &> /dev/null || ( \
 			echo '$(CLR_RED)Sed is not installed!$(CLR_END)' && \
 			exit 1 \
 		); \
