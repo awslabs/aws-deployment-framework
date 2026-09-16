@@ -1,0 +1,7 @@
+# Dependencies for the sample Lambda function ONLY.
+#
+# These are installed into the deployment package inside a dedicated virtual
+# environment (py-lambda-venv in buildspec.yml), kept separate from both the
+# CDK app's dependencies (py-cdk-venv) and ADF's dependencies (py-adf-venv).
+aws-lambda-powertools
+aws-xray-sdk

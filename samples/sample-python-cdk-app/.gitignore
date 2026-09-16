@@ -1,0 +1,27 @@
+# CDK
+cdk/cdk.out/
+cdk.out/
+.cdk.staging/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+py-cdk-venv/
+py-adf-venv/
+py-lambda-venv/
+.venv/
+*.egg-info/
+
+# ADF build artifacts (produced during the build phase)
+adf-build/
+lambda-code.zip
+template.yml
+params/*.json
+
+# Lambda dependencies installed next to the handler during packaging
+src/lambda/sample_fn/aws_lambda_powertools/
+src/lambda/sample_fn/aws_xray_sdk/
+src/lambda/sample_fn/bin/
+src/lambda/sample_fn/*.dist-info/
