@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.3.3
+MAKEFILE_VERSION := 2.3.4
 UPDATE_VERSION := make/latest
 
 # This Makefile requires Python version 3.9 or later, and the interpreter
@@ -36,6 +36,7 @@ CLR_END := $(shell printf "\033[0m")
 
 # Files to work with
 SAM_VERSIONED_TEMPLATE := ./src/template-sam.yml
+SAM_CONFIG_FILE := samconfig.toml
 SAM_BUILD_DIR := ./.aws-sam/build
 SRC_DIR := ./src
 
@@ -55,7 +56,7 @@ all: build
 .PHONY: build_debs deps src_deps tox docker version_number git_ignore docs
 .PHONY: verify_rooling verify_version
 .PHONY: pre_build pre_deps_build sam_build post_build build deps_build
-.PHONY: pre_deploy_msg pre_deploy sam_deploy post_deploy deploy
+.PHONY: pre_deploy_msg pre_deploy sam_deploy post_deploy_msg post_deploy deploy
 
 .venv: .venv/is_ready
 
@@ -335,8 +336,28 @@ sam_build:
 post_build:
 	@rm $(SAM_VERSIONED_TEMPLATE)
 	@echo ""
+	@echo ""
+	@echo "$(CLR_GREEN)============================================================$(CLR_END)"
 	@echo "$(CLR_GREEN)ADF built successfully!$(CLR_END)"
-	@echo "$(CLR_GREEN)To deploy ADF, please run:$(CLR_END) make deploy"
+	@echo "$(CLR_GREEN)============================================================$(CLR_END)"
+	@echo ""
+	@echo "$(CLR_YELLOW)You can safely ignore the AWS SAM CLI output shown above,$(CLR_END)"
+	@echo "$(CLR_YELLOW)including its list of suggested next commands.$(CLR_END)"
+	@echo "$(CLR_YELLOW)There is no need to run any of those sam commands$(CLR_END)"
+	@echo "$(CLR_YELLOW)(sam validate, sam local invoke, sam sync, or sam deploy).$(CLR_END)"
+	@echo ""
+	@echo "$(CLR_GREEN)Next step:$(CLR_END) run '$(CLR_BLUE)make deploy$(CLR_END)' to deploy ADF."
+	@echo ""
+	@echo "$(CLR_YELLOW)Before running 'make deploy', make sure that you have:$(CLR_END)"
+	@echo "  * AWS credentials configured for the AWS Organizations"
+	@echo "    management account, and"
+	@echo "  * permissions to deploy the ADF CloudFormation stack in the"
+	@echo "    $(CLR_BLUE)us-east-1$(CLR_END) region of that management account."
+	@echo ""
+	@echo "$(CLR_YELLOW)If this is your first ADF installation, also confirm that:$(CLR_END)"
+	@echo "  * AWS CloudTrail is enabled and spans all regions, and"
+	@echo "  * trusted access for AWS Account Management is enabled in AWS"
+	@echo "    Organizations (otherwise account bootstrapping will fail)."
 	@echo ""
 
 build: verify_tooling pre_build sam_build post_build
@@ -389,6 +410,82 @@ sam_deploy:
 			--tags "ADF_VERSION=$(SRC_VERSION)"; \
 	)
 
-post_deploy: docs
+post_deploy_msg:
+	@echo ""
+	@echo ""
+	@echo "$(CLR_GREEN)============================================================$(CLR_END)"
+	@echo "$(CLR_GREEN)ADF is being deployed to your management account!$(CLR_END)"
+	@echo "$(CLR_GREEN)============================================================$(CLR_END)"
+	@echo ""
+	@echo "$(CLR_YELLOW)You can safely ignore any AWS SAM CLI suggestions above.$(CLR_END)"
+	@echo ""
+	@echo "Most of the remaining work runs automatically. Follow along in"
+	@echo "the AWS Console using the steps and links below."
+	@echo ""
+	@echo "$(CLR_GREEN)What to do next:$(CLR_END)"
+	@echo ""
+	@( \
+		STACK_NAME="$$(sed -nE 's/^[[:space:]]*stack_name[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(SAM_CONFIG_FILE)" 2>/dev/null | head -n 1)"; \
+		DEPLOY_REGION="$$(sed -nE 's/^[[:space:]]*region[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(SAM_CONFIG_FILE)" 2>/dev/null | head -n 1)"; \
+		MAIN_REGION="$$(sed -nE 's/.*DeploymentAccountMainRegion=\\?"?([a-z0-9-]+).*/\1/p' "$(SAM_CONFIG_FILE)" 2>/dev/null | head -n 1)"; \
+		[ -z "$$STACK_NAME" ] && STACK_NAME="serverlessrepo-aws-deployment-framework"; \
+		[ -z "$$DEPLOY_REGION" ] && DEPLOY_REGION="us-east-1"; \
+		[ -z "$$MAIN_REGION" ] && MAIN_REGION="YOUR_MAIN_REGION"; \
+		echo "$(CLR_YELLOW)1.$(CLR_END) Wait for the $$STACK_NAME stack to reach"; \
+		echo "   CREATE_COMPLETE / UPDATE_COMPLETE in CloudFormation, in the"; \
+		echo "   $(CLR_BLUE)$$DEPLOY_REGION$(CLR_END) region of the management account:"; \
+		echo "     https://console.aws.amazon.com/cloudformation/home?region=$$DEPLOY_REGION#/stacks?filteringStatus=active&filteringText=$$STACK_NAME&viewNested=true&hideStacks=false"; \
+		echo ""; \
+		echo "$(CLR_YELLOW)2a. Updating an existing install:$(CLR_END) review and merge the pull"; \
+		echo "   request ADF opens against the default branch of the"; \
+		echo "   aws-deployment-framework-bootstrap CodeCommit repository."; \
+		echo "   Merging it starts the bootstrap pipeline"; \
+		echo "   ($(CLR_BLUE)$$DEPLOY_REGION$(CLR_END), management account):"; \
+		echo "     https://console.aws.amazon.com/codesuite/codecommit/repositories/aws-deployment-framework-bootstrap/pull-requests?region=$$DEPLOY_REGION&status=OPEN"; \
+		echo ""; \
+		echo "   Once merged, continue with step 2b below."; \
+		echo ""; \
+		echo "   (A first-time install has no pull request to merge: ADF makes"; \
+		echo "   the initial commit to that repository itself, which starts the"; \
+		echo "   pipeline. Continue with step 2b below.)"; \
+		echo ""; \
+		echo "$(CLR_YELLOW)2b. First-time install, and updates after merging:$(CLR_END) watch the"; \
+		echo "   bootstrap pipeline in CodePipeline ($(CLR_BLUE)$$DEPLOY_REGION$(CLR_END), management"; \
+		echo "   account). If the first run fails to fetch the source, use"; \
+		echo "   'Retry' on the failed action:"; \
+		echo "     https://console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-bootstrap-pipeline/view?region=$$DEPLOY_REGION"; \
+		echo ""; \
+		echo "$(CLR_YELLOW)3.$(CLR_END) Follow the account state machines in AWS Step Functions"; \
+		echo "   ($(CLR_BLUE)$$DEPLOY_REGION$(CLR_END), management account) - check recent executions"; \
+		echo "   of AccountManagementStateMachine and"; \
+		echo "   AccountBootstrappingStateMachine:"; \
+		echo "     https://$$DEPLOY_REGION.console.aws.amazon.com/states/home?region=$$DEPLOY_REGION#/statemachines"; \
+		echo ""; \
+		if [ "$$MAIN_REGION" = "YOUR_MAIN_REGION" ]; then \
+			echo "$(CLR_YELLOW)4.$(CLR_END) Once the deployment account is bootstrapped, switch to it in"; \
+			echo "   your main region. Replace $(CLR_BLUE)YOUR_MAIN_REGION$(CLR_END) in the links"; \
+			echo "   below with that region (for example eu-west-1)."; \
+		else \
+			echo "$(CLR_YELLOW)4.$(CLR_END) Once the deployment account is bootstrapped, switch to it in"; \
+			echo "   your main region ($(CLR_BLUE)$$MAIN_REGION$(CLR_END))."; \
+		fi; \
+		echo ""; \
+		echo "   The aws-deployment-framework-pipelines pipeline generates your"; \
+		echo "   pipelines. Watch it in CodePipeline:"; \
+		echo "     https://$$MAIN_REGION.console.aws.amazon.com/codesuite/codepipeline/pipelines/aws-deployment-framework-pipelines/view?region=$$MAIN_REGION"; \
+		echo ""; \
+		echo "   The pipeline generation runs in AWS Step Functions - check the"; \
+		echo "   adf-pipeline-management state machine:"; \
+		echo "     https://$$MAIN_REGION.console.aws.amazon.com/states/home?region=$$MAIN_REGION#/statemachines"; \
+		echo ""; \
+		echo "   The aws-deployment-framework-pipelines CodeCommit repository in"; \
+		echo "   that region holds the deployment map(s) for your pipelines."; \
+	)
+	@echo ""
+	@echo "For the full walk-through, see the 'What happens next?' section of"
+	@echo "the installation guide (and the admin guide when updating) below."
+	@echo ""
+
+post_deploy: post_deploy_msg docs
 
 deploy: pre_deploy sam_deploy post_deploy
