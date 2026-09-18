@@ -1,0 +1,16 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+# When the Makefile changes, validate the message-only targets before commit.
+# Docker (GNU sed matrix) runs on every platform; macOS also runs the local
+# BSD-sed check. Enable once per clone: pip install pre-commit && pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: makefile-samconfig-portability
+        name: Makefile samconfig.toml sed portability
+        entry: tests/makefile/samconfig-portability/run.sh precommit
+        language: script
+        files: '^Makefile$'
+        pass_filenames: false
+        require_serial: true

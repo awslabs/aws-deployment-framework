@@ -46,3 +46,11 @@ jobs:
       - name: Build fully
         run: |
           make clean build
+
+  makefile-samconfig-portability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+      - name: Validate samconfig.toml parsing across sed versions (Docker only)
+        run: ./tests/makefile/samconfig-portability/run.sh docker

@@ -5,6 +5,12 @@
 MAKEFILE_VERSION := 2.3.4
 UPDATE_VERSION := make/latest
 
+# If you change this Makefile, run:
+#   ./tests/makefile/samconfig-portability/run.sh docker  # GNU sed 4.3-4.9 (finch if installed, else docker)
+#   ./tests/makefile/samconfig-portability/run.sh local   # host sed (BSD on macOS)
+# A pre-commit hook (.pre-commit-config.yaml) runs these automatically when the
+# Makefile is staged (container sweep everywhere, plus the local check on macOS).
+
 # This Makefile requires Python version 3.9 or later, and the interpreter
 # must include the tarfile data_filter for safe tar extraction (PEP 706).
 REQUIRED_PYTHON_MAJOR_VERSION := 3
@@ -410,6 +416,8 @@ sam_deploy:
 			--tags "ADF_VERSION=$(SRC_VERSION)"; \
 	)
 
+# The sed extractions below are covered by
+# tests/makefile/samconfig-portability/ - run those tests if you change them.
 post_deploy_msg:
 	@echo ""
 	@echo ""
