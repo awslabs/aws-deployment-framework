@@ -82,7 +82,7 @@ def get_accounts():
                 'Email': account['Email'],
             },
             filter(
-                lambda account: account['Status'] == 'ACTIVE',
+                lambda account: account.get('State') == 'ACTIVE',
                 paginator(organizations.list_accounts)
             )
         )
