@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.3.2
+MAKEFILE_VERSION := 2.3.3
 UPDATE_VERSION := make/latest
 
-# This Makefile requires Python version 3.9 or later
+# This Makefile requires Python version 3.9 or later, and the interpreter
+# must include the tarfile data_filter for safe tar extraction (PEP 706).
 REQUIRED_PYTHON_MAJOR_VERSION := 3
 REQUIRED_PYTHON_MINOR_VERSION := 9
 PYTHON_EXECUTABLE := python$(REQUIRED_PYTHON_MAJOR_VERSION)
@@ -195,15 +196,15 @@ verify_tooling: .venv
 		. .venv/bin/activate; \
 		$(PYTHON_EXECUTABLE) --version &> /dev/null && \
 		( \
-			$(PYTHON_EXECUTABLE) -c "import sys; sys.version_info < ($(REQUIRED_PYTHON_MAJOR_VERSION),$(REQUIRED_PYTHON_MINOR_VERSION)) and sys.exit(1)" || \
+			$(PYTHON_EXECUTABLE) -c "import sys, tarfile; sys.exit(sys.version_info < ($(REQUIRED_PYTHON_MAJOR_VERSION), $(REQUIRED_PYTHON_MINOR_VERSION)) or not hasattr(tarfile, 'data_filter'))" || \
 			( \
 				$(PYTHON_EXECUTABLE) --version && \
-				echo '$(CLR_RED)Python version is too old!$(CLR_END)' && \
-				echo '$(CLR_RED)Python v$(REQUIRED_PYTHON_MAJOR_VERSION).$(REQUIRED_PYTHON_MINOR_VERSION) or later is required.$(CLR_END)' && \
+				echo '$(CLR_RED)Python is too old or lacks safe tarfile extraction (PEP 706)!$(CLR_END)' && \
+				echo '$(CLR_RED)Python v$(REQUIRED_PYTHON_MAJOR_VERSION).$(REQUIRED_PYTHON_MINOR_VERSION)+ including the tarfile data_filter is required.$(CLR_END)' && \
 				exit 1 \
 			) \
 		) || ( \
-			echo '$(CLR_RED)Python is not installed!$(CLR_END)' && \
+			echo '$(CLR_RED)Supported Python version is not installed!$(CLR_END)' && \
 			exit 1 \
 		); \
 	)
