@@ -112,7 +112,7 @@ Resources:
       LaunchTemplateName: !Sub ${AWS::StackName}-launch-template
       LaunchTemplateData:
         IamInstanceProfile:
-          Arn: !ImportValue IamInstanceProfile
+          Arn: !ImportValue GlobalInstanceProfileArn
         ImageId: !Ref "ImageId"
         InstanceType: !Ref "InstanceType"
         MetadataOptions:
