@@ -90,7 +90,7 @@ _sample-python-cdk-app_.
     build:
       provider: codebuild
       properties:
-        image: 'STANDARD_8_0'
+        image: 'STANDARD_7_0'
   targets:
     - /banking/testing
     - /banking/production
