@@ -12,5 +12,5 @@
 #
 # Adjust the region (us-east-1) to match the region this pipeline deploys to.
 Parameters:
-  AssetBucketParam: 'resolve:/cross_region/s3_regional_bucket/us-east-1'
+  AssetBucketParam: 'resolve:/adf/cross_region/s3_regional_bucket/us-east-1'
   LambdaAssetObjectKeyParam: 'upload:us-east-1:s3-key-only:lambda-code.zip'
