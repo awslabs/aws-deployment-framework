@@ -27,7 +27,7 @@ run_target() {
   fi
 }
 
-WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/adfsed.XXXXXX")"
+WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/adf-sed.XXXXXX")"
 trap 'rm -rf "$WORKDIR"' EXIT
 cp "$MAKEFILE" "$WORKDIR/Makefile"
 
@@ -47,25 +47,25 @@ parameter_overrides = "DeploymentAccountId=\"111111111111\" DeploymentAccountMai
 region = "sentinel-deploy-region"
 EOF
 out="$(run_target post_deploy_msg)"
-echo "$out" | grep -q 'filteringText=sentinel-stack-name'      && pass 'stack_name -> CloudFormation URL'       || bad 'stack_name not substituted'
-echo "$out" | grep -q 'Wait for the sentinel-stack-name stack' && pass 'stack_name -> heading text'             || bad 'stack_name heading missing'
-echo "$out" | grep -q 'region=sentinel-deploy-region'          && pass 'region -> management-account URLs'      || bad 'deploy region not substituted'
-echo "$out" | grep -q 'sentinel-main-region.console.aws'       && pass 'main region -> deployment-account host' || bad 'main region host not substituted'
-echo "$out" | grep -q 'YOUR_MAIN_REGION'                       && bad  'fallback leaked while populated'        || pass 'no fallback leak when populated'
+echo "$out" | grep -q 'filteringText=sentinel-stack-name' && pass 'stack_name -> CloudFormation URL' || bad 'stack_name not substituted'
+echo "$out" | grep -q 'Wait for the sentinel-stack-name stack' && pass 'stack_name -> heading text' || bad 'stack_name heading missing'
+echo "$out" | grep -q 'region=sentinel-deploy-region' && pass 'region -> management-account URLs' || bad 'deploy region not substituted'
+echo "$out" | grep -q 'sentinel-main-region.console.aws' && pass 'main region -> deployment-account host' || bad 'main region host not substituted'
+echo "$out" | grep -q 'YOUR_MAIN_REGION' && bad 'fallback leaked while populated' || pass 'no fallback leak when populated'
 
 # Scenario B: samconfig.toml absent -> fallbacks.
 rm -f "$WORKDIR/samconfig.toml"
 out="$(run_target post_deploy_msg)"
-echo "$out" | grep -q 'filteringText=serverlessrepo-aws-deployment-framework' && pass 'fallback stack name'           || bad 'fallback stack name missing'
-echo "$out" | grep -q 'region=us-east-1'                                      && pass 'fallback deploy region'        || bad 'fallback deploy region missing'
-echo "$out" | grep -q 'Replace .*YOUR_MAIN_REGION'                            && pass 'fallback main-region guidance' || bad 'fallback main-region guidance missing'
+echo "$out" | grep -q 'filteringText=serverlessrepo-aws-deployment-framework' && pass 'fallback stack name' || bad 'fallback stack name missing'
+echo "$out" | grep -q 'region=us-east-1' && pass 'fallback deploy region' || bad 'fallback deploy region missing'
+echo "$out" | grep -q 'Replace .*YOUR_MAIN_REGION' && pass 'fallback main-region guidance' || bad 'fallback main-region guidance missing'
 
 # Scenario C: the faithful example fixture.
 if [ -n "$EXAMPLE_TOML" ] && [ -f "$EXAMPLE_TOML" ]; then
   cp "$EXAMPLE_TOML" "$WORKDIR/samconfig.toml"
   out="$(run_target post_deploy_msg)"
-  echo "$out" | grep -q 'filteringText=example-adf-stack' && pass 'example: stack_name'            || bad 'example: stack_name'
-  echo "$out" | grep -q 'eu-west-1.console.aws'           && pass 'example: main region eu-west-1' || bad 'example: main region'
+  echo "$out" | grep -q 'filteringText=example-adf-stack' && pass 'example: stack_name' || bad 'example: stack_name'
+  echo "$out" | grep -q 'eu-west-1.console.aws' && pass 'example: main region eu-west-1' || bad 'example: main region'
   rm -f "$WORKDIR/samconfig.toml"
 fi
 

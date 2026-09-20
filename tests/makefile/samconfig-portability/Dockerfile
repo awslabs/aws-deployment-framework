@@ -5,10 +5,12 @@
 # message-only Makefile targets can be tested against each. BSD sed (macOS) is
 # tested on the host, outside this container.
 FROM python:3.12-slim-bookworm
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG SED_VERSIONS="4.3 4.4 4.5 4.6 4.7 4.8 4.9"
 ARG DOCKER_CLI_VERSION=27.3.1
 
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential curl ca-certificates xz-utils make jq git perl \
     && rm -rf /var/lib/apt/lists/*
@@ -20,6 +22,7 @@ RUN set -eux; arch="$(dpkg --print-architecture)"; \
     install -m0755 /tmp/docker/docker /usr/local/bin/docker; rm -rf /tmp/docker; docker --version
 
 # Build each GNU sed into /opt/sed/<version>/bin/sed.
+# hadolint ignore=DL3003
 RUN set -eux; for v in $SED_VERSIONS; do \
       cd /tmp; curl -fsSL "https://ftp.gnu.org/gnu/sed/sed-${v}.tar.xz" -o s.tar.xz; \
       tar -xf s.tar.xz; cd "sed-${v}"; \

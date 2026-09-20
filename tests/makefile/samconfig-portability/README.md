@@ -23,7 +23,7 @@ The targets under test are:
 
 ```sh
 ./run.sh local      # host sed (BSD sed on macOS). No container.
-./run.sh docker     # build the image and sweep GNU sed 4.3-4.9 (finch if installed, else docker).
+./run.sh docker     # build image, sweep GNU sed 4.3-4.9 (finch or docker).
 ./run.sh container  # alias for 'docker'.
 ./run.sh all        # local, then container.
 ./run.sh precommit  # container sweep everywhere; also local on macOS.
