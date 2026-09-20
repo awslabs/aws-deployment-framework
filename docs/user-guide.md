@@ -1069,7 +1069,7 @@ extra step required to deploy a SAM template is that you execute
 so:
 
 For example, deploying a NodeJS Serverless Application from AWS CodeBuild with
-the `aws/codebuild/standard:7.0` image can be done with a `buildspec.yml` that
+the `aws/codebuild/standard:8.0` image can be done with a `buildspec.yml` that
 looks like the following
 [read more](https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#runtime-versions-buildspec-file):
 
@@ -1080,7 +1080,7 @@ phases:
   install:
     runtime-versions:
       python: 3.12
-      nodejs: 20
+      nodejs: 24
   pre_build:
     commands:
       - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --quiet

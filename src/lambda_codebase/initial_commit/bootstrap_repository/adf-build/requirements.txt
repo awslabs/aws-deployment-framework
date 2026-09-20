@@ -1,7 +1,7 @@
 # Install libs here that you might want in AWS CodeBuild (On the management
 # account)
 astroid==4.0.4
-aws-sam-cli==1.166.1
+aws-sam-cli==1.166.2
 boto3==1.43.83
 botocore==1.43.83
 pip~=26.2

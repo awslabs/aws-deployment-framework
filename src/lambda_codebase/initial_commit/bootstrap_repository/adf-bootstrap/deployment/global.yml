@@ -36,9 +36,9 @@ Parameters:
     Default: /adf/cross_account_access_role
 
   Image:
-    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:7.0).
+    Description: The Image you wish to use for CodeBuild (defaults to Ubuntu - standard:8.0).
     Type: String
-    Default: "aws/codebuild/standard:7.0"
+    Default: "aws/codebuild/standard:8.0"
 
   ComputeType:
     Description: The Compute Type to use for AWS CodeBuild

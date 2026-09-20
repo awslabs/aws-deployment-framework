@@ -1629,7 +1629,7 @@ Resources:
       Environment:
         ComputeType: "BUILD_GENERAL1_LARGE"
         PrivilegedMode: false
-        Image: "aws/codebuild/standard:7.0"
+        Image: "aws/codebuild/standard:8.0"
         EnvironmentVariables:
           - Name: ADF_VERSION
             Value: !FindInMap ["Metadata", "ADF", "Version"]
