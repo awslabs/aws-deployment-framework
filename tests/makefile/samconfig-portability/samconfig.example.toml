@@ -1,0 +1,18 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Example samconfig.toml (sanitized) used by the portability harness to render
+# the post_deploy_msg next-steps. Values use ADF example placeholders.
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "example-adf-stack"
+resolve_s3 = true
+s3_prefix = "example-adf-stack"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "CrossAccountAccessRoleName=\"OrganizationAccountAccessRole\" MainNotificationEndpoint=\"jane@example.com\" DeploymentAccountName=\"example-deployment\" DeploymentAccountEmailAddress=\"jane@example.com\" DeploymentAccountAlias=\"example-deployment\" DeploymentAccountId=\"111111111111\" DeploymentAccountMainRegion=\"eu-west-1\" DeploymentAccountTargetRegions=\"us-east-1,eu-central-1\" ProtectedOUs=\"\" LogLevel=\"DEBUG\" AllowBootstrappingOfManagementAccount=\"Yes\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"

@@ -5,6 +5,7 @@
 cfn-lint~=1.53.3
 isort==6.1.0
 mock==5.2.0
+pre-commit==4.6.2
 pylint==4.0.8
 pytest~=9.1.1
 pytest-cov==7.1.0
