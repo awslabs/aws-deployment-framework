@@ -1,0 +1,16 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+# These parameters wire the CloudFormation template's CfnParameters to the
+# Lambda deployment package that buildspec.yml produced (lambda-code.zip):
+#
+#   * resolve: reads the ADF cross-region S3 bucket name for this region and
+#     passes it as AssetBucketParam.
+#   * upload:  uploads the local lambda-code.zip artifact to that same ADF
+#     asset bucket and passes back the resulting S3 object key as
+#     LambdaAssetObjectKeyParam.
+#
+# Adjust the region (us-east-1) to match the region this pipeline deploys to.
+Parameters:
+  AssetBucketParam: 'resolve:/adf/cross_region/s3_regional_bucket/us-east-1'
+  LambdaAssetObjectKeyParam: 'upload:us-east-1:s3-key-only:lambda-code.zip'

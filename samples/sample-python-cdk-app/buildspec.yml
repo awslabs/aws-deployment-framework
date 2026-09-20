@@ -1,0 +1,77 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+version: 0.2
+
+# This sample demonstrates managing CDK versions INDEPENDENTLY from ADF by
+# using three isolated Python virtual environments in a single CodeBuild job:
+#
+#   * py-cdk-venv    -> the CDK application    (aws-cdk-lib==2.266.0)
+#   * py-adf-venv    -> ADF build tooling      (aws-cdk-lib~=2.268.0)
+#   * py-lambda-venv -> the Lambda's own deps  (aws-lambda-powertools, ...)
+#
+# Note the CDK *library* the app uses (2.266.0) is intentionally OLDER than the
+# one ADF uses (2.268.0), and the CDK *CLI* (2.1140.0) is versioned separately
+# again - none of them interfere because each lives in its own environment.
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 24
+    commands:
+      # Modern CDK CLI, pinned and managed independently of the CDK libraries.
+      - npm install -g aws-cdk@2.1140.0
+      - echo "Creating isolated virtual environments (CDK app, ADF, Lambda)"
+      - python -m venv py-cdk-venv
+      - python -m venv py-adf-venv
+      - python -m venv py-lambda-venv
+      # CDK application dependencies (older aws-cdk-lib, in its own venv).
+      - |
+        . py-cdk-venv/bin/activate
+        pip install -r cdk/requirements.txt -q
+        deactivate
+      # ADF build tooling, pulled from the ADF bootstrap bucket, in its own venv.
+      - aws s3 cp s3://$S3_BUCKET_NAME/adf-build/ adf-build/ --recursive --only-show-errors
+      - |
+        . py-adf-venv/bin/activate
+        pip install -r adf-build/requirements.txt -q
+        deactivate
+
+  build:
+    commands:
+      # 1. Build the Lambda deployment package in its OWN venv. The Lambda's
+      #    third-party dependencies (Powertools, X-Ray SDK) come from its own
+      #    requirements.txt and are installed next to the handler before zipping.
+      - |
+        . py-lambda-venv/bin/activate
+        pip install \
+          -r src/lambda/sample_fn/requirements.txt \
+          -t src/lambda/sample_fn \
+          -q
+        cd src/lambda/sample_fn
+        zip -r "$CODEBUILD_SRC_DIR/lambda-code.zip" . \
+          -x '*.pyc' -x '*__pycache__*'
+        cd "$CODEBUILD_SRC_DIR"
+        deactivate
+      # 2. Synthesize the CloudFormation template using the CDK venv + CDK CLI.
+      - |
+        . py-cdk-venv/bin/activate
+        cd cdk
+        cdk synth > "$CODEBUILD_SRC_DIR/template.yml"
+        cd "$CODEBUILD_SRC_DIR"
+        deactivate
+      # 3. Generate ADF parameter files using the ADF venv. The 'upload:'
+      #    resolver in params/*.yml uploads lambda-code.zip to the ADF asset
+      #    bucket and the 'resolve:' resolver injects the bucket name, so the
+      #    template's AssetBucketParam / LambdaAssetObjectKeyParam are filled in.
+      - |
+        . py-adf-venv/bin/activate
+        python adf-build/generate_params.py
+        deactivate
+
+artifacts:
+  files:
+    - template.yml
+    - params/*.json
+    - params/*.yml
