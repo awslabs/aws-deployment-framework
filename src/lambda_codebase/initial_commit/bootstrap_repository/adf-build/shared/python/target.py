@@ -171,7 +171,7 @@ class Target:
 
     @staticmethod
     def _account_is_active(account):
-        return bool(account.get("Status") == "ACTIVE")
+        return bool(account.get("State") == "ACTIVE")
 
     def _create_target_info(self, name, account_id):
         return {
