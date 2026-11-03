@@ -43,8 +43,8 @@ def cls():
 
 
 def test_account_is_active():
-    assert Target._account_is_active({"Status": "ACTIVE"}) is True
-    assert Target._account_is_active({"Status": "FAKE"}) is False
+    assert Target._account_is_active({"State": "ACTIVE"}) is True
+    assert Target._account_is_active({"State": "FAKE"}) is False
 
 
 def test_fetch_accounts_for_target_ou_path():
@@ -204,11 +204,11 @@ def test_target_structure_respects_wave():
                 target_structure=target_structure,
                 organizations=MockOrgClient(
                     [
-                        {"Name": "test-account-1", "Id": "1", "Status": "ACTIVE"},
-                        {"Name": "test-account-2", "Id": "2", "Status": "ACTIVE"},
-                        {"Name": "test-account-3", "Id": "3", "Status": "ACTIVE"},
-                        {"Name": "test-account-4", "Id": "4", "Status": "ACTIVE"},
-                        {"Name": "test-account-5", "Id": "5", "Status": "ACTIVE"},
+                        {"Name": "test-account-1", "Id": "1", "State": "ACTIVE"},
+                        {"Name": "test-account-2", "Id": "2", "State": "ACTIVE"},
+                        {"Name": "test-account-3", "Id": "3", "State": "ACTIVE"},
+                        {"Name": "test-account-4", "Id": "4", "State": "ACTIVE"},
+                        {"Name": "test-account-5", "Id": "5", "State": "ACTIVE"},
                     ]
                 ),
                 step={
@@ -300,7 +300,7 @@ def test_target_structure_too_many_actions():
                 target_structure=target_structure,
 
                 organizations=MockOrgClient([
-                    {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                    {"Name": f"test-account-{x}", "Id": x, "State": "ACTIVE"}
                     for x in range(200)
                 ]),
                 step={
@@ -343,11 +343,11 @@ def test_target_structure_respects_multi_region():
                 target_structure=target_structure,
                 organizations=MockOrgClient(
                     [
-                        {"Name": "test-account-1", "Id": "1", "Status": "ACTIVE"},
-                        {"Name": "test-account-2", "Id": "2", "Status": "ACTIVE"},
-                        {"Name": "test-account-3", "Id": "3", "Status": "ACTIVE"},
-                        {"Name": "test-account-4", "Id": "4", "Status": "ACTIVE"},
-                        {"Name": "test-account-5", "Id": "5", "Status": "ACTIVE"},
+                        {"Name": "test-account-1", "Id": "1", "State": "ACTIVE"},
+                        {"Name": "test-account-2", "Id": "2", "State": "ACTIVE"},
+                        {"Name": "test-account-3", "Id": "3", "State": "ACTIVE"},
+                        {"Name": "test-account-4", "Id": "4", "State": "ACTIVE"},
+                        {"Name": "test-account-5", "Id": "5", "State": "ACTIVE"},
                     ]
                 ),
                 step={
@@ -390,7 +390,7 @@ def test_target_structure_respects_multi_action_single_region():
                 target_structure=target_structure,
 
                 organizations=MockOrgClient([
-                    {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                    {"Name": f"test-account-{x}", "Id": x, "State": "ACTIVE"}
                     for x in range(30)
                 ]),
                 step={
@@ -435,7 +435,7 @@ def test_target_structure_respects_multi_action_multi_region():
 
                 organizations=MockOrgClient(
                     [
-                        {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                        {"Name": f"test-account-{x}", "Id": x, "State": "ACTIVE"}
                         for x in range(34)
                     ]
                 ),
@@ -479,7 +479,7 @@ def test_target_structure_respects_change_set_approval_single_region():
 
                 organizations=MockOrgClient(
                     [
-                        {"Name": f"test-account-{x}", "Id": x, "Status": "ACTIVE"}
+                        {"Name": f"test-account-{x}", "Id": x, "State": "ACTIVE"}
                         for x in range(60)
                     ]
                 ),
@@ -525,12 +525,12 @@ def test_target_wave_structure_respects_exclude_config():
                 target_structure=target_structure,
                 organizations=MockOrgClient(
                     [
-                        {"Name": "test-account-1", "Id": "1", "Status": "ACTIVE"},
-                        {"Name": "test-account-2", "Id": "2", "Status": "ACTIVE"},
-                        {"Name": "test-account-3", "Id": "3", "Status": "ACTIVE"},
-                        {"Name": "test-account-4", "Id": "4", "Status": "ACTIVE"},
-                        {"Name": "test-account-5", "Id": "5", "Status": "ACTIVE"},
-                        {"Name": "test-account-6", "Id": "6", "Status": "ACTIVE"},
+                        {"Name": "test-account-1", "Id": "1", "State": "ACTIVE"},
+                        {"Name": "test-account-2", "Id": "2", "State": "ACTIVE"},
+                        {"Name": "test-account-3", "Id": "3", "State": "ACTIVE"},
+                        {"Name": "test-account-4", "Id": "4", "State": "ACTIVE"},
+                        {"Name": "test-account-5", "Id": "5", "State": "ACTIVE"},
+                        {"Name": "test-account-6", "Id": "6", "State": "ACTIVE"},
                     ]
                 ),
                 step={

@@ -99,7 +99,7 @@ def test_get_accounts(paginator_mock, cls):
             lambda account_id: (
                 {
                     "Id": account_id,
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                 }
             ),
             all_account_ids,
@@ -114,49 +114,40 @@ def test_get_accounts(paginator_mock, cls):
 
 
 @patch("organizations.paginator")
-def test_get_accounts_with_suspended(paginator_mock, cls):
-    all_account_ids = [
-        "111111111111",
-        "222222222222",
-        "333333333333",
-        "444444444444",
-    ]
-    root_account_ids = [
-        "333333333333",
-    ]
-    suspended_account_ids = [
-        "444444444444",
-    ]
-    cls.client.list_parents.side_effect = lambda account_id: (
-        {
-            "Id": (
-                f"r-{account_id}"
-                if account_id in root_account_ids
-                else f"ou-{account_id}"
-            ),
-            "Type": "ORGANIZATIONAL_UNIT",
-        }
-    )
+def test_get_accounts_with_all_states(paginator_mock, cls):
+    # The AWS Organizations account State field can report any of the
+    # values below. Only accounts in the ACTIVE state are available to ADF;
+    # accounts in any other state must be filtered out by get_accounts.
+    account_states = {
+        "111111111111": "ACTIVE",
+        "222222222222": "PENDING_ACTIVATION",
+        "333333333333": "SUSPENDED",
+        "444444444444": "PENDING_CLOSURE",
+        "555555555555": "CLOSED",
+        "666666666666": "ACTIVE",
+    }
     paginator_mock.return_value = list(
         map(
-            lambda account_id: (
+            lambda item: (
                 {
-                    "Id": account_id,
-                    "Status": (
-                        "SUSPENDED" if account_id in suspended_account_ids
-                        else "ACTIVE"
-                    ),
+                    "Id": item[0],
+                    "State": item[1],
                 }
             ),
-            all_account_ids,
+            account_states.items(),
         )
     )
+    active_account_ids = {
+        account_id
+        for account_id, state in account_states.items()
+        if state == "ACTIVE"
+    }
     assert set(
         map(
             lambda account: account["Id"],
             cls.get_accounts(),
         )
-    ) == (set(all_account_ids) - set(suspended_account_ids))
+    ) == active_account_ids
 
 
 @patch("organizations.paginator")
@@ -189,7 +180,7 @@ def test_get_accounts_ignore_root(paginator_mock, cls):
             lambda account_id: (
                 {
                     "Id": account_id,
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                 }
             ),
             all_account_ids,
@@ -244,7 +235,7 @@ def test_get_accounts_ignore_protected(paginator_mock, cls):
             lambda account_id: (
                 {
                     "Id": account_id,
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                 }
             ),
             all_account_ids,
@@ -311,7 +302,7 @@ def test_get_accounts_ignore_root_protected_and_inactive(paginator_mock, cls):
             lambda account_id: (
                 {
                     "Id": account_id,
-                    "Status": (
+                    "State": (
                         "SUSPENDED"
                         if account_id in suspended_account_ids
                         else (
@@ -774,8 +765,8 @@ def test_list_accounts_single_page(cls, cache):
     """Test listing accounts with single page response"""
     # Arrange
     expected_accounts = [
-        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "Status": "ACTIVE"},
-        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "Status": "ACTIVE"}
+        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "State": "ACTIVE"},
+        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "State": "ACTIVE"}
     ]
 
     paginator_mock = Mock()
@@ -796,8 +787,8 @@ def test_list_accounts_cached(cls, cache):
     """Test listing accounts when results are in cache"""
     # Arrange
     cached_accounts = [
-        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "Status": "ACTIVE"},
-        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "Status": "ACTIVE"}
+        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "State": "ACTIVE"},
+        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "State": "ACTIVE"}
     ]
     cache.add('accounts', cached_accounts)
 
@@ -813,10 +804,10 @@ def test_list_accounts_multiple_pages(cls, cache):
     """Test listing accounts with paginated results"""
     # Arrange
     page1_accounts = [
-        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "Status": "ACTIVE"}
+        {"Id": "123456789012", "Name": "Development", "Email": "dev@example.com", "State": "ACTIVE"}
     ]
     page2_accounts = [
-        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "Status": "ACTIVE"}
+        {"Id": "098765432109", "Name": "Production", "Email": "prod@example.com", "State": "ACTIVE"}
     ]
 
     paginator_mock = Mock()
@@ -908,7 +899,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "11111111111",
                     "Arn": "",
                     "Email": "account+1@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -923,7 +914,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "22222222222",
                     "Arn": "",
                     "Email": "account+2@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -938,7 +929,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "3333333333",
                     "Arn": "",
                     "Email": "account+3@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -952,7 +943,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "11111111111",
                 "Arn": "",
                 "Email": "account+1@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -962,7 +953,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "22222222222",
                 "Arn": "",
                 "Email": "account+2@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1066,7 +1057,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "11111111111",
                     "Arn": "",
                     "Email": "account+1@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1081,7 +1072,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "22222222222",
                     "Arn": "",
                     "Email": "account+2@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1096,7 +1087,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "3333333333",
                     "Arn": "",
                     "Email": "account+3@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1110,7 +1101,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "11111111111",
                 "Arn": "",
                 "Email": "account+1@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1120,7 +1111,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "22222222222",
                 "Arn": "",
                 "Email": "account+2@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1130,7 +1121,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "3333333333",
                 "Arn": "",
                 "Email": "account+3@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1241,7 +1232,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "11111111111",
                     "Arn": "",
                     "Email": "account+1@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1256,7 +1247,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "22222222222",
                     "Arn": "",
                     "Email": "account+2@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1271,7 +1262,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "3333333333",
                     "Arn": "",
                     "Email": "account+3@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1286,7 +1277,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                     "Id": "444444444",
                     "Arn": "",
                     "Email": "account+4@example.com",
-                    "Status": "ACTIVE",
+                    "State": "ACTIVE",
                     "JoinedMethod": "Invited",
                     "JoinedTimestamp": (
                         datetime(2022, 9, 26, tzinfo=timezone.utc)
@@ -1300,7 +1291,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "11111111111",
                 "Arn": "",
                 "Email": "account+1@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1310,7 +1301,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "22222222222",
                 "Arn": "",
                 "Email": "account+2@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 8, 9, tzinfo=timezone.utc)
@@ -1320,7 +1311,7 @@ class OUPathsHappyTestCases(unittest.TestCase):
                 "Id": "444444444",
                 "Arn": "",
                 "Email": "account+4@example.com",
-                "Status": "ACTIVE",
+                "State": "ACTIVE",
                 "JoinedMethod": "Invited",
                 "JoinedTimestamp": (
                     datetime(2022, 9, 26, tzinfo=timezone.utc)

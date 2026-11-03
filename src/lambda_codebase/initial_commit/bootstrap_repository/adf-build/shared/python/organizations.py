@@ -266,11 +266,11 @@ class Organizations:  # pylint: disable=R0904
                     account_ou_id,
                 )
                 return False
-        if account.get("Status") != "ACTIVE":
+        if account.get("State") != "ACTIVE":
             LOGGER.warning(
                 "Account %s is not an active AWS Account, state reported: %s",
                 account["Id"],
-                account.get("Status"),
+                account.get("State"),
             )
             return False
         return True

@@ -34,10 +34,18 @@ Options:
     -f <field>, --field <field>
                 Add a specific field that is available in the organization
                 member account details. Available options include 'Id', 'Arn',
-                'Email', 'Name', 'Status', 'JoinedMethod', 'JoinedTimestamp'.
-                You can specify multiple by adding them one after another.
-                All other details that would otherwise be returned by the
-                AWS Organizations: ListAccounts API call will be ignored
+                'Email', 'Name', 'State', 'Status', 'JoinedMethod',
+                'JoinedTimestamp'. You can specify multiple by adding them one
+                after another. All other details that would otherwise be
+                returned by the AWS Organizations: ListAccounts API call will
+                be ignored.
+                Please note, the 'Status' field is no longer returned by the
+                AWS Organizations API. For backward compatibility, this helper
+                script will return "ACTIVE" as the Status field, but only when
+                the new State property is "ACTIVE".
+                All accounts that are not "ACTIVE" according to their State
+                property are filtered out. This backward compatible behavior
+                will be deprecated in the next major release of ADF.
                 [default: Id Email Name].
 
     -h, --help  Show help info related to generic or command
@@ -79,7 +87,6 @@ import boto3
 from botocore.exceptions import ClientError
 
 from docopt import docopt
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -212,7 +219,17 @@ def _get_member_accounts(billing_account_id, options):
         accounts.extend(page["Accounts"])
 
     # Remove any account that is not actively part of this organization yet.
-    only_active_accounts = filter(lambda a: a["Status"] == "ACTIVE", accounts)
+    only_active_accounts = filter(
+        lambda a: a.get("State") == "ACTIVE",
+        accounts,
+    )
+
+    # The AWS Organizations API no longer returns the legacy `Status` field on
+    # its own. For backward compatibility, return the `Status` as ACTIVE too
+    # so field filters using Status would continue to work.
+    # To be deprecated in the next major release of ADF.
+    for account in accounts:
+        account["Status"] = "ACTIVE"
 
     # Only return the key: value pairs that are defined in the --field option.
     only_certain_fields_of_active = list(
