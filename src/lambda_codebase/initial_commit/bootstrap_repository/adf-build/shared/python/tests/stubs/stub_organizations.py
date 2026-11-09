@@ -62,3 +62,24 @@ describe_account = {
         # adding dependency on datetime
     }
 }
+
+create_organizational_unit = {
+    'OrganizationalUnit': {
+        'Id': 'new_ou_id',
+        'Arn': 'new_ou_arn',
+        'Name': 'new_ou_name'
+    }
+}
+
+list_organizational_units_for_parent = [
+    {
+    'OrganizationalUnits': [
+        {
+            'Id': 'existing_id',
+            'Arn': 'some_ou_arn',
+            'Name': 'existing'
+        },
+    ],
+    'NextToken': 'string'
+    }
+]
