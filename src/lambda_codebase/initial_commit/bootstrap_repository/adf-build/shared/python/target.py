@@ -275,11 +275,8 @@ class Target:
                 ou_id=None,
                 excluded_paths=[],
             )
-        except ClientError as client_err:
-            no_target_found = (
-                client_err.response["Error"]["Code"] == "ParentNotFoundException"
-            )
-            if no_target_found and self.adf_deployment_maps_allow_empty_target:
+        except Exception:
+            if self.adf_deployment_maps_allow_empty_target:
                 LOGGER.info(
                     "Note: Target OU was not found in AWS Org for path %s",
                     self.path,
