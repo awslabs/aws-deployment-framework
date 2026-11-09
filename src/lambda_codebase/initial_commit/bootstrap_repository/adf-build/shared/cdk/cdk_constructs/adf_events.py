@@ -33,6 +33,7 @@ class Events(Construct):
         _provider = params.get('source', {}).get('provider')
         _add_trigger_on_changes = (
             _provider == 'codecommit'
+            or _provider == 's3'
             and _source_account
             and params.get('source', {}).get('trigger_on_changes')
             and not params.get('source', {}).get('poll_for_changes')
@@ -43,38 +44,64 @@ class Events(Construct):
         repo_name = params['source']['repo_name']
 
         if _add_trigger_on_changes:
-            _event = _events.Rule(
-                self,
-                f'trigger_{name}',
-                description=f'Triggers {name} on changes in source CodeCommit repository',
-                event_pattern=_events.EventPattern(
-                    resources=[
-                        f'arn:{stack.partition}:codecommit:'
-                        f'{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
-                    ],
-                    source=["aws.codecommit"],
-                    detail_type=[
-                        'CodeCommit Repository State Change'
-                    ],
-                    detail={
-                        "event": [
-                            "referenceCreated",
-                            "referenceUpdated"
+            _event = None
+            if _provider == 'codecommit':
+                _event = _events.Rule(
+                    self,
+                    f'trigger_{name}',
+                    description=f'Triggers {name} on changes in source CodeCommit repository',
+                    event_pattern=_events.EventPattern(
+                        resources=[
+                            f'arn:{stack.partition}:codecommit:'
+                            f'{ADF_DEPLOYMENT_REGION}:{account_id}:{repo_name}'
                         ],
-                        "referenceType": [
-                            "branch"
+                        source=["aws.codecommit"],
+                        detail_type=[
+                            'CodeCommit Repository State Change'
                         ],
-                        "referenceName": [
-                            params['source']['branch']
-                        ]
-                    }
+                        detail={
+                            "event": [
+                                "referenceCreated",
+                                "referenceUpdated"
+                            ],
+                            "referenceType": [
+                                "branch"
+                            ],
+                            "referenceName": [
+                                params['source']['branch']
+                            ]
+                        }
+                    )
                 )
-            )
-            _event.add_target(
-                _targets.CodePipeline(
-                    pipeline=_pipeline
+            elif _provider == 's3':
+                _s3_bucket_name = params['s3_bucket_name']
+                _s3_object_key = params['s3_object_key']
+                _event = _events.Rule(
+                    self,
+                    f'trigger_{name}',
+                    description=f'Triggers {_s3_object_key} on changes in source s3 bucket {_s3_bucket_name}',
+                    event_pattern=_events.EventPattern(
+                        source=["aws.s3"],
+                        detail_type=[
+                            "Object Created", 
+                            "Object Copy"
+                        ],
+                        detail={
+                            "bucket": {
+                                "name": [_s3_bucket_name]
+                            },
+                            "object": {
+                                "key": [_s3_object_key]
+                            }
+                        }
+                    )
                 )
-            )
+            if _event:
+                _event.add_target(
+                    _targets.CodePipeline(
+                        pipeline=_pipeline
+                    )
+                )
         if params.get('topic_arn'):
             # pylint: disable=no-value-for-parameter
             _topic = _sns.Topic.from_topic_arn(self, 'topic_arn', params["topic_arn"])

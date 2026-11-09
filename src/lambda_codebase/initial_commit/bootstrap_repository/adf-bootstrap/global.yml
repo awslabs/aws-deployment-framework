@@ -70,6 +70,7 @@ Resources:
               - "codecommit:UploadArchive"
               - "codepipeline:StartPipelineExecution"
               - "events:PutEvents"
+              - "s3:Get*"
             Resource: "*"
           - Effect: Allow
             Action:
@@ -372,7 +373,7 @@ Resources:
               - "iam:TagRole"
               - "iam:UntagRole"
             Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-*-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
           - Effect: Allow
             Sid: "IAMFullPathAndNameOnly"
             Action:
@@ -381,21 +382,21 @@ Resources:
               - "iam:GetRolePolicy"
               - "iam:PutRolePolicy"
             Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-*-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf-*-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
           - Effect: Allow
             Sid: "IAMPassRole"
             Action:
               - "iam:PassRole"
             Resource:
-              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adf/cross-account-events/adf-*-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
             Condition:
               StringEquals:
                 'iam:PassedToService':
                   - "events.amazonaws.com"
               ArnEquals:
                 'iam:AssociatedResourceArn':
-                  - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-cc-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
+                  - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/adf-*-event-from-${AWS::AccountId}-to-${DeploymentAccountId}"
           - Effect: Allow
             Sid: "KMS"
             Action:
