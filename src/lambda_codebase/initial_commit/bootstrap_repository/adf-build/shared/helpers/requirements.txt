@@ -1,4 +1,4 @@
-boto3==1.43.83
-botocore==1.43.83
+boto3==1.44.5
+botocore==1.44.5
 docopt-ng~=0.9.0
 schema==0.7.8
