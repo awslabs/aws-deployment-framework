@@ -1,14 +1,10 @@
-# SAM templates are not compatible with cfn-lint > 1.54 at this point, so this
-# is pinned below that version. When bumping cfn-lint past 1.54, verify SAM
-# compatibility and remove the E1019 and E1010 rules from the ignore_checks
-# list in .cfnlintrc (they were only added to work around this limitation).
-cfn-lint~=1.53.3
-isort==6.1.0
+cfn-lint~=1.58.0
+isort==9.0.2
 mock==5.2.0
-pre-commit==4.6.2
-pylint==4.0.9
-pytest~=9.1.1
+pre-commit==4.7.0
+pylint==4.1.4
+pytest~=9.2.0
 pytest-cov==7.1.0
-tox==4.61.2
+tox==4.67.15
 yamllint==1.38.0
-yq==4.1.2
+yq==4.4.5
