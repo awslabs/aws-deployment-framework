@@ -276,7 +276,7 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger():
         "aws.codeartifact"
     ]
     assert trigger["Properties"]["EventPattern"]["detail"] == {
-        "repositoryName": "my_test_repo",
+        "repositoryName": ["my_test_repo"],
     }
 
 
@@ -341,8 +341,8 @@ def test_pipeline_creation_outputs_with_codeartifact_trigger_with_package_name()
         "aws.codeartifact"
     ]
     assert trigger["Properties"]["EventPattern"]["detail"] == {
-        "repositoryName": "my_test_repo",
-        "packageName": "my_test_package",
+        "repositoryName": ["my_test_repo"],
+        "packageName": ["my_test_package"],
     }
 
 

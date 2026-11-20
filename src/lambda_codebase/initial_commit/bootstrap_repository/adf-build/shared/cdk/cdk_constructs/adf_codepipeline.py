@@ -818,9 +818,9 @@ class Pipeline(Construct):
         trigger_type = self._accepted_triggers[trigger_type]
 
         if trigger_type == self.CODEARTIFACT_TRIGGER:
-            details = {"repositoryName": trigger_config["repository"]}
+            details = {"repositoryName": [trigger_config["repository"]]}
             if trigger_config.get("package"):
-                details["packageName"] = trigger_config["package"]
+                details["packageName"] = [trigger_config["package"]]
             _eventbridge.Rule(
                 self,
                 (
