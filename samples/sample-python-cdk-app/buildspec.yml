@@ -6,12 +6,12 @@ version: 0.2
 # This sample demonstrates managing CDK versions INDEPENDENTLY from ADF by
 # using three isolated Python virtual environments in a single CodeBuild job:
 #
-#   * py-cdk-venv    -> the CDK application    (aws-cdk-lib==2.276.0)
-#   * py-adf-venv    -> ADF build tooling      (aws-cdk-lib~=2.277.0)
+#   * py-cdk-venv    -> the CDK application    (aws-cdk-lib==2.277.0)
+#   * py-adf-venv    -> ADF build tooling      (aws-cdk-lib~=2.278.0)
 #   * py-lambda-venv -> the Lambda's own deps  (aws-lambda-powertools, ...)
 #
-# Note the CDK *library* the app uses (2.276.0) is intentionally OLDER than the
-# one ADF uses (2.277.0), and the CDK *CLI* (2.1149.0) is versioned separately
+# Note the CDK *library* the app uses (2.277.0) is intentionally OLDER than the
+# one ADF uses (2.278.0), and the CDK *CLI* (2.1149.0) is versioned separately
 # again - none of them interfere because each lives in its own environment.
 
 phases:
