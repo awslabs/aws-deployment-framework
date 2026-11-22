@@ -1,10 +1,136 @@
-# Set update schedule for GitHub Actions
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependabot version updates for every dependency ecosystem in this
+# repository.
+#
+# Dependabot alerts come from the dependency graph and are not affected by
+# this file. This file controls which manifests Dependabot opens
+# version-update pull requests for, and how security-update pull requests are
+# grouped once Dependabot security updates are enabled.
+#
+# When you add a Lambda function, sample, or other folder that holds a
+# dependency manifest, check that it is covered by one of the entries below.
 
 version: 2
 updates:
-
   - package-ecosystem: "github-actions"
+    # "/" covers the workflows in .github/workflows.
     directory: "/"
     schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "pip"
+    # For each directory, Dependabot reads the *.txt and *.in requirement
+    # files in that directory and in its direct sub-directories (one level
+    # deep). The list below covers every requirements file exactly once.
+    # Do not add a directory that is a direct child of a listed directory,
+    # that would make two entries manage the same file.
+    directories:
+      # requirements.txt and requirements-dev.txt.
+      - "/"
+      - "/samples/sample-expunge-vpc/src/lambda_vpc"
+      - "/samples/sample-python-cdk-app/cdk"
+      - "/samples/sample-python-cdk-app/src/lambda/sample_fn"
+      - "/samples/sample-serverless-app"
+      # Its own requirements.txt, plus: account, account_processing,
+      # cleanup_legacy_stacks, cross_region_bucket, initial_commit,
+      # jump_role_manager, organization, and organization_unit.
+      - "/src/lambda_codebase"
+      # Its own requirements-dev.txt, plus adf-build.
+      - "/src/lambda_codebase/initial_commit/bootstrap_repository"
+      # Its own requirements.txt, plus determine_default_branch,
+      # initial_commit, and pipeline_management.
+      - "/src/lambda_codebase/initial_commit/bootstrap_repository/adf-bootstrap/deployment/lambda_codebase"
+      # Its own requirement files, plus helpers and python.
+      - "/src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared"
+    exclude-paths:
+      # Spell-check dictionary with one word per line, not a requirements
+      # file.
+      - "linters/**"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      # aws-sam-cli pins an exact boto3 version, for example aws-sam-cli
+      # 1.174.0 requires boto3==1.44.5. ADF pins boto3 and botocore to that
+      # same version in every requirements file that lists them. Dependabot
+      # cannot follow that pin, so bump boto3 and botocore by hand in the
+      # aws-sam-cli update pull request; CI fails until they match.
+      # This also stops Dependabot security-update pull requests for boto3
+      # and botocore. Dependabot alerts are still raised for them.
+      - dependency-name: "boto3"
+      - dependency-name: "botocore"
+    groups:
+      python-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      python-version-updates:
+        # One pull request per dependency, updating every directory at once.
+        group-by: dependency-name
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/samples/sample-cdk-app"
+      - "/samples/sample-fargate-node-app"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      npm-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      npm-version-updates:
+        group-by: dependency-name
+        patterns:
+          - "*"
+
+  - package-ecosystem: "maven"
+    # The Spring Boot starters inherit their versions from
+    # spring-boot-starter-parent, so updates arrive as parent version bumps.
+    # Dependabot does not currently manage the Maven wrapper in .mvn/wrapper.
+    directory: "/samples/sample-ec2-java-app-codedeploy"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "terraform"
+    directory: "/samples/sample-terraform/tf"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "docker"
+    # Dependabot only updates version-like image tags. A floating tag such
+    # as node:current-alpine produces no pull requests until it is pinned.
+    directories:
+      - "/samples/sample-fargate-node-app"
+      - "/tests/makefile/samconfig-portability"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      # Keep the Makefile test harness on ADF's Python version (3.12).
+      # As the tag only specifies major.minor, this entry raises no pull
+      # requests for the python image.
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
