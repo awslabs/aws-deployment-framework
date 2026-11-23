@@ -71,6 +71,35 @@ def test_fetch_accounts_for_target_ou_path():
             mock.assert_called_once_with(resolve_children=False)
 
 
+def test_fetch_accounts_for_target_ou_path_recursive_wildcard():
+    parameter_store = Mock()
+    parameter_store.client.put_parameter.return_value = True
+    with patch.object(ParameterStore, 'fetch_parameter') as mock:
+        organizations = Mock()
+        organizations.get_accounts_in_path.return_value = [
+            {"Name": "test-account-1", "Id": "1", "State": "ACTIVE"},
+        ]
+        cls = Target(
+            path="/workloads/**/*",
+            target_structure=TargetStructure(
+                target={"path": "/workloads/**/*"},
+            ),
+            organizations=organizations,
+            step={
+                "regions": ["region1"],
+            },
+        )
+        cls.fetch_accounts_for_target()
+        # The recursive suffix must be stripped before the OU path is
+        # resolved, otherwise '**' is looked up as an OU name.
+        organizations.get_accounts_in_path.assert_called_once_with(
+            "/workloads",
+            resolve_children=True,
+            ou_id=None,
+            excluded_paths=[],
+        )
+
+
 def test_fetch_accounts_for_target_account_id():
     parameter_store = Mock()
     parameter_store.client.put_parameter.return_value = True
