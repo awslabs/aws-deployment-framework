@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile versions
-MAKEFILE_VERSION := 2.3.4
+MAKEFILE_VERSION := 2.3.5
 UPDATE_VERSION := make/latest
 
 # If you change this Makefile, run:
@@ -94,7 +94,14 @@ update_makefile: report_makefile_version
 	@echo "$(CLR_GREEN)Update complete$(CLR_END)"
 
 report_makefile_version:
-	@echo "Makefile: v$(MAKEFILE_VERSION) $$(shasum --algorithm 256 Makefile)"
+	@( \
+		MAKEFILE_CHECKSUM="$$( \
+			shasum --algorithm 256 Makefile 2> /dev/null || \
+			sha256sum Makefile 2> /dev/null || \
+			echo 'n/a (shasum and sha256sum not found)' \
+		)"; \
+		echo "Makefile: v$(MAKEFILE_VERSION) $$MAKEFILE_CHECKSUM"; \
+	)
 
 report_versions: .venv report_makefile_version
 	@echo "$(CLR_YELLOW)*** Beginning of ADF Version Report ***$(CLR_END)"
