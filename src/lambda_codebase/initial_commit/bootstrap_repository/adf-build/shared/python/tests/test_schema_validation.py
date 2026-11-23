@@ -7,7 +7,7 @@ Tests for schema validation
 
 import unittest
 import schema_validation
-from schema import Schema
+from schema import Schema, SchemaError
 
 
 class NotificationSchemaValidationHappyPaths(unittest.TestCase):
@@ -248,3 +248,109 @@ class TargetSchemaValidationHappyPaths(unittest.TestCase):
             Schema(schema_validation.TARGET_SCHEMA).validate(target_schema),
             target_schema,
         )
+
+
+class PipelineSchemaValidationHappyPaths(unittest.TestCase):
+    def test_codecommit_source_props_schema_without_account_id(self):
+        codecommit_props = {
+            "repository": "a_repo_name",
+            "branch": "mainline",
+        }
+        expected_result = {**codecommit_props, "output_artifact_format": None}
+        self.assertDictEqual(
+            Schema(schema_validation.CODECOMMIT_SOURCE_PROPS).validate(
+                codecommit_props
+            ),
+            expected_result,
+        )
+
+    def test_pipeline_with_codecommit_source_without_account_id(self):
+        map_input = {
+            "pipelines": [
+                {
+                    "name": "a_pipeline",
+                    "default_providers": {
+                        "source": {
+                            "provider": "codecommit",
+                            "properties": {
+                                "repository": "a_repo_name",
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        validated = schema_validation.SchemaValidation(map_input).validated
+        self.assertEqual(
+            validated["pipelines"][0]["default_providers"]["source"][
+                "properties"
+            ],
+            {
+                "repository": "a_repo_name",
+            },
+        )
+
+    def test_pipeline_without_build_block(self):
+        map_input = {
+            "pipelines": [
+                {
+                    "name": "a_pipeline",
+                    "default_providers": {
+                        "source": {
+                            "provider": "codecommit",
+                            "properties": {
+                                "account_id": "111111111111",
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        validated = schema_validation.SchemaValidation(map_input).validated
+        self.assertNotIn(
+            "build",
+            validated["pipelines"][0]["default_providers"],
+        )
+
+
+class PipelineSchemaValidationUnhappyPaths(unittest.TestCase):
+    def test_pipeline_with_malformed_codecommit_account_id(self):
+        map_input = {
+            "pipelines": [
+                {
+                    "name": "a_pipeline",
+                    "default_providers": {
+                        "source": {
+                            "provider": "codecommit",
+                            "properties": {
+                                "account_id": "not_an_account_id",
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        with self.assertRaises(SchemaError):
+            schema_validation.SchemaValidation(map_input)
+
+    def test_pipeline_with_malformed_build_block(self):
+        map_input = {
+            "pipelines": [
+                {
+                    "name": "a_pipeline",
+                    "default_providers": {
+                        "source": {
+                            "provider": "codecommit",
+                            "properties": {
+                                "account_id": "111111111111",
+                            },
+                        },
+                        "build": {
+                            "provider": "not_a_valid_build_provider",
+                        },
+                    },
+                },
+            ],
+        }
+        with self.assertRaises(SchemaError):
+            schema_validation.SchemaValidation(map_input)
