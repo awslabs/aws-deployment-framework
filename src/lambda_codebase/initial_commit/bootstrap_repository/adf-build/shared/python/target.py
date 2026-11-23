@@ -268,9 +268,14 @@ class Target:
         self._create_response_object(responses)
 
     def _target_is_ou_path(self, resolve_children=False):
+        path = str(self.path)
+        if resolve_children:
+            # Strip the recursive wildcard suffix, the OU path lookup only
+            # accepts the plain OU path (e.g. /workloads for /workloads/**/*)
+            path = path[:-len(RECURSIVE_SUFFIX)]
         try:
             responses = self.organizations.get_accounts_in_path(
-                self.path,
+                path,
                 resolve_children=resolve_children,
                 ou_id=None,
                 excluded_paths=[],
