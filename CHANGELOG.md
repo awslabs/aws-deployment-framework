@@ -7,6 +7,124 @@ specification](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v4.1.0
+
+This release of the AWS Deployment Framework (ADF) adds the option to disable
+the tests in the bootstrap pipeline and support for up to 1000 actions per
+pipeline. It also fixes the IAM `iam:PassRole` permissions required when
+updating the deployment bootstrap stack, improves the Organizations API
+retries and caching, and moves ADF to the AWS Organizations account `State`
+field, as the `Status` field is deprecated. Dependencies, including the AWS
+CDK, the AWS SAM CLI, and boto3, are updated to their latest versions. The
+CodeBuild image used by the ADF bootstrap projects moves to
+`aws/codebuild/standard:8.0`.
+
+There are no breaking changes in this release.
+
+Many thanks to our community for driving this release. And a special welcome
+and thanks to @AdnaneKhan, @danxie1999, and @monicamico for their first
+contributions to ADF!
+
+As with every release, it is strongly recommended to thoroughly review and test
+this version of ADF in a non-production environment first.
+
+In case you are upgrading, please follow [the admin guide on updating
+ADF](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/admin-guide.md#updating-between-versions).
+For a new installation, please read the [Installation
+Guide](https://github.com/awslabs/aws-deployment-framework/blob/make/latest/docs/installation-guide.md).
+
+### Features
+
+- Add option to disable tests in bootstrap pipeline (#796) by @igordust.
+- Add support for 1000 actions per pipeline and 100 actions per wave (#799) by
+  @alexevansigg, resolves #792.
+
+### Fixes
+
+- Fix Terraform pipeline after the upgrade to v4.0.0, by adding the `encrypt`
+  property to the S3 backend definition and `s3 cp` command, and allowing the
+  CodeBuild role in the deployment account to read AWS Organizations (#746) by
+  @stemons, resolves #744 and #745.
+- Fix jump role manager AWS Organizations API retries (#774) by @sbkok.
+- Fix jump role policy generation when bootstrapping more than 361 accounts
+  (#751) by @sbkok, resolves #750.
+- Fix validation of notification endpoint to raise when empty (#753) by @sbkok,
+  resolves #747.
+- Fix `repository_name` in ECR ARN image property of the CodeBuild provider
+  (#785) by @danxie1999.
+- Fix pipeline management update of Lambda functions, adds `lambda:ListTags`
+  permission (#748) by @sujay0412.
+- Fix deployment bootstrap IAM PassRole permissions (#776) by @sbkok, resolves
+  #755.
+- Fix account filtering to use the AWS Organizations account `State` field over
+  the deprecated `Status` field (#815) by @monicamico, resolves #812.
+- Fix CodeArtifact trigger event pattern values to be wrapped in arrays (#840)
+  by @sbkok.
+
+### Improvements
+
+- Update to CDK v2.204, SAM CLI 1.142, and others (#803) by @sbkok.
+- Update to CDK v2.268, SAM CLI 1.166.1, and others (#816) by @sbkok.
+- Update to CDK v2.270, SAM CLI 1.166.2, and CodeBuild to standard:8.0 (#830)
+  by @sbkok.
+- Update to CDK v2.277, SAM CLI 1.174.0, and boto3 1.44.5 (#839) by @sbkok.
+- Update to CDK v2.278 for the patched minimatch (#844) by @sbkok.
+- Remove Python 3.9 build support ahead of deprecation (#805) by @sbkok.
+- Replace unmaintained `docopt` with `docopt-ng` (#831) by @sbkok.
+- Add caching to Organizations API calls (#789) by @igordust, resolves #781,
+  #784, and #788.
+- Apply caching when handling parameters (#790) by @sbkok, resolves #781.
+
+#### Installation improvements
+
+- Fix installation by installing the `packaging` module and update the
+  Makefile version (#743) by @igordust, resolves #742.
+- Fix installer on ARM 64-bit (#775) by @sbkok.
+- Update `sed` probe in `verify_tooling` to detect BSD `sed` (macOS) (#828) by
+  @sbkok.
+- Check for tarfile `data_filter` instead of Python patch version (#829) by
+  @sbkok.
+- Clarify install next steps with personalized AWS Console URLs (#834) by
+  @sbkok.
+- Fall back to `sha256sum` when `shasum` is unavailable in the Makefile
+  version report (#841) by @sbkok.
+
+#### Documentation, ADF GitHub, and code only improvements
+
+- Megalinter v8.1 (#738) by @javydekoning.
+- Remove RDK sample (#739) by @javydekoning.
+- Patch CVE-2024-45296 and bump the version of the Fargate Node sample (#768)
+  by @javydekoning.
+- Bump `cookie` and `express` in `/samples/sample-fargate-node-app` (#773) by
+  @dependabot.
+- Bump `path-to-regexp` and `express` in `/samples/sample-fargate-node-app`
+  (#778) by @dependabot.
+- Linter upgrade and fixes (#793) by @javydekoning.
+- Fix build status badges in readme (#797) by @sbkok.
+- Update sample dependencies (#804) by @sbkok.
+- Scope down permissions for mega-linter.yml (#808) by @AdnaneKhan.
+- Update MegaLinter to v10 and CodeQL to v4 (#817) by @sbkok.
+- Bump `actions/setup-python` from 5 to 7 (#818) by @dependabot.
+- Bump `actions/checkout` from 4 to 7 (#821) by @dependabot.
+- Upgrade samples to the latest runtimes and dependencies, including Node.js
+  24, Corretto 25, and Spring Boot 4 (#822 and #833) by @sbkok.
+- Stop GitHub Workflows running twice per commit (#823) by @sbkok.
+- Make lychee resilient to timeouts and exclude gnu.org (#824) by @sbkok.
+- Add Python CDK sample with independent CDK versioning (#826) by @sbkok.
+- Restrict `GITHUB_TOKEN` to least privilege (#827) by @sbkok.
+- Fix deploy-blocking errors in EC2 CodeDeploy samples (#832) by @sbkok.
+- Bump `body-parser` in `/samples/sample-fargate-node-app` (#835) by
+  @dependabot.
+- Bump `pylint` from 4.0.8 to 4.0.9 (#836) by @dependabot.
+- Bump `proxy-addr` in `/samples/sample-fargate-node-app` (#837) by
+  @dependabot.
+- Bump `brace-expansion` in `/samples/sample-cdk-app` (#838) by @dependabot.
+- Monitor all dependency ecosystems daily with Dependabot (#843) by @sbkok.
+- Fix the Terraform sample to use a valid `hashicorp/aws` provider version
+  constraint (#845) by @sbkok.
+
+---
+
 ## v4.0.0
 
 This is a security-focused release of the AWS Deployment Framework (ADF) that

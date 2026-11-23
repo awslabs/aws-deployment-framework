@@ -1048,7 +1048,7 @@ In the management account in `us-east-1`:
 2. There might be a pull request if the `aws-deployment-framework-bootstrap`
    repository that you have has to be updated to apply recent changes of ADF.
    This would show up with the version that you deployed recently, for example
-   `v4.0.0`.
+   `v4.1.0`.
 3. If there is no pull request, nothing to worry about. In that case, no
    changes were required in your repository for this update. Continue to
    the next step. If there is a pull request, open it and review the

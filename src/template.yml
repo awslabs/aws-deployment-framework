@@ -18,13 +18,13 @@ Metadata:
     Labels:
       ["adf", "aws-deployment-framework", "multi-account", "cicd", "devops"]
     HomePageUrl: https://github.com/awslabs/aws-deployment-framework
-    SemanticVersion: 4.0.0
+    SemanticVersion: 4.1.0
     SourceCodeUrl: https://github.com/awslabs/aws-deployment-framework
 
 Mappings:
   Metadata:
     ADF:
-      Version: 4.0.0
+      Version: 4.1.0
 
 Parameters:
   CrossAccountAccessRoleName:

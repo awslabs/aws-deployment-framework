@@ -1,5 +1,5 @@
 # Install libs here that you might want in AWS CodeBuild
-aws-cdk-lib~=2.277.0
+aws-cdk-lib~=2.278.0
 constructs>=10.8.1,<11.0.0
 aws-sam-cli==1.174.0
 boto3==1.44.5
