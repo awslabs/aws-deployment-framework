@@ -10,13 +10,13 @@ This sample deploys a single **"Hello World" AWS Lambda function** using the
 
    | Virtual environment | Purpose               | Version                                  |
    | ------------------- | --------------------- | ---------------------------------------- |
-   | `py-cdk-venv`       | The CDK application   | `aws-cdk-lib==2.276.0`                   |
-   | `py-adf-venv`       | ADF build tooling     | `aws-cdk-lib~=2.277.0` (provided by ADF) |
+   | `py-cdk-venv`       | The CDK application   | `aws-cdk-lib==2.277.0`                   |
+   | `py-adf-venv`       | ADF build tooling     | `aws-cdk-lib~=2.278.0` (provided by ADF) |
    | `py-lambda-venv`    | The Lambda's own deps | `aws-lambda-powertools`, `aws-xray-sdk`  |
 
    The CDK **CLI** is pinned separately again (`aws-cdk@2.1149.0`). Because each
-   environment is isolated, the older application library (`2.276.0`) never
-   conflicts with the newer library ADF relies on (`2.277.0`).
+   environment is isolated, the older application library (`2.277.0`) never
+   conflicts with the newer library ADF relies on (`2.278.0`).
 
 2. **A Lambda function managed as source, with its own dependencies.** The
    handler lives in [`src/lambda/sample_fn`](./src/lambda/sample_fn) and declares
@@ -60,7 +60,7 @@ sample-python-cdk-app/
 ├── cdk/
 │   ├── app.py                        # CDK app entrypoint
 │   ├── cdk.json
-│   ├── requirements.txt              # aws-cdk-lib==2.276.0 (older than ADF)
+│   ├── requirements.txt              # aws-cdk-lib==2.277.0 (older than ADF)
 │   └── stack/
 │       ├── __init__.py
 │       └── sample_stack.py           # single Hello World Lambda
