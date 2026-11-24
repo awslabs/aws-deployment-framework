@@ -4,7 +4,7 @@ constructs>=10.8.1,<11.0.0
 aws-sam-cli==1.174.0
 boto3==1.44.5
 botocore==1.44.5
-pyyaml~=6.0.3
+pyyaml~=6.0.4
 schema~=0.7.8
 tenacity==9.2.1
 typing-extensions~=4.16.0
