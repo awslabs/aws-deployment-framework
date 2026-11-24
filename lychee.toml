@@ -35,6 +35,8 @@ exclude = [
     # www.gnu.org rate-limits and times out this workflow (it queries the
     # host frequently). The links are known-good, so skip checking them.
     '^https?://www\.gnu\.org/',
+    # Megalinter returns 503 errors when fetched as part of the CI
+    '^https?://megalinter\.io/',
 ]
 
 # Paths to skip. Values are regular expressions.
