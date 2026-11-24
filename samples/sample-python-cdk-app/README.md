@@ -4,19 +4,26 @@ This sample deploys a single **"Hello World" AWS Lambda function** using the
 **AWS CDK for Python**. Its purpose is to demonstrate two things:
 
 1. **You can manage your CDK version independently from ADF.** This application
-   pins an _older_ CDK library than ADF itself uses, and a separately-versioned
-   CDK CLI, yet still integrates cleanly with the ADF build tooling. This is
-   achieved by building each concern in its own Python virtual environment:
+   defines its own CDK library version range, and a separately-versioned CDK
+   CLI, yet still integrates cleanly with the ADF build tooling. The version
+   the application resolves can be newer or older than the one ADF uses. This
+   is achieved by building each concern in its own Python virtual environment:
 
    | Virtual environment | Purpose               | Version                                  |
    | ------------------- | --------------------- | ---------------------------------------- |
-   | `py-cdk-venv`       | The CDK application   | `aws-cdk-lib==2.277.0`                   |
+   | `py-cdk-venv`       | The CDK application   | `aws-cdk-lib>=2.278.0,<3.0.0`            |
    | `py-adf-venv`       | ADF build tooling     | `aws-cdk-lib~=2.278.0` (provided by ADF) |
    | `py-lambda-venv`    | The Lambda's own deps | `aws-lambda-powertools`, `aws-xray-sdk`  |
 
-   The CDK **CLI** is pinned separately again (`aws-cdk@2.1149.0`). Because each
-   environment is isolated, the older application library (`2.277.0`) never
-   conflicts with the newer library ADF relies on (`2.278.0`).
+   The CDK **CLI** is installed separately again (`aws-cdk@^2`). Because each
+   environment is isolated, the CDK library the application resolves never
+   conflicts with the library ADF relies on, whichever of the two is newer.
+
+   The CLI floats on the latest 2.x release alongside the library range, as a
+   newer `aws-cdk-lib` can require a newer CLI than an older pinned one
+   supports (`This CDK CLI is not compatible with the CDK library`). If you
+   pin the CLI instead, make sure the library range does not resolve to a
+   release newer than the pinned CLI.
 
 2. **A Lambda function managed as source, with its own dependencies.** The
    handler lives in [`src/lambda/sample_fn`](./src/lambda/sample_fn) and declares
@@ -52,6 +59,35 @@ resolvers instead of CDK asset staging:
 > the region the pipeline deploys to. Add additional `params/global_<region>.yml`
 > files for other target regions.
 
+## When ADF and your app need different CDK versions
+
+ADF installs its own CDK library (`aws-cdk-lib~=2.278.0`, defined in
+`src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/requirements.txt`)
+into `py-adf-venv`. Your application does not have to follow that version.
+
+For example, a new CDK release can ship a security fix that your application
+needs right away. With the range in
+[`cdk/requirements.txt`](./cdk/requirements.txt) (`>=2.278.0,<3.0.0`), the
+next build of your pipeline installs the latest 2.x release into
+`py-cdk-venv`, while ADF keeps using its own version in `py-adf-venv`. You get
+the fix in your application without waiting for an ADF release that bumps its
+CDK version.
+
+The reverse works as well: if a newer CDK release breaks your application,
+you can pin an older version in `cdk/requirements.txt` while ADF moves ahead.
+The floating CLI remains compatible, as a CDK v2 CLI supports every
+`aws-cdk-lib` release that came before it.
+
+## What to look for in the build logs
+
+After the Lambda package is built, the build prints the output of
+`pip freeze` for `py-adf-venv` and for `py-cdk-venv`. Compare the two
+listings to see that each environment has its own set of packages and
+versions. For example, `aws-cdk-lib` can differ between them, as can a
+dependency that both environments share, such as `constructs` or `jsii`.
+Since each environment resolves its own dependencies, that is expected and
+harmless.
+
 ## Repository layout
 
 ```text
@@ -60,7 +96,7 @@ sample-python-cdk-app/
 ├── cdk/
 │   ├── app.py                        # CDK app entrypoint
 │   ├── cdk.json
-│   ├── requirements.txt              # aws-cdk-lib==2.277.0 (older than ADF)
+│   ├── requirements.txt              # aws-cdk-lib>=2.278.0,<3.0.0 (own range)
 │   └── stack/
 │       ├── __init__.py
 │       └── sample_stack.py           # single Hello World Lambda
