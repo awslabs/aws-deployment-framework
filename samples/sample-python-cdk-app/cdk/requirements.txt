@@ -1,6 +1,6 @@
 # This CDK application intentionally pins an OLDER CDK library than ADF uses.
 #
-#   * This app  -> aws-cdk-lib==2.277.0   (pinned here)
+#   * This app  -> aws-cdk-lib==2.278.0   (pinned here)
 #   * ADF itself -> aws-cdk-lib~=2.278.0  (see
 #     src/lambda_codebase/initial_commit/bootstrap_repository/adf-build/shared/requirements.txt)
 #
@@ -8,5 +8,5 @@
 # buildspec.yml), separate from ADF's environment (py-adf-venv), the two can
 # use different CDK versions without any conflict. This demonstrates that you
 # can manage your application's CDK version independently from ADF.
-aws-cdk-lib==2.277.0
+aws-cdk-lib==2.278.0
 constructs>=10.8.1,<11.0.0
