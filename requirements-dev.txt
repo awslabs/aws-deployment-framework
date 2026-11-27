@@ -5,6 +5,6 @@ pre-commit==4.7.0
 pylint==4.1.4
 pytest~=9.2.0
 pytest-cov==7.1.0
-tox==4.67.15
+tox==4.67.16
 yamllint==1.38.0
 yq==4.4.5
